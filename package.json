@@ -1,0 +1,52 @@
+{
+  "name": "tspace-mysql",
+  "version": "1.0.0",
+  "description": "mysql query builder object relational mapping",
+  "main": "./dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "tspace-mysql": "./dist/cli/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thanathip41/tspace-mysql.git"
+  },
+  "keywords": [
+    "tspace",
+    "orm",
+    "object relation model",
+    "database",
+    "mysql",
+    "query",
+    "builder",
+    "model",
+    "migrate",
+    "cli"
+  ],
+  "author": "Thanathip (https://github.com/thanathip41)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thanathip41/tspace-mysql"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "pluralize": "^8.0.0",
+    "mysql" : "2.18.1"
+  },
+  "homepage": "https://github.com/thanathip41",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test" : "ts-node test/index.ts",
+    "dev" : "set NODE_ENV=development&&ts-node test/index.ts",
+    "prod" : "set NODE_ENV=production&&ts-node test/index.ts"
+  },
+  "devDependencies": {
+    "@types/mysql": "^2.15.19",
+    "@types/node": "^16.4.0",
+    "@types/pluralize": "0.0.29"
+  }
+}
