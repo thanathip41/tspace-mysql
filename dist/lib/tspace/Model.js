@@ -127,9 +127,12 @@ var Model = /** @class */ (function (_super) {
         return this;
     };
     Model.prototype.usePattern = function (pattern) {
-        var allowPattern = [this.$utils().constants('PATTERN').snake_case, this.$utils().constants('PATTERN').camelCase];
+        var allowPattern = [
+            this.$utils().constants('PATTERN').snake_case,
+            this.$utils().constants('PATTERN').camelCase
+        ];
         if (!allowPattern.includes(pattern))
-            throw new Error("allow pattern " + allowPattern + " only");
+            throw new Error("allow pattern ".concat(allowPattern, " only"));
         this.$db.set('PATTERN', pattern);
         return this;
     };
@@ -142,9 +145,9 @@ var Model = /** @class */ (function (_super) {
         return this;
     };
     Model.prototype.useTable = function (table) {
-        this.$db.set('TABLE_NAME', "`" + table + "`");
-        this.$db.get('SELECT', this.$utils().constants('SELECT') + " *");
-        this.$db.get('FROM', this.$utils().constants('FROM') + "'");
+        this.$db.set('TABLE_NAME', "`".concat(table, "`"));
+        this.$db.get('SELECT', "".concat(this.$utils().constants('SELECT'), " *"));
+        this.$db.get('FROM', "".concat(this.$utils().constants('FROM'), "'"));
         return this;
     };
     Model.prototype.disabledSoftDelete = function () {
@@ -155,13 +158,13 @@ var Model = /** @class */ (function (_super) {
         this.$db.set('REGISTRY', __assign(__assign({}, func), { attach: this._attach, detach: this._detach }));
         return this;
     };
-    Model.prototype.withQuery = function (name, callback) {
+    Model.prototype.withQuery = function (name, cb) {
         var relation = this.$db.get('WITH').find(function (data) { return data.name === name; });
         if (relation == null)
-            throw new Error("relation " + name + " not be register !");
+            throw new Error("relation ".concat(name, " not be register !"));
         if (!Object.values(this.$utils().constants('RELATIONSHIP')).includes(relation.relation))
-            throw new Error("unknow relationship in [" + this.$utils().constants('RELATIONSHIP') + "] !");
-        relation.query = callback(new relation.model());
+            throw new Error("unknow relationship in [".concat(this.$utils().constants('RELATIONSHIP'), "] !"));
+        relation.query = cb(new relation.model());
         return this;
     };
     Model.prototype.with = function () {
@@ -174,9 +177,10 @@ var Model = /** @class */ (function (_super) {
             var _a;
             var relation = (_a = _this.$db.get('RELATION')) === null || _a === void 0 ? void 0 : _a.find(function (data) { return data.name === name; });
             if (relation == null)
-                throw new Error("relation " + name + " not be register !");
-            if (!Object.values(_this.$utils().constants('RELATIONSHIP')).includes(relation.relation))
-                throw new Error("unknow relationship in [" + _this.$utils().constants('RELATIONSHIP') + "] !");
+                throw new Error("relation ".concat(name, " not be register !"));
+            if (!Object.values(_this.$utils().constants('RELATIONSHIP')).includes(relation.relation)) {
+                throw new Error("unknow relationship in [".concat(_this.$utils().constants('RELATIONSHIP'), "] !"));
+            }
             relation.query = new relation.model();
             return relation;
         });
@@ -198,10 +202,10 @@ var Model = /** @class */ (function (_super) {
         var operator = '=';
         id = this.$utils().escape(id);
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE'))) {
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + id + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
             return this;
         }
-        this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + operator + " '" + id + "'");
+        this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
         return this;
     };
     Model.prototype.hasOne = function (_a) {
@@ -296,12 +300,16 @@ var Model = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             var updatedAt, deletedAt, query;
             return __generator(this, function (_a) {
-                updatedAt = this._isPatternSnakeCase() ? 'updated_at' : 'updatedAt';
-                deletedAt = this._isPatternSnakeCase() ? 'deleted_at' : 'deletedAt';
-                query = this.$db.get('TIMESTAMP') ? deletedAt + " = NULL , " + updatedAt + " = '" + this.$utils().timestamp() + "'" : deletedAt + " = NULL";
-                this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " SET " + query);
-                this.$db.set('SAVE', 'UPDATE');
-                return [2 /*return*/, this.save()];
+                switch (_a.label) {
+                    case 0:
+                        updatedAt = this._isPatternSnakeCase() ? 'updated_at' : 'updatedAt';
+                        deletedAt = this._isPatternSnakeCase() ? 'deleted_at' : 'deletedAt';
+                        query = this.$db.get('TIMESTAMP') ? "".concat(deletedAt, " = NULL , ").concat(updatedAt, " = '").concat(this.$utils().timestamp(), "'") : "".concat(deletedAt, " = NULL");
+                        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " SET ").concat(query));
+                        this.$db.set('SAVE', 'UPDATE');
+                        return [4 /*yield*/, this.save()];
+                    case 1: return [2 /*return*/, _a.sent()];
+                }
             });
         });
     };
@@ -355,7 +363,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + column);
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(column));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -379,7 +387,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('AVG') + "(" + column + ") " + this.$utils().constants('AS') + " avg");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('AVG'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " avg"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -402,7 +410,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('SUM') + "(" + column + ") " + this.$utils().constants('AS') + " sum");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('SUM'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " sum"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -425,7 +433,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('MAX') + "(" + column + ") " + this.$utils().constants('AS') + " max");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('MAX'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " max"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -448,7 +456,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('MIN') + "(" + column + ") " + this.$utils().constants('AS') + " min");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('MIN'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " min"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -471,7 +479,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('COUNT') + "(" + column + ") " + this.$utils().constants('AS') + " total");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('COUNT'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " total"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -497,19 +505,19 @@ var Model = /** @class */ (function (_super) {
                             throw new Error("Can't delete without where condition");
                         if (!this.$db.get('SOFT_DELETE')) return [3 /*break*/, 2];
                         deletedAt = this._isPatternSnakeCase() ? 'deleted_at' : 'deletedAt';
-                        query = deletedAt + " = '" + this.$utils().timestamp() + "'";
-                        sql = this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('SET') + " " + query;
+                        query = "".concat(deletedAt, " = '").concat(this.$utils().timestamp(), "'");
+                        sql = "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('SET'), " ").concat(query);
                         if (this.$db.get('TIMESTAMP')) {
                             updatedAt = this._isPatternSnakeCase() ? 'updated_at' : 'updatedAt';
-                            sql = sql + " , " + updatedAt + " = '" + this.$utils().timestamp() + "'";
+                            sql = "".concat(sql, " , ").concat(updatedAt, " = '").concat(this.$utils().timestamp(), "'");
                         }
-                        this.$db.set('UPDATE', sql + " " + this.$db.get('WHERE'));
+                        this.$db.set('UPDATE', "".concat(sql, " ").concat(this.$db.get('WHERE')));
                         return [4 /*yield*/, this._actionStatementModel({ sql: this.$db.get('UPDATE') })];
                     case 1:
                         result_1 = _c.sent();
                         return [2 /*return*/, (_a = !!result_1) !== null && _a !== void 0 ? _a : false];
                     case 2:
-                        this.$db.set('DELETE', this.$utils().constants('DELETE') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'));
+                        this.$db.set('DELETE', "".concat(this.$utils().constants('DELETE'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')));
                         return [4 /*yield*/, this._actionStatementModel({ sql: this.$db.get('DELETE') })];
                     case 3:
                         result = _c.sent();
@@ -538,9 +546,9 @@ var Model = /** @class */ (function (_super) {
                     case 2:
                         sql = this._getSQLModel();
                         if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " 1";
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " 1");
                         else
-                            sql = sql.replace(this.$db.get('LIMIT'), this.$utils().constants('LIMIT') + " 1");
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " 1"));
                         return [4 /*yield*/, this._exec(sql, 'FIRST')];
                     case 3: return [2 /*return*/, _b.sent()];
                 }
@@ -558,7 +566,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME');
+                        sql = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         result = _a.sent();
@@ -578,7 +586,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         result = _a.sent();
@@ -607,9 +615,9 @@ var Model = /** @class */ (function (_super) {
                     case 2:
                         sql = this._getSQLModel();
                         if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " 1";
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " 1");
                         else
-                            sql = sql.replace(this.$db.get('LIMIT'), this.$utils().constants('LIMIT') + " 1");
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " 1"));
                         return [4 /*yield*/, this._exec(sql, 'FIRST')];
                     case 3: return [2 /*return*/, _b.sent()];
                 }
@@ -692,9 +700,9 @@ var Model = /** @class */ (function (_super) {
                         this.$db.set('PAGE', page);
                         sql = this._getSQLModel();
                         if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " " + limit + " " + this.$utils().constants('OFFSET') + " " + offset;
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset);
                         else
-                            sql = sql.replace(this.$db.get('LIMIT'), this.$utils().constants('LIMIT') + " " + limit + " " + this.$utils().constants('OFFSET') + " " + offset);
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset));
                         return [4 /*yield*/, this._exec(sql, 'PAGINATION')];
                     case 3: return [2 /*return*/, _g.sent()];
                 }
@@ -722,9 +730,9 @@ var Model = /** @class */ (function (_super) {
                         this.$db.set('PAGE', page);
                         sql = this._getSQLModel();
                         if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " " + limit + " " + this.$utils().constants('OFFSET') + " " + offset;
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset);
                         else
-                            sql = sql.replace(this.$db.get('LIMIT'), this.$utils().constants('LIMIT') + " " + limit + " " + this.$utils().constants('OFFSET') + " " + offset);
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset));
                         return [4 /*yield*/, this._exec(sql, 'PAGINATION')];
                     case 3: return [2 /*return*/, _g.sent()];
                 }
@@ -749,8 +757,8 @@ var Model = /** @class */ (function (_super) {
                         _b.sent();
                         _b.label = 2;
                     case 2:
-                        this.$db.set('GROUP_BY', this.$utils().constants('GROUP_BY') + " " + column);
-                        this.$db.set('SELECT', this.$db.get('SELECT') + ", " + this.$utils().constants('GROUP_CONCAT') + "(id) " + this.$utils().constants('AS') + " data");
+                        this.$db.set('GROUP_BY', "".concat(this.$utils().constants('GROUP_BY'), " ").concat(column));
+                        this.$db.set('SELECT', "".concat(this.$db.get('SELECT'), ", ").concat(this.$utils().constants('GROUP_CONCAT'), "(id) ").concat(this.$utils().constants('AS'), " data"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 3:
@@ -761,7 +769,7 @@ var Model = /** @class */ (function (_super) {
                             var splits = (_b = (_a = result === null || result === void 0 ? void 0 : result.data) === null || _a === void 0 ? void 0 : _a.split(',')) !== null && _b !== void 0 ? _b : '0';
                             splits.forEach(function (split) { return data = __spreadArray(__spreadArray([], __read(data), false), [split], false); });
                         });
-                        sqlChild = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id " + this.$utils().constants('IN') + " (" + (data.map(function (a) { return "'" + a + "'"; }).join(',') || ['0']) + ")";
+                        sqlChild = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id ").concat(this.$utils().constants('IN'), " (").concat(data.map(function (a) { return "'".concat(a, "'"); }).join(',') || ['0'], ")");
                         return [4 /*yield*/, this._queryStatementModel(sqlChild)];
                     case 4:
                         childData = _b.sent();
@@ -789,7 +797,7 @@ var Model = /** @class */ (function (_super) {
    */
     Model.prototype.update = function (objects) {
         var query = this._queryUpdateModel(objects);
-        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'UPDATE');
         return this;
     };
@@ -800,7 +808,7 @@ var Model = /** @class */ (function (_super) {
     */
     Model.prototype.insert = function (objects) {
         var query = this._queryInsertModel(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT');
         return this;
     };
@@ -811,7 +819,7 @@ var Model = /** @class */ (function (_super) {
     */
     Model.prototype.create = function (objects) {
         var query = this._queryInsertModel(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT');
         return this;
     };
@@ -823,8 +831,8 @@ var Model = /** @class */ (function (_super) {
     Model.prototype.updateOrCreate = function (objects) {
         var queryUpdate = this._queryUpdateModel(objects);
         var queryInsert = this._queryInsertModel(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + queryInsert);
-        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + queryUpdate);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryInsert));
+        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryUpdate));
         this.$db.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
     };
@@ -847,7 +855,7 @@ var Model = /** @class */ (function (_super) {
     */
     Model.prototype.createMultiple = function (data) {
         var query = this._queryInsertMultipleModel(data);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     };
@@ -858,7 +866,7 @@ var Model = /** @class */ (function (_super) {
     */
     Model.prototype.insertMultiple = function (data) {
         var query = this._queryInsertMultipleModel(data);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     };
@@ -931,9 +939,9 @@ var Model = /** @class */ (function (_super) {
     };
     Model.prototype._tableName = function () {
         var tb = this._classToTableName();
-        this.$db.set('SELECT', this.$utils().constants('SELECT') + " *");
-        this.$db.set('FROM', "" + this.$utils().constants('FROM'));
-        this.$db.set('TABLE_NAME', "`" + tb + "`");
+        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " *"));
+        this.$db.set('FROM', "".concat(this.$utils().constants('FROM')));
+        this.$db.set('TABLE_NAME', "`".concat(tb, "`"));
         return this;
     };
     Model.prototype._valueInRelation = function (data) {
@@ -996,7 +1004,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SHOW') + " " + this.$utils().constants('COLUMNS') + " " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME');
+                        sql = "".concat(this.$utils().constants('SHOW'), " ").concat(this.$utils().constants('COLUMNS'), " ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         rawColumns = _a.sent();
@@ -1216,12 +1224,12 @@ var Model = /** @class */ (function (_super) {
                         local = this.$utils().columnRelation(this.constructor.name);
                         modelOther = new dataRelation.model();
                         other_1 = this._classToTableName(modelOther.constructor.name, true);
-                        pivotTable = (_a = dataRelation.freezeTable) !== null && _a !== void 0 ? _a : local + "_" + other_1;
+                        pivotTable = (_a = dataRelation.freezeTable) !== null && _a !== void 0 ? _a : "".concat(local, "_").concat(other_1);
                         pk_1 = 'id';
-                        fk_1 = this._isPatternSnakeCase() ? local + "_id" : local + "Id";
+                        fk_1 = this._isPatternSnakeCase() ? "".concat(local, "_id") : "".concat(local, "Id");
                         otherPk_1 = 'id';
-                        otherFk_1 = this._isPatternSnakeCase() ? other_1 + "_id" : other_1 + "Id";
-                        sqlSubs = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + pivotTable + " " + this.$utils().constants('WHERE') + " " + fk_1 + " " + this.$utils().constants('IN') + " (" + mainId + ")";
+                        otherFk_1 = this._isPatternSnakeCase() ? "".concat(other_1, "_id") : "".concat(other_1, "Id");
+                        sqlSubs = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_1, " ").concat(this.$utils().constants('IN'), " (").concat(mainId, ")");
                         return [4 /*yield*/, this._queryStatementModel(sqlSubs)];
                     case 1:
                         subs_1 = _e.sent();
@@ -1263,12 +1271,12 @@ var Model = /** @class */ (function (_super) {
                         local = this.$utils().columnRelation(this.constructor.name);
                         modelOther = new dataRelation.model();
                         other_2 = modelOther.constructor.name.toLocaleLowerCase();
-                        pivotTable = (_b = dataRelation.freezeTable) !== null && _b !== void 0 ? _b : other_2 + "_" + local;
+                        pivotTable = (_b = dataRelation.freezeTable) !== null && _b !== void 0 ? _b : "".concat(other_2, "_").concat(local);
                         pk_2 = 'id';
-                        fk_2 = this._isPatternSnakeCase() ? local + "_id" : local + "Id";
+                        fk_2 = this._isPatternSnakeCase() ? "".concat(local, "_id") : "".concat(local, "Id");
                         otherPk_2 = 'id';
-                        otherFk_2 = this._isPatternSnakeCase() ? other_2 + "_id" : other_2 + "Id";
-                        sqlSubs = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + pivotTable + " " + this.$utils().constants('WHERE') + " " + fk_2 + " " + this.$utils().constants('IN') + " (" + mainId + ")";
+                        otherFk_2 = this._isPatternSnakeCase() ? "".concat(other_2, "_id") : "".concat(other_2, "Id");
+                        sqlSubs = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_2, " ").concat(this.$utils().constants('IN'), " (").concat(mainId, ")");
                         return [4 /*yield*/, this._queryStatementModel(sqlSubs)];
                     case 5:
                         subs_2 = _e.sent();
@@ -1315,7 +1323,7 @@ var Model = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         currentPage = this.$db.get('PAGE');
-                        this.select(this.$utils().constants('COUNT') + "(*) " + this.$utils().constants('AS') + " total");
+                        this.select("".concat(this.$utils().constants('COUNT'), "(*) ").concat(this.$utils().constants('AS'), " total"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
@@ -1429,20 +1437,20 @@ var Model = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         if (!Array.isArray(dataId))
-                            throw new Error("this " + dataId + " is not an array");
+                            throw new Error("this ".concat(dataId, " is not an array"));
                         relation = (_a = this.$db.get('RELATION')) === null || _a === void 0 ? void 0 : _a.find(function (data) { return data.name === name; });
                         if (!relation)
-                            throw new Error("unknow name relation [" + name + "] in model");
+                            throw new Error("unknow name relation [".concat(name, "] in model"));
                         thisTable = this.$utils().columnRelation(this.constructor.name);
                         relationTable = this._classToTableName(relation.model.name, true);
                         result = this.$db.get('RESULT');
                         _b.label = 1;
                     case 1:
                         _b.trys.push([1, 3, , 8]);
-                        pivotTable = thisTable + "_" + relationTable;
+                        pivotTable = "".concat(thisTable, "_").concat(relationTable);
                         return [4 /*yield*/, new DB_1.default().table(pivotTable).createMultiple(dataId.map(function (id) {
                                 var _a;
-                                return __assign((_a = {}, _a[_this._isPatternSnakeCase() ? relationTable + "_id" : relationTable + "Id"] = id, _a[_this._isPatternSnakeCase() ? thisTable + "_id" : thisTable + "Id"] = result === null || result === void 0 ? void 0 : result.id, _a), fields);
+                                return __assign((_a = {}, _a[_this._isPatternSnakeCase() ? "".concat(relationTable, "_id") : "".concat(relationTable, "Id")] = id, _a[_this._isPatternSnakeCase() ? "".concat(thisTable, "_id") : "".concat(thisTable, "Id")] = result === null || result === void 0 ? void 0 : result.id, _a), fields);
                             })).save()];
                     case 2:
                         success = _b.sent();
@@ -1456,10 +1464,10 @@ var Model = /** @class */ (function (_super) {
                         _b.label = 4;
                     case 4:
                         _b.trys.push([4, 6, , 7]);
-                        pivotTable = relationTable + "_" + thisTable;
+                        pivotTable = "".concat(relationTable, "_").concat(thisTable);
                         return [4 /*yield*/, new DB_1.default().table(pivotTable).createMultiple(dataId.map(function (id) {
                                 var _a;
-                                return __assign((_a = {}, _a[_this._isPatternSnakeCase() ? relationTable + "_id" : relationTable + "Id"] = id, _a[_this._isPatternSnakeCase() ? thisTable + "_id" : thisTable + "Id"] = result.id, _a), fields);
+                                return __assign((_a = {}, _a[_this._isPatternSnakeCase() ? "".concat(relationTable, "_id") : "".concat(relationTable, "Id")] = id, _a[_this._isPatternSnakeCase() ? "".concat(thisTable, "_id") : "".concat(thisTable, "Id")] = result.id, _a), fields);
                             })).save()];
                     case 5:
                         success = _b.sent();
@@ -1481,17 +1489,17 @@ var Model = /** @class */ (function (_super) {
                 switch (_c.label) {
                     case 0:
                         if (!Array.isArray(dataId))
-                            throw new Error("this " + dataId + " is not an array");
+                            throw new Error("this ".concat(dataId, " is not an array"));
                         relation = this.$db.get('RELATION').find(function (data) { return data.name === name; });
                         if (!relation)
-                            throw new Error("unknow name relation [" + name + "] in model");
+                            throw new Error("unknow name relation [".concat(name, "] in model"));
                         thisTable = this.$utils().columnRelation(this.constructor.name);
                         relationTable = this._classToTableName(relation.model.name, true);
                         result = this.$db.get('RESULT');
                         _c.label = 1;
                     case 1:
                         _c.trys.push([1, 10, , 22]);
-                        pivotTable = thisTable + "_" + relationTable;
+                        pivotTable = "".concat(thisTable, "_").concat(relationTable);
                         _c.label = 2;
                     case 2:
                         _c.trys.push([2, 7, 8, 9]);
@@ -1501,8 +1509,8 @@ var Model = /** @class */ (function (_super) {
                         if (!!dataId_1_1.done) return [3 /*break*/, 6];
                         id = dataId_1_1.value;
                         return [4 /*yield*/, new DB_1.default().table(pivotTable)
-                                .where(this._isPatternSnakeCase() ? relationTable + "_id" : relationTable + "Id", id)
-                                .where(this._isPatternSnakeCase() ? thisTable + "_id" : thisTable + "Id", result.id)
+                                .where(this._isPatternSnakeCase() ? "".concat(relationTable, "_id") : "".concat(relationTable, "Id"), id)
+                                .where(this._isPatternSnakeCase() ? "".concat(thisTable, "_id") : "".concat(thisTable, "Id"), result.id)
                                 .delete()];
                     case 4:
                         _c.sent();
@@ -1531,7 +1539,7 @@ var Model = /** @class */ (function (_super) {
                         _c.label = 11;
                     case 11:
                         _c.trys.push([11, 20, , 21]);
-                        pivotTable = relationTable + "_" + thisTable;
+                        pivotTable = "".concat(relationTable, "_").concat(thisTable);
                         _c.label = 12;
                     case 12:
                         _c.trys.push([12, 17, 18, 19]);
@@ -1541,8 +1549,8 @@ var Model = /** @class */ (function (_super) {
                         if (!!dataId_2_1.done) return [3 /*break*/, 16];
                         id = dataId_2_1.value;
                         return [4 /*yield*/, new DB_1.default().table(pivotTable)
-                                .where(this._isPatternSnakeCase() ? relationTable + "_id" : relationTable + "Id", id)
-                                .where(this._isPatternSnakeCase() ? thisTable + "_id" : thisTable + "Id", result.id)
+                                .where(this._isPatternSnakeCase() ? "".concat(relationTable, "_id") : "".concat(relationTable, "Id"), id)
+                                .where(this._isPatternSnakeCase() ? "".concat(thisTable, "_id") : "".concat(thisTable, "Id"), result.id)
                                 .delete()];
                     case 14:
                         _c.sent();
@@ -1580,11 +1588,11 @@ var Model = /** @class */ (function (_super) {
         }
         var keyValue = Object.entries(objects).map(function (_a) {
             var _b = __read(_a, 2), column = _b[0], value = _b[1];
-            return column + " = " + (value == null || value === 'NULL' ?
+            return "".concat(column, " = ").concat(value == null || value === 'NULL' ?
                 'NULL' :
-                "'" + _this.$utils().covertBooleanToNumber(value) + "'");
+                "'".concat(_this.$utils().covertBooleanToNumber(value), "'"));
         });
-        return this.$utils().constants('SET') + " " + keyValue;
+        return "".concat(this.$utils().constants('SET'), " ").concat(keyValue);
     };
     Model.prototype._queryInsertModel = function (objects) {
         var _a, _b;
@@ -1597,13 +1605,13 @@ var Model = /** @class */ (function (_super) {
         if (this.$db.get('UUID')) {
             objects = __assign(__assign({}, objects), (_b = {}, _b[this.$db.get('UUID_CUSTOM')] = this.$utils().generateUUID(), _b));
         }
-        var columns = Object.keys(objects).map(function (data) { return "" + data; });
+        var columns = Object.keys(objects).map(function (data) { return "".concat(data); });
         var values = Object.values(objects).map(function (data) {
-            return "" + (data == null || data === 'NULL' ?
+            return "".concat(data == null || data === 'NULL' ?
                 'NULL' :
-                "'" + _this.$utils().covertBooleanToNumber(data) + "'");
+                "'".concat(_this.$utils().covertBooleanToNumber(data), "'"));
         });
-        return "(" + columns + ") " + this.$utils().constants('VALUES') + " (" + values + ")";
+        return "(".concat(columns, ") ").concat(this.$utils().constants('VALUES'), " (").concat(values, ")");
     };
     Model.prototype._queryInsertMultipleModel = function (data) {
         var e_9, _a;
@@ -1622,11 +1630,11 @@ var Model = /** @class */ (function (_super) {
                 if (this.$db.get('UUID'))
                     objects[this.$db.get('UUID_CUSTOM')] = this.$utils().generateUUID();
                 var val = Object.values(objects).map(function (data) {
-                    return "" + (data == null || data === 'NULL' ?
+                    return "".concat(data == null || data === 'NULL' ?
                         'NULL' :
-                        "'" + _this.$utils().covertBooleanToNumber(data) + "'");
+                        "'".concat(_this.$utils().covertBooleanToNumber(data), "'"));
                 });
-                values.push("(" + val.join(',') + ")");
+                values.push("(".concat(val.join(','), ")"));
             }
         }
         catch (e_9_1) { e_9 = { error: e_9_1 }; }
@@ -1636,8 +1644,8 @@ var Model = /** @class */ (function (_super) {
             }
             finally { if (e_9) throw e_9.error; }
         }
-        var columns = Object.keys((_b = data[0]) !== null && _b !== void 0 ? _b : []).map(function (data) { return "" + data; });
-        return "(" + columns + ") " + this.$utils().constants('VALUES') + " " + values.join(',');
+        var columns = Object.keys((_b = data[0]) !== null && _b !== void 0 ? _b : []).map(function (data) { return "".concat(data); });
+        return "(".concat(columns, ") ").concat(this.$utils().constants('VALUES'), " ").concat(values.join(','));
     };
     Model.prototype._registry = function (data) {
         var _this = this;
@@ -1663,7 +1671,7 @@ var Model = /** @class */ (function (_super) {
                             throw new Error("Can't insert not exists without where condition");
                         sql = '';
                         check = false;
-                        sql = this.$utils().constants('SELECT') + " " + this.$utils().constants('EXISTS') + "(" + this.$utils().constants('SELECT') + " * " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE') + " " + this.$utils().constants('LIMIT') + " 1) " + this.$utils().constants('AS') + " 'exists'";
+                        sql = "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('EXISTS'), "(").concat(this.$utils().constants('SELECT'), " * ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('LIMIT'), " 1) ").concat(this.$utils().constants('AS'), " 'exists'");
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         _b = __read.apply(void 0, [_e.sent(), 1]), result = _b[0].exists;
@@ -1684,7 +1692,7 @@ var Model = /** @class */ (function (_super) {
                             });
                         }
                         if (!result_3) return [3 /*break*/, 5];
-                        sql_1 = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql_1 = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatementModel(sql_1)];
                     case 4:
                         data = _e.sent();
@@ -1721,7 +1729,7 @@ var Model = /** @class */ (function (_super) {
                             });
                         }
                         if (!result) return [3 /*break*/, 3];
-                        sql = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 2:
                         data = _c.sent();
@@ -1763,7 +1771,7 @@ var Model = /** @class */ (function (_super) {
                             }
                             finally { if (e_10) throw e_10.error; }
                         }
-                        sql = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id " + this.$utils().constants('IN') + " (" + arrayId + ")";
+                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id ").concat(this.$utils().constants('IN'), " (").concat(arrayId, ")");
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 2:
                         data = _d.sent();
@@ -1787,7 +1795,7 @@ var Model = /** @class */ (function (_super) {
                             throw new Error("Can't update or insert without where condition");
                         sql = '';
                         check = false;
-                        sql = this.$utils().constants('SELECT') + " " + this.$utils().constants('EXISTS') + "(" + this.$utils().constants('SELECT') + " * " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE') + " " + this.$utils().constants('LIMIT') + " 1) " + this.$utils().constants('AS') + " 'exists'";
+                        sql = "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('EXISTS'), "(").concat(this.$utils().constants('SELECT'), " * ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('LIMIT'), " 1) ").concat(this.$utils().constants('AS'), " 'exists'");
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         _b = __read.apply(void 0, [_f.sent(), 1]), result = _b[0].exists;
@@ -1808,7 +1816,7 @@ var Model = /** @class */ (function (_super) {
                             });
                         }
                         if (!result_5) return [3 /*break*/, 5];
-                        sql_2 = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql_2 = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatementModel(sql_2)];
                     case 4:
                         data = _f.sent();
@@ -1816,11 +1824,11 @@ var Model = /** @class */ (function (_super) {
                         this.$db.set('RESULT', resultData);
                         return [2 /*return*/, resultData];
                     case 5: return [2 /*return*/, null];
-                    case 6: return [4 /*yield*/, this._actionStatementModel({ sql: this.$db.get('UPDATE') + " " + this.$db.get('WHERE') })];
+                    case 6: return [4 /*yield*/, this._actionStatementModel({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
                     case 7:
                         result_6 = _f.sent();
                         if (!result_6) return [3 /*break*/, 9];
-                        return [4 /*yield*/, this._queryStatementModel(this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'))];
+                        return [4 /*yield*/, this._queryStatementModel("".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')))];
                     case 8:
                         data = _f.sent();
                         if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
@@ -1860,11 +1868,11 @@ var Model = /** @class */ (function (_super) {
                     case 0:
                         if (!this.$db.get('WHERE') && !ignoreWhere)
                             throw new Error("Can't update without where condition");
-                        return [4 /*yield*/, this._actionStatementModel({ sql: this.$db.get('UPDATE') + " " + this.$db.get('WHERE') })];
+                        return [4 /*yield*/, this._actionStatementModel({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
                     case 1:
                         result = _a.sent();
                         if (!result) return [3 /*break*/, 3];
-                        return [4 /*yield*/, this._queryStatementModel(this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'))];
+                        return [4 /*yield*/, this._queryStatementModel("".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')))];
                     case 2:
                         data = _a.sent();
                         if ((data === null || data === void 0 ? void 0 : data.length) > 1)
@@ -1895,12 +1903,12 @@ var Model = /** @class */ (function (_super) {
                         if ((_a = Object.keys(attributes)) === null || _a === void 0 ? void 0 : _a.length) {
                             if (this.$db.get('WHERE')) {
                                 query_1 = this._queryUpdateModel(attributes);
-                                this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query_1);
+                                this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query_1));
                                 this.$db.set('SAVE', 'UPDATE');
                                 return [2 /*return*/];
                             }
                             query = this._queryInsertModel(attributes);
-                            this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                            this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                             this.$db.set('SAVE', 'INSERT');
                         }
                         _b = this.$db.get('SAVE');
@@ -1922,7 +1930,7 @@ var Model = /** @class */ (function (_super) {
                     case 8: return [2 /*return*/, _c.sent()];
                     case 9: return [4 /*yield*/, this._updateOrInsertModel()];
                     case 10: return [2 /*return*/, _c.sent()];
-                    case 11: throw new Error("unknow this [" + this.$db.get('SAVE') + "]");
+                    case 11: throw new Error("unknow this [".concat(this.$db.get('SAVE'), "]"));
                 }
             });
         });
@@ -1947,7 +1955,7 @@ var Model = /** @class */ (function (_super) {
                         if (!(round < rounds)) return [3 /*break*/, 4];
                         if (this.$db.get('TABLE_NAME') === '' || this.$db.get('TABLE_NAME') == null)
                             throw new Error("unknow table");
-                        sql = this.$utils().constants('SHOW') + " " + this.$utils().constants('FIELDS') + " " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME');
+                        sql = "".concat(this.$utils().constants('SHOW'), " ").concat(this.$utils().constants('FIELDS'), " ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 2:
                         fields = _d.sent();
@@ -1974,7 +1982,7 @@ var Model = /** @class */ (function (_super) {
                         return [3 /*break*/, 1];
                     case 4:
                         query = this._queryInsertMultipleModel(data);
-                        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                         this.$db.set('SAVE', 'INSERT_MULTIPLE');
                         return [2 /*return*/, this.save()];
                 }
@@ -2048,14 +2056,14 @@ var Model = /** @class */ (function (_super) {
             get: function (key) {
                 if (key) {
                     if (!modelData.hasOwnProperty(key))
-                        throw new Error("can't get this [" + key + "]");
+                        throw new Error("can't get this [".concat(key, "]"));
                     return modelData[key];
                 }
                 return modelData;
             },
             set: function (key, value) {
                 if (!modelData.hasOwnProperty(key))
-                    throw new Error("can't set this [" + key + "]");
+                    throw new Error("can't set this [".concat(key, "]"));
                 modelData[key] = value;
                 return;
             }

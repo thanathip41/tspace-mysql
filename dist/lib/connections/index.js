@@ -32,7 +32,7 @@ var messsage = optionIsNull ?
     "Connection lost to database !";
 pool.getConnection(function (err, connection) {
     if (err) {
-        console.log("\u001B[1m\u001B[31m\n    " + messsage + " \u001B[0m\n    ------------------------------- \u001B[33m\n        DB_HOST     : " + (options_1.default === null || options_1.default === void 0 ? void 0 : options_1.default.host) + "         \n        DB_PORT     : " + (options_1.default === null || options_1.default === void 0 ? void 0 : options_1.default.port) + "        \n        DB_USERNAME : " + options_1.default.user + "           \n        DB_PASSWORD : " + options_1.default.password + "   \n        DB_DATABASE : " + options_1.default.database + " \u001B[0m  \n    -------------------------------\n    ");
+        console.log("\u001B[1m\u001B[31m\n    ".concat(messsage, " \u001B[0m\n    ------------------------------- \u001B[33m\n        DB_HOST     : ").concat(options_1.default === null || options_1.default === void 0 ? void 0 : options_1.default.host, "         \n        DB_PORT     : ").concat(options_1.default === null || options_1.default === void 0 ? void 0 : options_1.default.port, "        \n        DB_USERNAME : ").concat(options_1.default.user, "           \n        DB_PASSWORD : ").concat(options_1.default.password, "   \n        DB_DATABASE : ").concat(options_1.default.database, " \u001B[0m  \n    -------------------------------\n    "));
     }
     if (connection)
         connection.release();

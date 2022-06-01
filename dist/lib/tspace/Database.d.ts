@@ -1,0 +1,151 @@
+import AbstractDatabase from './AbstractDatabase';
+declare class Database extends AbstractDatabase {
+    except(...params: Array<string>): this;
+    only(...params: Array<string>): this;
+    distinct(column?: string): this;
+    select(...params: string[]): this;
+    where(column: string, operator?: any, value?: any): this;
+    whereId(id: number): this;
+    whereEmail(email: string): this;
+    whereUser(id: number): this;
+    orWhere(column: string, operator?: any, value?: any): this;
+    whereIn(column: string, arrayValues: Array<any>): this;
+    orWhereIn(column: string, arrayValues: Array<any>): this;
+    whereNotIn(column: string, arrayValues: Array<any>): this;
+    whereSubQuery(column: string, subQuery: string): this;
+    whereNotInSubQuery(column: string, subQuery: string): this;
+    orWhereSubQuery(column: string, subQuery: string): this;
+    whereBetween(column: string, arrayValue: Array<any>): this;
+    whereNull(column: string): this;
+    whereNotNull(column: string): this;
+    whereSensitive(column: string, operator?: any, value?: any): this;
+    whereGroupStart(column: string, operator?: any, value?: any): this;
+    orWhereGroupStart(column: string, operator?: any, value?: any): this;
+    whereGroupEnd(column: string, operator?: any, value?: any): this;
+    orWhereGroupEnd(column: string, operator?: any, value?: any): this;
+    having(condition: string): this;
+    join(pk: string, fk: string): this;
+    rightJoin(pk: string, fk: string): this;
+    leftJoin(pk: string, fk: string): this;
+    crossJoin(pk: string, fk: string): this;
+    orderBy(column: string, order?: any): this;
+    latest(column?: string): this;
+    oldest(column?: string): this;
+    groupBy(column: string): this;
+    limit(number?: number): this;
+    offset(number?: number): this;
+    hidden(...columns: Array<string>): this;
+    update(objects: object): this;
+    insert(objects: object): this;
+    create(objects: object): this;
+    createMultiple(data: Array<any>): this;
+    insertMultiple(data: Array<any>): this;
+    toString(): string;
+    toSQL(): string;
+    debug(debug?: boolean): this;
+    dump(debug?: boolean): this;
+    dd(debug?: boolean): this;
+    createNotExists(objects: object): this;
+    insertNotExists(objects: object): this;
+    upsert(objects: object): this;
+    updateOrCreate(objects: object): this;
+    updateOrInsert(objects: object): this;
+    insertOrUpdate(objects: object): this;
+    createOrUpdate(objects: object): this;
+    rawQuery(sql: string): Promise<any>;
+    increment(column?: string, value?: number): Promise<any>;
+    decrement(column?: string, value?: number): Promise<any>;
+    all(): Promise<any>;
+    find(id: number): Promise<any>;
+    pagination({ limit, page }?: {
+        limit?: number | undefined;
+        page?: number | undefined;
+    }): Promise<{
+        meta: {
+            total: number;
+            limit: number;
+            total_page: number;
+            current_page: number;
+            last_page: number;
+            next_page: number;
+            prev_page: number;
+        };
+        data: never[];
+    } | {
+        meta: {
+            total: number;
+            limit: number;
+            current_page: number;
+            last_page: number;
+            next_page: number;
+            prev_page: number;
+            total_page?: undefined;
+        };
+        data: any[];
+    }>;
+    paginate({ limit, page }?: {
+        limit?: number | undefined;
+        page?: number | undefined;
+    }): Promise<{
+        meta: {
+            total: number;
+            limit: number;
+            total_page: number;
+            current_page: number;
+            last_page: number;
+            next_page: number;
+            prev_page: number;
+        };
+        data: never[];
+    } | {
+        meta: {
+            total: number;
+            limit: number;
+            current_page: number;
+            last_page: number;
+            next_page: number;
+            prev_page: number;
+            total_page?: undefined;
+        };
+        data: any[];
+    }>;
+    first(): Promise<any>;
+    findOne(): Promise<any>;
+    get(): Promise<any[]>;
+    findMany(): Promise<any[]>;
+    toJSON(): Promise<string | never[]>;
+    toArray(column?: string): Promise<any[]>;
+    count(column?: string): Promise<any>;
+    exists(): Promise<boolean>;
+    avg(column?: string): Promise<any>;
+    sum(column?: string): Promise<any>;
+    max(column?: string): Promise<any>;
+    min(column?: string): Promise<any>;
+    delete(): Promise<boolean>;
+    getGroupBy(column: string): Promise<any>;
+    findManyGroupBy(column: string): Promise<any>;
+    save(transaction?: {
+        query: {
+            table: string;
+            id: string;
+        }[];
+    }): Promise<any>;
+    faker(rounds?: number): Promise<any>;
+    truncate(): Promise<boolean>;
+    drop(): Promise<boolean>;
+    private _insertNotExists;
+    private _queryStatement;
+    private _actionStatement;
+    private _create;
+    private _createMultiple;
+    private _updateOrInsert;
+    private _update;
+    private _hiddenColumn;
+    private _queryUpdate;
+    private _queryInsert;
+    private _queryInsertMultiple;
+    private _valueAndOperator;
+    private _valueTrueFalse;
+    private _getSQL;
+}
+export default Database;

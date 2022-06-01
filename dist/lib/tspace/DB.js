@@ -100,9 +100,9 @@ var DB = /** @class */ (function (_super) {
         return new Proxy(_this, ProxyHandler_1.default);
     }
     DB.prototype.table = function (table) {
-        this.$db.set('SELECT', this.$utils().constants('SELECT') + " *");
+        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " *"));
         this.$db.set('TABLE_NAME', table);
-        this.$db.set('FROM', "" + this.$utils().constants('FROM'));
+        this.$db.set('FROM', "".concat(this.$utils().constants('FROM')));
         return this;
     };
     DB.prototype.raw = function (sql) {
@@ -236,7 +236,7 @@ var DB = /** @class */ (function (_super) {
             },
             set: function (key, value) {
                 if (!db.hasOwnProperty(key))
-                    throw new Error("can't set this [" + key + "]");
+                    throw new Error("can't set this [".concat(key, "]"));
                 db[key] = value;
                 return;
             }

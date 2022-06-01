@@ -12,25 +12,25 @@ exports.default = (function (_ref) {
     var model = split.pop();
     var f = split.join('/');
     try {
-        fs.accessSync(cwd + ("/" + f), fs.F_OK, {
+        fs.accessSync(cwd + "/".concat(f), fs.F_OK, {
             recursive: true
         });
     }
     catch (e) {
-        fs.mkdirSync(cwd + ("/" + f), {
+        fs.mkdirSync(cwd + "/".concat(f), {
             recursive: true
         });
     }
-    var folder = cwd + "/" + f + "/" + model + type;
+    var folder = "".concat(cwd, "/").concat(f, "/").concat(model).concat(type);
     var data = (0, model_1.default)(name || model, npm);
     fs.writeFile(folder, data, function (err) {
         if (err)
             throw err.message;
     });
-    console.log("Model : '" + model + "' created successfully");
+    console.log("Model : '".concat(model, "' created successfully"));
     if (migrate) {
         var tableName = utils_1.default.tableName(name || model);
-        var folder_1 = migrateFolder !== null && migrateFolder !== void 0 ? migrateFolder : "/" + f + "/Migrations";
+        var folder_1 = migrateFolder !== null && migrateFolder !== void 0 ? migrateFolder : "/".concat(f, "/Migrations");
         try {
             fs.accessSync(cwd + folder_1, fs.F_OK, {
                 recursive: true
@@ -41,12 +41,12 @@ exports.default = (function (_ref) {
                 recursive: true
             });
         }
-        var folderMigrate = cwd + "/" + folder_1 + "/create_" + tableName + "_table" + type;
+        var folderMigrate = "".concat(cwd, "/").concat(folder_1, "/create_").concat(tableName, "_table").concat(type);
         var table = (0, table_1.default)(tableName, npm);
         fs.writeFile(folderMigrate, table, function (err) {
             if (err)
                 throw err;
         });
-        console.log("Migration : '" + tableName + "' created successfully");
+        console.log("Migration : '".concat(tableName, "' created successfully"));
     }
 });

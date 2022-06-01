@@ -96,7 +96,7 @@ var timestamp = function () {
     var hours = ("0" + d.getHours()).slice(-2);
     var minutes = ("0" + d.getMinutes()).slice(-2);
     var seconds = ("0" + d.getSeconds()).slice(-2);
-    var now = year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+    var now = "".concat(year, "-").concat(month, "-").concat(date, " ").concat(hours, ":").concat(minutes, ":").concat(seconds);
     return now;
 };
 var date = function () {
@@ -104,7 +104,7 @@ var date = function () {
     var year = d.getFullYear();
     var month = ("0" + (d.getMonth() + 1)).slice(-2);
     var date = ("0" + d.getDate()).slice(-2);
-    var now = year + "-" + month + "-" + date;
+    var now = "".concat(year, "-").concat(month, "-").concat(date);
     return now;
 };
 var escape = function (str) {
@@ -146,10 +146,10 @@ var columnRelation = function (name) {
     if (matches.length > 1) {
         matches.forEach(function (matche, i) {
             if (i > 0)
-                name = name.replace(matche, "_" + matche.toUpperCase());
+                name = name.replace(matche, "_".concat(matche.toUpperCase()));
         });
     }
-    return "" + name.toLocaleLowerCase();
+    return "".concat(name.toLocaleLowerCase());
 };
 var generateUUID = function () {
     var date = +new Date();
@@ -246,7 +246,7 @@ var camelCase = function (obj) {
 var consoleDebug = function (message) {
     if (message == null)
         return;
-    console.log("SQL Statement: \u001B[33m" + message + " \u001B[0m ");
+    console.log("SQL Statement: \u001B[33m".concat(message, " \u001B[0m "));
 };
 var connection = function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {

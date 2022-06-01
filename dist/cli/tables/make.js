@@ -9,24 +9,24 @@ exports.default = (function (_ref) {
     var split = path.split('/') || path;
     var f = split.join('/');
     if (name == null)
-        console.log("use " + npm + " make:table FOLDER/FOLDER --name=tableName");
+        console.log("use ".concat(npm, " make:table FOLDER/FOLDER --name=tableName"));
     else {
         try {
-            fs.accessSync(cwd + ("/" + f), fs.F_OK, {
+            fs.accessSync(cwd + "/".concat(f), fs.F_OK, {
                 recursive: true
             });
         }
         catch (e) {
-            fs.mkdirSync(cwd + ("/" + f), {
+            fs.mkdirSync(cwd + "/".concat(f), {
                 recursive: true
             });
         }
-        var folderMigrate = cwd + "/" + f + "/create_" + name + "_table" + type;
+        var folderMigrate = "".concat(cwd, "/").concat(f, "/create_").concat(name, "_table").concat(type);
         var table = (0, table_1.default)(name, npm);
         fs.writeFile(folderMigrate, table, function (err) {
             if (err)
                 console.log(err.message);
         });
-        console.log("Migration : " + name + " created successfully");
+        console.log("Migration : ".concat(name, " created successfully"));
     }
 });

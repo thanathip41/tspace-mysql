@@ -17,7 +17,7 @@ exports.default = {
         var _a;
         var _b;
         if ((_b = target._setters) === null || _b === void 0 ? void 0 : _b.includes(name))
-            throw new Error("no allow to set this " + name);
+            throw new Error("no allow to set this ".concat(name));
         target.$attributes = __assign(__assign({}, target.$attributes), (_a = {}, _a[name] = value, _a));
         return true;
     },
@@ -26,7 +26,7 @@ exports.default = {
         try {
             (0, Logger_1.LoggerMethod)(target, prop);
             switch (prop) {
-                case 'attributes': return target["$" + prop];
+                case 'attributes': return target["$".concat(prop)];
                 case 'logger': return (_a = target.$logger) === null || _a === void 0 ? void 0 : _a.get();
                 case 'result': return (_b = target.$db) === null || _b === void 0 ? void 0 : _b.get('RESULT');
                 default: return Reflect.get(target, prop, value);

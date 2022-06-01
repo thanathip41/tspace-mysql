@@ -97,14 +97,14 @@ var Schema = /** @class */ (function (_super) {
                         for (key in schemas) {
                             data = schemas[key];
                             type = data.type, attrbuites = data.attrbuites;
-                            columns = __spreadArray(__spreadArray([], __read(columns), false), [key + " " + type + " " + (attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' '))], false);
+                            columns = __spreadArray(__spreadArray([], __read(columns), false), ["".concat(key, " ").concat(type, " ").concat(attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' '))], false);
                         }
                         columns = __spreadArray(__spreadArray([], __read(columns), false), __read(this.timeStamp), false);
-                        sql = "CREATE TABLE " + table + " (" + (columns === null || columns === void 0 ? void 0 : columns.join(',')) + ") ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8";
+                        sql = "CREATE TABLE ".concat(table, " (").concat(columns === null || columns === void 0 ? void 0 : columns.join(','), ") ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8");
                         return [4 /*yield*/, this.rawQuery(sql)];
                     case 1:
                         _b.sent();
-                        console.log("Migrats : '" + table + "' created successfully");
+                        console.log("Migrats : '".concat(table, "' created successfully"));
                         return [3 /*break*/, 3];
                     case 2:
                         err_1 = _b.sent();
@@ -144,12 +144,12 @@ var Blueprint = /** @class */ (function () {
     };
     Blueprint.prototype.tinyInt = function (n) {
         if (n === void 0) { n = 1; }
-        this._addType("TINYINT(" + n + ")");
+        this._addType("TINYINT(".concat(n, ")"));
         return this;
     };
     Blueprint.prototype.bigInt = function (n) {
         if (n === void 0) { n = 10; }
-        this._addType("BIGINT(" + n + ")");
+        this._addType("BIGINT(".concat(n, ")"));
         return this;
     };
     Blueprint.prototype.double = function () {
@@ -164,12 +164,12 @@ var Blueprint = /** @class */ (function () {
         if (n === void 0) { n = 100; }
         if (n > 255)
             n = 255;
-        this._addType("VARCHAR(" + n + ")");
+        this._addType("VARCHAR(".concat(n, ")"));
         return this;
     };
     Blueprint.prototype.char = function (n) {
         if (n === void 0) { n = 1; }
-        this._addType("CHAR(" + n + ")");
+        this._addType("CHAR(".concat(n, ")"));
         return this;
     };
     Blueprint.prototype.longText = function () {
@@ -193,7 +193,7 @@ var Blueprint = /** @class */ (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             n[_i] = arguments[_i];
         }
-        this._addType("ENUM('" + n + "')");
+        this._addType("ENUM('".concat(n, "')"));
         return this;
     };
     Blueprint.prototype.date = function () {
@@ -234,7 +234,7 @@ var Blueprint = /** @class */ (function () {
         return this;
     };
     Blueprint.prototype.default = function (n) {
-        this._addAttrbuite("DEFAULT '" + n + "'");
+        this._addAttrbuite("DEFAULT '".concat(n, "'"));
         return this;
     };
     Blueprint.prototype.defaultTimestamp = function () {

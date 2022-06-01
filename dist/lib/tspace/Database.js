@@ -125,7 +125,7 @@ var Database = /** @class */ (function (_super) {
     };
     Database.prototype.distinct = function (column) {
         if (column === void 0) { column = 'id'; }
-        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('DISTINCT') + " " + column);
+        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('DISTINCT'), " ").concat(column));
         return this;
     };
     Database.prototype.select = function () {
@@ -136,7 +136,7 @@ var Database = /** @class */ (function (_super) {
         var select = '*';
         if (params === null || params === void 0 ? void 0 : params.length)
             select = params.join(',');
-        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + select);
+        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(select));
         return this;
     };
     Database.prototype.where = function (column, operator, value) {
@@ -145,20 +145,20 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         return this;
     };
     Database.prototype.whereId = function (id) {
         var column = 'id';
         var operator = '=';
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + id + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + operator + " '" + id + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
         return this;
     };
     Database.prototype.whereEmail = function (email) {
@@ -166,9 +166,9 @@ var Database = /** @class */ (function (_super) {
         var operator = '=';
         email = this.$utils().escape(email);
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + email + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(email, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + operator + " '" + email + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(operator, " '").concat(email, "'"));
         return this;
     };
     Database.prototype.whereUser = function (id) {
@@ -176,9 +176,9 @@ var Database = /** @class */ (function (_super) {
         var operator = '=';
         id = this.$utils().escape(id);
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + id + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + operator + " '" + id + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(operator, " '").concat(id, "'"));
         return this;
     };
     Database.prototype.orWhere = function (column, operator, value) {
@@ -186,80 +186,80 @@ var Database = /** @class */ (function (_super) {
         _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
         value = this.$utils().escape(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('OR') + " " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('OR'), " ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         else
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         return this;
     };
     Database.prototype.whereIn = function (column, arrayValues) {
         var sql = this.$db.get('WHERE');
         if (!Array.isArray(arrayValues))
-            throw new Error("[" + arrayValues + "] is't array");
+            throw new Error("[".concat(arrayValues, "] is't array"));
         if (!arrayValues.length)
             arrayValues = ['0'];
-        var values = "" + arrayValues.map(function (value) { return "'" + value + "'"; }).join(',');
+        var values = "".concat(arrayValues.map(function (value) { return "'".concat(value, "'"); }).join(','));
         if (!sql.includes(this.$utils().constants('WHERE'))) {
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IN') + " (" + values + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(values, ")"));
             return this;
         }
-        this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('IN') + " (" + values + ")");
+        this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(values, ")"));
         return this;
     };
     Database.prototype.orWhereIn = function (column, arrayValues) {
         var sql = this.$db.get('WHERE');
         if (!Array.isArray(arrayValues))
-            throw new Error("[" + arrayValues + "] is't array");
+            throw new Error("[".concat(arrayValues, "] is't array"));
         if (!arrayValues.length)
             arrayValues = ['0'];
-        var values = "" + arrayValues.map(function (value) { return "'" + value + "'"; }).join(',');
+        var values = "".concat(arrayValues.map(function (value) { return "'".concat(value, "'"); }).join(','));
         if (!sql.includes(this.$utils().constants('WHERE'))) {
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IN') + " (" + values + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(values, ")"));
             return this;
         }
-        this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('OR') + " " + column + " " + this.$utils().constants('IN') + " (" + values + ")");
+        this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('OR'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(values, ")"));
         return this;
     };
     Database.prototype.whereNotIn = function (column, arrayValues) {
         var sql = this.$db.get('WHERE');
         if (!Array.isArray(arrayValues))
-            throw new Error("[" + arrayValues + "] is't array");
+            throw new Error("[".concat(arrayValues, "] is't array"));
         if (!arrayValues.length)
             arrayValues = ['0'];
-        var values = "" + arrayValues.map(function (value) { return "'" + value + "'"; }).join(',');
+        var values = "".concat(arrayValues.map(function (value) { return "'".concat(value, "'"); }).join(','));
         if (!sql.includes(this.$utils().constants('WHERE'))) {
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('NOT_IN') + " (" + values + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('NOT_IN'), " (").concat(values, ")"));
             return this;
         }
-        this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('NOT_IN') + " (" + values + ")");
+        this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('NOT_IN'), " (").concat(values, ")"));
         return this;
     };
     Database.prototype.whereSubQuery = function (column, subQuery) {
         var whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils().escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(subQuery, ")"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(subQuery, ")"));
         return this;
     };
     Database.prototype.whereNotInSubQuery = function (column, subQuery) {
         var whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils().escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(subQuery, ")"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('NOT_IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('NOT_IN'), " (").concat(subQuery, ")"));
         return this;
     };
     Database.prototype.orWhereSubQuery = function (column, subQuery) {
         var whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils().escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(subQuery, ")"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('OR') + " " + column + " " + this.$utils().constants('IN') + " (" + subQuery + ")");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('OR'), " ").concat(column, " ").concat(this.$utils().constants('IN'), " (").concat(subQuery, ")"));
         return this;
     };
     Database.prototype.whereBetween = function (column, arrayValue) {
@@ -272,24 +272,24 @@ var Database = /** @class */ (function (_super) {
         value2 = this.$utils().escape(value2);
         var sql = this.$db.get('WHERE');
         if (!sql.includes(this.$utils().constants('WHERE'))) {
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('BETWEEN') + " '" + value1 + "' " + this.$utils().constants('AND') + " '" + value2 + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('BETWEEN'), " '").concat(value1, "' ").concat(this.$utils().constants('AND'), " '").concat(value2, "'"));
             return this;
         }
-        this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('BETWEEN') + " '" + value1 + "' " + this.$utils().constants('AND') + " '" + value2 + "'");
+        this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('BETWEEN'), " '").concat(value1, "' ").concat(this.$utils().constants('AND'), " '").concat(value2, "'"));
         return this;
     };
     Database.prototype.whereNull = function (column) {
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IS_NULL'));
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IS_NULL')));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('IS_NULL'));
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('IS_NULL')));
         return this;
     };
     Database.prototype.whereNotNull = function (column) {
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + this.$utils().constants('IS_NOT_NULL'));
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(this.$utils().constants('IS_NOT_NULL')));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " " + column + " " + this.$utils().constants('IS_NOT_NULL'));
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " ").concat(column, " ").concat(this.$utils().constants('IS_NOT_NULL')));
         return this;
     };
     Database.prototype.whereSensitive = function (column, operator, value) {
@@ -298,11 +298,11 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " BINARY " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " BINARY ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " BINARY " + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " BINARY ").concat(column, " ").concat(operator, " '").concat(value, "'"));
         return this;
     };
     Database.prototype.whereGroupStart = function (column, operator, value) {
@@ -311,11 +311,11 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " (" + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " (").concat(column, " ").concat(operator, " '").concat(value, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " (" + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " (").concat(column, " ").concat(operator, " '").concat(value, "'"));
         return this;
     };
     Database.prototype.orWhereGroupStart = function (column, operator, value) {
@@ -324,11 +324,11 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " (" + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " (").concat(column, " ").concat(operator, " '").concat(value, "'"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('AND') + " (" + column + " " + operator + " '" + value + "'");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('AND'), " (").concat(column, " ").concat(operator, " '").concat(value, "'"));
         return this;
     };
     Database.prototype.whereGroupEnd = function (column, operator, value) {
@@ -337,11 +337,11 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + value + "')");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(value, "')"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('OR') + " " + column + " " + operator + " '" + value + "')");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('OR'), " ").concat(column, " ").concat(operator, " '").concat(value, "')"));
         return this;
     };
     Database.prototype.orWhereGroupEnd = function (column, operator, value) {
@@ -350,11 +350,11 @@ var Database = /** @class */ (function (_super) {
         value = this.$utils().escape(value);
         value = this._valueTrueFalse(value);
         if (operator === this.$utils().constants('LIKE'))
-            value = "%" + value + "%";
+            value = "%".concat(value, "%");
         if (!this.$db.get('WHERE').includes(this.$utils().constants('WHERE')))
-            this.$db.set('WHERE', this.$utils().constants('WHERE') + " " + column + " " + operator + " '" + value + "')");
+            this.$db.set('WHERE', "".concat(this.$utils().constants('WHERE'), " ").concat(column, " ").concat(operator, " '").concat(value, "')"));
         else
-            this.$db.set('WHERE', this.$db.get('WHERE') + " " + this.$utils().constants('OR') + " " + column + " " + operator + " '" + value + "')");
+            this.$db.set('WHERE', "".concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('OR'), " ").concat(column, " ").concat(operator, " '").concat(value, "')"));
         return this;
     };
     Database.prototype.having = function (condition) {
@@ -365,73 +365,73 @@ var Database = /** @class */ (function (_super) {
         var _a;
         var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
         if (this.$db.get('JOIN'))
-            this.$db.set('JOIN', this.$db.get('JOIN') + " " + this.$utils().constants('INNER_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$db.get('JOIN'), " ").concat(this.$utils().constants('INNER_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         else
-            this.$db.set('JOIN', this.$utils().constants('INNER_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$utils().constants('INNER_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         return this;
     };
     Database.prototype.rightJoin = function (pk, fk) {
         var _a;
         var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
         if (this.$db.get('JOIN'))
-            this.$db.set('JOIN', this.$db.get('JOIN') + " " + this.$utils().constants('RIGHT_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$db.get('JOIN'), " ").concat(this.$utils().constants('RIGHT_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         else
-            this.$db.set('JOIN', this.$utils().constants('RIGHT_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$utils().constants('RIGHT_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         return this;
     };
     Database.prototype.leftJoin = function (pk, fk) {
         var _a;
         var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
         if (this.$db.get('JOIN'))
-            this.$db.set('JOIN', this.$db.get('JOIN') + " " + this.$utils().constants('LEFT_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$db.get('JOIN'), " ").concat(this.$utils().constants('LEFT_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         else
-            this.$db.set('JOIN', this.$utils().constants('LEFT_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$utils().constants('LEFT_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         return this;
     };
     Database.prototype.crossJoin = function (pk, fk) {
         var _a;
         var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
         if (this.$db.get('JOIN'))
-            this.$db.set('JOIN', this.$db.get('JOIN') + " " + this.$utils().constants('CROSS_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$db.get('JOIN'), " ").concat(this.$utils().constants('CROSS_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         else
-            this.$db.set('JOIN', this.$utils().constants('CROSS_JOIN') + " " + table + " " + this.$utils().constants('ON') + " " + pk + " = " + fk);
+            this.$db.set('JOIN', "".concat(this.$utils().constants('CROSS_JOIN'), " ").concat(table, " ").concat(this.$utils().constants('ON'), " ").concat(pk, " = ").concat(fk));
         return this;
     };
     Database.prototype.orderBy = function (column, order) {
         if (order === void 0) { order = this.$utils().constants('ASC'); }
-        this.$db.set('ORDER_BY', this.$utils().constants('ORDER_BY') + " " + column + " " + order.toUpperCase());
+        this.$db.set('ORDER_BY', "".concat(this.$utils().constants('ORDER_BY'), " ").concat(column, " ").concat(order.toUpperCase()));
         return this;
     };
     Database.prototype.latest = function (column) {
         if (column === void 0) { column = 'id'; }
         if (this.$db.get('ORDER_BY')) {
-            this.$db.set('ORDER_BY', this.$db.get('ORDER_BY') + " ," + column + " " + this.$utils().constants('DESC'));
+            this.$db.set('ORDER_BY', "".concat(this.$db.get('ORDER_BY'), " ,").concat(column, " ").concat(this.$utils().constants('DESC')));
             return this;
         }
-        this.$db.set('ORDER_BY', this.$utils().constants('ORDER_BY') + " " + column + " " + this.$utils().constants('DESC'));
+        this.$db.set('ORDER_BY', "".concat(this.$utils().constants('ORDER_BY'), " ").concat(column, " ").concat(this.$utils().constants('DESC')));
         return this;
     };
     Database.prototype.oldest = function (column) {
         if (column === void 0) { column = 'id'; }
         if (this.$db.get('ORDER_BY')) {
-            this.$db.set('ORDER_BY', this.$db.get('ORDER_BY') + " ," + column + " " + this.$utils().constants('ASC'));
+            this.$db.set('ORDER_BY', "".concat(this.$db.get('ORDER_BY'), " ,").concat(column, " ").concat(this.$utils().constants('ASC')));
             return this;
         }
-        this.$db.set('ORDER_BY', this.$utils().constants('ORDER_BY') + " " + column + " " + this.$utils().constants('ASC'));
+        this.$db.set('ORDER_BY', "".concat(this.$utils().constants('ORDER_BY'), " ").concat(column, " ").concat(this.$utils().constants('ASC')));
         return this;
     };
     Database.prototype.groupBy = function (column) {
-        this.$db.set('GROUP_BY', this.$utils().constants('GROUP_BY') + " " + column);
+        this.$db.set('GROUP_BY', "".concat(this.$utils().constants('GROUP_BY'), " ").concat(column));
         return this;
     };
     Database.prototype.limit = function (number) {
         if (number === void 0) { number = 1; }
-        this.$db.set('LIMIT', this.$utils().constants('LIMIT') + " " + number);
+        this.$db.set('LIMIT', "".concat(this.$utils().constants('LIMIT'), " ").concat(number));
         return this;
     };
     Database.prototype.offset = function (number) {
         if (number === void 0) { number = 1; }
-        this.$db.set('OFFSET', this.$utils().constants('OFFSET') + " " + number);
+        this.$db.set('OFFSET', "".concat(this.$utils().constants('OFFSET'), " ").concat(number));
         return this;
     };
     Database.prototype.hidden = function () {
@@ -444,31 +444,31 @@ var Database = /** @class */ (function (_super) {
     };
     Database.prototype.update = function (objects) {
         var query = this._queryUpdate(objects);
-        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'UPDATE');
         return this;
     };
     Database.prototype.insert = function (objects) {
         var query = this._queryInsert(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT');
         return this;
     };
     Database.prototype.create = function (objects) {
         var query = this._queryInsert(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT');
         return this;
     };
     Database.prototype.createMultiple = function (data) {
         var query = this._queryInsertMultiple(data);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     };
     Database.prototype.insertMultiple = function (data) {
         var query = this._queryInsertMultiple(data);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     };
@@ -495,7 +495,7 @@ var Database = /** @class */ (function (_super) {
     };
     Database.prototype.createNotExists = function (objects) {
         var query = this._queryInsert(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
         this.$db.set('SAVE', 'INSERT_NOT_EXISTS');
         return this;
     };
@@ -506,16 +506,16 @@ var Database = /** @class */ (function (_super) {
     Database.prototype.upsert = function (objects) {
         var queryUpdate = this._queryUpdate(objects);
         var queryInsert = this._queryInsert(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + queryInsert);
-        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + queryUpdate);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryInsert));
+        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryUpdate));
         this.$db.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
     };
     Database.prototype.updateOrCreate = function (objects) {
         var queryUpdate = this._queryUpdate(objects);
         var queryInsert = this._queryInsert(objects);
-        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + queryInsert);
-        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + queryUpdate);
+        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryInsert));
+        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(queryUpdate));
         this.$db.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
     };
@@ -549,8 +549,8 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        query = this.$utils().constants('SET') + " " + column + " = " + column + " + " + value;
-                        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                        query = "".concat(this.$utils().constants('SET'), " ").concat(column, " = ").concat(column, " + ").concat(value);
+                        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                         return [4 /*yield*/, this._update(true)];
                     case 1: return [2 /*return*/, _a.sent()];
                 }
@@ -565,8 +565,8 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        query = this.$utils().constants('SET') + " " + column + " = " + column + " - " + value;
-                        this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                        query = "".concat(this.$utils().constants('SET'), " ").concat(column, " = ").concat(column, " - ").concat(value);
+                        this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                         return [4 /*yield*/, this._update(true)];
                     case 1: return [2 /*return*/, _a.sent()];
                 }
@@ -579,7 +579,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME');
+                        sql = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1: return [2 /*return*/, _a.sent()];
                 }
@@ -592,7 +592,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         result = _a.sent();
@@ -615,10 +615,10 @@ var Database = /** @class */ (function (_super) {
                         offset = (page - 1) * limit;
                         sql = this._getSQL();
                         if (!sql.includes(this.$utils().constants('LIMIT'))) {
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " " + limit + " " + this.$utils().constants('OFFSET') + " " + offset;
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset);
                         }
                         else {
-                            sql = sql.replace(this.$db.get('LIMIT'), limit + " " + this.$utils().constants('OFFSET') + " " + offset);
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset));
                         }
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -638,7 +638,7 @@ var Database = /** @class */ (function (_super) {
                                     },
                                     data: []
                                 }];
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('COUNT') + "(*) " + this.$utils().constants('AS') + " total");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('COUNT'), "(*) ").concat(this.$utils().constants('AS'), " total"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 2:
@@ -681,9 +681,9 @@ var Database = /** @class */ (function (_super) {
                     case 0:
                         sql = this._getSQL();
                         if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = sql + " " + this.$utils().constants('LIMIT') + " 1";
+                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " 1");
                         else
-                            sql = sql.replace(this.$db.get('LIMIT'), this.$utils().constants('LIMIT') + " 1");
+                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " 1"));
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         result = _b.sent();
@@ -757,7 +757,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + column);
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(column));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -775,7 +775,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('COUNT') + "(" + column + ") " + this.$utils().constants('AS') + " total");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('COUNT'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " total"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -791,7 +791,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = this.$utils().constants('SELECT') + " " + this.$utils().constants('EXISTS') + "(" + this.$utils().constants('SELECT') + " * " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE') + " LIMIT 1) as 'exists'";
+                        sql = "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('EXISTS'), "(").concat(this.$utils().constants('SELECT'), " * ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE'), " LIMIT 1) as 'exists'");
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         result = _a.sent();
@@ -807,7 +807,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('AVG') + "(" + column + ") " + this.$utils().constants('AS') + " avg");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('AVG'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " avg"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -824,7 +824,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('SUM') + "(" + column + ") " + this.$utils().constants('AS') + " sum");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('SUM'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " sum"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -841,7 +841,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('MAX') + "(" + column + ") " + this.$utils().constants('AS') + " max");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('MAX'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " max"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -858,7 +858,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('SELECT', this.$utils().constants('SELECT') + " " + this.$utils().constants('MIN') + "(" + column + ") " + this.$utils().constants('AS') + " min");
+                        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('MIN'), "(").concat(column, ") ").concat(this.$utils().constants('AS'), " min"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -877,7 +877,7 @@ var Database = /** @class */ (function (_super) {
                     case 0:
                         if (!this.$db.get('WHERE'))
                             throw new Error("Can't delete without where condition");
-                        this.$db.set('DELETE', this.$utils().constants('DELETE') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'));
+                        this.$db.set('DELETE', "".concat(this.$utils().constants('DELETE'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')));
                         return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('DELETE') })];
                     case 1:
                         result = _b.sent();
@@ -894,8 +894,8 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.$db.set('GROUP_BY', this.$utils().constants('GROUP_BY') + " " + column);
-                        this.$db.set('SELECT', this.$db.get('SELECT') + (", " + this.$utils().constants('GROUP_CONCAT') + "(id) " + this.$utils().constants('AS') + " data"));
+                        this.$db.set('GROUP_BY', "".concat(this.$utils().constants('GROUP_BY'), " ").concat(column));
+                        this.$db.set('SELECT', this.$db.get('SELECT') + ", ".concat(this.$utils().constants('GROUP_CONCAT'), "(id) ").concat(this.$utils().constants('AS'), " data"));
                         sql = this._getSQL();
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
@@ -906,7 +906,7 @@ var Database = /** @class */ (function (_super) {
                             var splits = (_b = (_a = result === null || result === void 0 ? void 0 : result.data) === null || _a === void 0 ? void 0 : _a.split(',')) !== null && _b !== void 0 ? _b : '0';
                             splits.forEach(function (split) { return data = __spreadArray(__spreadArray([], __read(data), false), [split], false); });
                         });
-                        sqlGroups = this.$utils().constants('SELECT') + " * " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id " + this.$utils().constants('IN') + " (" + (data.map(function (a) { return "'" + a + "'"; }).join(',') || ['0']) + ")";
+                        sqlGroups = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id ").concat(this.$utils().constants('IN'), " (").concat(data.map(function (a) { return "'".concat(a, "'"); }).join(',') || ['0'], ")");
                         return [4 /*yield*/, this._queryStatement(sqlGroups)];
                     case 2:
                         groups = _a.sent();
@@ -947,12 +947,12 @@ var Database = /** @class */ (function (_super) {
                         if ((_a = Object.keys(attributes)) === null || _a === void 0 ? void 0 : _a.length) {
                             if (this.$db.get('WHERE')) {
                                 query_1 = this._queryUpdate(attributes);
-                                this.$db.set('UPDATE', this.$utils().constants('UPDATE') + " " + this.$db.get('TABLE_NAME') + " " + query_1);
+                                this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query_1));
                                 this.$db.set('SAVE', 'UPDATE');
                                 return [2 /*return*/];
                             }
                             query = this._queryInsert(attributes);
-                            this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                            this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                             this.$db.set('SAVE', 'INSERT');
                         }
                         _b = this.$db.get('SAVE');
@@ -994,7 +994,7 @@ var Database = /** @class */ (function (_super) {
                         if (!(round < rounds)) return [3 /*break*/, 4];
                         if (this.$db.get('TABLE_NAME') === '' || this.$db.get('TABLE_NAME') == null)
                             throw new Error("unknow table");
-                        sql = this.$utils().constants('SHOW') + " " + this.$utils().constants('FIELDS') + " " + this.$utils().constants('FROM') + " " + this.$db.get('TABLE_NAME');
+                        sql = "".concat(this.$utils().constants('SHOW'), " ").concat(this.$utils().constants('FIELDS'), " ").concat(this.$utils().constants('FROM'), " ").concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 2:
                         fields = _d.sent();
@@ -1023,7 +1023,7 @@ var Database = /** @class */ (function (_super) {
                         return [3 /*break*/, 1];
                     case 4:
                         query = this._queryInsertMultiple(data);
-                        this.$db.set('INSERT', this.$utils().constants('INSERT') + " " + this.$db.get('TABLE_NAME') + " " + query);
+                        this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                         this.$db.set('SAVE', 'INSERT_MULTIPLE');
                         return [2 /*return*/, this.save()];
                 }
@@ -1036,7 +1036,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = "TRUNCATE TABLE " + this.$db.get('TABLE_NAME');
+                        sql = "TRUNCATE TABLE ".concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         _a.sent();
@@ -1051,7 +1051,7 @@ var Database = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        sql = "DROP TABLE " + this.$db.get('TABLE_NAME');
+                        sql = "DROP TABLE ".concat(this.$db.get('TABLE_NAME'));
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         _a.sent();
@@ -1071,7 +1071,7 @@ var Database = /** @class */ (function (_super) {
                             throw new Error("Can't insert not exists without where condition");
                         sql = '';
                         check = false;
-                        sql = this.$utils().constants('SELECT') + " " + this.$utils().constants('EXISTS') + "(" + this.$utils().constants('SELECT') + " * " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE') + " " + this.$utils().constants('LIMIT') + " 1) " + this.$utils().constants('AS') + " 'exists'";
+                        sql = "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('EXISTS'), "(").concat(this.$utils().constants('SELECT'), " * ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('LIMIT'), " 1) ").concat(this.$utils().constants('AS'), " 'exists'");
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         _b = __read.apply(void 0, [_e.sent(), 1]), result = _b[0].exists;
@@ -1092,7 +1092,7 @@ var Database = /** @class */ (function (_super) {
                             });
                         }
                         if (!result_1) return [3 /*break*/, 5];
-                        sql_1 = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql_1 = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatement(sql_1)];
                     case 4:
                         data = _e.sent();
@@ -1182,7 +1182,7 @@ var Database = /** @class */ (function (_super) {
                             });
                         }
                         if (!result) return [3 /*break*/, 3];
-                        sql = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 2:
                         data = _b.sent();
@@ -1223,7 +1223,7 @@ var Database = /** @class */ (function (_super) {
                             }
                             finally { if (e_2) throw e_2.error; }
                         }
-                        sql = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id " + this.$utils().constants('IN') + " (" + arrayId + ")";
+                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id ").concat(this.$utils().constants('IN'), " (").concat(arrayId, ")");
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 2:
                         data = _c.sent();
@@ -1246,7 +1246,7 @@ var Database = /** @class */ (function (_super) {
                             throw new Error("Can't update or insert without where condition");
                         sql = '';
                         check = false;
-                        sql = this.$utils().constants('SELECT') + " " + this.$utils().constants('EXISTS') + "(" + this.$utils().constants('SELECT') + " * " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE') + " " + this.$utils().constants('LIMIT') + " 1) " + this.$utils().constants('AS') + " 'exists'";
+                        sql = "".concat(this.$utils().constants('SELECT'), " ").concat(this.$utils().constants('EXISTS'), "(").concat(this.$utils().constants('SELECT'), " * ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE'), " ").concat(this.$utils().constants('LIMIT'), " 1) ").concat(this.$utils().constants('AS'), " 'exists'");
                         return [4 /*yield*/, this._queryStatement(sql)];
                     case 1:
                         _a = __read.apply(void 0, [_e.sent(), 1]), result = _a[0].exists;
@@ -1267,7 +1267,7 @@ var Database = /** @class */ (function (_super) {
                             });
                         }
                         if (!result_4) return [3 /*break*/, 5];
-                        sql_2 = this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$utils().constants('WHERE') + " id = " + id;
+                        sql_2 = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$utils().constants('WHERE'), " id = ").concat(id);
                         return [4 /*yield*/, this._queryStatement(sql_2)];
                     case 4:
                         data = _e.sent();
@@ -1275,11 +1275,11 @@ var Database = /** @class */ (function (_super) {
                         this.$db.set('RESULT', resultData);
                         return [2 /*return*/, resultData];
                     case 5: return [2 /*return*/, null];
-                    case 6: return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('UPDATE') + " " + this.$db.get('WHERE') })];
+                    case 6: return [4 /*yield*/, this._actionStatement({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
                     case 7:
                         result_5 = _e.sent();
                         if (!result_5) return [3 /*break*/, 9];
-                        return [4 /*yield*/, this._queryStatement(this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'))];
+                        return [4 /*yield*/, this._queryStatement("".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')))];
                     case 8:
                         data = _e.sent();
                         if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
@@ -1319,11 +1319,11 @@ var Database = /** @class */ (function (_super) {
                     case 0:
                         if (!this.$db.get('WHERE') && !ignoreWhere)
                             throw new Error("Can't update without where condition");
-                        return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('UPDATE') + " " + this.$db.get('WHERE') })];
+                        return [4 /*yield*/, this._actionStatement({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
                     case 1:
                         result = _a.sent();
                         if (!result) return [3 /*break*/, 3];
-                        return [4 /*yield*/, this._queryStatement(this.$db.get('SELECT') + " " + this.$db.get('FROM') + " " + this.$db.get('TABLE_NAME') + " " + this.$db.get('WHERE'))];
+                        return [4 /*yield*/, this._queryStatement("".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$db.get('WHERE')))];
                     case 2:
                         data = _a.sent();
                         if ((data === null || data === void 0 ? void 0 : data.length) > 1)
@@ -1352,21 +1352,21 @@ var Database = /** @class */ (function (_super) {
         var _this = this;
         var keyValue = Object.entries(data).map(function (_a) {
             var _b = __read(_a, 2), column = _b[0], value = _b[1];
-            return column + " = " + (value == null || value === 'NULL' ?
+            return "".concat(column, " = ").concat(value == null || value === 'NULL' ?
                 'NULL' :
-                "'" + _this.$utils().covertBooleanToNumber(value) + "'");
+                "'".concat(_this.$utils().covertBooleanToNumber(value), "'"));
         });
-        return this.$utils().constants('SET') + " " + keyValue;
+        return "".concat(this.$utils().constants('SET'), " ").concat(keyValue);
     };
     Database.prototype._queryInsert = function (data) {
         var _this = this;
-        var columns = Object.keys(data).map(function (column) { return "" + column; });
+        var columns = Object.keys(data).map(function (column) { return "".concat(column); });
         var values = Object.values(data).map(function (value) {
-            return "" + (value == null || value === 'NULL' ?
+            return "".concat(value == null || value === 'NULL' ?
                 'NULL' :
-                "'" + _this.$utils().covertBooleanToNumber(value) + "'");
+                "'".concat(_this.$utils().covertBooleanToNumber(value), "'"));
         });
-        return "(" + columns + ") " + this.$utils().constants('VALUES') + " (" + values + ")";
+        return "(".concat(columns, ") ").concat(this.$utils().constants('VALUES'), " (").concat(values, ")");
     };
     Database.prototype._queryInsertMultiple = function (data) {
         var e_4, _a;
@@ -1377,11 +1377,11 @@ var Database = /** @class */ (function (_super) {
             for (var data_2 = __values(data), data_2_1 = data_2.next(); !data_2_1.done; data_2_1 = data_2.next()) {
                 var objects = data_2_1.value;
                 var vals = Object.values(objects).map(function (value) {
-                    return "" + (value == null || value === 'NULL' ?
+                    return "".concat(value == null || value === 'NULL' ?
                         'NULL' :
-                        "'" + _this.$utils().covertBooleanToNumber(value) + "'");
+                        "'".concat(_this.$utils().covertBooleanToNumber(value), "'"));
                 });
-                values.push("(" + vals.join(',') + ")");
+                values.push("(".concat(vals.join(','), ")"));
             }
         }
         catch (e_4_1) { e_4 = { error: e_4_1 }; }
@@ -1391,8 +1391,8 @@ var Database = /** @class */ (function (_super) {
             }
             finally { if (e_4) throw e_4.error; }
         }
-        var columns = Object.keys((_b = data[0]) !== null && _b !== void 0 ? _b : []).map(function (column) { return "" + column; });
-        return "(" + columns + ") " + this.$utils().constants('VALUES') + " " + values.join(',');
+        var columns = Object.keys((_b = data[0]) !== null && _b !== void 0 ? _b : []).map(function (column) { return "".concat(column); });
+        return "(".concat(columns, ") ").concat(this.$utils().constants('VALUES'), " ").concat(values.join(','));
     };
     Database.prototype._valueAndOperator = function (value, operator, useDefault) {
         if (useDefault === void 0) { useDefault = false; }
