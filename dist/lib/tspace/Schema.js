@@ -85,7 +85,6 @@ var Schema = /** @class */ (function (_super) {
     __extends(Schema, _super);
     function Schema() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.timeStamp = ['created_at timestamp NULL', 'updated_at timestamp NULL'];
         _this.table = function (table, schemas) { return __awaiter(_this, void 0, void 0, function () {
             var columns, key, data, type, attrbuites, sql, err_1;
             var _a;
@@ -99,7 +98,6 @@ var Schema = /** @class */ (function (_super) {
                             type = data.type, attrbuites = data.attrbuites;
                             columns = __spreadArray(__spreadArray([], __read(columns), false), ["".concat(key, " ").concat(type, " ").concat(attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' '))], false);
                         }
-                        columns = __spreadArray(__spreadArray([], __read(columns), false), __read(this.timeStamp), false);
                         sql = "CREATE TABLE ".concat(table, " (").concat(columns === null || columns === void 0 ? void 0 : columns.join(','), ") ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8");
                         return [4 /*yield*/, this.rawQuery(sql)];
                     case 1:

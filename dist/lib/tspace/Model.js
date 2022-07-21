@@ -288,6 +288,7 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        this.$db.set('SOFT_DELETE', false);
                         this.whereNotNull(this._isPatternSnakeCase() ? 'deleted_at' : 'deletedAt');
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._exec(sql, 'GET')];
@@ -687,6 +688,8 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_g) {
                 switch (_g.label) {
                     case 0:
+                        limit = +limit;
+                        page = +page;
                         if ((_b = this.$logger) === null || _b === void 0 ? void 0 : _b.check('limit'))
                             throw new Error("this [pagination] can't used [limit] method");
                         if (!((_c = this.$db.get('EXCEPT')) === null || _c === void 0 ? void 0 : _c.length)) return [3 /*break*/, 2];
@@ -710,31 +713,12 @@ var Model = /** @class */ (function (_super) {
         });
     };
     Model.prototype.paginate = function (_a) {
-        var _b, _c;
-        var _d = _a === void 0 ? {} : _a, _e = _d.limit, limit = _e === void 0 ? 15 : _e, _f = _d.page, page = _f === void 0 ? 1 : _f;
+        var _b = _a === void 0 ? {} : _a, _c = _b.limit, limit = _c === void 0 ? 15 : _c, _d = _b.page, page = _d === void 0 ? 1 : _d;
         return __awaiter(this, void 0, void 0, function () {
-            var offset, sql;
-            return __generator(this, function (_g) {
-                switch (_g.label) {
-                    case 0:
-                        if ((_b = this.$logger) === null || _b === void 0 ? void 0 : _b.check('limit'))
-                            throw new Error("this [pagination] can't used [limit] method");
-                        if (!((_c = this.$db.get('EXCEPT')) === null || _c === void 0 ? void 0 : _c.length)) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this._exceptColumns()];
-                    case 1:
-                        _g.sent();
-                        _g.label = 2;
-                    case 2:
-                        offset = (page - 1) * limit;
-                        this.$db.set('PER_PAGE', limit);
-                        this.$db.set('PAGE', page);
-                        sql = this._getSQLModel();
-                        if (!sql.includes(this.$utils().constants('LIMIT')))
-                            sql = "".concat(sql, " ").concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset);
-                        else
-                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$utils().constants('LIMIT'), " ").concat(limit, " ").concat(this.$utils().constants('OFFSET'), " ").concat(offset));
-                        return [4 /*yield*/, this._exec(sql, 'PAGINATION')];
-                    case 3: return [2 /*return*/, _g.sent()];
+            return __generator(this, function (_e) {
+                switch (_e.label) {
+                    case 0: return [4 /*yield*/, this.pagination({ limit: limit, page: page })];
+                    case 1: return [2 /*return*/, _e.sent()];
                 }
             });
         });
@@ -928,8 +912,8 @@ var Model = /** @class */ (function (_super) {
     Model.prototype._isPatternSnakeCase = function () {
         return this.$db.get('PATTERN') === this.$utils().constants('PATTERN').snake_case;
     };
-    Model.prototype._classToTableName = function (className, belongsTo) {
-        if (belongsTo === void 0) { belongsTo = false; }
+    Model.prototype._classToTableName = function (className, _a) {
+        var _b = _a === void 0 ? {} : _a, _c = _b.belongsTo, belongsTo = _c === void 0 ? false : _c;
         if (className == null)
             className = this.constructor.name;
         var tb = className.replace(/([A-Z])/g, function (str) { return '_' + str.toLowerCase(); }).slice(1);
@@ -955,15 +939,19 @@ var Model = /** @class */ (function (_super) {
             throw new Error('model missing');
         var patternId = this._isPatternSnakeCase() ? '_id' : 'Id';
         var pk = data.pk ? data.pk : 'id';
-        var fk = data.fk ? data.fk : this._classToTableName(null, true) + patternId;
+        var fk = data.fk ? data.fk : this._classToTableName(null, { belongsTo: true }) + patternId;
         if (data.pk == null && data.fk == null && relation === this.$utils().constants('RELATIONSHIP').belongsTo) {
             fk = pk;
-            pk = this._classToTableName(model, true) + patternId;
+            pk = this._classToTableName(model, { belongsTo: true }) + patternId;
         }
         return { name: name, as: as, relation: relation, table: table, pk: pk, fk: fk, model: model };
     };
     Model.prototype._getSQLModel = function () {
         var sql = [];
+        if (this.$db.get('SOFT_DELETE')) {
+            var deletedAt = this._isPatternSnakeCase() ? 'deleted_at' : 'deletedAt';
+            this.whereNull(deletedAt);
+        }
         if (this.$db.get('INSERT')) {
             sql = [
                 this.$db.get('INSERT')
@@ -1038,7 +1026,7 @@ var Model = /** @class */ (function (_super) {
     };
     Model.prototype._exec = function (sql, type) {
         return __awaiter(this, void 0, void 0, function () {
-            var mains, emptyData, relations, relations_1, relations_1_1, relation, subs, e_1_1, resultData, err_3;
+            var result, emptyData, relations, relations_1, relations_1_1, relation, dataFromChilds, e_1_1, resultData, err_3;
             var e_1, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -1046,9 +1034,9 @@ var Model = /** @class */ (function (_super) {
                         _b.trys.push([0, 12, , 13]);
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
-                        mains = _b.sent();
-                        emptyData = this._returnEmpty(type, mains);
-                        if (!mains.length)
+                        result = _b.sent();
+                        emptyData = this._returnEmpty(type, result);
+                        if (!result.length)
                             return [2 /*return*/, emptyData];
                         relations = this.$db.get('WITH');
                         if (!relations.length) return [3 /*break*/, 11];
@@ -1061,14 +1049,14 @@ var Model = /** @class */ (function (_super) {
                         if (!!relations_1_1.done) return [3 /*break*/, 8];
                         relation = relations_1_1.value;
                         if (!(relation.relation === this.$utils().constants('RELATIONSHIP').belongsToMany)) return [3 /*break*/, 5];
-                        return [4 /*yield*/, this._belongsToMany(type, mains, relation)];
+                        return [4 /*yield*/, this._belongsToMany(type, result, relation)];
                     case 4:
-                        mains = _b.sent();
+                        result = _b.sent();
                         return [3 /*break*/, 7];
-                    case 5: return [4 /*yield*/, this._relation(mains, relation)];
+                    case 5: return [4 /*yield*/, this._relation(result, relation)];
                     case 6:
-                        subs = _b.sent();
-                        mains = this._relationFilter(mains, subs, relation);
+                        dataFromChilds = _b.sent();
+                        result = this._relationFilter(result, dataFromChilds, relation);
                         _b.label = 7;
                     case 7:
                         relations_1_1 = relations_1.next();
@@ -1086,8 +1074,8 @@ var Model = /** @class */ (function (_super) {
                         return [7 /*endfinally*/];
                     case 11:
                         if (this.$db.get('HIDDEN').length)
-                            this._hiddenColumnModel(mains);
-                        resultData = this._returnResult(type, mains);
+                            this._hiddenColumnModel(result);
+                        resultData = this._returnResult(type, result);
                         return [2 /*return*/, resultData || emptyData];
                     case 12:
                         err_3 = _b.sent();
@@ -1097,17 +1085,17 @@ var Model = /** @class */ (function (_super) {
             });
         });
     };
-    Model.prototype._execGroup = function (mains, type) {
+    Model.prototype._execGroup = function (dataParents, type) {
         var _a;
         if (type === void 0) { type = 'GET'; }
         return __awaiter(this, void 0, void 0, function () {
-            var emptyData, relations, relations_2, relations_2_1, relation, subs, e_2_1, resultData;
+            var emptyData, relations, relations_2, relations_2_1, relation, dataChilds, e_2_1, resultData;
             var e_2, _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
-                        emptyData = this._returnEmpty(type, mains);
-                        if (!mains.length)
+                        emptyData = this._returnEmpty(type, dataParents);
+                        if (!dataParents.length)
                             return [2 /*return*/, emptyData];
                         relations = this.$db.get('WITH');
                         if (!relations.length) return [3 /*break*/, 8];
@@ -1119,12 +1107,13 @@ var Model = /** @class */ (function (_super) {
                     case 2:
                         if (!!relations_2_1.done) return [3 /*break*/, 5];
                         relation = relations_2_1.value;
-                        if (relation.relation === this.$utils().constants('RELATIONSHIP').belongsToMany)
-                            return [2 /*return*/, this._belongsToMany(type, mains, relation)];
-                        return [4 /*yield*/, this._relation(mains, relation)];
+                        if (relation.relation === this.$utils().constants('RELATIONSHIP').belongsToMany) {
+                            return [2 /*return*/, this._belongsToMany(type, dataParents, relation)];
+                        }
+                        return [4 /*yield*/, this._relation(dataParents, relation)];
                     case 3:
-                        subs = _c.sent();
-                        mains = this._relationFilter(mains, subs, relation);
+                        dataChilds = _c.sent();
+                        dataParents = this._relationFilter(dataParents, dataChilds, relation);
                         _c.label = 4;
                     case 4:
                         relations_2_1 = relations_2.next();
@@ -1142,170 +1131,171 @@ var Model = /** @class */ (function (_super) {
                         return [7 /*endfinally*/];
                     case 8:
                         if ((_a = this.$db.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
-                            this._hiddenColumnModel(mains);
-                        resultData = this._returnResult(type, mains);
+                            this._hiddenColumnModel(dataParents);
+                        resultData = this._returnResult(type, dataParents);
                         return [2 /*return*/, resultData || emptyData];
                 }
             });
         });
     };
-    Model.prototype._relationFilter = function (mains, subs, relations) {
+    Model.prototype._relationFilter = function (dataParents, dataChilds, relations) {
         var _this = this;
         var _a = this._valueInRelation(relations), name = _a.name, as = _a.as, relation = _a.relation, pk = _a.pk, fk = _a.fk;
         var keyRelation = as !== null && as !== void 0 ? as : name;
-        mains.forEach(function (main) {
+        dataParents.forEach(function (dataPerent) {
             if (relation === _this.$utils().constants('RELATIONSHIP').hasOne || relation === _this.$utils().constants('RELATIONSHIP').belongsTo)
-                main[keyRelation] = null;
+                dataPerent[keyRelation] = null;
             else
-                main[keyRelation] = [];
-            if (subs.length) {
-                subs.forEach(function (sub) {
-                    if (sub[fk] === main[pk]) {
+                dataPerent[keyRelation] = [];
+            if (dataChilds.length) {
+                dataChilds.forEach(function (sub) {
+                    if (sub[fk] === dataPerent[pk]) {
                         if (relation === _this.$utils().constants('RELATIONSHIP').hasOne || relation === _this.$utils().constants('RELATIONSHIP').belongsTo) {
-                            main[keyRelation] = main[keyRelation] || sub;
+                            dataPerent[keyRelation] = dataPerent[keyRelation] || sub;
                         }
                         else {
-                            if (main[keyRelation] == null)
-                                main[keyRelation] = [];
-                            main[keyRelation].push(sub);
+                            if (dataPerent[keyRelation] == null)
+                                dataPerent[keyRelation] = [];
+                            dataPerent[keyRelation].push(sub);
                         }
                     }
                 });
             }
         });
         if (this.$db.get('WITH_EXISTS')) {
-            return mains.filter(function (main) {
-                if (Array.isArray(main[keyRelation]))
-                    return main[keyRelation].length;
-                return main[keyRelation] != null;
+            return dataParents.filter(function (dataPerent) {
+                if (Array.isArray(dataPerent[keyRelation]))
+                    return dataPerent[keyRelation].length;
+                return dataPerent[keyRelation] != null;
             });
         }
-        return mains;
+        return dataParents;
     };
-    Model.prototype._relation = function (mains, relations) {
+    Model.prototype._relation = function (parents, relation) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, pk, fk, pkId, mainId, query, subs;
+            var _a, pk, fk, pkId, dataPerentId, query, childs;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        if (!Object.keys(relations).length)
+                        if (!Object.keys(relation).length)
                             return [2 /*return*/, []];
-                        _a = this._valueInRelation(relations), pk = _a.pk, fk = _a.fk;
-                        pkId = mains.map(function (main) { return main[pk]; }).filter(function (data) { return data != null; });
-                        mainId = Array.from(new Set(pkId)) || [];
-                        if (!mainId.length && !this.$db.get('WITH_EXISTS'))
-                            throw new Error("can't relationship without primary or foreign key");
-                        if (!mainId.length && this.$db.get('WITH_EXISTS'))
+                        _a = this._valueInRelation(relation), pk = _a.pk, fk = _a.fk;
+                        pkId = parents.map(function (parent) { return parent[pk]; }).filter(function (data) { return data != null; });
+                        dataPerentId = Array.from(new Set(pkId)) || [];
+                        // if(!dataPerentId.length && !this.$db.get('WITH_EXISTS')) throw new Error("can't relationship without primary or foreign key")
+                        if (!dataPerentId.length && this.$db.get('WITH_EXISTS'))
                             return [2 /*return*/, []];
-                        return [4 /*yield*/, relations.query];
+                        return [4 /*yield*/, relation.query];
                     case 1:
                         query = _b.sent();
-                        return [4 /*yield*/, query.whereIn(fk, mainId).debug(this.$db.get('DEBUG')).get()];
+                        if (query == null)
+                            throw new Error("unknow callback queries in [relation : ".concat(relation.name, "]"));
+                        return [4 /*yield*/, query.whereIn(fk, dataPerentId).debug(this.$db.get('DEBUG')).get()];
                     case 2:
-                        subs = _b.sent();
-                        return [2 /*return*/, subs];
+                        childs = _b.sent();
+                        return [2 /*return*/, childs];
                 }
             });
         });
     };
-    Model.prototype._belongsToMany = function (type, mains, dataRelation) {
+    Model.prototype._belongsToMany = function (type, dataFromParent, relation) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function () {
-            var _c, name_1, pk_1, fk_1, pkId, mainId, local, modelOther, other_1, pivotTable, otherPk_1, otherFk_1, sqlSubs, subs_1, otherId, otherArrId, otherSubs_1, err_4, _d, name_2, pk_2, fk_2, pkId, mainId, local, modelOther, other_2, pivotTable, otherPk_2, otherFk_2, sqlSubs, subs_2, otherId, otherArrId, otherSubs_2, err_5;
+            var _c, name_1, pk_1, fk_1, pkId, dataPerentId, local, modelOther, other_1, pivotTable, otherPk_1, otherFk_1, sqldataChilds, dataChilds_1, otherId, otherArrId, otherdataChilds_1, err_4, _d, name_2, pk_2, fk_2, pkId, dataPerentId, local, modelOther, other_2, pivotTable, otherPk_2, otherFk_2, sqldataChilds, dataChilds_2, otherId, otherArrId, otherdataChilds_2, err_5;
             return __generator(this, function (_e) {
                 switch (_e.label) {
                     case 0:
                         _e.trys.push([0, 3, , 9]);
-                        _c = this._valueInRelation(dataRelation), name_1 = _c.name, pk_1 = _c.pk, fk_1 = _c.fk;
-                        pkId = mains.map(function (main) { return main[pk_1]; }).filter(function (data) { return data != null; });
-                        mainId = Array.from(new Set(pkId)).join(',') || [];
-                        if (!mainId.length)
+                        _c = this._valueInRelation(relation), name_1 = _c.name, pk_1 = _c.pk, fk_1 = _c.fk;
+                        pkId = dataFromParent.map(function (dataPerent) { return dataPerent[pk_1]; }).filter(function (data) { return data != null; });
+                        dataPerentId = Array.from(new Set(pkId)).join(',') || [];
+                        if (!dataPerentId.length)
                             throw new Error("can't relationship without primary or foreign key");
                         local = this.$utils().columnRelation(this.constructor.name);
-                        modelOther = new dataRelation.model();
-                        other_1 = this._classToTableName(modelOther.constructor.name, true);
-                        pivotTable = (_a = dataRelation.freezeTable) !== null && _a !== void 0 ? _a : "".concat(local, "_").concat(other_1);
+                        modelOther = new relation.model();
+                        other_1 = this._classToTableName(modelOther.constructor.name, { belongsTo: true });
+                        pivotTable = (_a = relation.freezeTable) !== null && _a !== void 0 ? _a : "".concat(local, "_").concat(other_1);
                         pk_1 = 'id';
                         fk_1 = this._isPatternSnakeCase() ? "".concat(local, "_id") : "".concat(local, "Id");
                         otherPk_1 = 'id';
                         otherFk_1 = this._isPatternSnakeCase() ? "".concat(other_1, "_id") : "".concat(other_1, "Id");
-                        sqlSubs = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_1, " ").concat(this.$utils().constants('IN'), " (").concat(mainId, ")");
-                        return [4 /*yield*/, this._queryStatementModel(sqlSubs)];
+                        sqldataChilds = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_1, " ").concat(this.$utils().constants('IN'), " (").concat(dataPerentId, ")");
+                        return [4 /*yield*/, this._queryStatementModel(sqldataChilds)];
                     case 1:
-                        subs_1 = _e.sent();
-                        otherId = subs_1.map(function (sub) { return sub[otherFk_1]; }).filter(function (data) { return data != null; });
+                        dataChilds_1 = _e.sent();
+                        otherId = dataChilds_1.map(function (sub) { return sub[otherFk_1]; }).filter(function (data) { return data != null; });
                         otherArrId = Array.from(new Set(otherId)) || [];
-                        return [4 /*yield*/, modelOther.whereIn(otherPk_1, otherArrId).get()];
+                        return [4 /*yield*/, this._queryStatementModel(modelOther.whereIn(otherPk_1, otherArrId).toSQL())];
                     case 2:
-                        otherSubs_1 = _e.sent();
-                        subs_1.forEach(function (sub) {
+                        otherdataChilds_1 = _e.sent();
+                        dataChilds_1.forEach(function (sub) {
                             sub[other_1] = [];
-                            otherSubs_1.forEach(function (otherSub) {
+                            otherdataChilds_1.forEach(function (otherSub) {
                                 if (otherSub[otherPk_1] === sub[otherFk_1]) {
                                     sub[other_1] = otherSub;
                                 }
                             });
                         });
-                        mains.forEach(function (main) {
-                            if (main[name_1] == null)
-                                main[name_1] = [];
-                            subs_1.forEach(function (sub) {
-                                if (sub[fk_1] === main[pk_1]) {
-                                    main[name_1].push(sub);
+                        dataFromParent.forEach(function (dataPerent) {
+                            if (dataPerent[name_1] == null)
+                                dataPerent[name_1] = [];
+                            dataChilds_1.forEach(function (sub) {
+                                if (sub[fk_1] === dataPerent[pk_1]) {
+                                    dataPerent[name_1].push(sub);
                                 }
                             });
                         });
                         if (this.$db.get('HIDDEN').length)
-                            this._hiddenColumnModel(mains);
-                        return [2 /*return*/, mains];
+                            this._hiddenColumnModel(dataFromParent);
+                        return [2 /*return*/, dataFromParent];
                     case 3:
                         err_4 = _e.sent();
                         _e.label = 4;
                     case 4:
                         _e.trys.push([4, 7, , 8]);
-                        _d = this._valueInRelation(dataRelation), name_2 = _d.name, pk_2 = _d.pk, fk_2 = _d.fk;
-                        pkId = mains.map(function (main) { return main[pk_2]; }).filter(function (data) { return data != null; });
-                        mainId = Array.from(new Set(pkId)).join(',') || [];
-                        if (!mainId.length)
+                        _d = this._valueInRelation(relation), name_2 = _d.name, pk_2 = _d.pk, fk_2 = _d.fk;
+                        pkId = dataFromParent.map(function (dataPerent) { return dataPerent[pk_2]; }).filter(function (data) { return data != null; });
+                        dataPerentId = Array.from(new Set(pkId)).join(',') || [];
+                        if (!dataPerentId.length)
                             throw new Error("can't relationship without primary or foreign key");
                         local = this.$utils().columnRelation(this.constructor.name);
-                        modelOther = new dataRelation.model();
+                        modelOther = new relation.model();
                         other_2 = modelOther.constructor.name.toLocaleLowerCase();
-                        pivotTable = (_b = dataRelation.freezeTable) !== null && _b !== void 0 ? _b : "".concat(other_2, "_").concat(local);
+                        pivotTable = (_b = relation.freezeTable) !== null && _b !== void 0 ? _b : "".concat(other_2, "_").concat(local);
                         pk_2 = 'id';
                         fk_2 = this._isPatternSnakeCase() ? "".concat(local, "_id") : "".concat(local, "Id");
                         otherPk_2 = 'id';
                         otherFk_2 = this._isPatternSnakeCase() ? "".concat(other_2, "_id") : "".concat(other_2, "Id");
-                        sqlSubs = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_2, " ").concat(this.$utils().constants('IN'), " (").concat(mainId, ")");
-                        return [4 /*yield*/, this._queryStatementModel(sqlSubs)];
+                        sqldataChilds = "".concat(this.$utils().constants('SELECT'), " * ").concat(this.$utils().constants('FROM'), " ").concat(pivotTable, " ").concat(this.$utils().constants('WHERE'), " ").concat(fk_2, " ").concat(this.$utils().constants('IN'), " (").concat(dataPerentId, ")");
+                        return [4 /*yield*/, this._queryStatementModel(sqldataChilds)];
                     case 5:
-                        subs_2 = _e.sent();
-                        otherId = subs_2.map(function (sub) { return sub[otherFk_2]; }).filter(function (data) { return data != null; });
+                        dataChilds_2 = _e.sent();
+                        otherId = dataChilds_2.map(function (sub) { return sub[otherFk_2]; }).filter(function (data) { return data != null; });
                         otherArrId = Array.from(new Set(otherId)) || [];
                         return [4 /*yield*/, this._queryStatementModel(modelOther
                                 .whereIn(otherPk_2, otherArrId)
                                 .toString())];
                     case 6:
-                        otherSubs_2 = _e.sent();
-                        subs_2.forEach(function (sub) {
-                            otherSubs_2.forEach(function (otherSub) {
+                        otherdataChilds_2 = _e.sent();
+                        dataChilds_2.forEach(function (sub) {
+                            otherdataChilds_2.forEach(function (otherSub) {
                                 if (otherSub[otherPk_2] === sub[otherFk_2]) {
                                     sub[other_2] = otherSub;
                                 }
                             });
                         });
-                        mains.forEach(function (main) {
-                            if (main[name_2] == null)
-                                main[name_2] = [];
-                            subs_2.forEach(function (sub) {
-                                if (sub[fk_2] === main[pk_2]) {
-                                    main[name_2].push(sub);
+                        dataFromParent.forEach(function (dataPerent) {
+                            if (dataPerent[name_2] == null)
+                                dataPerent[name_2] = [];
+                            dataChilds_2.forEach(function (sub) {
+                                if (sub[fk_2] === dataPerent[pk_2]) {
+                                    dataPerent[name_2].push(sub);
                                 }
                             });
                         });
                         if (this.$db.get('HIDDEN').length)
-                            this._hiddenColumnModel(mains);
-                        return [2 /*return*/, mains];
+                            this._hiddenColumnModel(dataFromParent);
+                        return [2 /*return*/, dataFromParent];
                     case 7:
                         err_5 = _e.sent();
                         throw new Error(err_5.message);
@@ -1322,14 +1312,14 @@ var Model = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        currentPage = this.$db.get('PAGE');
+                        currentPage = +(this.$db.get('PAGE'));
                         this.select("".concat(this.$utils().constants('COUNT'), "(*) ").concat(this.$utils().constants('AS'), " total"));
                         sql = this._getSQLModel();
                         return [4 /*yield*/, this._queryStatementModel(sql)];
                     case 1:
                         res = _b.sent();
-                        total = res.shift().total || 0;
-                        limit = this.$db.get('PER_PAGE');
+                        total = (res === null || res === void 0 ? void 0 : res.shift().total) || 0;
+                        limit = +(this.$db.get('PER_PAGE'));
                         lastPage = Math.ceil(total / limit) || 0;
                         lastPage = lastPage > 1 ? lastPage : 1;
                         nextPage = currentPage + 1;
@@ -1412,7 +1402,19 @@ var Model = /** @class */ (function (_super) {
         }
         switch (type) {
             case 'FIRST': return this._result((_c = data[0]) !== null && _c !== void 0 ? _c : {});
-            case 'GET': return this._result(data);
+            case 'GET': {
+                if (this.$db.get('CHUNK')) {
+                    var result = data.reduce(function (resultArray, item, index) {
+                        var chunkIndex = Math.floor(index / _this.$db.get('CHUNK'));
+                        if (!resultArray[chunkIndex])
+                            resultArray[chunkIndex] = [];
+                        resultArray[chunkIndex].push(item);
+                        return resultArray;
+                    }, []);
+                    return this._result(result);
+                }
+                return this._result(data);
+            }
             case 'PAGINATION': return this._pagination(data);
             default: throw new Error('Missing method first get or pagination');
         }
@@ -1442,7 +1444,7 @@ var Model = /** @class */ (function (_super) {
                         if (!relation)
                             throw new Error("unknow name relation [".concat(name, "] in model"));
                         thisTable = this.$utils().columnRelation(this.constructor.name);
-                        relationTable = this._classToTableName(relation.model.name, true);
+                        relationTable = this._classToTableName(relation.model.name, { belongsTo: true });
                         result = this.$db.get('RESULT');
                         _b.label = 1;
                     case 1:
@@ -1494,7 +1496,7 @@ var Model = /** @class */ (function (_super) {
                         if (!relation)
                             throw new Error("unknow name relation [".concat(name, "] in model"));
                         thisTable = this.$utils().columnRelation(this.constructor.name);
-                        relationTable = this._classToTableName(relation.model.name, true);
+                        relationTable = this._classToTableName(relation.model.name, { belongsTo: true });
                         result = this.$db.get('RESULT');
                         _c.label = 1;
                     case 1:
@@ -1894,7 +1896,7 @@ var Model = /** @class */ (function (_super) {
         var _a;
         if (transaction === void 0) { transaction = { query: [{ table: '', id: '' }] }; }
         return __awaiter(this, void 0, void 0, function () {
-            var attributes, query_1, query, _b;
+            var attributes, query, query, _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -1902,14 +1904,15 @@ var Model = /** @class */ (function (_super) {
                         attributes = this.$attributes;
                         if ((_a = Object.keys(attributes)) === null || _a === void 0 ? void 0 : _a.length) {
                             if (this.$db.get('WHERE')) {
-                                query_1 = this._queryUpdateModel(attributes);
-                                this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query_1));
+                                query = this._queryUpdateModel(attributes);
+                                this.$db.set('UPDATE', "".concat(this.$utils().constants('UPDATE'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
                                 this.$db.set('SAVE', 'UPDATE');
-                                return [2 /*return*/];
                             }
-                            query = this._queryInsertModel(attributes);
-                            this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
-                            this.$db.set('SAVE', 'INSERT');
+                            else {
+                                query = this._queryInsertModel(attributes);
+                                this.$db.set('INSERT', "".concat(this.$utils().constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
+                                this.$db.set('SAVE', 'INSERT');
+                            }
                         }
                         _b = this.$db.get('SAVE');
                         switch (_b) {
@@ -2007,7 +2010,7 @@ var Model = /** @class */ (function (_super) {
         };
     };
     Model.prototype._setupModel = function () {
-        var modelData = {
+        var db = {
             TRANSACTION: { query: [{
                         table: '',
                         id: ''
@@ -2023,6 +2026,7 @@ var Model = /** @class */ (function (_super) {
             SELECT: '',
             ONLY: [],
             EXCEPT: [],
+            CHUNK: 0,
             COUNT: '',
             FROM: '',
             JOIN: '',
@@ -2054,17 +2058,16 @@ var Model = /** @class */ (function (_super) {
         };
         return {
             get: function (key) {
-                if (key) {
-                    if (!modelData.hasOwnProperty(key))
-                        throw new Error("can't get this [".concat(key, "]"));
-                    return modelData[key];
-                }
-                return modelData;
+                if (key == null)
+                    return db;
+                if (!db.hasOwnProperty(key))
+                    throw new Error("can't get this [".concat(key, "]"));
+                return db[key];
             },
             set: function (key, value) {
-                if (!modelData.hasOwnProperty(key))
+                if (!db.hasOwnProperty(key))
                     throw new Error("can't set this [".concat(key, "]"));
-                modelData[key] = value;
+                db[key] = value;
                 return;
             }
         };

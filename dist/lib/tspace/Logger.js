@@ -20,10 +20,11 @@ var LoggerMethod = function (self, prop) {
         'hasMany',
         'belongsToMany',
     ];
-    var use = prop.substring(0, 3) !== 'use';
+    var _use = prop.substring(0, 3) !== 'use';
     var _private = prop.charAt(0) !== '_';
-    var ignore = ignores.indexOf(prop) === -1;
-    var conditions = [use, _private, ignore].every(function (data) { return data === true; });
+    var _setter = prop.charAt(0) !== '$';
+    var _ignore = ignores.indexOf(prop) === -1;
+    var conditions = [_use, _private, _ignore, _setter].every(function (data) { return data === true; });
     if (conditions)
         (_a = self.$logger) === null || _a === void 0 ? void 0 : _a.set(prop);
     return;

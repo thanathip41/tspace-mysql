@@ -1,4 +1,4 @@
 declare const configs: {
-    [x: string]: string;
+    [x: string]: Object | undefined;
 };
 export default configs;

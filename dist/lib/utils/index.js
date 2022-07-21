@@ -86,7 +86,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var constant_1 = __importDefault(require("./constant"));
+var constants_1 = __importDefault(require("../constants"));
 var connections_1 = __importDefault(require("../connections"));
 var timestamp = function () {
     var d = new Date();
@@ -162,9 +162,9 @@ var generateUUID = function () {
 var constants = function (name) {
     var e_1, _a;
     if (!name)
-        return constant_1.default;
+        return constants_1.default;
     try {
-        for (var _b = __values(Object === null || Object === void 0 ? void 0 : Object.entries(constant_1.default)), _c = _b.next(); !_c.done; _c = _b.next()) {
+        for (var _b = __values(Object === null || Object === void 0 ? void 0 : Object.entries(constants_1.default)), _c = _b.next(); !_c.done; _c = _b.next()) {
             var _d = __read(_c.value, 2), index = _d[0], _const = _d[1];
             if (index === name)
                 return _const;

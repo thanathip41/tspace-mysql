@@ -4,6 +4,9 @@ declare class Database extends AbstractDatabase {
     only(...params: Array<string>): this;
     distinct(column?: string): this;
     select(...params: string[]): this;
+    chunk(chunk: number): this;
+    when(value: string | number | undefined | null | Boolean, cb: Function): this;
+    whereRaw(query: string): this;
     where(column: string, operator?: any, value?: any): this;
     whereId(id: number): this;
     whereEmail(email: string): this;
@@ -122,6 +125,7 @@ declare class Database extends AbstractDatabase {
     max(column?: string): Promise<any>;
     min(column?: string): Promise<any>;
     delete(): Promise<boolean>;
+    forceDelete(): Promise<boolean>;
     getGroupBy(column: string): Promise<any>;
     findManyGroupBy(column: string): Promise<any>;
     save(transaction?: {

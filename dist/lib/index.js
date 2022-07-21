@@ -29,7 +29,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
   * The entry point.
   *
-  * @module tspace-myorm
+  * @module tspace-mysql
 */
 var tspace = __importStar(require("./tspace"));
 __exportStar(require("./tspace"), exports);

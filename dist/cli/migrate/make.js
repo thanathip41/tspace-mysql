@@ -15,29 +15,19 @@ var child_process_1 = require("child_process");
 exports.default = (function (_ref) {
     var e_1, _a;
     var _b, _c, _d;
-    var path = _ref.path, type = _ref.type, cwd = _ref.cwd, fs = _ref.fs;
-    var split = path.split('/') || path;
-    var f = split.join('/');
+    var type = _ref.type, dir = _ref.dir, cwd = _ref.cwd, fs = _ref.fs;
     try {
-        fs.accessSync(cwd + "/".concat(f), fs.F_OK, {
-            recursive: true
-        });
-    }
-    catch (e) {
-        fs.mkdirSync(cwd + "/".concat(f), {
-            recursive: true
-        });
-    }
-    try {
-        var dir = "".concat(cwd, "/").concat(f);
-        var files = (_b = fs.readdirSync(dir)) !== null && _b !== void 0 ? _b : [];
+        if (dir == null)
+            throw new Error('Not found directory');
+        var path = "".concat(cwd, "/").concat(dir);
+        var files = (_b = fs.readdirSync(path)) !== null && _b !== void 0 ? _b : [];
         if (!(files === null || files === void 0 ? void 0 : files.length))
             console.log('this folder is empty');
         var cmd = type === '.js' ? 'node' : 'ts-node';
         try {
             for (var files_1 = __values(files), files_1_1 = files_1.next(); !files_1_1.done; files_1_1 = files_1.next()) {
-                var t = files_1_1.value;
-                var run = (0, child_process_1.exec)("".concat(cmd, " ").concat(dir, "/").concat(t));
+                var _file = files_1_1.value;
+                var run = (0, child_process_1.exec)("".concat(cmd, " ").concat(path, "/").concat(_file));
                 (_c = run === null || run === void 0 ? void 0 : run.stdout) === null || _c === void 0 ? void 0 : _c.on('data', function (data) {
                     if (data)
                         console.log(data);

@@ -1,7 +1,7 @@
 /**
   * The entry point.
   *
-  * @module tspace-myorm
+  * @module tspace-mysql
 */
 import * as tspace from './tspace';
 export * from './tspace';

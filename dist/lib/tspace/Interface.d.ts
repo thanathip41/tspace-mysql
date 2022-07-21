@@ -7,7 +7,7 @@ export interface Relation {
     select?: string | undefined;
     hidden?: string | undefined;
     freezeTable?: string | undefined;
-    query?: Object | undefined;
+    query?: any | undefined;
     relation?: Object | undefined;
     child?: boolean | undefined;
 }

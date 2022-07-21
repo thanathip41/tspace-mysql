@@ -1,4 +1,4 @@
 declare const constant: {
-    [x: string]: any;
+    [x: string]: string | Object;
 };
 export default constant;

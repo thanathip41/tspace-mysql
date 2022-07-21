@@ -214,7 +214,8 @@ var DB = /** @class */ (function (_super) {
             INSERT: '',
             SELECT: '',
             ONLY: [],
-            EXCEPT: [''],
+            EXCEPT: [],
+            CHUNK: 0,
             COUNT: '',
             FROM: '',
             JOIN: '',
@@ -226,13 +227,16 @@ var DB = /** @class */ (function (_super) {
             HAVING: '',
             TABLE_NAME: '',
             HIDDEN: [],
+            UUID: false,
             DEBUG: false
         };
         return {
             get: function (key) {
-                if (key)
-                    return db[key];
-                return db;
+                if (key == null)
+                    return db;
+                if (!db.hasOwnProperty(key))
+                    throw new Error("can't get this [".concat(key, "]"));
+                return db[key];
             },
             set: function (key, value) {
                 if (!db.hasOwnProperty(key))

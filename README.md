@@ -131,25 +131,29 @@ import Post from '../Post'
 import Comment from '../Comment'
 import User from '../User'
 
+/**
 Folder directory example
 - App
   - Model
     Post.ts
     User.ts
     Comment.ts
+*/   
     
 (async () => {
     const users = await new User()
         .with('posts','comments') /* relations -> hasMany: posts & comments  */
         .withQuery('posts', (query) => query.with('user'))   /* relation -> belongsTo: post by user  */
-        .withQuery('comments', (query) => query.with('user','post'))   /* relation -> belongsTo: comment by user? & comment in post? */
+        .withQuery('comments', (query) => query.with('user','post'))   /* relation -> belongsTo: comment by user? & comment in post*/
         .findMany()
         
     console.log(users)    
 })()
-```
-*User.ts
-```js
+
+/** 
+ * 
+ * User.ts
+*/
 import { Model } from 'tspace-mysql'
 class User extends Model {
     constructor(){
@@ -159,10 +163,10 @@ class User extends Model {
     }
 } 
 export default User
-```
-
-*Post.ts
-```js
+/** 
+ * 
+ * Post.ts
+*/
 import { Model } from 'tspace-mysql'
 
 class Post extends Model {
@@ -173,10 +177,12 @@ class Post extends Model {
     }
 } 
 export default Post
-```
 
-*Comment.ts
-```js
+/** 
+ * 
+ * Comment.ts
+*/
+
 import { Model } from 'tspace-mysql'
 
 class Comment extends Model {
@@ -209,7 +215,7 @@ select(column1 ,column2 ,...N)
 except(column1 ,column2 ,...N)
 only(column1 ,column2 ,...N)
 hidden(column1 ,column2 ,...N)
-join (primary key , table.foreign key) 
+join(primary key , table.foreign key) 
 rightJoin (primary key , table.foreign key) 
 leftJoin (primary key , table.foreign key) 
 limit (limit)
@@ -219,13 +225,10 @@ latest (column)
 oldest (column)
 groupBy (column)
 
-insert(objects)
 create(objects)
 createMultiple(array objects)
 update (objects)
-insertNotExists(objects)
 createNotExists(objects)
-updateOrInsert (objects)
 updateOrCreate (objects)
 /** 
  * relationship
@@ -266,25 +269,24 @@ save() /*for action statements insert update or delete */
 npm install tspace-mysql -g
 ```js
 
-tspace-mysql make:model <folder/name model> --m  --f=... --name=.... --js
+tspace-mysql make:model <MODEL NAME> --m  --dir=... --js
 * optional
-    --m  /* created table for migrate in <FOLDER/migrations> */
-    --f=folder/...folder /* created table for migrate in <CUSTOM FOLDER> default  <FOLDER/migrations> */ 
-    --js /* extension .js default .ts */
-    --name=NAME /* class name default <NAME> in input cli */
+    --m  /* created table for migrate */
+    --dir=directory /* created model in directory */ 
+    --type=js /* extension js default ts */
 
-tspace-mysql make:table <folder> --name=....
-* required
-    --name=TABLE_NAME  /* created table for migrate in <folder> */
+tspace-mysql make:migration <TABLE NAME>
 * optional
-    --js /* extension .js default .ts */
+    --type=js /* extension js default ts */
+    --dir=directory /* created table in directory */ 
     
- tspace-mysql migrate <folder> --js
+ tspace-mysql migrate <FOLDER> --js
  * optional
-    --js /* extension .js default .ts */
+    --type=js /* extension js default ts */
+    --dir=directory /* find migrate in directory */ 
 ```
 
-tspace-mysql make:model App/Models/User --m
+tspace-mysql make:model User --m --dir=App/Models
 ```js
 /* Ex folder 
 - node_modules
@@ -308,7 +310,7 @@ class User extends Model{
 }
 export default User
 ```
-tspace-mysql make:table App/Models/Migrations --name=users
+tspace-mysql make:migration users --dir=App/Models/Migrations
 ```js
 /* Ex folder 
 - node_modules
@@ -327,6 +329,8 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
         email : new Blueprint().varchar(255).unique(),
         email_verify : new Blueprint().tinyInt(),
         password : new Blueprint().varchar(255),
+        created_at : new Blueprint().null().timestamp(),
+        updated_at : new Blueprint().null().timestamp()
     })
     /**
      * 
@@ -335,7 +339,7 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
     */
 })()
 ```
-tspace-mysql migrate App/Models/Migrations
+tspace-mysql migrate --dir=App/Models/Migrations
 /* migrate all table in folder into database */
 ```js
 * Blueprint method

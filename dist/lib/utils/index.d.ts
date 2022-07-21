@@ -9,7 +9,7 @@ declare const _default: {
     escape: (str: any) => any;
     escapeSubQuery: (str: any) => any;
     generateUUID: () => string;
-    constants: (name?: string | undefined) => any;
+    constants: (name?: string | undefined) => string | Object | undefined;
     covertBooleanToNumber: (data: any) => any;
     snakeCase: (obj: any) => any;
     camelCase: (obj: any) => any;

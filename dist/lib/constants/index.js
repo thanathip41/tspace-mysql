@@ -5,8 +5,6 @@ var constant = Object.freeze({
     SHOW: 'SHOW',
     FIELDS: 'FIELDS',
     COLUMNS: 'COLUMNS',
-    MYSQL: 'mysql',
-    POSTGRESQL: 'pg',
     WHERE: 'WHERE',
     BETWEEN: 'BETWEEN',
     AND: 'AND',

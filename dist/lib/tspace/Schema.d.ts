@@ -1,7 +1,8 @@
 import Database from "./Database";
 export declare class Schema extends Database {
-    protected timeStamp: Array<string>;
-    table: (table: string, schemas: any) => Promise<void>;
+    table: (table: string, schemas: {
+        [x: string]: any;
+    }) => Promise<void>;
 }
 export declare class Blueprint {
     protected type: string | undefined;

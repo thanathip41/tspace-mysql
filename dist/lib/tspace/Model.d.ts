@@ -11,7 +11,9 @@ declare class Model extends AbstractModel {
     useTimestamp(): this;
     useTable(table: string): this;
     disabledSoftDelete(): this;
-    registry(func: any): this;
+    registry(func: {
+        [x: string]: Function;
+    }): this;
     withQuery(name: string, cb: Function): this;
     with(...nameRelations: Array<any>): this;
     withExists(...nameRelations: Array<string>): this;
