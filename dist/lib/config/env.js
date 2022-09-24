@@ -9,17 +9,13 @@ var fs_1 = __importDefault(require("fs"));
 var environment = function () {
     var _a;
     var NODE_ENV = (_a = process.env) === null || _a === void 0 ? void 0 : _a.NODE_ENV;
-    var dotenvWithoutEnviroment = path_1.default.join(path_1.default.resolve(), ".env");
-    var dotenWithEnviroment = path_1.default.join(path_1.default.resolve(), ".env.".concat(NODE_ENV));
-    if (NODE_ENV == null) {
-        if (fs_1.default.existsSync(dotenvWithoutEnviroment))
-            return dotenvWithoutEnviroment;
-        if (fs_1.default.existsSync(dotenWithEnviroment))
-            return dotenWithEnviroment;
-    }
-    if (fs_1.default.existsSync(dotenWithEnviroment))
-        return dotenWithEnviroment;
-    return dotenvWithoutEnviroment;
+    var envWithoutEnviroment = path_1.default.join(path_1.default.resolve(), '.env');
+    var envWithEnviroment = path_1.default.join(path_1.default.resolve(), ".env.".concat(NODE_ENV));
+    if (NODE_ENV == null)
+        return envWithoutEnviroment;
+    if (fs_1.default.existsSync(envWithEnviroment))
+        return envWithEnviroment;
+    return envWithoutEnviroment;
 };
 dotenv_1.default.config({ path: environment() });
 var env = Object.freeze({

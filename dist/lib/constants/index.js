@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var constant = Object.freeze({
+var constant = {
     ID: 'ID',
     SHOW: 'SHOW',
     FIELDS: 'FIELDS',
@@ -50,20 +50,101 @@ var constant = Object.freeze({
     DELETE: 'DELETE',
     INSERT: 'INSERT INTO',
     DROP_TABLE: 'DROP TABLE',
+    TRUNCATE_TABLE: 'TRUNCATE TABLE',
+    CREATE_DATABASE: 'CREATE DATABASE',
+    CREATE_DATABASE_NOT_EXISTS: 'CREATE DATABASE IF NOT EXISTS',
+    CREATE_TABLE: 'CREATE TABLE',
+    CREATE_TABLE_NOT_EXISTS: 'CREATE TABLE IF NOT EXISTS',
+    ENGINE: 'ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8',
     RELATIONSHIP: {
         hasOne: 'hasOne',
         hasMany: 'hasMany',
         belongsTo: 'belongsTo',
         belongsToMany: 'belongsToMany'
     },
-    RELATIONSHIP_CHILD: {
-        hasOne: 'hasOne',
-        hasMany: 'hasMany',
-        belongsTo: 'belongsTo'
-    },
     PATTERN: {
         snake_case: 'snake_case',
         camelCase: 'camelCase'
+    },
+    DB: {
+        TRANSACTION: { query: [{
+                    table: '',
+                    id: ''
+                }] },
+        RESULT: null,
+        DISTINCT: '',
+        PLUCK: '',
+        SAVE: '',
+        DELETE: '',
+        UPDATE: '',
+        INSERT: '',
+        SELECT: '',
+        ONLY: [],
+        EXCEPT: [],
+        CHUNK: 0,
+        COUNT: '',
+        FROM: '',
+        JOIN: '',
+        WHERE: '',
+        GROUP_BY: '',
+        ORDER_BY: '',
+        LIMIT: '',
+        OFFSET: '',
+        HAVING: '',
+        TABLE_NAME: '',
+        UUID_CUSTOM: '',
+        HIDDEN: [],
+        DEBUG: false,
+        UUID: false,
+        PAGE: 1,
+        PER_PAGE: 1
+    },
+    MODEL: {
+        TRANSACTION: { query: [{
+                    table: '',
+                    id: ''
+                }] },
+        PRIMARY_KEY: 'id',
+        SELECT: '',
+        DELETE: '',
+        UPDATE: '',
+        INSERT: '',
+        ONLY: [],
+        EXCEPT: [],
+        CHUNK: 0,
+        COUNT: '',
+        FROM: '',
+        JOIN: '',
+        WHERE: '',
+        GROUP_BY: '',
+        ORDER_BY: '',
+        LIMIT: '',
+        OFFSET: '',
+        HAVING: '',
+        TABLE_NAME: '',
+        UUID_FORMAT: 'uuid',
+        TIMESTAMP: false,
+        TIMESTAMP_FORMAT: {
+            CREATED_AT: 'created_at',
+            UPDATED_AT: 'updated_at'
+        },
+        HIDDEN: [],
+        DEBUG: false,
+        UUID: false,
+        SOFT_DELETE: false,
+        SOFT_DELETE_RELATIONS: false,
+        RELATION: [],
+        WITH: [],
+        WITH_EXISTS: false,
+        WITH_EXISTS_NOT_ID: [],
+        PAGE: 1,
+        PER_PAGE: 1,
+        REGISTRY: {},
+        RESULT: null,
+        PATTERN: 'snake_case',
+        DISTINCT: '',
+        PLUCK: '',
+        SAVE: ''
     }
-});
-exports.default = constant;
+};
+exports.default = Object.freeze(constant);

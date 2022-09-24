@@ -12,10 +12,10 @@ var __values = (this && this.__values) || function(o) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var child_process_1 = require("child_process");
-exports.default = (function (_ref) {
+exports.default = (function (formCommand) {
     var e_1, _a;
     var _b, _c, _d;
-    var type = _ref.type, dir = _ref.dir, cwd = _ref.cwd, fs = _ref.fs;
+    var type = formCommand.type, dir = formCommand.dir, cwd = formCommand.cwd, fs = formCommand.fs;
     try {
         if (dir == null)
             throw new Error('Not found directory');

@@ -8,12 +8,13 @@ var DB_1 = __importDefault(require("./DB"));
 exports.DB = DB_1.default;
 var Model_1 = __importDefault(require("./Model"));
 exports.Model = Model_1.default;
-var Schema_1 = require("./Schema");
-Object.defineProperty(exports, "Schema", { enumerable: true, get: function () { return Schema_1.Schema; } });
-Object.defineProperty(exports, "Blueprint", { enumerable: true, get: function () { return Schema_1.Blueprint; } });
+var Schema_1 = __importDefault(require("./Schema"));
+exports.Schema = Schema_1.default;
+var Blueprint_1 = __importDefault(require("./Blueprint"));
+exports.Blueprint = Blueprint_1.default;
 exports.default = {
     DB: DB_1.default,
     Model: Model_1.default,
-    Schema: Schema_1.Schema,
-    Blueprint: Schema_1.Blueprint
+    Schema: Schema_1.default,
+    Blueprint: Blueprint_1.default
 };

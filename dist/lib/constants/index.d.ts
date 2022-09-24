@@ -1,4 +1,4 @@
-declare const constant: {
+declare const _default: Readonly<{
     [x: string]: string | Object;
-};
-export default constant;
+}>;
+export default _default;

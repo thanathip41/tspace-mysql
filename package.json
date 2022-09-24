@@ -1,6 +1,6 @@
 {
   "name": "tspace-mysql",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "mysql query builder object relational mapping",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -33,21 +33,18 @@
   },
   "dependencies": {
     "dotenv": "^10.0.0",
+    "mysql": "2.18.1",
     "pluralize": "^8.0.0",
-    "mysql" : "2.18.1"
+    "sql-formatter": "^10.7.1"
   },
   "homepage": "https://github.com/thanathip41",
   "scripts": {
-    "start" : "ts-node ./test/index.ts",
-    "prod" : "set NODE_ENV=production&& ts-node ./test/index.ts",
-    "dev" : "set NODE_ENV=development&& ts-node ./test/index.ts",
-    "test" : "set NODE_ENV=test&& ts-node ./test/index.ts",
     "build": "tsc",
     "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/mysql": "^2.15.19",
-    "@types/node": "^16.4.0",
+    "@types/node": "^16.11.45",
     "@types/pluralize": "0.0.29"
   }
 }

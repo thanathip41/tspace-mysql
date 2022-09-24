@@ -1,6 +1,7 @@
 import DB from './DB';
 import Model from './Model';
-import { Schema, Blueprint } from './Schema';
+import Schema from './Schema';
+import Blueprint from './Blueprint';
 export { DB };
 export { Model };
 export { Schema };

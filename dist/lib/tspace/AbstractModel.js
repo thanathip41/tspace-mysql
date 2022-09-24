@@ -18,6 +18,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.AbstractModel = void 0;
 var Database_1 = __importDefault(require("./Database"));
 var AbstractModel = /** @class */ (function (_super) {
     __extends(AbstractModel, _super);
@@ -26,4 +27,5 @@ var AbstractModel = /** @class */ (function (_super) {
     }
     return AbstractModel;
 }(Database_1.default));
+exports.AbstractModel = AbstractModel;
 exports.default = AbstractModel;

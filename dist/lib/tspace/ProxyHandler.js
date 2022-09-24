@@ -11,25 +11,27 @@ var __assign = (this && this.__assign) || function () {
     return __assign.apply(this, arguments);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.proxyHandler = void 0;
 var Logger_1 = require("./Logger");
-exports.default = {
-    set: function (target, name, value) {
+var proxyHandler = {
+    set: function (self, name, value) {
         var _a;
         var _b;
-        if ((_b = target._setters) === null || _b === void 0 ? void 0 : _b.includes(name))
+        if ((_b = self.$setters) === null || _b === void 0 ? void 0 : _b.includes(name))
             throw new Error("no allow to set this ".concat(name));
-        target.$attributes = __assign(__assign({}, target.$attributes), (_a = {}, _a[name] = value, _a));
+        self.$attributes = __assign(__assign({}, self.$attributes), (_a = {}, _a[name] = value, _a));
         return true;
     },
-    get: function (target, prop, value) {
-        var _a, _b;
+    get: function (self, prop, value) {
+        var _a, _b, _c, _d;
         try {
-            (0, Logger_1.LoggerMethod)(target, prop);
+            new Logger_1.Logger(self, prop);
             switch (prop) {
-                case 'attributes': return target["$".concat(prop)];
-                case 'logger': return (_a = target.$logger) === null || _a === void 0 ? void 0 : _a.get();
-                case 'result': return (_b = target.$db) === null || _b === void 0 ? void 0 : _b.get('RESULT');
-                default: return Reflect.get(target, prop, value);
+                case 'tableName': return (_b = (_a = self.$db) === null || _a === void 0 ? void 0 : _a.get('TABLE_NAME')) === null || _b === void 0 ? void 0 : _b.replace(/`/g, '');
+                case 'attributes': return self["$".concat(prop)];
+                case 'logger': return (_c = self.$logger) === null || _c === void 0 ? void 0 : _c.get();
+                case 'result': return (_d = self.$db) === null || _d === void 0 ? void 0 : _d.get('RESULT');
+                default: return Reflect.get(self, prop, value);
             }
         }
         catch (e) {
@@ -37,3 +39,5 @@ exports.default = {
         }
     }
 };
+exports.proxyHandler = proxyHandler;
+exports.default = proxyHandler;

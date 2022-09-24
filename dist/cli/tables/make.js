@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var table_1 = __importDefault(require("./table"));
-exports.default = (function (_ref) {
-    var file = _ref.file, type = _ref.type, cwd = _ref.cwd, dir = _ref.dir, fs = _ref.fs, npm = _ref.npm;
+exports.default = (function (formCommand) {
+    var file = formCommand.file, type = formCommand.type, cwd = formCommand.cwd, dir = formCommand.dir, fs = formCommand.fs, npm = formCommand.npm;
     try {
         fs.accessSync(cwd + "/".concat(file), fs.F_OK, {
             recursive: true

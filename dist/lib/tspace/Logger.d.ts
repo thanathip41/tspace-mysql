@@ -1,1 +1,8 @@
-export declare const LoggerMethod: (self: any, prop: string) => void;
+declare class Logger {
+    private SELF;
+    private PROP;
+    constructor(self: any, prop: string);
+    private initialize;
+}
+export { Logger };
+export default Logger;

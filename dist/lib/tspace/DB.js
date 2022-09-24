@@ -14,6 +14,17 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -61,69 +72,34 @@ var __values = (this && this.__values) || function(o) {
     };
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var AbstractDB_1 = __importDefault(require("./AbstractDB"));
-var ProxyHandler_1 = __importDefault(require("./ProxyHandler"));
+exports.DB = void 0;
+var AbstractDB_1 = require("./AbstractDB");
+var ProxyHandler_1 = require("./ProxyHandler");
 var DB = /** @class */ (function (_super) {
     __extends(DB, _super);
-    function DB() {
+    function DB(table) {
         var _this = _super.call(this) || this;
-        _this._initDB();
-        return new Proxy(_this, ProxyHandler_1.default);
+        _this._initialDB();
+        if (table)
+            _this.table(table);
+        return new Proxy(_this, ProxyHandler_1.proxyHandler);
     }
+    /**
+     * Assign table name
+     * @param {string} table table name
+     * @return {this} this
+     */
     DB.prototype.table = function (table) {
-        this.$db.set('SELECT', "".concat(this.$utils().constants('SELECT'), " *"));
-        this.$db.set('TABLE_NAME', table);
-        this.$db.set('FROM', "".concat(this.$utils().constants('FROM')));
+        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " *"));
+        this.$db.set('TABLE_NAME', "`".concat(table, "`"));
+        this.$db.set('FROM', "".concat(this.$constants('FROM')));
         return this;
     };
-    DB.prototype.raw = function (sql) {
-        return __awaiter(this, void 0, void 0, function () {
-            var result, err_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        _a.trys.push([0, 2, , 3]);
-                        return [4 /*yield*/, this.rawQuery(sql)];
-                    case 1:
-                        result = _a.sent();
-                        return [2 /*return*/, result];
-                    case 2:
-                        err_1 = _a.sent();
-                        throw new Error(err_1.message);
-                    case 3: return [2 /*return*/];
-                }
-            });
-        });
-    };
+    /**
+     * transaction query rollback & commit
+     * @return {promise<any>}
+     */
     DB.prototype.beginTransaction = function () {
         return __awaiter(this, void 0, void 0, function () {
             var transaction;
@@ -147,8 +123,9 @@ var DB = /** @class */ (function (_super) {
                                 case 2:
                                     if (!!_b.done) return [3 /*break*/, 5];
                                     query = _b.value;
-                                    if (query.id === '' || query.table === '' || query.id == null || query.table == null)
+                                    if (query.id === '' || query.table === '' || query.id == null || query.table == null) {
                                         return [2 /*return*/, false];
+                                    }
                                     return [4 /*yield*/, new DB()
                                             .table(query.table)
                                             .where('id', query.id)
@@ -181,71 +158,29 @@ var DB = /** @class */ (function (_super) {
             });
         });
     };
-    DB.prototype._initDB = function () {
+    DB.prototype._initialDB = function () {
         this.$db = this._setupDB();
-        this.$logger = this._setupLogger();
         return this;
     };
-    DB.prototype._setupLogger = function () {
-        var logger = [];
-        return {
-            get: function () { return logger; },
-            set: function (value) {
-                logger = __spreadArray(__spreadArray([], __read(logger), false), [value], false);
-                return;
-            },
-            check: function (value) { return logger.indexOf(value) != -1; }
-        };
-    };
     DB.prototype._setupDB = function () {
-        var db = {
-            TRANSACTION: {
-                query: [{
-                        table: '',
-                        id: ''
-                    }]
-            },
-            RESULT: null,
-            REGISTRY: {},
-            PLUCK: '',
-            SAVE: '',
-            DELETE: '',
-            UPDATE: '',
-            INSERT: '',
-            SELECT: '',
-            ONLY: [],
-            EXCEPT: [],
-            CHUNK: 0,
-            COUNT: '',
-            FROM: '',
-            JOIN: '',
-            WHERE: '',
-            GROUP_BY: '',
-            ORDER_BY: '',
-            LIMIT: '',
-            OFFSET: '',
-            HAVING: '',
-            TABLE_NAME: '',
-            HIDDEN: [],
-            UUID: false,
-            DEBUG: false
-        };
+        var db = new Map(Object.entries(__assign({}, this.$constants('DB'))));
         return {
             get: function (key) {
                 if (key == null)
                     return db;
-                if (!db.hasOwnProperty(key))
+                if (!db.has(key))
                     throw new Error("can't get this [".concat(key, "]"));
-                return db[key];
+                return db.get(key);
             },
             set: function (key, value) {
-                if (!db.hasOwnProperty(key))
+                if (!db.has(key))
                     throw new Error("can't set this [".concat(key, "]"));
-                db[key] = value;
+                db.set(key, value);
                 return;
             }
         };
     };
     return DB;
-}(AbstractDB_1.default));
+}(AbstractDB_1.AbstractDB));
+exports.DB = DB;
 exports.default = DB;

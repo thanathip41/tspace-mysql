@@ -16,10 +16,16 @@ var commands = {
     'migrate': make_3.default
 };
 try {
-    var name = (_c = (_b = (_a = process.argv.slice(2)) === null || _a === void 0 ? void 0 : _a.find(function (data) { return data === null || data === void 0 ? void 0 : data.includes('--name='); })) === null || _b === void 0 ? void 0 : _b.replace('--name=', '')) !== null && _c !== void 0 ? _c : null;
+    var name = (_c = (_b = (_a = process.argv.slice(2)) === null || _a === void 0 ? void 0 : _a.find(function (data) {
+        return data === null || data === void 0 ? void 0 : data.includes('--name=');
+    })) === null || _b === void 0 ? void 0 : _b.replace('--name=', '')) !== null && _c !== void 0 ? _c : null;
     var migrate = (_e = (_d = process.argv.slice(2)) === null || _d === void 0 ? void 0 : _d.includes('--m')) !== null && _e !== void 0 ? _e : false;
-    var dir = (_h = (_g = (_f = process.argv.slice(2)) === null || _f === void 0 ? void 0 : _f.find(function (data) { return data === null || data === void 0 ? void 0 : data.includes('--dir='); })) === null || _g === void 0 ? void 0 : _g.replace('--dir=', '/')) !== null && _h !== void 0 ? _h : null;
-    var type = (_l = (_k = (_j = process.argv.slice(2)) === null || _j === void 0 ? void 0 : _j.find(function (data) { return data === null || data === void 0 ? void 0 : data.includes('--type='); })) === null || _k === void 0 ? void 0 : _k.replace('--type=', '.')) !== null && _l !== void 0 ? _l : '.ts';
+    var dir = (_h = (_g = (_f = process.argv.slice(2)) === null || _f === void 0 ? void 0 : _f.find(function (data) {
+        return data === null || data === void 0 ? void 0 : data.includes('--dir=');
+    })) === null || _g === void 0 ? void 0 : _g.replace('--dir=', '/')) !== null && _h !== void 0 ? _h : null;
+    var type = (_l = (_k = (_j = process.argv.slice(2)) === null || _j === void 0 ? void 0 : _j.find(function (data) {
+        return data === null || data === void 0 ? void 0 : data.includes('--type=');
+    })) === null || _k === void 0 ? void 0 : _k.replace('--type=', '.')) !== null && _l !== void 0 ? _l : '.ts';
     type = ['.js', '.ts'].includes(type) ? type : '.ts';
     var file = (_o = (_m = process.argv.slice(3)) === null || _m === void 0 ? void 0 : _m.shift()) !== null && _o !== void 0 ? _o : '';
     var cmd = {

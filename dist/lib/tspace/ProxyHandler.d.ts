@@ -1,5 +1,6 @@
-declare const _default: {
-    set: (target: any, name: string, value: any) => boolean;
-    get: (target: any, prop: any, value: any) => any;
+declare const proxyHandler: {
+    set: (self: any, name: string, value: any) => boolean;
+    get: (self: any, prop: any, value: any) => any;
 };
-export default _default;
+export { proxyHandler };
+export default proxyHandler;

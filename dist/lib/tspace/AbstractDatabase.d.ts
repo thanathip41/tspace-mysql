@@ -1,18 +1,27 @@
+import { Pagination } from './Interface';
 declare abstract class AbstractDatabase {
-    protected _setters: string[];
-    protected $utils: Function;
+    protected $setters: string[];
+    protected $utils: {
+        [key: string]: Function;
+    };
+    protected $constants: Function;
     protected $db: {
+        get: Function;
+        set: Function;
+    };
+    protected $pool: {
         get: Function;
         set: Function;
     };
     protected $logger: {
         get: Function;
-        set: (arg: string) => void;
-        check: (arg: string) => boolean;
+        set: (value: string) => void;
+        check: (value: string) => boolean;
     };
-    protected $attributes: {};
+    protected $attributes: {
+        [key: string]: any;
+    };
     abstract debug(): void;
-    abstract dump(): void;
     abstract dd(): void;
     abstract select(...params: string[]): void;
     abstract distinct(...params: string[]): void;
@@ -20,6 +29,7 @@ declare abstract class AbstractDatabase {
     abstract whereNotNull(column: string): void;
     abstract where(column: string, operator: string, value: string): void;
     abstract whereSensitive(column: string, operator: string, value: string): void;
+    abstract whereRaw(sql: string): void;
     abstract whereId(id: number): void;
     abstract whereUser(id: number): void;
     abstract whereEmail(value: string): void;
@@ -32,7 +42,7 @@ declare abstract class AbstractDatabase {
     abstract orWhereIn(column: string, arrayValues: Array<any>): void;
     abstract whereNotIn(column: string, arrayValues: Array<any>): void;
     abstract whereSubQuery(column: string, subQuery: string): void;
-    abstract whereNotInSubQuery(column: string, subQuery: string): void;
+    abstract whereNotSubQuery(column: string, subQuery: string): void;
     abstract orWhereSubQuery(column: string, subQuery: string): void;
     abstract whereBetween(column: string, arrayValue: Array<any>): void;
     abstract having(condition: string): void;
@@ -51,7 +61,6 @@ declare abstract class AbstractDatabase {
     abstract update(objects: object): void;
     abstract insertNotExists(objects: object): void;
     abstract createNotExists(objects: object): void;
-    abstract upsert(objects: object): void;
     abstract insertOrUpdate(objects: object): void;
     abstract createOrUpdate(objects: object): void;
     abstract updateOrInsert(objects: object): void;
@@ -60,11 +69,6 @@ declare abstract class AbstractDatabase {
     abstract insertMultiple(objects: object): void;
     abstract except(...params: string[]): void;
     abstract only(...params: string[]): void;
-    /**
-     *
-     * @Execute result
-     *
-    */
     abstract drop(): Promise<any>;
     abstract truncate(): Promise<any>;
     abstract all(): Promise<any>;
@@ -72,11 +76,11 @@ declare abstract class AbstractDatabase {
     abstract pagination({ limit, page }: {
         limit: number;
         page: number;
-    }): Promise<any>;
+    }): Promise<Pagination>;
     abstract paginate({ limit, page }: {
         limit: number;
         page: number;
-    }): Promise<any>;
+    }): Promise<Pagination>;
     abstract first(): Promise<any>;
     abstract get(): Promise<any>;
     abstract findOne(): Promise<any>;
@@ -94,7 +98,7 @@ declare abstract class AbstractDatabase {
     abstract min(column: string): Promise<any>;
     abstract delete(): Promise<any>;
     abstract exists(): Promise<any>;
-    abstract save(): Promise<any>;
+    abstract save(): Promise<any[] | object | null>;
     abstract increment(column: string, value: number): Promise<any>;
     abstract decrement(column: string, value: number): Promise<any>;
     abstract faker(round: number): Promise<any>;

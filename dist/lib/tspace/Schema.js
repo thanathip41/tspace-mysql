@@ -75,12 +75,9 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Blueprint = exports.Schema = void 0;
-var Database_1 = __importDefault(require("./Database"));
+exports.Schema = void 0;
+var Database_1 = require("./Database");
 var Schema = /** @class */ (function (_super) {
     __extends(Schema, _super);
     function Schema() {
@@ -96,9 +93,15 @@ var Schema = /** @class */ (function (_super) {
                         for (key in schemas) {
                             data = schemas[key];
                             type = data.type, attrbuites = data.attrbuites;
-                            columns = __spreadArray(__spreadArray([], __read(columns), false), ["".concat(key, " ").concat(type, " ").concat(attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' '))], false);
+                            columns = __spreadArray(__spreadArray([], __read(columns), false), [
+                                "".concat(key, " ").concat(type, " ").concat(attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' '))
+                            ], false);
                         }
-                        sql = "CREATE TABLE ".concat(table, " (").concat(columns === null || columns === void 0 ? void 0 : columns.join(','), ") ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8");
+                        sql = [
+                            "CREATE TABLE IF NOT EXISTS",
+                            "".concat(table, " (").concat(columns === null || columns === void 0 ? void 0 : columns.join(','), ")"),
+                            "ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8"
+                        ].join(' ');
                         return [4 /*yield*/, this.rawQuery(sql)];
                     case 1:
                         _b.sent();
@@ -115,134 +118,6 @@ var Schema = /** @class */ (function (_super) {
         return _this;
     }
     return Schema;
-}(Database_1.default));
+}(Database_1.Database));
 exports.Schema = Schema;
-var Blueprint = /** @class */ (function () {
-    function Blueprint() {
-        this.attrbuites = [];
-    }
-    Blueprint.prototype._addType = function (type) {
-        if (this.type != null || this.type)
-            return this;
-        this.type = type;
-        return this;
-    };
-    Blueprint.prototype._addAttrbuite = function (attrbuite) {
-        this.attrbuites = __spreadArray(__spreadArray([], __read(this.attrbuites), false), [attrbuite], false);
-        return this;
-    };
-    /**
-     *
-     * @Types
-     *
-    */
-    Blueprint.prototype.int = function () {
-        this._addType('INT');
-        return this;
-    };
-    Blueprint.prototype.tinyInt = function (n) {
-        if (n === void 0) { n = 1; }
-        this._addType("TINYINT(".concat(n, ")"));
-        return this;
-    };
-    Blueprint.prototype.bigInt = function (n) {
-        if (n === void 0) { n = 10; }
-        this._addType("BIGINT(".concat(n, ")"));
-        return this;
-    };
-    Blueprint.prototype.double = function () {
-        this._addType("DOUBLE");
-        return this;
-    };
-    Blueprint.prototype.float = function () {
-        this._addType("FLOAT");
-        return this;
-    };
-    Blueprint.prototype.varchar = function (n) {
-        if (n === void 0) { n = 100; }
-        if (n > 255)
-            n = 255;
-        this._addType("VARCHAR(".concat(n, ")"));
-        return this;
-    };
-    Blueprint.prototype.char = function (n) {
-        if (n === void 0) { n = 1; }
-        this._addType("CHAR(".concat(n, ")"));
-        return this;
-    };
-    Blueprint.prototype.longText = function () {
-        this._addType("LONGTEXT");
-        return this;
-    };
-    Blueprint.prototype.mediumText = function () {
-        this._addType("MEDIUMTEXT");
-        return this;
-    };
-    Blueprint.prototype.tinyText = function () {
-        this._addType("TINYTEXT");
-        return this;
-    };
-    Blueprint.prototype.text = function () {
-        this._addType("TEXT");
-        return this;
-    };
-    Blueprint.prototype.enum = function () {
-        var n = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            n[_i] = arguments[_i];
-        }
-        this._addType("ENUM('".concat(n, "')"));
-        return this;
-    };
-    Blueprint.prototype.date = function () {
-        this._addType("DATE");
-        return this;
-    };
-    Blueprint.prototype.dateTime = function () {
-        this._addType("DATETIME");
-        return this;
-    };
-    Blueprint.prototype.timestamp = function () {
-        this._addType("TIMESTAMP");
-        return this;
-    };
-    /**
-     *
-     * @Attrbuites
-     *
-    */
-    Blueprint.prototype.unsigned = function () {
-        this._addAttrbuite("UNSIGNED");
-        return this;
-    };
-    Blueprint.prototype.unique = function () {
-        this._addAttrbuite("UNIQUE");
-        return this;
-    };
-    Blueprint.prototype.null = function () {
-        this._addAttrbuite("NULL");
-        return this;
-    };
-    Blueprint.prototype.notNull = function () {
-        this._addAttrbuite("NOT NULL");
-        return this;
-    };
-    Blueprint.prototype.primary = function () {
-        this._addAttrbuite("PRIMARY KEY");
-        return this;
-    };
-    Blueprint.prototype.default = function (n) {
-        this._addAttrbuite("DEFAULT '".concat(n, "'"));
-        return this;
-    };
-    Blueprint.prototype.defaultTimestamp = function () {
-        this._addAttrbuite("DEFAULT CURRENT_TIMESTAMP");
-        return this;
-    };
-    Blueprint.prototype.autoIncrement = function () {
-        this._addAttrbuite("AUTO_INCREMENT");
-        return this;
-    };
-    return Blueprint;
-}());
-exports.Blueprint = Blueprint;
+exports.default = Schema;

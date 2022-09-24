@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var model_1 = __importDefault(require("./model"));
 var table_1 = __importDefault(require("../tables/table"));
 var pluralize_1 = __importDefault(require("pluralize"));
-exports.default = (function (_ref) {
-    var file = _ref.file, migrate = _ref.migrate, dir = _ref.dir, type = _ref.type, cwd = _ref.cwd, fs = _ref.fs, npm = _ref.npm;
+exports.default = (function (formCommand) {
+    var file = formCommand.file, migrate = formCommand.migrate, dir = formCommand.dir, type = formCommand.type, cwd = formCommand.cwd, fs = formCommand.fs, npm = formCommand.npm;
     if (dir) {
         try {
             fs.accessSync(cwd + "/".concat(dir), fs.F_OK, {

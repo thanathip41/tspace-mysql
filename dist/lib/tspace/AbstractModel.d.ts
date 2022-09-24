@@ -12,9 +12,10 @@ declare abstract class AbstractModel extends Database {
     abstract with(...nameRelations: string[]): void;
     abstract withQuery(nameRelations: string, callback: Function): void;
     abstract withExists(...nameRelations: string[]): void;
-    abstract hasOne({ name, model, pk, fk, freezeTable, child }: Relation): void;
-    abstract hasMany({ name, model, pk, fk, freezeTable, child }: Relation): void;
-    abstract belongsTo({ name, model, pk, fk, freezeTable, child }: Relation): void;
-    abstract belongsToMany({ name, model, pk, fk, freezeTable, child }: Relation): void;
+    abstract hasOne({ name, model, localKey, foreignKey, freezeTable, as }: Relation): void;
+    abstract hasMany({ name, model, localKey, foreignKey, freezeTable, as }: Relation): void;
+    abstract belongsTo({ name, model, localKey, foreignKey, freezeTable, as }: Relation): void;
+    abstract belongsToMany({ name, model, localKey, foreignKey, freezeTable, as }: Relation): void;
 }
+export { AbstractModel };
 export default AbstractModel;
