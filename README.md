@@ -3,8 +3,8 @@
 [![NPM version](https://img.shields.io/npm/v/tspace-mysql.svg)](https://www.npmjs.com)
 [![NPM downloads](https://img.shields.io/npm/dm/tspace-mysql.svg)](https://www.npmjs.com)
 
-TspaceMySQL is an ORM that can run in NodeJs and can be used with TypeScript. 
-Its goal is to always support the latest TypeScript and JavaScript features and provide additional features that help you to develop.
+Tspace-mysql is an ORM that can run in NodeJs and can be used with TypeScript. 
+Its always support the latest TypeScript and JavaScript features and provide additional features that help you to develop.
 
 ## Install
 
@@ -24,7 +24,7 @@ npm install tspace-mysql --save
 - [Relationships](#relationships)
   - [One To One](#one-to-one)
   - [One To Many](#one-to-many)
-  - [One To One & One To Many (Inverse) / Belongs To](#inverse-belongs-to)
+  - [Belongs To](#belongs-to)
   - [Many To Many](#many-to-many)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
@@ -76,7 +76,8 @@ const users = await new DB('users').where('id','!=',1).findMany()
 ```
 Running A Insert Query
 ```js
-const user = await new DB('users').create({
+const user = await new DB('users')
+    .create({
         name : 'tspace3',
         email : 'tspace3@gmail.com'
     }).save()
@@ -93,7 +94,8 @@ const { result } = reposity
 ```
 Running A Update Query
 ```js
-const user = await new DB('users').where('id',1)
+const user = await new DB('users')
+    .where('id',1)
     .update({
           name : 'tspace1**',
           email : 'tspace1@gmail.com'
@@ -119,29 +121,67 @@ const deleted = await new DB('users').where('id',1).delete()
 Within a database transaction, you may use the:
 
 ```js
-const transaction = await new DB().beginTransaction()
+const connection = await new DB().beginTransaction()
+
 try {
-    const user = await new DB('users').create({
-        name : 'tspace5',
-        email : 'tspace5@gmail.com'
-    })
-   .save(transaction)
-    // user =>  { id : 5 , username : 'tspace5', email : 'tspace5@gmail.com'}
-  
-   const userSecond = await new DB('users').create({
-        name : 'tspace6',
-        email : 'tspace6@gmail.com'
-    })
-   .save(transaction)
-    // userSecond =>  { id : 6 , username : 'tspace6', email : 'tspace6@gmail.com'}
-   
-  throw new Error('try to using transaction')
-  
+    /**
+     *
+     * @startTransaction start transaction in scopes function 
+     */
+    await connection.startTransaction()
+
+    const user = await new User()
+        .create({
+            name : `tspace`,
+            email : 'tspace@example.com'
+        })
+        /**
+         *
+         * bind method for make sure this connection has same transaction in connection
+         * @params {Function} connection 
+         */
+        .bind(connection)
+        .save()
+
+    const posts = await new Post().createMultiple([
+        {
+            user_id : user.id,
+            title : `tspace-post1`
+        },
+        {
+            user_id : user.id,
+            title : `tspace-post2`
+        },
+        {
+            user_id : user.id,
+            title : `tspace-post3`
+        }
+    ])
+    /**
+     *
+     * bind method for make sure this connection has same transaction in connection
+     * @params {Function} connection 
+     */
+    .bind(connection)
+    .save()
+
+    // throw new Error('try error')
+
+    /**
+     *
+     * @commit commit transaction to database
+     */
+    await connection.commit()
+
 } catch (err) {
-   const rollback = await transaction.rollback()
-   // rollback => true
-   // * rollback data user, userSecond in your database
+
+    /**
+     *
+     * @rollback rollback transaction
+     */
+    await connection.rollback()
 }
+
 ```
 
 ## Connection
@@ -149,7 +189,7 @@ When establishing a connection, you may establish options is this:
 ```js
 const users = await new DB('users')
     .connection({
-       host: 'localhost..',
+       host: 'localhost',
        port : 3306,
        database: 'database'
        username: 'username',
@@ -167,9 +207,9 @@ Backup database, you may backup is this:
  * @param conection defalut current connection
  */
 const backup = await new DB().backup({
-     database: 'try-to-backup',
+     database: 'try-to-backup',  // clone current database to this
      connection ?: {
-        host: 'localhost..',
+        host: 'localhost',
         port : 3306,
         database: 'database'
         username: 'username',
@@ -178,13 +218,15 @@ const backup = await new DB().backup({
 })
 /**
  * 
- * @param conection defalut current connection
+ * @param {string} database Database selected
+ * @param {string} filePath file path
+ * @param {object | null} conection defalut current connection
  */
 const backupToFile = await new DB().backupToFile({
      database: 'try-to-backup',
      filePath: 'backup.sql',
      connection ?: {
-        host: 'localhost..',
+        host: 'localhost',
         port : 3306,
         database: 'database'
         username: 'username',
@@ -198,9 +240,18 @@ const backupToFile = await new DB().backupToFile({
 To get started, let's install npm install tspace-mysql -g  
 you may use the make:model command to generate a new model:
 
-```sh
+```js
+/**
+ * 
+ * @install global command
+ */
 npm install tspace-mysql -g
-tspace-mysql make:model <model name> --dir=<directory>
+
+/**
+ * 
+ * @make Model
+ */ 
+tspace-mysql make:model <model name> --dir=< directory >
 
 # tspace-mysql make:model User --dir=App/Models 
 # => App/Models/User.ts
@@ -261,7 +312,7 @@ export default User
 +--------------------------------------------------------------------------+
 
 import User from '../User'
-const user = await new User().with('brand').findOne()
+const user = await new User().relations('brand').findOne()
 // user?.phone => {...} 
 const userUsingFunction = await new User().phone().findOne()
 // userUsingFunction?.phone => {...} 
@@ -298,13 +349,14 @@ export default Post
 +--------------------------------------------------------------------------+
 
 import Post from '../Post'
-const posts = await new Post().with('comments').findOne()
+const posts = await new Post().relations('comments').findOne()
 // posts?.comments => [{...}]
 const postsUsingFunction = await new Post().comments().findOne()
 // postsUsingFunction?.comments => [{...}]
 ```
 
-## One To One & One To Many (Inverse) / Belongs To
+## Belongs To
+A belongsto relationship is used to define relationships where a single model is the child to parent models.
 ```js
 import { Model } from 'tspace-mysql'
 import User  from '../User'
@@ -334,7 +386,7 @@ export default Phone
 +--------------------------------------------------------------------------+
 
 import Phone from '../Phone'
-const phone = await new Phone().with('user').findOne()
+const phone = await new Phone().relations('user').findOne()
 // phone?.user => {...}
 const phoneUsingFunction = await new Phone().user().findOne()
 // phoneUsingFunction?.user => {...}
@@ -371,13 +423,13 @@ export default User
 +--------------------------------------------------------------------------+
 
 import User from '../User'
-const user = await new User().with('roles').findOne()
+const user = await new User().relations('roles').findOne()
 // user?.roles => [{...}]
 const userUsingFunction = await new User().roles().findOne()
 // user?.roles => [{...}]
 ```
 ## Query Builder
-method chaining for queries
+Methods builder for queries
 ```js
 where(column , operator , value)   
 whereSensitive(column , operator , value) 
@@ -417,26 +469,26 @@ backupToFile({ filePath, database , connection })
  * registry relation in your models
  * @relationship
 */
-hasOne({ name , model , localKey , foreignKey , freezeTable , as }
-hasMany({ name , model , localKey , foreignKey , freezeTable , as }
-belongsTo({ name , model , localKey , foreignKey , freezeTable , as }
-belongsToMany({ name , model , localKey , foreignKey , freezeTable , as }
+hasOne({ name , model , localKey , foreignKey , freezeTable , as })
+hasMany({ name , model , localKey , foreignKey , freezeTable , as })
+belongsTo({ name , model , localKey , foreignKey , freezeTable , as })
+belongsToMany({ name , model , localKey , foreignKey , freezeTable , as })
 /** 
  * @relation using registry in your models
 */
-with(name1 , name2,...nameN)
+relations(name1 , name2,...nameN)
 /** 
- * @relation using registry in your models. if exists child data remove this parent data
+ * @relation using registry in your models. if exists child data remove this data
 */
-withExists(name1 , name2,...nameN) 
+relationsExists(name1 , name2,...nameN) 
 /** 
- * @relation call a relation in registry, callback query of parent data
+ * @relation call a name of relation in registry, callback query of data
 */
-withQuery('relation registry',(callback query))
+relationQuery(name, (callback) )
 
 /**
  * queries statements
- * @exec statements
+ * @execute data of statements
 */
 findMany()
 findOne()
@@ -463,54 +515,79 @@ you may use a basic cli :
 
 ## Make Model
 Command will be placed Model in the specific directory
-```sh
-tspace-mysql make:model <MODEL NAME> --m  --dir=.... --type=....
+```js
+
 /** 
+  * 
+  * @make Model
   * @options
-  * --m  // created scheme table for migrate
-  * --dir=directory // created model in directory 
-  * --type=js // extension js default ts
+  * @arg --m  => created scheme table for migrate. short cut migration table like Make Migration
+  * @arg --dir=directory => created model in directory. default root directory
+  * @arg --type=js // extension js. default ts
   */
+tspace-mysql make:model <model name> --m  --dir=.... --type=....
   
 tspace-mysql make:model User --m --dir=app/Models  
-// => 
+/**
+  * 
+  * @Ex directory
+  */ 
 - node_modules
 - app
   - Models
      User.ts
-*/
 ```
 
 ## Make Migration
 Command will be placed Migration in the specific directory
-```sh
-tspace-mysql make:migration <TABLE NAME>
- /** 
+```js
+/** 
+  * 
+  * @make Migration Table
   * @options
-  * --type=js /* extension js default ts */
-  * --dir=directory /* created table in directory */ 
+  * @arg --dir=directory => created scheme table in directory. default root directory
+  * @arg --type=js // extension js default ts
   */
+tspace-mysql make:migration <table name> --type=... --dir=....
+
 tspace-mysql make:migration users --dir=app/Models/Migrations
-// => 
+/**
+ * 
+ * @Ex directory
+ */  
 - node_modules
 - app
   - Models
     - Migrations
       create_users_table.ts
     User.ts
-*/
 ```
 ## Migrate
-```sh
- tspace-mysql migrate <FOLDER> --type=...
- /** 
+```js
+/** 
+  * 
+  * @run Migrate table
   * @options
-  *--type=js /* extension js default ts */
-  *--dir=directory /* find migrate in directory */ 
+  * @arg --dir=directory => find migrate in directory. default find in root folder
+  * @arg --type=js // extension js default ts
   */
-  
-tspace-mysql migrate --dir=App/Models/Migrations
-// => migrate all schema table in folder into database
+tspace-mysql migrate <folder> --type=... --dir=....
+ 
+tspace-mysql migrate --dir=App/Models/Migrations --type=js
+
+/**
+ * 
+ * @Ex directory
+ */  
+- node_modules
+- app
+  - Models
+    - Migrations
+      create_users_table.ts
+      create_posts_table.ts
+    User.ts
+    Post.ts
+// => migrate all schemas in folder <Migrations>. created into database
 ```
 
 ## Blueprint
@@ -520,8 +597,9 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
 (async () => {
     await new Schema().table('users',{ 
         id :  new Blueprint().int().notNull().primary().autoIncrement(),
-        name : new Blueprint().varchar(120).default('my name'),
-        email : new Blueprint().varchar(255).unique(),
+        uuid : new Blueprint().varchar(120).null()
+        name : new Blueprint().varchar(120).default('name'),
+        email : new Blueprint().varchar(255).unique().notNull(),
         email_verify : new Blueprint().tinyInt(),
         password : new Blueprint().varchar(255),
         created_at : new Blueprint().null().timestamp(),
@@ -533,8 +611,9 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
      *  await new DB().table('users').faker(5)
     */
 })()
+
 /**
- * 
+ * type of schema in database
  * @Types
  * 
 */
@@ -553,8 +632,9 @@ enum(...n)
 date()
 dateTime()
 timestamp ()
+
 /**
- * 
+ * attrbuites of schema in database
  * @Attrbuites
  * 
 */

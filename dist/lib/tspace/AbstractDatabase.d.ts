@@ -8,10 +8,12 @@ declare abstract class AbstractDatabase {
     protected $db: {
         get: Function;
         set: Function;
+        clone: Function;
     };
     protected $pool: {
         get: Function;
         set: Function;
+        load: Function;
     };
     protected $logger: {
         get: Function;
@@ -33,10 +35,7 @@ declare abstract class AbstractDatabase {
     abstract whereId(id: number): void;
     abstract whereUser(id: number): void;
     abstract whereEmail(value: string): void;
-    abstract whereGroupStart(column: string, operator: string, value: string): void;
-    abstract whereGroupEnd(column: string, operator: string, value: string): void;
-    abstract orWhereGroupStart(column: string, operator: string, value: string): void;
-    abstract orWhereGroupEnd(column: string, operator: string, value: string): void;
+    abstract whereQuery(callback: Function): void;
     abstract orWhere(column: string, operator: string, value: string): void;
     abstract whereIn(column: string, arrayValues: Array<any>): void;
     abstract orWhereIn(column: string, arrayValues: Array<any>): void;
@@ -82,6 +81,12 @@ declare abstract class AbstractDatabase {
         page: number;
     }): Promise<Pagination>;
     abstract first(): Promise<any>;
+    abstract firstOrError(message: string, options?: {
+        [key: string]: any;
+    }): Promise<any>;
+    abstract findOneOrError(message: string, options?: {
+        [key: string]: any;
+    }): Promise<any>;
     abstract get(): Promise<any>;
     abstract findOne(): Promise<any>;
     abstract findMany(): Promise<any>;

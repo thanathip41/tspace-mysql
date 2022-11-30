@@ -1,5 +1,6 @@
 import AbstractDatabase from './AbstractDatabase';
-import { Pagination, Backup, Transaction, ConnectionOptions, BackupToFile } from './Interface';
+import { Connection, ConnectionTransaction } from '../connection';
+import { Pagination, Backup, ConnectionOptions, BackupToFile } from './Interface';
 declare class Database extends AbstractDatabase {
     constructor();
     /**
@@ -13,13 +14,18 @@ declare class Database extends AbstractDatabase {
      * @param {...string} columns
      * @return {this} this
      */
-    except(...columns: string[]): this;
+    except(...columns: Array<string>): this;
+    /**
+     * data will return void
+     * @return {this} this
+     */
+    void(): this;
     /**
      *
      * @param {...string} columns show only colums selected
      * @return {this} this
      */
-    only(...columns: string[]): this;
+    only(...columns: Array<string>): this;
     /**
      *
      * @param {string=} column [column=id]
@@ -27,20 +33,20 @@ declare class Database extends AbstractDatabase {
      */
     distinct(column?: string): this;
     /**
-     *
-     * @param {string[]} ...columns
+     * select data form table
+     * @param {Array<string>} ...columns
      * @return {this} this
      */
-    select(...columns: string[]): this;
+    select(...columns: Array<string>): this;
     /**
-     *
+     * chunks data from array
      * @param {number} chunk
      * @return {this} this
      */
     chunk(chunk: number): this;
     /**
      *
-     * @param {string | number | undefined | null | Boolean} condition when condition true will be callback
+     * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @return {this} this
      */
     when(condition: string | number | undefined | null | Boolean, callback: Function): this;
@@ -62,10 +68,30 @@ declare class Database extends AbstractDatabase {
     orWhere(column: string, operator?: any, value?: any): this;
     /**
      *
-     * @param {string} query where column with raw sql
+     * @param {string} sql where column with raw sql
      * @return {this} this
      */
     whereRaw(sql: string): this;
+    /**
+     *
+     * @param {string} query where column with raw sql
+     * @return {this} this
+     */
+    orWhereRaw(sql: string): this;
+    /**
+     *
+     * @param {string} tableAndLocalKey
+     * @param {string?} tableAndForeignKey
+     * @return {this}
+     */
+    whereReference(tableAndLocalKey: string, tableAndForeignKey?: any): this;
+    /**
+     *
+     * where exists
+     * @param {string} sql
+     * @return {this}
+     */
+    whereExists(sql: string): this;
     /**
      *
      * @param {number} id
@@ -156,37 +182,18 @@ declare class Database extends AbstractDatabase {
      */
     whereSensitive(column: string, operator?: any, value?: any): this;
     /**
-     * where grouping of start statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
+     * where group query
+     * @param {function} callback callback query
      * @return {this}
      */
-    whereGroupStart(column: string, operator?: any, value?: any): this;
+    whereQuery(callback: Function): this;
     /**
-     * or where grouping of start statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
+     * select by cases
+     * @param {array} cases array object [{ when : 'id < 7' , then : 'id is than under 7'}]
+     * @param {string} as
      * @return {this}
      */
-    orWhereGroupStart(column: string, operator?: any, value?: any): this;
-    /**
-     * where grouping of end statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
-     * @return {this}
-     */
-    whereGroupEnd(column: string, operator?: any, value?: any): this;
-    /**
-     * where grouping of end statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
-     * @return {this}
-     */
-    orWhereGroupEnd(column: string, operator?: any, value?: any): this;
+    case(cases: string | any[], as: string): this;
     /**
      *
      * @param {string} condition
@@ -224,25 +231,25 @@ declare class Database extends AbstractDatabase {
     /**
      *
      * @param {string} column
-     * @param {string=} order [order=asc] asc, desc
+     * @param {string?} order [order=asc] asc, desc
      * @return {this}
      */
     orderBy(column: string, order?: string | undefined): this;
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
     latest(column?: string): this;
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
     oldest(column?: string): this;
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
     groupBy(column?: string): this;
@@ -257,13 +264,13 @@ declare class Database extends AbstractDatabase {
      * @param {number=} number [number=1]
      * @return {this}
      */
-    offset(number?: number): this;
+    offset(number?: number | undefined): this;
     /**
      *
      * @param {...string} columns
      * @return {this} this
      */
-    hidden(...columns: string[]): this;
+    hidden(...columns: Array<string>): this;
     /**
      *
      * update data in the database
@@ -373,6 +380,23 @@ declare class Database extends AbstractDatabase {
      */
     connection(options: ConnectionOptions): this;
     /**
+     *
+     * @param {Function} pool pool connection database
+     * @return {this} this
+     */
+    pool(pool: Connection): this;
+    /**
+     * make sure this connection has same transaction in pool connection
+     * @param {object} connection pool database
+     * @return {this} this
+     */
+    bind(connection: Connection | ConnectionTransaction): this;
+    /**
+     * exceptColumns for method except
+     * @return {promise<string>} string
+     */
+    exceptColumns(): Promise<string>;
+    /**
      * execute sql statements with raw sql query
      * @param {string} sql sql execute return data
      * @return {promise<any>}
@@ -440,12 +464,32 @@ declare class Database extends AbstractDatabase {
     } | null>;
     /**
      *
-     * execute data return object | null
+     * execute data return object | throw rror
      * @return {promise<object | null>}
      */
     findOne(): Promise<{
         [key: string]: any;
     } | null>;
+    /**
+     *
+     * execute data return object | throw Error
+     * @return {promise<object | Error>}
+     */
+    firstOrError(message: string, options?: {
+        [key: string]: any;
+    }): Promise<{
+        [key: string]: any;
+    }>;
+    /**
+     *
+     * execute data return object | null
+     * @return {promise<object | null>}
+     */
+    findOneOrError(message: string, options?: {
+        [key: string]: any;
+    }): Promise<{
+        [key: string]: any;
+    }>;
     /**
      *
      * execute data return Array
@@ -540,10 +584,9 @@ declare class Database extends AbstractDatabase {
     findManyGroupBy(column: string): Promise<Array<any>>;
     /**
      * execute data when save *action [insert , update]
-     * @param {object} transaction | DB.beginTransaction()
-     * @return {Promise<any>}
+     * @return {Promise<any>} promise
      */
-    save(transaction?: Transaction): Promise<any>;
+    save(): Promise<any>;
     /**
      *
      * show columns in table
@@ -554,7 +597,7 @@ declare class Database extends AbstractDatabase {
     /**
      *
      * show schemas in table
-     * @param {string=} table table name
+     * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
     showSchemas(table?: string): Promise<Array<string>>;
@@ -567,20 +610,35 @@ declare class Database extends AbstractDatabase {
     showValues(table?: string): Promise<Array<string>>;
     /**
      *
-     * backup database intro new database same server or to another server
+     * backup this database intro new database same server or to another server
      * @param {Object} backupOptions
      * @param {string} backup.database
-     * @param {object?} backup.connection
-     * @param {string} backup.connection.host
-     * @param {number} backup.connection.port
-     * @param {string} backup.connection.database
-     * @param {string} backup.connection.username
-     * @param {string} backup.connection.password
+     * @param {object?} backup.to
+     * @param {string} backup.to.host
+     * @param {number} backup.to.port
+     * @param {string} backup.to.database
+     * @param {string} backup.to.username
+     * @param {string} backup.to.password
 
      * @return {Promise<boolean>}
      */
-    backup({ database, connection }: Backup): Promise<boolean>;
-    backupToFile({ filePath, database, connection }: BackupToFile): Promise<boolean>;
+    backup({ database, to }: Backup): Promise<boolean>;
+    /**
+     *
+     * backup database intro file
+     * @param {Object}  backupOptions
+     * @param {string}  backup.database
+     * @param {object?} backup.filePath
+     * @param {object?} backup.connection
+     * @param {string}  backup.connection.host
+     * @param {number}  backup.connection.port
+     * @param {string}  backup.connection.database
+     * @param {string}  backup.connection.username
+     * @param {string}  backup.connection.password
+
+     * @return {Promise<boolean>}
+     */
+    backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
     /**
      *
      * fake data
@@ -601,6 +659,7 @@ declare class Database extends AbstractDatabase {
      */
     drop(): Promise<boolean>;
     private _queryWhereIsExists;
+    private _bindTableAndColumnInQueryWhere;
     private _insertNotExists;
     private _setupPool;
     private _queryStatement;
@@ -615,7 +674,7 @@ declare class Database extends AbstractDatabase {
     private _queryInsertMultiple;
     private _valueAndOperator;
     private _valueTrueFalse;
-    private _queryGenrate;
+    private _buildQuery;
     private _setupLogger;
     private _initialConnection;
 }

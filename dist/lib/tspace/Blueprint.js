@@ -1,195 +1,226 @@
 "use strict";
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Blueprint = void 0;
-var Blueprint = /** @class */ (function () {
-    function Blueprint() {
-        this.type = '';
-        this.attrbuites = [];
+class Blueprint {
+    type = '';
+    attrbuites = [];
+    /**
+     * Assign type 'int' in table
+     * @return {this} this
+     */
+    int() {
+        this._addAssignType('INT');
+        return this;
     }
-    Blueprint.prototype._addAssignType = function (type) {
+    /**
+     * Assign type 'TINYINT' in table
+     * @param {number} number
+     * @return {this} this
+     */
+    tinyInt(number = 1) {
+        this._addAssignType(`TINYINT(${number})`);
+        return this;
+    }
+    /**
+     * Assign type 'BIGINT' in table
+     * @param {number} number [number = 10]
+     * @return {this} this
+     */
+    bigInt(number = 10) {
+        this._addAssignType(`BIGINT(${number})`);
+        return this;
+    }
+    /**
+     * Assign type 'DOUBLE' in table
+     * @param {number} length  between 1-255
+     * @param {number} decimal  0.000...n
+     * @return {this} this
+     */
+    double(length = 0, decimal = 0) {
+        if (!length || !decimal) {
+            this._addAssignType(`DOUBLE`);
+            return this;
+        }
+        this._addAssignType(`DOUBLE(${length},${decimal})`);
+        return this;
+    }
+    /**
+     * Assign type 'FLOAT' in table
+     * @param {number} length  between 1-255
+     * @param {number} decimal 0.000...n
+     * @return {this} this
+     */
+    float(length = 0, decimal = 0) {
+        if (!length || !decimal) {
+            this._addAssignType(`FLOAT`);
+            return this;
+        }
+        this._addAssignType(`FLOAT(${length},${decimal})`);
+        return this;
+    }
+    /**
+     * Assign type 'VARCHAR' in table
+     * @param {number} length  [length = 100] length of string
+     * @return {this} this
+     */
+    varchar(length = 100) {
+        if (length > 255)
+            length = 255;
+        this._addAssignType(`VARCHAR(${length})`);
+        return this;
+    }
+    /**
+     * Assign type 'CHAR' in table
+     * @param {number} length [length = 1] length of string
+     * @return {this} this
+     */
+    char(length = 1) {
+        this._addAssignType(`CHAR(${length})`);
+        return this;
+    }
+    /**
+     * Assign type 'LONGTEXT' in table
+     * @return {this} this
+     */
+    longText() {
+        this._addAssignType(`LONGTEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'MEDIUMTEXT' in table
+     * @param {number} length [length = 1] length of string
+     * @return {this} this
+     */
+    mediumText() {
+        this._addAssignType(`MEDIUMTEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'TINYTEXT' in table
+     * @param {number} length [length = 1] length of string
+     * @return {this} this
+     */
+    tinyText() {
+        this._addAssignType(`TINYTEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'TEXT' in table
+     * @param {number} length [length = 1] length of string
+     * @return {this} this
+     */
+    text() {
+        this._addAssignType(`TEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'ENUM'
+     * @param {...string} enums n1, n2, n3, ...n
+     * @return {this} this
+     */
+    enum(...enums) {
+        this._addAssignType(`ENUM('${enums}')`);
+        return this;
+    }
+    /**
+     * Assign type 'DATE' in table
+     * @return {this} this
+     */
+    date() {
+        this._addAssignType(`DATE`);
+        return this;
+    }
+    /**
+     * Assign type 'DATETIME' in table
+     * @return {this} this
+     */
+    dateTime() {
+        this._addAssignType(`DATETIME`);
+        return this;
+    }
+    /**
+     * Assign type 'TIMESTAMP' in table
+     * @return {this} this
+     */
+    timestamp() {
+        this._addAssignType(`TIMESTAMP`);
+        return this;
+    }
+    /**
+     * Assign type 'UNSIGNED' in table
+     * @return {this} this
+     */
+    unsigned() {
+        this._addAssignAttrbuite(`UNSIGNED`);
+        return this;
+    }
+    /**
+     * Assign type 'UNIQUE' in table
+     * @return {this} this
+     */
+    unique() {
+        this._addAssignAttrbuite(`UNIQUE`);
+        return this;
+    }
+    /**
+     * Assign type 'NULL' in table
+     * @return {this} this
+     */
+    null() {
+        this._addAssignAttrbuite(`NULL`);
+        return this;
+    }
+    /**
+     * Assign type 'NOT NULL' in table
+     * @return {this} this
+     */
+    notNull() {
+        this._addAssignAttrbuite(`NOT NULL`);
+        return this;
+    }
+    /**
+     * Assign type 'PRIMARY KEY' in table
+     * @return {this} this
+     */
+    primary() {
+        this._addAssignAttrbuite(`PRIMARY KEY`);
+        return this;
+    }
+    /**
+     * Assign attrbuites 'default' in table
+     * @param {string | number} n  default value
+     * @return {this} this
+     */
+    default(n) {
+        this._addAssignAttrbuite(`DEFAULT '${n}'`);
+        return this;
+    }
+    /**
+     * Assign attrbuites 'default currentTimestamp' in table
+     * @return {this} this
+     */
+    currentTimestamp() {
+        this._addAssignAttrbuite(`DEFAULT CURRENT_TIMESTAMP`);
+        return this;
+    }
+    /**
+     * Assign attrbuites 'autoIncrement' in table
+     * @return {this} this
+     */
+    autoIncrement() {
+        this._addAssignAttrbuite(`AUTO_INCREMENT`);
+        return this;
+    }
+    _addAssignType(type) {
         if (this.type)
             return this;
         this.type = type;
         return this;
-    };
-    Blueprint.prototype._addAssignAttrbuite = function (attrbuite) {
-        this.attrbuites = __spreadArray(__spreadArray([], __read(this.attrbuites), false), [attrbuite], false);
+    }
+    _addAssignAttrbuite(attrbuite) {
+        this.attrbuites = [...this.attrbuites, attrbuite];
         return this;
-    };
-    Blueprint.prototype.int = function () {
-        this._addAssignType('INT');
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number}
-     */
-    Blueprint.prototype.tinyInt = function (n) {
-        if (n === void 0) { n = 1; }
-        this._addAssignType("TINYINT(".concat(n, ")"));
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number}
-     */
-    Blueprint.prototype.bigInt = function (n) {
-        if (n === void 0) { n = 10; }
-        this._addAssignType("BIGINT(".concat(n, ")"));
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number} length  between 1-255
-     * @param {number} decimal  0.000...n
-     */
-    Blueprint.prototype.double = function (length, decimal) {
-        if (length === void 0) { length = 0; }
-        if (decimal === void 0) { decimal = 0; }
-        if (!length || !decimal) {
-            this._addAssignType("DOUBLE");
-            return this;
-        }
-        this._addAssignType("DOUBLE(".concat(length, ",").concat(decimal, ")"));
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number} length  between 1-255
-     * @param {number} decimal 0.000...n
-     */
-    Blueprint.prototype.float = function (length, decimal) {
-        if (length === void 0) { length = 0; }
-        if (decimal === void 0) { decimal = 0; }
-        if (!length || !decimal) {
-            this._addAssignType("FLOAT");
-            return this;
-        }
-        this._addAssignType("FLOAT(".concat(length, ",").concat(decimal, ")"));
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number} length string between 1-255
-     */
-    Blueprint.prototype.varchar = function (n) {
-        if (n === void 0) { n = 100; }
-        if (n > 255)
-            n = 255;
-        this._addAssignType("VARCHAR(".concat(n, ")"));
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {number} length string between 1-255
-     */
-    Blueprint.prototype.char = function (n) {
-        if (n === void 0) { n = 1; }
-        this._addAssignType("CHAR(".concat(n, ")"));
-        return this;
-    };
-    Blueprint.prototype.longText = function () {
-        this._addAssignType("LONGTEXT");
-        return this;
-    };
-    Blueprint.prototype.mediumText = function () {
-        this._addAssignType("MEDIUMTEXT");
-        return this;
-    };
-    Blueprint.prototype.tinyText = function () {
-        this._addAssignType("TINYTEXT");
-        return this;
-    };
-    Blueprint.prototype.text = function () {
-        this._addAssignType("TEXT");
-        return this;
-    };
-    /**
-     * Assign type
-     * @param {...string} enum n1, n2, n3, ...n
-     */
-    Blueprint.prototype.enum = function () {
-        var enums = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            enums[_i] = arguments[_i];
-        }
-        this._addAssignType("ENUM('".concat(enums, "')"));
-        return this;
-    };
-    Blueprint.prototype.date = function () {
-        this._addAssignType("DATE");
-        return this;
-    };
-    Blueprint.prototype.dateTime = function () {
-        this._addAssignType("DATETIME");
-        return this;
-    };
-    Blueprint.prototype.timestamp = function () {
-        this._addAssignType("TIMESTAMP");
-        return this;
-    };
-    Blueprint.prototype.unsigned = function () {
-        this._addAssignAttrbuite("UNSIGNED");
-        return this;
-    };
-    Blueprint.prototype.unique = function () {
-        this._addAssignAttrbuite("UNIQUE");
-        return this;
-    };
-    Blueprint.prototype.null = function () {
-        this._addAssignAttrbuite("NULL");
-        return this;
-    };
-    Blueprint.prototype.notNull = function () {
-        this._addAssignAttrbuite("NOT NULL");
-        return this;
-    };
-    Blueprint.prototype.primary = function () {
-        this._addAssignAttrbuite("PRIMARY KEY");
-        return this;
-    };
-    /**
-     * Assign attrbuites
-     * @param {string | number} default value
-     */
-    Blueprint.prototype.default = function (n) {
-        this._addAssignAttrbuite("DEFAULT '".concat(n, "'"));
-        return this;
-    };
-    Blueprint.prototype.defaultTimestamp = function () {
-        this._addAssignAttrbuite("DEFAULT CURRENT_TIMESTAMP");
-        return this;
-    };
-    Blueprint.prototype.autoIncrement = function () {
-        this._addAssignAttrbuite("AUTO_INCREMENT");
-        return this;
-    };
-    return Blueprint;
-}());
+    }
+}
 exports.Blueprint = Blueprint;
 exports.default = Blueprint;

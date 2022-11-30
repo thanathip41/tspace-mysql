@@ -1,8 +1,14 @@
 import { AbstractModel } from './AbstractModel';
-import { Relation, Pagination, Transaction, RelationQuery } from './Interface';
+import { Relation, Pagination, RelationQuery } from './Interface';
 declare class Model extends AbstractModel {
-    [key: string]: any;
+    private tableName?;
     constructor();
+    /**
+     *
+     * define for initialize of models
+     * @return {void} void
+     */
+    define(): void;
     /**
      *
      * Assign function callback in model
@@ -17,10 +23,10 @@ declare class Model extends AbstractModel {
     usePrimaryKey(primary: string): this;
     /**
      * Assign in model uuid when creating
-     * @param {string} uuid custom column uuid
+     * @param {string?} column [column=uuid] custom column replace this
      * @return {this} this
      */
-    useUUID(uuid?: string): this;
+    useUUID(column?: string): this;
     /**
      * Assign in model console.log sql statement
      * @return {this} this
@@ -37,18 +43,16 @@ declare class Model extends AbstractModel {
      *
      * Assign in model show data not be deleted
      * Relations has reference this method
+     * @param {string?} column
      * @return {this} this
      */
-    useSoftDelete(): this;
-    /**
-     * Assign in model show data not be deleted in relations
-     * repicate
-     * @return {this} this
-     */
-    useDisableSoftDeleteInRelations(): this;
+    useSoftDelete(column?: string): this;
     /**
      *
      * Assign timestamp when insert || updated created_at and update_at in table
+     * @param {object} timestampFormat
+     * @property {string} timestampFormat.createdAt  - change column of created at
+     * @property {string} timestampFormat.updatedAt - change column of updated at
      * @return {this} this
      */
     useTimestamp(timestampFormat?: {
@@ -58,6 +62,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * Assign table name in model
+     * @param {string} table table name in database
      * @return {this} this
      */
     useTable(table: string): this;
@@ -74,18 +79,27 @@ declare class Model extends AbstractModel {
      */
     useTablePlural(): this;
     /**
+     *
+     * Clone instance of model
+     * @override Method
+     * @return {this} this
+     */
+    clone(instance: Model): this;
+    /**
      * Assign ignore delete_at in model
+     * @param {boolean} condition
      * @return {this} this
      */
     ignoreSoftDelete(condition?: boolean): this;
     /**
-     * return ignore delete at all data
+     * Assign ignore delete_at in model
+     *  @param {boolean} condition
      * @return {this} this
      */
     disableSoftDelete(condition?: boolean): this;
     /**
-     *
-     * @param {function} func
+     * Assign build in function to result of data
+     * @param {object} func
      * @return {this} this
      */
     registry(func: {
@@ -93,120 +107,146 @@ declare class Model extends AbstractModel {
     }): this;
     /**
      *
-     * relation model retrun result of relation query
+     * Use relations in registry of model return result of relation query
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @return {this} this
      */
     with(...nameRelations: Array<string>): this;
     /**
      *
-     * relation model return only exists result of relation query
+     * Use relations in registry of model return only exists result of relation query
      * @param {...string} nameRelations if data exists return blank
-     * @return {this}
+     * @return {this} this
      */
     withExists(...nameRelations: Array<string>): this;
     /**
      *
-     * deep relation in model return callback query
+     * Use relation '${name}' registry of model return callback this query model
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
      * @return {this} this
      */
     withQuery(nameRelation: string, callback: Function): this;
     /**
-     * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
+     *
+     * Use relations in registry of model retrun result of relation query
+     * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @return {this} this
+     */
+    relations(...nameRelations: Array<string>): this;
+    /**
+     *
+     * Use relations in registry of model return only exists result of relation query
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this}
+     */
+    relationsExists(...nameRelations: Array<string>): this;
+    /**
+     *
+     * Use relation '${name}' registry of model return callback this query model
+     * @param {string} nameRelation name relation in registry in your model
+     * @param {function} callback query callback
+     * @return {this} this
+     */
+    relationQuery(nameRelation: string, callback: Function): this;
+    /**
+     * Assign the relation in model Objects
+     * @param    {object} relations registry relation in your model
+     * @property {string} relation.name
+     * @property {string} relation.as
+     * @property {class}  relation.model
+     * @property {string} relation.localKey
+     * @property {string} relation.foreignKey
+     * @property {string} relation.freezeTable
+     * @return   {this}   this
      */
     hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param    {object} relations registry relation in your model
+     * @property {string} relation.name
+     * @property {string} relation.as
+     * @property {class}  relation.model
+     * @property {string} relation.localKey
+     * @property {string} relation.foreignKey
+     * @property {string} relation.freezeTable
+     * @return   {this}   this
      */
     hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param    {object} relations registry relation in your model
+     * @property {string} relation.name
+     * @property {string} relation.as
+     * @property {class}  relation.model
+     * @property {string} relation.localKey
+     * @property {string} relation.foreignKey
+     * @property {string} relation.freezeTable
+     * @return   {this}   this
      */
     belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param    {object} relations registry relation in your model
+     * @property {string} relation.name
+     * @property {string} relation.as
+     * @property {class}  relation.model
+     * @property {string} relation.localKey
+     * @property {string} relation.foreignKey
+     * @property {string} relation.freezeTable
+     * @return   {this}   this
      */
     belongsToMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
-    * Assign the relation in model Objects
-    * @param {object} relations registry relation in your model
-    * @param {string?} relation.name
-    * @param {string} relation.as
-    * @param {class}  relation.model
-    * @param {string} relation.localKey
-    * @param {string} relation.foreignKey
-    * @param {string} relation.freezeTable
-    * @return {this} this
-    */
+     * Assign the relation in model Objects
+     * @param     {object}   relations registry relation in your model
+     * @property  {string}   relation.name
+     * @property  {string}   relation.as
+     * @property  {class}    relation.model
+     * @property  {string}   relation.localKey
+     * @property  {string}   relation.foreignKey
+     * @property  {string}   relation.freezeTable
+     * @param     {function} callback callback query relation of model
+     * @return    {this}     this
+     */
     hasOneQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string?} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param     {object}   relations registry relation in your model
+     * @property  {string}   relation.name
+     * @property  {string}   relation.as
+     * @property  {class}    relation.model
+     * @property  {string}   relation.localKey
+     * @property  {string}   relation.foreignKey
+     * @property  {string}   relation.freezeTable
+     * @param     {function} callback callback query relation of model
+     * @return    {this}     this
      */
     hasManyQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param     {object}   relations registry relation in your model
+     * @property  {string}   relation.name
+     * @property  {string}   relation.as
+     * @property  {class}    relation.model
+     * @property  {string}   relation.localKey
+     * @property  {string}   relation.foreignKey
+     * @property  {string}   relation.freezeTable
+     * @param     {function} callback callback query relation of model
+     * @return    {this}     this
      */
     belongsToQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param {object} relations registry relation in your model
-     * @param {string} relation.name
-     * @param {string} relation.as
-     * @param {class}  relation.model
-     * @param {string} relation.localKey
-     * @param {string} relation.foreignKey
-     * @param {string} relation.freezeTable
-     * @return {this} this
+     * @param     {object}   relations registry relation in your model
+     * @property  {string}   relation.name
+     * @property  {string}   relation.as
+     * @property  {class}    relation.model
+     * @property  {string}   relation.localKey
+     * @property  {string}   relation.foreignKey
+     * @property  {string}   relation.freezeTable
+     * @param     {function} callback callback query relation of model
+     * @return    {this}     this
      */
     belongsToManyQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
     /**
@@ -224,6 +264,12 @@ declare class Model extends AbstractModel {
      * @return {promise}
      */
     restore(): Promise<any>;
+    /**
+     *
+     * @override Method
+     * @return {promise<string>}
+    */
+    exceptColumns(): Promise<string>;
     /**
      *
      * @override Method
@@ -259,7 +305,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @param {string=} column [column=id]
+     * @param {string} column [column=id]
      * @return {promise<number>}
     */
     sum(column?: string): Promise<number>;
@@ -293,7 +339,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<object | null>}
+     * @return {promise<any>}
     */
     first(): Promise<{
         [key: string]: any;
@@ -301,11 +347,29 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<object | null>}
+     * @return {promise<any>}
     */
-    findOne(): Promise<{
+    findOne(): Promise<any>;
+    /**
+     *
+     * @override Method
+     * @return {promise<object | Error>}
+    */
+    firstOrError(message: string, options?: {
         [key: string]: any;
-    } | null>;
+    }): Promise<{
+        [key: string]: any;
+    }>;
+    /**
+     *
+     * @override Method
+     * @return {promise<any>}
+    */
+    findOneOrError(message: string, options?: {
+        [key: string]: any;
+    }): Promise<{
+        [key: string]: any;
+    }>;
     /**
      *
      * @override Method
@@ -317,9 +381,7 @@ declare class Model extends AbstractModel {
      * @override Method
      * @return {promise<object | null>}
     */
-    find(id: number): Promise<{
-        [key: string]: any;
-    } | null>;
+    find(id: number): Promise<any>;
     /**
      *
      * @override Method
@@ -335,9 +397,9 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @param {?object} paginationOptions
-     * @param {number} paginationOptions.limit
-     * @param {number} paginationOptions.page
+     * @param {?object} paginationOptions by default page = 1 , limit = 15
+     * @property {number} paginationOptions.limit
+     * @property {number} paginationOptions.page
      * @return {promise<Pagination>}
      */
     pagination(paginationOptions?: {
@@ -345,13 +407,13 @@ declare class Model extends AbstractModel {
         page?: number;
     }): Promise<Pagination>;
     /**
-     *
-     * @override Method
-     * @param {Object} pagination page , limit
-     * @param {number} pagination.limit
-     * @param {number} pagination.page
-     * @return {promise<Pagination>}
-     */
+    *
+    * @override Method
+    * @param    {?object} paginationOptions by default page = 1 , limit = 15
+    * @property {number}  paginationOptions.limit
+    * @property {number}  paginationOptions.page
+    * @return   {promise<Pagination>}
+    */
     paginate(paginationOptions?: {
         limit?: number;
         page?: number;
@@ -415,7 +477,7 @@ declare class Model extends AbstractModel {
     createOrUpdate(data: object): this;
     /**
      *
-     * insert muliple data into the database
+     * insert multiple data into the database
      * @override Method
      * @param {array<object>} data create multiple data
      * @return {this} this this
@@ -432,39 +494,16 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @param {object?} transaction using DB.beginTransaction()
-     * Ex. +---------------------------------------------------+
-     * const transaction = await new DB().beginTransaction()
-     *
-     * try {
-     *      const useSave = await create  ...something then .save(transaction)
-     *      const useSave2 = await create ...something then .save(transaction)
-     *      throw new Error('try to errors')
-     * } catch (e) {
-     *      const rollback = await transaction.rollback()
-     *      // rollback => ture
-     *      // !done transaction has been rolled back [useSave , useSave2]
-     * }
-     *
-     * @return {Promise<array | object | null>}
+     * @return {Promise<any>}
      */
-    save(transaction?: Transaction): Promise<Array<any> | {
-        [key: string]: any;
-    } | null>;
+    save(): Promise<any>;
     /**
      *
      * fake data
      * @param {number} rows number of rows
-     * @return {promise<any}
+     * @return {promise<any>}
      */
     faker(rows?: number): Promise<any>;
-    /**
-    *
-    * @override Method
-    * @param {number} id
-    * @return {this}
-    */
-    whereUser(id: number): this;
     private _queryStatementModel;
     private _actionStatementModel;
     private _valuePattern;
@@ -472,12 +511,13 @@ declare class Model extends AbstractModel {
     private _classToTableName;
     private _tableName;
     private _valueInRelation;
-    private _queryGenrateModel;
-    private _exceptColumns;
+    private _buildQueryModel;
     private _showOnly;
     private _execute;
     private _executeGroup;
-    private _relationFilter;
+    private _relationMapData;
+    private _handleRelationsExists;
+    private _queryRelationsExists;
     private _relation;
     private _handleBelongsToMany;
     private _belongsToMany;
@@ -499,6 +539,7 @@ declare class Model extends AbstractModel {
     private _updateModel;
     private _assertError;
     private _functionRelationName;
+    private _handleRelationsQuery;
     private _initialModel;
     private _setupModel;
 }

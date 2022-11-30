@@ -1,6 +1,5 @@
-declare const _default: {
-    consoleDebug: (debug?: string | undefined) => void;
-    tableName: (name: string) => string;
+declare const utils: {
+    consoleDebug: (debug?: string) => void;
     faker: (value: string) => string | number | boolean;
     columnRelation: (name: string) => string;
     timestamp: () => string;
@@ -12,4 +11,5 @@ declare const _default: {
     snakeCase: (obj: any) => any;
     camelCase: (obj: any) => any;
 };
-export default _default;
+export { utils };
+export default utils;

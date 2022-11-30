@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var constant = {
+exports.CONSTANTS = void 0;
+const CONSTANTS = {
     ID: 'ID',
     SHOW: 'SHOW',
     FIELDS: 'FIELDS',
@@ -43,6 +44,12 @@ var constant = {
     NOT: 'NOT',
     DUPLICATE: 'DUPLICATE',
     KEY: 'KEY',
+    RAW: '$RAW',
+    WHEN: 'WHEN',
+    THEN: 'THEN',
+    ELSE: 'ELSE',
+    CASE: 'CASE',
+    END: 'END',
     WHERE_NOT_EXISTS: 'WHERE NOT EXISTS',
     EXISTS: 'EXISTS',
     VALUES: 'VALUES',
@@ -67,10 +74,8 @@ var constant = {
         camelCase: 'camelCase'
     },
     DB: {
-        TRANSACTION: { query: [{
-                    table: '',
-                    id: ''
-                }] },
+        PRIMARY_KEY: 'id',
+        VOID: false,
         RESULT: null,
         DISTINCT: '',
         PLUCK: '',
@@ -100,11 +105,8 @@ var constant = {
         PER_PAGE: 1
     },
     MODEL: {
-        TRANSACTION: { query: [{
-                    table: '',
-                    id: ''
-                }] },
         PRIMARY_KEY: 'id',
+        VOID: false,
         SELECT: '',
         DELETE: '',
         UPDATE: '',
@@ -132,6 +134,7 @@ var constant = {
         DEBUG: false,
         UUID: false,
         SOFT_DELETE: false,
+        SOFT_DELETE_FORMAT: 'deleted_at',
         SOFT_DELETE_RELATIONS: false,
         RELATION: [],
         WITH: [],
@@ -147,4 +150,5 @@ var constant = {
         SAVE: ''
     }
 };
-exports.default = Object.freeze(constant);
+exports.CONSTANTS = CONSTANTS;
+exports.default = Object.freeze(CONSTANTS);

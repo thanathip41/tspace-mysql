@@ -1,215 +1,100 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Database = void 0;
-var AbstractDatabase_1 = __importDefault(require("./AbstractDatabase"));
-var connection_1 = require("../connection");
-var utils_1 = __importDefault(require("../utils"));
-var constants_1 = __importDefault(require("../constants"));
-var fs_1 = __importDefault(require("fs"));
-var sql_formatter_1 = require("sql-formatter");
-var Database = /** @class */ (function (_super) {
-    __extends(Database, _super);
-    function Database() {
-        var _this = _super.call(this) || this;
-        _this._initialConnection();
-        return _this;
+const fs_1 = __importDefault(require("fs"));
+const sql_formatter_1 = require("sql-formatter");
+const AbstractDatabase_1 = __importDefault(require("./AbstractDatabase"));
+const utils_1 = __importDefault(require("../utils"));
+const constants_1 = require("../constants");
+const DB_1 = __importDefault(require("./DB"));
+const connection_1 = require("../connection");
+class Database extends AbstractDatabase_1.default {
+    constructor() {
+        super();
+        this._initialConnection();
     }
     /**
      *
      * @param {string} column
      * @return {this}
      */
-    Database.prototype.pluck = function (column) {
+    pluck(column) {
         this.$db.set('PLUCK', column);
         return this;
-    };
+    }
     /**
      *
      * @param {...string} columns
      * @return {this} this
      */
-    Database.prototype.except = function () {
-        var columns = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            columns[_i] = arguments[_i];
-        }
+    except(...columns) {
         this.$db.set('EXCEPT', columns.length ? columns : ['id']);
         return this;
-    };
+    }
+    /**
+     * data will return void
+     * @return {this} this
+     */
+    void() {
+        this.$db.set('VOID', true);
+        return this;
+    }
     /**
      *
      * @param {...string} columns show only colums selected
      * @return {this} this
      */
-    Database.prototype.only = function () {
-        var columns = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            columns[_i] = arguments[_i];
-        }
+    only(...columns) {
         this.$db.set('ONLY', columns);
         return this;
-    };
+    }
     /**
      *
      * @param {string=} column [column=id]
      * @return {this} this
      */
-    Database.prototype.distinct = function (column) {
-        if (column === void 0) { column = 'id'; }
+    distinct(column = 'id') {
         this.$db.set('SELECT', [
-            "".concat(this.$constants('SELECT')),
-            "".concat(this.$constants('DISTINCT')),
-            "".concat(column)
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('DISTINCT')}`,
+            `${column}`
         ].join(' '));
         return this;
-    };
+    }
     /**
-     *
-     * @param {string[]} ...columns
+     * select data form table
+     * @param {Array<string>} ...columns
      * @return {this} this
      */
-    Database.prototype.select = function () {
-        var columns = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            columns[_i] = arguments[_i];
-        }
-        var select = '*';
-        if (columns === null || columns === void 0 ? void 0 : columns.length)
-            select = columns.join(',');
-        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " ").concat(select));
+    select(...columns) {
+        let select = '*';
+        if (columns?.length)
+            select = columns.join(', ');
+        this.$db.set('SELECT', `${this.$constants('SELECT')} ${select}`);
         return this;
-    };
+    }
     /**
-     *
+     * chunks data from array
      * @param {number} chunk
      * @return {this} this
      */
-    Database.prototype.chunk = function (chunk) {
+    chunk(chunk) {
         this.$db.set('CHUNK', chunk);
         return this;
-    };
+    }
     /**
      *
-     * @param {string | number | undefined | null | Boolean} condition when condition true will be callback
+     * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @return {this} this
      */
-    Database.prototype.when = function (condition, callback) {
+    when(condition, callback) {
         if (condition)
             callback(this);
         return this;
-    };
+    }
     /**
      * if has 2 arguments  default operator '='
      * @param {string} column
@@ -217,27 +102,24 @@ var Database = /** @class */ (function (_super) {
      * @param {any?} value
      * @return {this}
      */
-    Database.prototype.where = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
+    where(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        if (operator.toUpperCase() === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(operator, " '").concat(value, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(operator, " '").concat(value, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * if has 2 arguments  default operator '='
      * @param {string} column
@@ -245,332 +127,391 @@ var Database = /** @class */ (function (_super) {
      * @param {any?} value
      * @return {this}
      */
-    Database.prototype.orWhere = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
+    orWhere(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        if (operator === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
-        if (this._queryWhereIsExists()) {
+        if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$db.get('WHERE')),
-                "".concat(this.$constants('OR')),
-                "".concat(column, " ").concat(operator, " '").concat(value, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$constants('WHERE')),
-            "".concat(column, " ").concat(operator, " '").concat(value, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('OR')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
         return this;
-    };
+    }
+    /**
+     *
+     * @param {string} sql where column with raw sql
+     * @return {this} this
+     */
+    whereRaw(sql) {
+        if (!this._queryWhereIsExists()) {
+            this.$db.set('WHERE', [
+                `${this.$constants('WHERE')}`,
+                `${sql}`
+            ].join(' '));
+            return this;
+        }
+        this.$db.set('WHERE', [
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${sql}`
+        ].join(' '));
+        return this;
+    }
     /**
      *
      * @param {string} query where column with raw sql
      * @return {this} this
      */
-    Database.prototype.whereRaw = function (sql) {
+    orWhereRaw(sql) {
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(sql)
+                `${this.$constants('WHERE')}`,
+                `${sql}`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(sql)
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('OR')}`,
+            `${sql}`
         ].join(' '));
         return this;
-    };
+    }
+    /**
+     *
+     * @param {string} tableAndLocalKey
+     * @param {string?} tableAndForeignKey
+     * @return {this}
+     */
+    whereReference(tableAndLocalKey, tableAndForeignKey) {
+        if (!this._queryWhereIsExists()) {
+            this.$db.set('WHERE', [
+                `${this.$constants('WHERE')}`,
+                `${tableAndLocalKey} = ${tableAndForeignKey}`
+            ].join(' '));
+            return this;
+        }
+        this.$db.set('WHERE', [
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${tableAndLocalKey} = ${tableAndForeignKey}`
+        ].join(' '));
+        return this;
+    }
+    /**
+     *
+     * where exists
+     * @param {string} sql
+     * @return {this}
+     */
+    whereExists(sql) {
+        if (!this._queryWhereIsExists()) {
+            this.$db.set('WHERE', [
+                `${this.$constants('WHERE')}`,
+                `${this.$constants('EXISTS')}`,
+                `(${sql})`
+            ].join(' '));
+            return this;
+        }
+        this.$db.set('WHERE', [
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this.$constants('EXISTS')}`,
+            `(${sql})`
+        ].join(' '));
+        return this;
+    }
     /**
      *
      * @param {number} id
      * @param {string?} column custom it *if column is not id
      * @return {this} this
      */
-    Database.prototype.whereId = function (id, column) {
-        if (column === void 0) { column = 'id'; }
+    whereId(id, column = 'id') {
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " = '").concat(id, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " = '").concat(id, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
      * @param {string} email where using email
      * @return {this}
      */
-    Database.prototype.whereEmail = function (email) {
-        var column = 'email';
+    whereEmail(email) {
+        const column = 'email';
         email = this.$utils.escape(email);
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " = '").concat(email, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} = '${email}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " = '").concat(email, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} = '${email}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
      * @param {number} id
      * @param {string?} column custom it *if column is not user_id
      * @return {this}
      */
-    Database.prototype.whereUser = function (id, column) {
-        if (column === void 0) { column = 'user_id'; }
+    whereUser(id, column = 'user_id') {
         id = this.$utils.escape(id);
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " = '").concat(id, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " = '").concat(id, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * using array value where in value in array
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    Database.prototype.whereIn = function (column, array) {
+    whereIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error("[".concat(array, "] is't array"));
+            throw new Error(`[${array}] is't array`);
         if (!array.length)
             array = ['0'];
-        var values = "".concat(array.map(function (value) { return "'".concat(value, "'"); }).join(','));
+        const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IN'), " (").concat(values, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('IN'), " (").concat(values, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * or where in data using array values
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    Database.prototype.orWhereIn = function (column, array) {
-        var sql = this.$db.get('WHERE');
+    orWhereIn(column, array) {
+        const sql = this.$db.get('WHERE');
         if (!Array.isArray(array))
-            throw new Error("[".concat(array, "] is't array"));
+            throw new Error(`[${array}] is't array`);
         if (!array.length)
             array = ['0'];
-        var values = "".concat(array.map(function (value) { return "'".concat(value, "'"); }).join(','));
+        const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!sql.includes(this.$constants('WHERE'))) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IN'), " (").concat(values, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('OR')),
-            "".concat(column, " ").concat(this.$constants('IN'), " (").concat(values, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('OR')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where not in data using array values
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    Database.prototype.whereNotIn = function (column, array) {
-        var sql = this.$db.get('WHERE');
+    whereNotIn(column, array) {
+        const sql = this.$db.get('WHERE');
         if (!Array.isArray(array))
-            throw new Error("[".concat(array, "] is't array"));
+            throw new Error(`[${array}] is't array`);
         if (!array.length)
             array = ['0'];
-        var values = "".concat(array.map(function (value) { return "'".concat(value, "'"); }).join(','));
+        const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!sql.includes(this.$constants('WHERE'))) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('NOT_IN'), " (").concat(values, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${values})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('NOT_IN'), " (").concat(values, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${values})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where sub query using sub query sql
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    Database.prototype.whereSubQuery = function (column, subQuery) {
-        var whereSubQuery = this.$db.get('WHERE');
+    whereSubQuery(column, subQuery) {
+        const whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IN'), " (").concat(subQuery, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('IN'), " (").concat(subQuery, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where not sub query using sub query sql
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    Database.prototype.whereNotSubQuery = function (column, subQuery) {
-        var whereSubQuery = this.$db.get('WHERE');
+    whereNotSubQuery(column, subQuery) {
+        const whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IN'), " (").concat(subQuery, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('NOT_IN'), " (").concat(subQuery, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${subQuery})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * or where not sub query using query sql
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    Database.prototype.orWhereSubQuery = function (column, subQuery) {
-        var whereSubQuery = this.$db.get('WHERE');
+    orWhereSubQuery(column, subQuery) {
+        const whereSubQuery = this.$db.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IN'), " (").concat(subQuery, ")")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('OR')),
-            "".concat(column, " ").concat(this.$constants('IN'), " (").concat(subQuery, ")")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('OR')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where between using [value1, value2]
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    Database.prototype.whereBetween = function (column, array) {
+    whereBetween(column, array) {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length)
             array = ['0', '0'];
-        var _a = __read(array, 2), value1 = _a[0], value2 = _a[1];
+        let [value1, value2] = array;
         value1 = this.$utils.escape(value1);
         value2 = this.$utils.escape(value2);
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('BETWEEN')),
-                "'".concat(value1, "' ").concat(this.$constants('AND'), " '").concat(value2, "'")
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
+                `'${value1}' ${this.$constants('AND')} '${value2}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('BETWEEN')),
-            "'".concat(value1, "' ").concat(this.$constants('AND'), " '").concat(value2, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
+            `'${value1}' ${this.$constants('AND')} '${value2}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where null using NULL
      * @param {string} column
      * @return {this}
      */
-    Database.prototype.whereNull = function (column) {
+    whereNull(column) {
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IS_NULL'))
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NULL')}`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('IS_NULL'))
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NULL')}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where not null using NULL
      * @param {string} column
      * @return {this}
      */
-    Database.prototype.whereNotNull = function (column) {
+    whereNotNull(column) {
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(this.$constants('IS_NOT_NULL'))
+                `${this.$constants('WHERE')}`,
+                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NOT_NULL')}`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "".concat(column, " ").concat(this.$constants('IS_NOT_NULL'))
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NOT_NULL')}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      * where sensitive (uppercase, lowercase)
      * @param {string} column
@@ -578,525 +519,461 @@ var Database = /** @class */ (function (_super) {
      * @param {any?} value
      * @return {this}
      */
-    Database.prototype.whereSensitive = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
+    whereSensitive(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
         if (!this._queryWhereIsExists()) {
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "BINARY ".concat(column, " ").concat(operator, " '").concat(value, "'")
+                `${this.$constants('WHERE')}`,
+                `BINARY ${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "BINARY ".concat(column, " ").concat(operator, " '").concat(value, "'")
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('AND')}`,
+            `BINARY ${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
         return this;
-    };
+    }
     /**
-     * where grouping of start statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
+     * where group query
+     * @param {function} callback callback query
      * @return {this}
      */
-    Database.prototype.whereGroupStart = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
-        value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
-        if (operator === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
-        if (!this._queryWhereIsExists()) {
+    whereQuery(callback) {
+        const db = new DB_1.default();
+        const repository = callback(db);
+        if (!(repository instanceof DB_1.default)) {
+            throw new Error(`unknown callback query: '[${repository}]'`);
+        }
+        const where = repository?.$db.get('WHERE') || '';
+        if (where === '') {
+            throw new Error(`unknown callback query with where condition`);
+        }
+        if (this._queryWhereIsExists()) {
+            const query = where.replace('WHERE', '');
             this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "(".concat(column, " ").concat(operator, " '").concat(value, "'")
+                `${this.$db.get('WHERE')}`,
+                `${this.$constants('AND')}`,
+                `(${query})`
             ].join(' '));
             return this;
         }
+        const query = where.replace('WHERE', '');
         this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "(".concat(column, " ").concat(operator, " '").concat(value, "'")
+            `${this.$constants('WHERE')}`,
+            `(${query})`
         ].join(' '));
         return this;
-    };
+    }
     /**
-     * or where grouping of start statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
+     * select by cases
+     * @param {array} cases array object [{ when : 'id < 7' , then : 'id is than under 7'}]
+     * @param {string} as
      * @return {this}
      */
-    Database.prototype.orWhereGroupStart = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
-        value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
-        if (operator === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
-        if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "(".concat(column, " ").concat(operator, " '").concat(value, "'")
-            ].join(' '));
-            return this;
+    case(cases, as) {
+        let query = [this.$constants('CASE')];
+        for (let i = 0; i < cases.length; i++) {
+            const c = cases[i];
+            if (cases.length - 1 === i) {
+                if (c.then == null)
+                    throw new Error(`can't find then condition`);
+                query = [
+                    ...query,
+                    `${this.$constants('ELSE')} '${c.then}'`,
+                    `${this.$constants('END')}`
+                ];
+                continue;
+            }
+            if (c.when == null)
+                throw new Error(`can't find when condition`);
+            if (c.then == null)
+                throw new Error(`can't find then condition`);
+            query = [
+                ...query,
+                `${this.$constants('WHEN')} ${c.when} ${this.$constants('THEN')} '${c.then}'`
+            ];
         }
-        this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('AND')),
-            "(".concat(column, " ").concat(operator, " '").concat(value, "'")
-        ].join(' '));
-        return this;
-    };
-    /**
-     * where grouping of end statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
-     * @return {this}
-     */
-    Database.prototype.whereGroupEnd = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
-        value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
-        if (operator === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
-        if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(operator, " '").concat(value, "')")
-            ].join(' '));
+        if (query.length <= 1)
             return this;
-        }
-        this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('OR')),
-            "".concat(column, " ").concat(operator, " '").concat(value, "')")
-        ].join(' '));
+        this.$db.set('SELECT', `${this.$db.get('SELECT')}, ${query.join(' ')} ${this.$constants('AS')} ${as}`);
         return this;
-    };
-    /**
-     * where grouping of end statements
-     * @param {string} column
-     * @param {string?} operator = < > != !< !>
-     * @param {any?} value
-     * @return {this}
-     */
-    Database.prototype.orWhereGroupEnd = function (column, operator, value) {
-        var _a;
-        _a = __read(this._valueAndOperator(value, operator, arguments.length === 2), 2), value = _a[0], operator = _a[1];
-        value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
-        if (operator === this.$constants('LIKE'))
-            value = "%".concat(value, "%");
-        if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
-                "".concat(this.$constants('WHERE')),
-                "".concat(column, " ").concat(operator, " '").concat(value, "')")
-            ].join(' '));
-            return this;
-        }
-        this.$db.set('WHERE', [
-            "".concat(this.$db.get('WHERE')),
-            "".concat(this.$constants('OR')),
-            "".concat(column, " ").concat(operator, " '").concat(value, "')")
-        ].join(' '));
-        return this;
-    };
+    }
     /**
      *
      * @param {string} condition
      * @return {this}
      */
-    Database.prototype.having = function (condition) {
+    having(condition) {
         this.$db.set('HAVING', condition);
         return this;
-    };
+    }
     /**
      *
      * @param {string} pk talbe.pk
      * @param {string} fk talbe.fk
      * @return {this}
      */
-    Database.prototype.join = function (pk, fk) {
-        var _a;
-        var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+    join(pk, fk) {
+        const table = fk.split('.')?.shift();
         if (this.$db.get('JOIN')) {
             this.$db.set('JOIN', [
-                "".concat(this.$db.get('JOIN')),
-                "".concat(this.$constants('INNER_JOIN')),
-                "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+                `${this.$db.get('JOIN')}`,
+                `${this.$constants('INNER_JOIN')}`,
+                `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
         this.$db.set('JOIN', [
-            "".concat(this.$constants('INNER_JOIN')),
-            "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+            `${this.$constants('INNER_JOIN')}`,
+            `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
      * @param {string} pk talbe.pk
      * @param {string} fk talbe.fk
      * @return {this}
      */
-    Database.prototype.rightJoin = function (pk, fk) {
-        var _a;
-        var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+    rightJoin(pk, fk) {
+        const table = fk.split('.')?.shift();
         if (this.$db.get('JOIN')) {
             this.$db.set('JOIN', [
-                "".concat(this.$db.get('JOIN')),
-                "".concat(this.$constants('RIGHT_JOIN')),
-                "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+                `${this.$db.get('JOIN')}`,
+                `${this.$constants('RIGHT_JOIN')}`,
+                `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
         this.$db.set('JOIN', [
-            "".concat(this.$constants('RIGHT_JOIN')),
-            "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+            `${this.$constants('RIGHT_JOIN')}`,
+            `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(''));
         return this;
-    };
+    }
     /**
      *
      * @param {string} pk talbe.pk
      * @param {string} fk talbe.fk
      * @return {this}
      */
-    Database.prototype.leftJoin = function (pk, fk) {
-        var _a;
-        var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+    leftJoin(pk, fk) {
+        const table = fk.split('.')?.shift();
         if (this.$db.get('JOIN')) {
             this.$db.set('JOIN', [
-                "".concat(this.$db.get('JOIN')),
-                "".concat(this.$constants('LEFT_JOIN')),
-                "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+                `${this.$db.get('JOIN')}`,
+                `${this.$constants('LEFT_JOIN')}`,
+                `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
         this.$db.set('JOIN', [
-            "".concat(this.$constants('LEFT_JOIN')),
-            "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+            `${this.$constants('LEFT_JOIN')}`,
+            `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
      * @param {string} pk talbe.pk
      * @param {string} fk talbe.fk
      * @return {this}
      */
-    Database.prototype.crossJoin = function (pk, fk) {
-        var _a;
-        var table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+    crossJoin(pk, fk) {
+        const table = fk.split('.')?.shift();
         if (this.$db.get('JOIN')) {
             this.$db.set('JOIN', [
-                "".concat(this.$db.get('JOIN')),
-                "".concat(this.$constants('CROSS_JOIN')),
-                "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+                `${this.$db.get('JOIN')}`,
+                `${this.$constants('CROSS_JOIN')}`,
+                `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
         this.$db.set('JOIN', [
-            "".concat(this.$constants('CROSS_JOIN')),
-            "".concat(table, " ").concat(this.$constants('ON'), " ").concat(pk, " = ").concat(fk)
+            `${this.$constants('CROSS_JOIN')}`,
+            `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
      * @param {string} column
-     * @param {string=} order [order=asc] asc, desc
+     * @param {string?} order [order=asc] asc, desc
      * @return {this}
      */
-    Database.prototype.orderBy = function (column, order) {
-        if (order === void 0) { order = this.$constants('ASC'); }
+    orderBy(column, order = this.$constants('ASC')) {
         this.$db.set('ORDER_BY', [
-            "".concat(this.$constants('ORDER_BY')),
-            "".concat(column, " ").concat(order.toUpperCase())
+            `${this.$constants('ORDER_BY')}`,
+            `${column} ${order.toUpperCase()}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
-    Database.prototype.latest = function (column) {
-        if (column === void 0) { column = 'id'; }
+    latest(column = 'id') {
         if (this.$db.get('ORDER_BY')) {
             this.$db.set('ORDER_BY', [
-                "".concat(this.$db.get('ORDER_BY')),
-                ",".concat(column, " ").concat(this.$constants('DESC'))
+                `${this.$db.get('ORDER_BY')}`,
+                `,${column} ${this.$constants('DESC')}`
             ].join(' '));
             return this;
         }
         this.$db.set('ORDER_BY', [
-            "".concat(this.$constants('ORDER_BY')),
-            "".concat(column, " ").concat(this.$constants('DESC'))
+            `${this.$constants('ORDER_BY')}`,
+            `${column} ${this.$constants('DESC')}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
-    Database.prototype.oldest = function (column) {
-        if (column === void 0) { column = 'id'; }
+    oldest(column = 'id') {
         if (this.$db.get('ORDER_BY')) {
             this.$db.set('ORDER_BY', [
-                "".concat(this.$db.get('ORDER_BY')),
-                ",".concat(column, " ").concat(this.$constants('ASC'))
+                `${this.$db.get('ORDER_BY')}`,
+                `,${column} ${this.$constants('ASC')}`
             ].join(' '));
             return this;
         }
         this.$db.set('ORDER_BY', [
-            "".concat(this.$constants('ORDER_BY')),
-            "".concat(column, " ").concat(this.$constants('ASC'))
+            `${this.$constants('ORDER_BY')}`,
+            `${column} ${this.$constants('ASC')}`
         ].join(' '));
         return this;
-    };
+    }
     /**
      *
-     * @param {string=} column [column=id]
+     * @param {string?} column [column=id]
      * @return {this}
      */
-    Database.prototype.groupBy = function (column) {
-        if (column === void 0) { column = 'id'; }
-        this.$db.set('GROUP_BY', "".concat(this.$constants('GROUP_BY'), " ").concat(column));
+    groupBy(column = 'id') {
+        this.$db.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
         return this;
-    };
+    }
     /**
      *
      * @param {number=} number [number=1]
      * @return {this}
      */
-    Database.prototype.limit = function (number) {
-        if (number === void 0) { number = 1; }
-        this.$db.set('LIMIT', "".concat(this.$constants('LIMIT'), " ").concat(number));
+    limit(number = 1) {
+        this.$db.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
-    };
+    }
     /**
      *
      * @param {number=} number [number=1]
      * @return {this}
      */
-    Database.prototype.offset = function (number) {
-        if (number === void 0) { number = 1; }
-        this.$db.set('OFFSET', "".concat(this.$constants('OFFSET'), " ").concat(number));
+    offset(number = 1) {
+        this.$db.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
         return this;
-    };
+    }
     /**
      *
      * @param {...string} columns
      * @return {this} this
      */
-    Database.prototype.hidden = function () {
-        var columns = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            columns[_i] = arguments[_i];
-        }
+    hidden(...columns) {
         this.$db.set('HIDDEN', columns);
         return this;
-    };
+    }
     /**
      *
      * update data in the database
      * @param {object} data
      * @return {this} this
      */
-    Database.prototype.update = function (data) {
-        var query = this._queryUpdate(data);
+    update(data) {
+        const query = this._queryUpdate(data);
         this.$db.set('UPDATE', [
-            "".concat(this.$constants('UPDATE')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('UPDATE')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'UPDATE');
         return this;
-    };
+    }
     /**
      *
      * insert data into the database
      * @param {object} data
      * @return {this} this
      */
-    Database.prototype.insert = function (data) {
-        var query = this._queryInsert(data);
+    insert(data) {
+        const query = this._queryInsert(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'INSERT');
         return this;
-    };
+    }
     /**
      *
      * insert data into the database
      * @param {object} data
      * @return {this} this
      */
-    Database.prototype.create = function (data) {
-        var query = this._queryInsert(data);
+    create(data) {
+        const query = this._queryInsert(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'INSERT');
         return this;
-    };
+    }
     /**
      *
      * insert muliple data into the database
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    Database.prototype.createMultiple = function (data) {
-        var query = this._queryInsertMultiple(data);
+    createMultiple(data) {
+        const query = this._queryInsertMultiple(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
-    };
+    }
     /**
      *
      * insert muliple data into the database
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    Database.prototype.insertMultiple = function (data) {
-        var query = this._queryInsertMultiple(data);
+    insertMultiple(data) {
+        const query = this._queryInsertMultiple(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'INSERT_MULTIPLE');
         return this;
-    };
+    }
     /**
      *
      * @return {string} return sql query
      */
-    Database.prototype.toString = function () {
-        return this._queryGenrate();
-    };
+    toString() {
+        return this._buildQuery();
+    }
     /**
      *
      * @return {string} return sql query
      */
-    Database.prototype.toSQL = function () {
-        return this._queryGenrate();
-    };
+    toSQL() {
+        return this._buildQuery();
+    }
     /**
      *
      * @param {boolean} debug debug sql statements
      * @return {this} this this
      */
-    Database.prototype.debug = function (debug) {
-        if (debug === void 0) { debug = true; }
+    debug(debug = true) {
         this.$db.set('DEBUG', debug);
         return this;
-    };
+    }
     /**
      *
      * @param {boolean} debug debug sql statements
      * @return {this} this this
      */
-    Database.prototype.dd = function (debug) {
-        if (debug === void 0) { debug = true; }
+    dd(debug = true) {
         this.$db.set('DEBUG', debug);
         return this;
-    };
+    }
     /**
      *
      * @param {object} data create not exists data
      * @return {this} this this
      */
-    Database.prototype.createNotExists = function (data) {
-        var query = this._queryInsert(data);
+    createNotExists(data) {
+        const query = this._queryInsert(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(query)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
         ].join(' '));
         this.$db.set('SAVE', 'INSERT_NOT_EXISTS');
         return this;
-    };
+    }
     /**
      *
      * @param {object} data insert not exists data
      * @return {this} this this
      */
-    Database.prototype.insertNotExists = function (data) {
+    insertNotExists(data) {
         this.createNotExists(data);
         return this;
-    };
+    }
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    Database.prototype.updateOrCreate = function (data) {
-        var queryUpdate = this._queryUpdate(data);
-        var queryInsert = this._queryInsert(data);
+    updateOrCreate(data) {
+        const queryUpdate = this._queryUpdate(data);
+        const queryInsert = this._queryInsert(data);
         this.$db.set('INSERT', [
-            "".concat(this.$constants('INSERT')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(queryInsert)
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${queryInsert}`
         ].join(' '));
         this.$db.set('UPDATE', [
-            "".concat(this.$constants('UPDATE')),
-            "".concat(this.$db.get('TABLE_NAME')),
-            "".concat(queryUpdate)
+            `${this.$constants('UPDATE')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${queryUpdate}`
         ].join(' '));
         this.$db.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
-    };
+    }
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    Database.prototype.updateOrInsert = function (data) {
+    updateOrInsert(data) {
         this.updateOrCreate(data);
         return this;
-    };
+    }
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    Database.prototype.insertOrUpdate = function (data) {
+    insertOrUpdate(data) {
         this.updateOrCreate(data);
         return this;
-    };
+    }
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data create or update data
      * @return {this} this this
      */
-    Database.prototype.createOrUpdate = function (data) {
+    createOrUpdate(data) {
         this.updateOrCreate(data);
         return this;
-    };
+    }
     /**
      *
      * @param {Object} options options for connection database with credentials
@@ -1107,27 +984,70 @@ var Database = /** @class */ (function (_super) {
      * @param {string} option.password
      * @return {this} this
      */
-    Database.prototype.connection = function (options) {
-        var host = options.host, port = options.port, database = options.database, user = options.username, password = options.password, others = __rest(options, ["host", "port", "database", "username", "password"]);
-        var pool = new connection_1.PoolConnection(__assign({ host: host, port: port, database: database, user: user, password: password }, others));
+    connection(options) {
+        const { host, port, database, username: user, password, ...others } = options;
+        const pool = new connection_1.PoolConnection({
+            host,
+            port,
+            database,
+            user,
+            password,
+            ...others
+        });
         this.$pool.set(pool.connection());
         return this;
-    };
+    }
+    /**
+     *
+     * @param {Function} pool pool connection database
+     * @return {this} this
+     */
+    pool(pool) {
+        if (!pool?.hasOwnProperty('query')) {
+            throw new Error('pool must have a query property');
+        }
+        this.$pool.set(pool);
+        return this;
+    }
+    /**
+     * make sure this connection has same transaction in pool connection
+     * @param {object} connection pool database
+     * @return {this} this
+     */
+    bind(connection) {
+        if (!connection?.hasOwnProperty('query')) {
+            throw new Error('connection must have a query property');
+        }
+        if (typeof connection.query !== 'function') {
+            throw new Error('connection must have a query function');
+        }
+        this.$pool.set(connection);
+        return this;
+    }
+    /**
+     * exceptColumns for method except
+     * @return {promise<string>} string
+     */
+    async exceptColumns() {
+        const sql = [
+            `${this.$constants('SHOW')}`,
+            `${this.$constants('COLUMNS')}`,
+            `${this.$constants('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`
+        ].join(' ');
+        const rawColumns = await this._queryStatement(sql);
+        const columns = rawColumns.map((column) => column.Field);
+        const removeExcept = columns.filter((column) => !this.$db.get('EXCEPT').includes(column));
+        return removeExcept.join(', ');
+    }
     /**
      * execute sql statements with raw sql query
      * @param {string} sql sql execute return data
      * @return {promise<any>}
      */
-    Database.prototype.rawQuery = function (sql) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async rawQuery(sql) {
+        return await this._queryStatement(sql);
+    }
     /**
      *
      * plus value then update
@@ -1135,26 +1055,15 @@ var Database = /** @class */ (function (_super) {
      * @param {number} value
      * @return {promise<any>}
      */
-    Database.prototype.increment = function (column, value) {
-        if (column === void 0) { column = 'id'; }
-        if (value === void 0) { value = 1; }
-        return __awaiter(this, void 0, void 0, function () {
-            var query;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        query = "".concat(this.$constants('SET'), " ").concat(column, " = ").concat(column, " + ").concat(value);
-                        this.$db.set('UPDATE', [
-                            "".concat(this.$constants('UPDATE')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(query)
-                        ].join(' '));
-                        return [4 /*yield*/, this._update(true)];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async increment(column = 'id', value = 1) {
+        const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
+        this.$db.set('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        return await this._update(true);
+    }
     /**
      *
      * minus value then update
@@ -1162,70 +1071,43 @@ var Database = /** @class */ (function (_super) {
      * @param {number} value
      * @return {promise<any>}
      */
-    Database.prototype.decrement = function (column, value) {
-        if (column === void 0) { column = 'id'; }
-        if (value === void 0) { value = 1; }
-        return __awaiter(this, void 0, void 0, function () {
-            var query;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        query = "".concat(this.$constants('SET'), " ").concat(column, " = ").concat(column, " - ").concat(value);
-                        this.$db.set('UPDATE', [
-                            "".concat(this.$constants('UPDATE')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(query)
-                        ].join(' '));
-                        return [4 /*yield*/, this._update(true)];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async decrement(column = 'id', value = 1) {
+        const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
+        this.$db.set('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        return await this._update(true);
+    }
     /**
      * execute data without condition
      * @return {promise<any>}
      */
-    Database.prototype.all = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement([
-                            "".concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$constants('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME'))
-                        ].join(' '))];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async all() {
+        return await this._queryStatement([
+            `${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$constants('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`
+        ].join(' '));
+    }
     /**
      *
      * execute data with where by id
      * @param {number} id
      * @return {promise<any>}
      */
-    Database.prototype.find = function (id) {
-        return __awaiter(this, void 0, void 0, function () {
-            var result;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement([
-                            "".concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$constants('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$constants('WHERE'), " id = ").concat(id)
-                        ].join(' '))];
-                    case 1:
-                        result = _a.sent();
-                        return [2 /*return*/, (result === null || result === void 0 ? void 0 : result.shift()) || null];
-                }
-            });
-        });
-    };
+    async find(id) {
+        const result = await this._queryStatement([
+            `${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$constants('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$constants('WHERE')} id = ${id}`
+        ].join(' '));
+        return result?.shift() || null;
+    }
     /**
      *
      * execute data page & limit
@@ -1234,82 +1116,69 @@ var Database = /** @class */ (function (_super) {
      * @param {number} paginationOptions.page
      * @return {promise<Pagination>}
      */
-    Database.prototype.pagination = function (paginationOptions) {
-        var _a, _b;
-        return __awaiter(this, void 0, void 0, function () {
-            var limit, page, currentPage, nextPage, prevPage, offset, sql, result, count, total, lastPage, totalPage;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0:
-                        limit = 15;
-                        page = 1;
-                        if (paginationOptions != null) {
-                            limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
-                            page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
-                        }
-                        currentPage = page;
-                        nextPage = currentPage + 1;
-                        prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
-                        offset = (page - 1) * limit;
-                        sql = this._queryGenrate();
-                        if (!sql.includes(this.$constants('LIMIT'))) {
-                            sql = [
-                                "".concat(sql),
-                                "".concat(this.$constants('LIMIT')),
-                                "".concat(limit),
-                                "".concat(this.$constants('OFFSET'), " ").concat(offset)
-                            ].join(' ');
-                        }
-                        else {
-                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(limit, " ").concat(this.$constants('OFFSET'), " ").concat(offset));
-                        }
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _c.sent();
-                        if ((_a = this.$db.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
-                            this._hiddenColumn(result);
-                        if (!result.length)
-                            return [2 /*return*/, {
-                                    meta: {
-                                        total: 0,
-                                        limit: limit,
-                                        total_page: 0,
-                                        current_page: currentPage,
-                                        last_page: 0,
-                                        next_page: 0,
-                                        prev_page: 0
-                                    },
-                                    data: []
-                                }];
-                        this.$db.set('SELECT', [
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('COUNT'), "(*)"),
-                            "".concat(this.$constants('AS'), " total")
-                        ].join(' '));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 2:
-                        count = _c.sent();
-                        total = count.shift().total || 0;
-                        lastPage = Math.ceil(total / limit) || 0;
-                        lastPage = lastPage > 1 ? lastPage : 1;
-                        totalPage = (_b = result === null || result === void 0 ? void 0 : result.length) !== null && _b !== void 0 ? _b : 0;
-                        return [2 /*return*/, {
-                                meta: {
-                                    total_page: totalPage,
-                                    total: total,
-                                    limit: limit,
-                                    current_page: currentPage,
-                                    last_page: lastPage,
-                                    next_page: nextPage,
-                                    prev_page: prevPage
-                                },
-                                data: result !== null && result !== void 0 ? result : []
-                            }];
-                }
-            });
-        });
-    };
+    async pagination(paginationOptions) {
+        let limit = 15;
+        let page = 1;
+        if (paginationOptions != null) {
+            limit = paginationOptions?.limit || limit;
+            page = paginationOptions?.page || page;
+        }
+        const currentPage = page;
+        const nextPage = currentPage + 1;
+        const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
+        const offset = (page - 1) * limit;
+        let sql = this._buildQuery();
+        if (!sql.includes(this.$constants('LIMIT'))) {
+            sql = [
+                `${sql}`,
+                `${this.$constants('LIMIT')}`,
+                `${limit}`,
+                `${this.$constants('OFFSET')} ${offset}`
+            ].join(' ');
+        }
+        else {
+            sql = sql.replace(this.$db.get('LIMIT'), `${limit} ${this.$constants('OFFSET')} ${offset}`);
+        }
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        if (!result.length)
+            return {
+                meta: {
+                    total: 0,
+                    limit,
+                    total_page: 0,
+                    current_page: currentPage,
+                    last_page: 0,
+                    next_page: 0,
+                    prev_page: 0
+                },
+                data: []
+            };
+        this.$db.set('SELECT', [
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('COUNT')}(*)`,
+            `${this.$constants('AS')} total`
+        ].join(' '));
+        sql = this._buildQuery();
+        const count = await this._queryStatement(sql);
+        const total = count.shift().total || 0;
+        let lastPage = Math.ceil(total / limit) || 0;
+        lastPage = lastPage > 1 ? lastPage : 1;
+        const totalPage = result?.length ?? 0;
+        return {
+            meta: {
+                total_page: totalPage,
+                total,
+                limit,
+                current_page: currentPage,
+                last_page: lastPage,
+                next_page: nextPage,
+                prev_page: prevPage
+            },
+            data: result ?? []
+        };
+    }
     /**
      *
      * execute data useing page & limit
@@ -1318,1379 +1187,975 @@ var Database = /** @class */ (function (_super) {
      * @param {number} paginationOptions.page
      * @return {promise<Pagination>}
      */
-    Database.prototype.paginate = function (paginationOptions) {
-        return __awaiter(this, void 0, void 0, function () {
-            var limit, page;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        limit = 15;
-                        page = 1;
-                        if (paginationOptions != null) {
-                            limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
-                            page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
-                        }
-                        return [4 /*yield*/, this.pagination({ limit: limit, page: page })];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async paginate(paginationOptions) {
+        let limit = 15;
+        let page = 1;
+        if (paginationOptions != null) {
+            limit = paginationOptions?.limit || limit;
+            page = paginationOptions?.page || page;
+        }
+        return await this.pagination({ limit, page });
+    }
     /**
      *
      * execute data return object | null
      * @return {promise<object | null>}
      */
-    Database.prototype.first = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result, pluck, newData, checkProperty;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        sql = this._queryGenrate();
-                        if (!sql.includes(this.$constants('LIMIT')))
-                            sql = "".concat(sql, " ").concat(this.$constants('LIMIT'), " 1");
-                        else
-                            sql = sql.replace(this.$db.get('LIMIT'), "".concat(this.$constants('LIMIT'), " 1"));
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        if ((_a = this.$db.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
-                            this._hiddenColumn(result);
-                        if (this.$db.get('PLUCK')) {
-                            pluck = this.$db.get('PLUCK');
-                            newData = result.shift();
-                            checkProperty = newData.hasOwnProperty(pluck);
-                            if (!checkProperty)
-                                throw new Error("can't find property '".concat(pluck, "' of result"));
-                            return [2 /*return*/, newData[pluck] || null];
-                        }
-                        return [2 /*return*/, result.shift() || null];
+    async first() {
+        if (this.$db.get('EXCEPT')?.length)
+            this.select(await this.exceptColumns());
+        let sql = this._buildQuery();
+        if (!sql.includes(this.$constants('LIMIT')))
+            sql = `${sql} ${this.$constants('LIMIT')} 1`;
+        else
+            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        if (this.$db.get('PLUCK')) {
+            const pluck = this.$db.get('PLUCK');
+            const newData = result?.shift();
+            const checkProperty = newData.hasOwnProperty(pluck);
+            if (!checkProperty)
+                throw new Error(`can't find property '${pluck}' of result`);
+            return newData[pluck] || null;
+        }
+        return result?.shift() || null;
+    }
+    /**
+     *
+     * execute data return object | throw rror
+     * @return {promise<object | null>}
+     */
+    async findOne() {
+        return await this.first();
+    }
+    /**
+     *
+     * execute data return object | throw Error
+     * @return {promise<object | Error>}
+     */
+    async firstOrError(message, options) {
+        if (this.$db.get('EXCEPT')?.length)
+            this.select(await this.exceptColumns());
+        let sql = this._buildQuery();
+        if (!sql.includes(this.$constants('LIMIT')))
+            sql = `${sql} ${this.$constants('LIMIT')} 1`;
+        else
+            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        if (this.$db.get('PLUCK')) {
+            const pluck = this.$db.get('PLUCK');
+            const newData = result?.shift();
+            const checkProperty = newData.hasOwnProperty(pluck);
+            if (!checkProperty)
+                throw new Error(`can't find property '${pluck}' of result`);
+            const data = newData[pluck] || null;
+            if (data == null) {
+                if (options == null) {
+                    throw { message, code: 400 };
                 }
-            });
-        });
-    };
+                throw { message, ...options };
+            }
+            return data;
+        }
+        const data = result?.shift() || null;
+        if (data == null) {
+            if (options == null) {
+                throw { message, code: 400 };
+            }
+            throw { message, ...options };
+        }
+        return data;
+    }
     /**
      *
      * execute data return object | null
      * @return {promise<object | null>}
      */
-    Database.prototype.findOne = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.first()];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async findOneOrError(message, options) {
+        if (this.$db.get('EXCEPT')?.length)
+            this.select(await this.exceptColumns());
+        let sql = this._buildQuery();
+        if (!sql.includes(this.$constants('LIMIT')))
+            sql = `${sql} ${this.$constants('LIMIT')} 1`;
+        else
+            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        if (this.$db.get('PLUCK')) {
+            const pluck = this.$db.get('PLUCK');
+            const newData = result?.shift();
+            const checkProperty = newData.hasOwnProperty(pluck);
+            if (!checkProperty)
+                throw new Error(`can't find property '${pluck}' of result`);
+            return newData[pluck] || null;
+        }
+        return result?.shift() || null;
+    }
     /**
      *
      * execute data return Array
      * @return {promise<Array<any>>}
      */
-    Database.prototype.get = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result, data, pluck_1, newData;
-            var _this = this;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        if ((_a = this.$db.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
-                            this._hiddenColumn(result);
-                        if (this.$db.get('CHUNK')) {
-                            data = result.reduce(function (resultArray, item, index) {
-                                var chunkIndex = Math.floor(index / _this.$db.get('CHUNK'));
-                                if (!resultArray[chunkIndex])
-                                    resultArray[chunkIndex] = [];
-                                resultArray[chunkIndex].push(item);
-                                return resultArray;
-                            }, []);
-                            return [2 /*return*/, data || []];
-                        }
-                        if (this.$db.get('PLUCK')) {
-                            pluck_1 = this.$db.get('PLUCK');
-                            newData = result.map(function (d) { return d[pluck_1]; });
-                            if (newData.every(function (d) { return d == null; })) {
-                                throw new Error("can't find property '".concat(pluck_1, "' of result"));
-                            }
-                            return [2 /*return*/, newData || []];
-                        }
-                        return [2 /*return*/, result || []];
-                }
-            });
-        });
-    };
+    async get() {
+        if (this.$db.get('EXCEPT')?.length)
+            this.select(await this.exceptColumns());
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        if (this.$db.get('CHUNK')) {
+            const data = result.reduce((resultArray, item, index) => {
+                const chunkIndex = Math.floor(index / this.$db.get('CHUNK'));
+                if (!resultArray[chunkIndex])
+                    resultArray[chunkIndex] = [];
+                resultArray[chunkIndex].push(item);
+                return resultArray;
+            }, []);
+            return data || [];
+        }
+        if (this.$db.get('PLUCK')) {
+            const pluck = this.$db.get('PLUCK');
+            const newData = result.map((d) => d[pluck]);
+            if (newData.every((d) => d == null)) {
+                throw new Error(`can't find property '${pluck}' of result`);
+            }
+            return newData || [];
+        }
+        return result || [];
+    }
     /**
      *
      * execute data return Array
      * @return {promise<Array<any>>}
      */
-    Database.prototype.findMany = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.get()];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async findMany() {
+        return await this.get();
+    }
     /**
      *
      * execute data return json of result
      * @return {promise<string>}
      */
-    Database.prototype.toJSON = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        if ((_a = this.$db.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
-                            this._hiddenColumn(result);
-                        return [2 /*return*/, JSON.stringify(result)];
-                }
-            });
-        });
-    };
+    async toJSON() {
+        if (this.$db.get('EXCEPT')?.length)
+            this.select(await this.exceptColumns());
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        if (this.$db.get('HIDDEN')?.length)
+            this._hiddenColumn(result);
+        return JSON.stringify(result);
+    }
     /**
      *
      * execute data return array of results
      * @param {string=} column [column=id]
      * @return {promise<Array>}
      */
-    Database.prototype.toArray = function (column) {
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result, toArray;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " ").concat(column));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _a.sent();
-                        toArray = result.map(function (data) { return data[column]; });
-                        return [2 /*return*/, toArray];
-                }
-            });
-        });
-    };
+    async toArray(column = 'id') {
+        this.$db.set('SELECT', `${this.$constants('SELECT')} ${column}`);
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        const toArray = result.map((data) => data[column]);
+        return toArray;
+    }
     /**
      *
      * execute data return number of results
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    Database.prototype.count = function (column) {
-        var _a;
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('SELECT', [
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('COUNT'), "(").concat(column, ")"),
-                            "".concat(this.$constants('AS'), " total")
-                        ].join(' '));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, ((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.total) || 0];
-                }
-            });
-        });
-    };
+    async count(column = 'id') {
+        this.$db.set('SELECT', [
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('COUNT')}(${column})`,
+            `${this.$constants('AS')} total`
+        ].join(' '));
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        return result?.shift()?.total || 0;
+    }
     /**
      *
      * execute data return result is exists
      * @return {promise<boolean>}
      */
-    Database.prototype.exists = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement([
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('EXISTS'), "(").concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE')),
-                            "".concat(this.$constants('LIMIT'), " 1) as 'exists'")
-                        ].join(' '))];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, !!((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.exists) || false];
-                }
-            });
-        });
-    };
+    async exists() {
+        const result = await this._queryStatement([
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('LIMIT')} 1) ${this.$constants('AS')} 'exists'`
+        ].join(' '));
+        return !!result?.shift()?.exists || false;
+    }
     /**
      *
      * execute data return average of results
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    Database.prototype.avg = function (column) {
-        var _a;
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('SELECT', [
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('AVG'), "(").concat(column, ")"),
-                            "".concat(this.$constants('AS'), " avg")
-                        ].join(' '));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, ((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.avg) || 0];
-                }
-            });
-        });
-    };
+    async avg(column = 'id') {
+        this.$db.set('SELECT', [
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('AVG')}(${column})`,
+            `${this.$constants('AS')} avg`
+        ].join(' '));
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        return result?.shift()?.avg || 0;
+    }
     /**
      *
      * execute data return summary of results
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    Database.prototype.sum = function (column) {
-        var _a;
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " ").concat(this.$constants('SUM'), "(").concat(column, ") ").concat(this.$constants('AS'), " sum"));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, ((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.sum) || 0];
-                }
-            });
-        });
-    };
+    async sum(column = 'id') {
+        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('SUM')}(${column}) ${this.$constants('AS')} sum`);
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        return result?.shift()?.sum || 0;
+    }
     /**
      *
      * execute data return maximum of results
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    Database.prototype.max = function (column) {
-        var _a;
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " ").concat(this.$constants('MAX'), "(").concat(column, ") ").concat(this.$constants('AS'), " max"));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, ((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.max) || 0];
-                }
-            });
-        });
-    };
+    async max(column = 'id') {
+        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MAX')}(${column}) ${this.$constants('AS')} max`);
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        return result?.shift()?.max || 0;
+    }
     /**
      *
      * execute data return minimum of results
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    Database.prototype.min = function (column) {
-        var _a;
-        if (column === void 0) { column = 'id'; }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('SELECT', "".concat(this.$constants('SELECT'), " ").concat(this.$constants('MIN'), "(").concat(column, ") ").concat(this.$constants('AS'), " min"));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        result = _b.sent();
-                        return [2 /*return*/, ((_a = result.shift()) === null || _a === void 0 ? void 0 : _a.min) || 0];
-                }
-            });
-        });
-    };
+    async min(column = 'id') {
+        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MIN')}(${column}) ${this.$constants('AS')} min`);
+        const sql = this._buildQuery();
+        const result = await this._queryStatement(sql);
+        return result?.shift()?.min || 0;
+    }
     /**
      *
      * delete data from database
      * @return {promise<boolean>}
      */
-    Database.prototype.delete = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        if (!this.$db.get('WHERE')) {
-                            throw new Error("can't delete without where condition");
-                        }
-                        this.$db.set('DELETE', [
-                            "".concat(this.$constants('DELETE')),
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE'))
-                        ].join(' '));
-                        return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('DELETE') })];
-                    case 1:
-                        result = _b.sent();
-                        if (result)
-                            return [2 /*return*/, (_a = !!result) !== null && _a !== void 0 ? _a : false];
-                        return [2 /*return*/, false];
-                }
-            });
-        });
-    };
+    async delete() {
+        if (!this.$db.get('WHERE')) {
+            throw new Error("can't delete without where condition");
+        }
+        this.$db.set('DELETE', [
+            `${this.$constants('DELETE')}`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`
+        ].join(' '));
+        const result = await this._actionStatement({ sql: this.$db.get('DELETE') });
+        if (result)
+            return !!result ?? false;
+        return false;
+    }
     /**
      *
      * delete data from database ignore where condition
      * @return {promise<boolean>}
      */
-    Database.prototype.forceDelete = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var result;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        this.$db.set('DELETE', [
-                            "".concat(this.$constants('DELETE')),
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE'))
-                        ].join(' '));
-                        return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('DELETE') })];
-                    case 1:
-                        result = _b.sent();
-                        if (result)
-                            return [2 /*return*/, (_a = !!result) !== null && _a !== void 0 ? _a : false];
-                        return [2 /*return*/, false];
-                }
-            });
-        });
-    };
+    async forceDelete() {
+        this.$db.set('DELETE', [
+            `${this.$constants('DELETE')}`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`
+        ].join(' '));
+        const result = await this._actionStatement({ sql: this.$db.get('DELETE') });
+        if (result)
+            return !!result ?? false;
+        return false;
+    }
     /**
      *
      * execute data return Array *grouping results in column
      * @param {string} column
      * @return {promise<Array>}
      */
-    Database.prototype.getGroupBy = function (column) {
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, results, data, sqlGroups, groups, resultData;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        this.$db.set('GROUP_BY', "".concat(this.$constants('GROUP_BY'), " ").concat(column));
-                        this.$db.set('SELECT', [
-                            "".concat(this.$db.get('SELECT')),
-                            ", ".concat(this.$constants('GROUP_CONCAT'), "(id)"),
-                            "".concat(this.$constants('AS'), " data")
-                        ].join(' '));
-                        sql = this._queryGenrate();
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        results = _a.sent();
-                        data = [];
-                        results.forEach(function (result) {
-                            var _a, _b;
-                            var splits = (_b = (_a = result === null || result === void 0 ? void 0 : result.data) === null || _a === void 0 ? void 0 : _a.split(',')) !== null && _b !== void 0 ? _b : '0';
-                            splits.forEach(function (split) { return data = __spreadArray(__spreadArray([], __read(data), false), [split], false); });
-                        });
-                        sqlGroups = [
-                            "".concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$constants('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$constants('WHERE'), " id ").concat(this.$constants('IN')),
-                            "(".concat(data.map(function (a) { return "'".concat(a, "'"); }).join(',') || ['0'], ")")
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sqlGroups)];
-                    case 2:
-                        groups = _a.sent();
-                        resultData = results.map(function (result) {
-                            var _a;
-                            var id = result[column];
-                            var newData = groups.filter(function (data) { return data[column] === id; });
-                            return (_a = {},
-                                _a[column] = id,
-                                _a.data = newData,
-                                _a);
-                        });
-                        return [2 /*return*/, resultData];
-                }
+    async getGroupBy(column) {
+        this.$db.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
+        this.$db.set('SELECT', [
+            `${this.$db.get('SELECT')}`,
+            `, ${this.$constants('GROUP_CONCAT')}(id)`,
+            `${this.$constants('AS')} data`
+        ].join(' '));
+        const sql = this._buildQuery();
+        const results = await this._queryStatement(sql);
+        let data = [];
+        results.forEach((result) => {
+            const splits = result?.data?.split(',') ?? '0';
+            splits.forEach((split) => data = [...data, split]);
+        });
+        const sqlGroups = [
+            `${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$constants('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$constants('WHERE')} id ${this.$constants('IN')}`,
+            `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
+        ].join(' ');
+        const groups = await this._queryStatement(sqlGroups);
+        const resultData = results.map((result) => {
+            const id = result[column];
+            const newData = groups.filter((data) => data[column] === id);
+            return ({
+                [column]: id,
+                data: newData
             });
         });
-    };
+        return resultData;
+    }
     /**
      *
      * execute data return grouping results by index
      * @param {string} column
      * @return {promise<Array>}
      */
-    Database.prototype.findManyGroupBy = function (column) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.getGroupBy(column)];
-                    case 1: return [2 /*return*/, _a.sent()];
-                }
-            });
-        });
-    };
+    async findManyGroupBy(column) {
+        return await this.getGroupBy(column);
+    }
     /**
      * execute data when save *action [insert , update]
-     * @param {object} transaction | DB.beginTransaction()
-     * @return {Promise<any>}
+     * @return {Promise<any>} promise
      */
-    Database.prototype.save = function (transaction) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var attributes, query_1, query, _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0:
-                        if (transaction != null)
-                            this.$db.set('TRANSACTION', transaction);
-                        attributes = this.$attributes;
-                        if ((_a = Object.keys(attributes)) === null || _a === void 0 ? void 0 : _a.length) {
-                            while (true) {
-                                if (this.$db.get('WHERE')) {
-                                    query_1 = this._queryUpdate(attributes);
-                                    this.$db.set('UPDATE', [
-                                        "".concat(this.$constants('UPDATE')),
-                                        "".concat(this.$db.get('TABLE_NAME')),
-                                        "".concat(query_1)
-                                    ].join(' '));
-                                    this.$db.set('SAVE', 'UPDATE');
-                                    break;
-                                }
-                                query = this._queryInsert(attributes);
-                                this.$db.set('INSERT', [
-                                    "".concat(this.$constants('INSERT')),
-                                    "".concat(this.$db.get('TABLE_NAME')),
-                                    "".concat(query)
-                                ].join(' '));
-                                this.$db.set('SAVE', 'INSERT');
-                                break;
-                            }
-                        }
-                        _b = this.$db.get('SAVE');
-                        switch (_b) {
-                            case 'INSERT_MULTIPLE': return [3 /*break*/, 1];
-                            case 'INSERT': return [3 /*break*/, 3];
-                            case 'UPDATE': return [3 /*break*/, 5];
-                            case 'INSERT_NOT_EXISTS': return [3 /*break*/, 7];
-                            case 'UPDATE_OR_INSERT': return [3 /*break*/, 9];
-                        }
-                        return [3 /*break*/, 11];
-                    case 1: return [4 /*yield*/, this._createMultiple()];
-                    case 2: return [2 /*return*/, _c.sent()];
-                    case 3: return [4 /*yield*/, this._create()];
-                    case 4: return [2 /*return*/, _c.sent()];
-                    case 5: return [4 /*yield*/, this._update()];
-                    case 6: return [2 /*return*/, _c.sent()];
-                    case 7: return [4 /*yield*/, this._insertNotExists()];
-                    case 8: return [2 /*return*/, _c.sent()];
-                    case 9: return [4 /*yield*/, this._updateOrInsert()];
-                    case 10: return [2 /*return*/, _c.sent()];
-                    case 11: return [2 /*return*/];
+    async save() {
+        const attributes = this.$attributes;
+        if (Object.keys(attributes)?.length) {
+            while (true) {
+                if (this.$db.get('WHERE')) {
+                    const query = this._queryUpdate(attributes);
+                    this.$db.set('UPDATE', [
+                        `${this.$constants('UPDATE')}`,
+                        `${this.$db.get('TABLE_NAME')}`,
+                        `${query}`
+                    ].join(' '));
+                    this.$db.set('SAVE', 'UPDATE');
+                    break;
                 }
-            });
-        });
-    };
+                const query = this._queryInsert(attributes);
+                this.$db.set('INSERT', [
+                    `${this.$constants('INSERT')}`,
+                    `${this.$db.get('TABLE_NAME')}`,
+                    `${query}`
+                ].join(' '));
+                this.$db.set('SAVE', 'INSERT');
+                break;
+            }
+        }
+        switch (this.$db.get('SAVE')) {
+            case 'INSERT_MULTIPLE': return await this._createMultiple();
+            case 'INSERT': return await this._create();
+            case 'UPDATE': return await this._update();
+            case 'INSERT_NOT_EXISTS': return await this._insertNotExists();
+            case 'UPDATE_OR_INSERT': return await this._updateOrInsert();
+        }
+    }
     /**
      *
      * show columns in table
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    Database.prototype.showColumns = function (table) {
-        if (table === void 0) { table = this.$db.get('TABLE_NAME'); }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, rawColumns, columns;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        sql = [
-                            "".concat(this.$constants('SHOW')),
-                            "".concat(this.$constants('COLUMNS')),
-                            "".concat(this.$constants('FROM')),
-                            "`".concat(table.replace(/\`/g, ''), "`")
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        rawColumns = _a.sent();
-                        columns = rawColumns.map(function (column) { return column.Field; });
-                        return [2 /*return*/, columns];
-                }
-            });
-        });
-    };
+    async showColumns(table = this.$db.get('TABLE_NAME')) {
+        const sql = [
+            `${this.$constants('SHOW')}`,
+            `${this.$constants('COLUMNS')}`,
+            `${this.$constants('FROM')}`,
+            `\`${table.replace(/\`/g, '')}\``
+        ].join(' ');
+        const rawColumns = await this._queryStatement(sql);
+        const columns = rawColumns.map((column) => column.Field);
+        return columns;
+    }
     /**
      *
      * show schemas in table
-     * @param {string=} table table name
+     * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    Database.prototype.showSchemas = function (table) {
-        if (table === void 0) { table = this.$db.get('TABLE_NAME'); }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, raw, schemas;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        sql = [
-                            "".concat(this.$constants('SHOW')),
-                            "".concat(this.$constants('COLUMNS')),
-                            "".concat(this.$constants('FROM')),
-                            "`".concat(table.replace(/\`/g, ''), "`")
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        raw = _a.sent();
-                        schemas = raw.map(function (r) {
-                            var schema = [];
-                            schema.push("".concat(r.Field));
-                            schema.push("".concat(r.Type));
-                            if (r.Null === 'YES') {
-                                schema.push("NULL");
-                            }
-                            if (r.Null === 'NO') {
-                                schema.push("NOT NULL");
-                            }
-                            if (r.Key === 'PRI') {
-                                schema.push("PRIMARY KEY");
-                            }
-                            if (r.Key === 'UNI') {
-                                schema.push("UNIQUE");
-                            }
-                            if (r.Default) {
-                                schema.push("DEFAULT '".concat(r.Default, "'"));
-                            }
-                            if (r.Extra) {
-                                schema.push("".concat(r.Extra.toUpperCase()));
-                            }
-                            return schema.join(' ');
-                        });
-                        return [2 /*return*/, schemas];
-                }
-            });
+    async showSchemas(table = this.$db.get('TABLE_NAME')) {
+        const sql = [
+            `${this.$constants('SHOW')}`,
+            `${this.$constants('COLUMNS')}`,
+            `${this.$constants('FROM')}`,
+            `\`${table.replace(/\`/g, '')}\``
+        ].join(' ');
+        const raw = await this._queryStatement(sql);
+        const schemas = raw.map((r) => {
+            const schema = [];
+            schema.push(`${r.Field}`);
+            schema.push(`${r.Type}`);
+            if (r.Null === 'YES') {
+                schema.push(`NULL`);
+            }
+            if (r.Null === 'NO') {
+                schema.push(`NOT NULL`);
+            }
+            if (r.Key === 'PRI') {
+                schema.push(`PRIMARY KEY`);
+            }
+            if (r.Key === 'UNI') {
+                schema.push(`UNIQUE`);
+            }
+            if (r.Default) {
+                schema.push(`DEFAULT '${r.Default}'`);
+            }
+            if (r.Extra) {
+                schema.push(`${r.Extra.toUpperCase()}`);
+            }
+            return schema.join(' ');
         });
-    };
+        return schemas;
+    }
     /**
      *
      * show values in table
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    Database.prototype.showValues = function (table) {
-        if (table === void 0) { table = this.$db.get('TABLE_NAME'); }
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, raw, values;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        sql = [
-                            "".concat(this.$constants('SELECT')),
-                            '*',
-                            "".concat(this.$constants('FROM')),
-                            "`".concat(table.replace(/\`/g, ''), "`")
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        raw = _a.sent();
-                        values = raw.map(function (value) {
-                            return "(".concat(Object.values(value).map(function (v) {
-                                return v == null ? 'NULL' : "'".concat(v, "'");
-                            }).join(','), ")");
-                        });
-                        return [2 /*return*/, values];
-                }
-            });
+    async showValues(table = this.$db.get('TABLE_NAME')) {
+        const sql = [
+            `${this.$constants('SELECT')}`,
+            '*',
+            `${this.$constants('FROM')}`,
+            `\`${table.replace(/\`/g, '')}\``
+        ].join(' ');
+        const raw = await this._queryStatement(sql);
+        const values = raw.map((value) => {
+            return `(${Object.values(value).map((v) => {
+                return v == null ? 'NULL' : `'${v}'`;
+            }).join(',')})`;
         });
-    };
+        return values;
+    }
     /**
      *
-     * backup database intro new database same server or to another server
+     * backup this database intro new database same server or to another server
      * @param {Object} backupOptions
      * @param {string} backup.database
-     * @param {object?} backup.connection
-     * @param {string} backup.connection.host
-     * @param {number} backup.connection.port
-     * @param {string} backup.connection.database
-     * @param {string} backup.connection.username
-     * @param {string} backup.connection.password
+     * @param {object?} backup.to
+     * @param {string} backup.to.host
+     * @param {number} backup.to.port
+     * @param {string} backup.to.database
+     * @param {string} backup.to.username
+     * @param {string} backup.to.password
 
      * @return {Promise<boolean>}
      */
-    Database.prototype.backup = function (_a) {
-        var database = _a.database, connection = _a.connection;
-        return __awaiter(this, void 0, void 0, function () {
-            var tables, backup, tables_1, tables_1_1, t, table, schemas, createTableSQL, values, valueSQL, columns, e_1_1, backup_1, backup_1_1, b, e_2_1;
-            var e_1, _b, e_2, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement('SHOW TABLES')];
-                    case 1:
-                        tables = _d.sent();
-                        backup = [];
-                        _d.label = 2;
-                    case 2:
-                        _d.trys.push([2, 10, 11, 12]);
-                        tables_1 = __values(tables), tables_1_1 = tables_1.next();
-                        _d.label = 3;
-                    case 3:
-                        if (!!tables_1_1.done) return [3 /*break*/, 9];
-                        t = tables_1_1.value;
-                        table = String(Object.values(t).shift());
-                        return [4 /*yield*/, this.showSchemas(table)];
-                    case 4:
-                        schemas = _d.sent();
-                        createTableSQL = [
-                            "".concat(this.$constants('CREATE_TABLE_NOT_EXISTS')),
-                            "`".concat(database, ".").concat(table, "`"),
-                            "(".concat(schemas.join(','), ")"),
-                            "".concat(this.$constants('ENGINE')),
-                        ];
-                        return [4 /*yield*/, this.showValues(table)];
-                    case 5:
-                        values = _d.sent();
-                        valueSQL = [];
-                        if (!values.length) return [3 /*break*/, 7];
-                        return [4 /*yield*/, this.showColumns(table)];
-                    case 6:
-                        columns = _d.sent();
-                        valueSQL = [
-                            "".concat(this.$constants('INSERT')),
-                            "`".concat(database, ".").concat(table, "`"),
-                            "(".concat(columns.map(function (column) { return "`".concat(column, "`"); }).join(','), ")"),
-                            "".concat(this.$constants('VALUES'), " ").concat(values.join(','))
-                        ];
-                        _d.label = 7;
-                    case 7:
-                        backup = __spreadArray(__spreadArray([], __read(backup), false), [
-                            {
-                                table: createTableSQL.join(' '),
-                                values: valueSQL.join(' '),
-                            }
-                        ], false);
-                        _d.label = 8;
-                    case 8:
-                        tables_1_1 = tables_1.next();
-                        return [3 /*break*/, 3];
-                    case 9: return [3 /*break*/, 12];
-                    case 10:
-                        e_1_1 = _d.sent();
-                        e_1 = { error: e_1_1 };
-                        return [3 /*break*/, 12];
-                    case 11:
-                        try {
-                            if (tables_1_1 && !tables_1_1.done && (_b = tables_1.return)) _b.call(tables_1);
-                        }
-                        finally { if (e_1) throw e_1.error; }
-                        return [7 /*endfinally*/];
-                    case 12:
-                        if (connection != null && Object.keys(connection).length)
-                            this.connection(connection);
-                        return [4 /*yield*/, this._queryStatement("".concat(this.$constants('CREATE_DATABASE_NOT_EXISTS'), " `").concat(database, "`"))];
-                    case 13:
-                        _d.sent();
-                        _d.label = 14;
-                    case 14:
-                        _d.trys.push([14, 20, 21, 22]);
-                        backup_1 = __values(backup), backup_1_1 = backup_1.next();
-                        _d.label = 15;
-                    case 15:
-                        if (!!backup_1_1.done) return [3 /*break*/, 19];
-                        b = backup_1_1.value;
-                        return [4 /*yield*/, this._queryStatement(b.table)];
-                    case 16:
-                        _d.sent();
-                        if (!b.values) return [3 /*break*/, 18];
-                        return [4 /*yield*/, this._queryStatement(b.values)];
-                    case 17:
-                        _d.sent();
-                        _d.label = 18;
-                    case 18:
-                        backup_1_1 = backup_1.next();
-                        return [3 /*break*/, 15];
-                    case 19: return [3 /*break*/, 22];
-                    case 20:
-                        e_2_1 = _d.sent();
-                        e_2 = { error: e_2_1 };
-                        return [3 /*break*/, 22];
-                    case 21:
-                        try {
-                            if (backup_1_1 && !backup_1_1.done && (_c = backup_1.return)) _c.call(backup_1);
-                        }
-                        finally { if (e_2) throw e_2.error; }
-                        return [7 /*endfinally*/];
-                    case 22: return [2 /*return*/, true];
+    async backup({ database, to }) {
+        const tables = await this._queryStatement('SHOW TABLES');
+        let backup = [];
+        for (const t of tables) {
+            const table = String(Object.values(t).shift());
+            const schemas = await this.showSchemas(table);
+            const createTableSQL = [
+                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
+                `\`${database}.${table}\``,
+                `(${schemas.join(',')})`,
+                `${this.$constants('ENGINE')}`,
+            ];
+            const values = await this.showValues(table);
+            let valueSQL = [];
+            if (values.length) {
+                const columns = await this.showColumns(table);
+                valueSQL = [
+                    `${this.$constants('INSERT')}`,
+                    `\`${database}.${table}\``,
+                    `(${columns.map((column) => `\`${column}\``).join(',')})`,
+                    `${this.$constants('VALUES')} ${values.join(',')}`
+                ];
+            }
+            backup = [
+                ...backup,
+                {
+                    table: createTableSQL.join(' '),
+                    values: valueSQL.join(' '),
                 }
-            });
-        });
-    };
-    Database.prototype.backupToFile = function (_a) {
-        var filePath = _a.filePath, database = _a.database, connection = _a.connection;
-        return __awaiter(this, void 0, void 0, function () {
-            var tables, backup, tables_2, tables_2_1, t, table, schemas, createTableSQL, values, valueSQL, columns, e_3_1, sql, backup_2, backup_2_1, b;
-            var e_3, _b, e_4, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0: return [4 /*yield*/, this._queryStatement('SHOW TABLES')];
-                    case 1:
-                        tables = _d.sent();
-                        backup = [];
-                        _d.label = 2;
-                    case 2:
-                        _d.trys.push([2, 10, 11, 12]);
-                        tables_2 = __values(tables), tables_2_1 = tables_2.next();
-                        _d.label = 3;
-                    case 3:
-                        if (!!tables_2_1.done) return [3 /*break*/, 9];
-                        t = tables_2_1.value;
-                        table = String(Object.values(t).shift());
-                        return [4 /*yield*/, this.showSchemas(table)];
-                    case 4:
-                        schemas = _d.sent();
-                        createTableSQL = [
-                            "".concat(this.$constants('CREATE_TABLE_NOT_EXISTS')),
-                            "`".concat(table, "`"),
-                            "(".concat(schemas.join(','), ")"),
-                            "".concat(this.$constants('ENGINE'), ";"),
-                        ];
-                        return [4 /*yield*/, this.showValues(table)];
-                    case 5:
-                        values = _d.sent();
-                        valueSQL = [];
-                        if (!values.length) return [3 /*break*/, 7];
-                        return [4 /*yield*/, this.showColumns(table)];
-                    case 6:
-                        columns = _d.sent();
-                        valueSQL = [
-                            "".concat(this.$constants('INSERT')),
-                            "`".concat(table, "`"),
-                            "(".concat(columns.map(function (column) { return "`".concat(column, "`"); }).join(','), ")"),
-                            "".concat(this.$constants('VALUES'), " ").concat(values.join(','), ";")
-                        ];
-                        _d.label = 7;
-                    case 7:
-                        backup = __spreadArray(__spreadArray([], __read(backup), false), [
-                            {
-                                table: createTableSQL.join(' '),
-                                values: valueSQL.join(' '),
-                            }
-                        ], false);
-                        _d.label = 8;
-                    case 8:
-                        tables_2_1 = tables_2.next();
-                        return [3 /*break*/, 3];
-                    case 9: return [3 /*break*/, 12];
-                    case 10:
-                        e_3_1 = _d.sent();
-                        e_3 = { error: e_3_1 };
-                        return [3 /*break*/, 12];
-                    case 11:
-                        try {
-                            if (tables_2_1 && !tables_2_1.done && (_b = tables_2.return)) _b.call(tables_2);
-                        }
-                        finally { if (e_3) throw e_3.error; }
-                        return [7 /*endfinally*/];
-                    case 12:
-                        if (connection != null && Object.keys(connection).length)
-                            this.connection(connection);
-                        sql = [
-                            "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";",
-                            "START TRANSACTION;",
-                            "SET time_zone = \"+00:00\";",
-                            "".concat(this.$constants('CREATE_DATABASE_NOT_EXISTS'), " `").concat(database, "`;"),
-                            "USE `".concat(database, "`;")
-                        ];
-                        try {
-                            for (backup_2 = __values(backup), backup_2_1 = backup_2.next(); !backup_2_1.done; backup_2_1 = backup_2.next()) {
-                                b = backup_2_1.value;
-                                sql = __spreadArray(__spreadArray([], __read(sql), false), [b.table], false);
-                                if (b.values) {
-                                    sql = __spreadArray(__spreadArray([], __read(sql), false), [b.values], false);
-                                }
-                            }
-                        }
-                        catch (e_4_1) { e_4 = { error: e_4_1 }; }
-                        finally {
-                            try {
-                                if (backup_2_1 && !backup_2_1.done && (_c = backup_2.return)) _c.call(backup_2);
-                            }
-                            finally { if (e_4) throw e_4.error; }
-                        }
-                        fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)(__spreadArray(__spreadArray([], __read(sql), false), ['COMMIT;'], false).join('\n'), {
-                            language: 'spark',
-                            tabWidth: 2,
-                            keywordCase: 'upper',
-                            linesBetweenQueries: 1,
-                        }));
-                        return [2 /*return*/, true];
+            ];
+        }
+        if (to != null && Object.keys(to).length)
+            this.connection(to);
+        await this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
+        for (const b of backup) {
+            await this._queryStatement(b.table);
+            if (b.values) {
+                await this._queryStatement(b.values);
+            }
+        }
+        return true;
+    }
+    /**
+     *
+     * backup database intro file
+     * @param {Object}  backupOptions
+     * @param {string}  backup.database
+     * @param {object?} backup.filePath
+     * @param {object?} backup.connection
+     * @param {string}  backup.connection.host
+     * @param {number}  backup.connection.port
+     * @param {string}  backup.connection.database
+     * @param {string}  backup.connection.username
+     * @param {string}  backup.connection.password
+
+     * @return {Promise<boolean>}
+     */
+    async backupToFile({ filePath, database, connection }) {
+        const tables = await this._queryStatement('SHOW TABLES');
+        let backup = [];
+        for (const t of tables) {
+            const table = String(Object.values(t)?.shift());
+            const schemas = await this.showSchemas(table);
+            const createTableSQL = [
+                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
+                `\`${table}\``,
+                `(${schemas.join(',')})`,
+                `${this.$constants('ENGINE')};`,
+            ];
+            const values = await this.showValues(table);
+            let valueSQL = [];
+            if (values.length) {
+                const columns = await this.showColumns(table);
+                valueSQL = [
+                    `${this.$constants('INSERT')}`,
+                    `\`${table}\``,
+                    `(${columns.map((column) => `\`${column}\``).join(',')})`,
+                    `${this.$constants('VALUES')} ${values.join(',')};`
+                ];
+            }
+            backup = [
+                ...backup,
+                {
+                    table: createTableSQL.join(' '),
+                    values: valueSQL.join(' ')
                 }
-            });
-        });
-    };
+            ];
+        }
+        if (connection != null && Object.keys(connection)?.length)
+            this.connection(connection);
+        let sql = [
+            `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
+            `START TRANSACTION;`,
+            `SET time_zone = "+00:00";`,
+            `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
+            `USE \`${database}\`;`
+        ];
+        for (const b of backup) {
+            sql = [...sql, b.table];
+            if (b.values) {
+                sql = [...sql, b.values];
+            }
+        }
+        fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)([...sql, 'COMMIT;'].join('\n'), {
+            language: 'spark',
+            tabWidth: 2,
+            keywordCase: 'upper',
+            linesBetweenQueries: 1,
+        }));
+        return;
+    }
     /**
      *
      * fake data
      * @param {number} rows number of rows
      * @return {promise<any}
      */
-    Database.prototype.faker = function (rows) {
-        if (rows === void 0) { rows = 1; }
-        return __awaiter(this, void 0, void 0, function () {
-            var data, row, sql, fields, columnAndValue, fields_1, fields_1_1, _a, field, type, query;
-            var e_5, _b, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0:
-                        data = [];
-                        row = 0;
-                        _d.label = 1;
-                    case 1:
-                        if (!(row < rows)) return [3 /*break*/, 4];
-                        if (this.$db.get('TABLE_NAME') === '' || this.$db.get('TABLE_NAME') == null)
-                            throw new Error("unknow table");
-                        sql = [
-                            "".concat(this.$constants('SHOW')),
-                            "".concat(this.$constants('FIELDS')),
-                            "".concat(this.$constants('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME'))
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 2:
-                        fields = _d.sent();
-                        columnAndValue = {};
-                        try {
-                            for (fields_1 = (e_5 = void 0, __values(fields)), fields_1_1 = fields_1.next(); !fields_1_1.done; fields_1_1 = fields_1.next()) {
-                                _a = fields_1_1.value, field = _a.Field, type = _a.Type;
-                                if (field.toLowerCase() === 'id' || field.toLowerCase() === '_id')
-                                    continue;
-                                if (field.toLowerCase() === 'uuid')
-                                    continue;
-                                columnAndValue = __assign(__assign({}, columnAndValue), (_c = {}, _c[field] = this.$utils.faker(type), _c));
-                            }
-                        }
-                        catch (e_5_1) { e_5 = { error: e_5_1 }; }
-                        finally {
-                            try {
-                                if (fields_1_1 && !fields_1_1.done && (_b = fields_1.return)) _b.call(fields_1);
-                            }
-                            finally { if (e_5) throw e_5.error; }
-                        }
-                        data = __spreadArray(__spreadArray([], __read(data), false), [columnAndValue], false);
-                        _d.label = 3;
-                    case 3:
-                        row++;
-                        return [3 /*break*/, 1];
-                    case 4:
-                        query = this._queryInsertMultiple(data);
-                        this.$db.set('INSERT', "".concat(this.$constants('INSERT'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(query));
-                        this.$db.set('SAVE', 'INSERT_MULTIPLE');
-                        return [2 /*return*/, this.save()];
-                }
-            });
-        });
-    };
+    async faker(rows = 1) {
+        let data = [];
+        for (let row = 0; row < rows; row++) {
+            if (this.$db.get('TABLE_NAME') === '' || this.$db.get('TABLE_NAME') == null) {
+                throw new Error("unknow this table");
+            }
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('FIELDS')}`,
+                `${this.$constants('FROM')}`,
+                `${this.$db.get('TABLE_NAME')}`
+            ].join(' ');
+            const fields = await this._queryStatement(sql);
+            let columnAndValue = {};
+            for (const { Field: field, Type: type } of fields) {
+                const passed = field.toLowerCase() === 'id' ||
+                    field.toLowerCase() === '_id' ||
+                    field.toLowerCase() === 'uuid';
+                if (passed)
+                    continue;
+                columnAndValue = {
+                    ...columnAndValue,
+                    [field]: this.$utils.faker(type)
+                };
+            }
+            data = [...data, columnAndValue];
+        }
+        const query = this._queryInsertMultiple(data);
+        this.$db.set('INSERT', [
+            `${this.$constants('INSERT')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this.$db.set('SAVE', 'INSERT_MULTIPLE');
+        return this.save();
+    }
     /**
      *
      * truncate of table
      * @return {promise<boolean>}
      */
-    Database.prototype.truncate = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var sql;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        sql = "".concat(this.$constants('TRUNCATE_TABLE'), " ").concat(this.$db.get('TABLE_NAME'));
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        _a.sent();
-                        return [2 /*return*/, true];
-                }
-            });
-        });
-    };
+    async truncate() {
+        const sql = [
+            `${this.$constants('TRUNCATE_TABLE')}`,
+            `${this.$db.get('TABLE_NAME')}`
+        ].join(' ');
+        await this._queryStatement(sql);
+        return true;
+    }
     /**
      *
      * drop of table
      * @return {promise<boolean>}
      */
-    Database.prototype.drop = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var sql;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        sql = "".concat(this.$constants('DROP_TABLE'), " ").concat(this.$db.get('TABLE_NAME'));
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        _a.sent();
-                        return [2 /*return*/, true];
-                }
-            });
-        });
-    };
-    Database.prototype._queryWhereIsExists = function () {
-        return this.$db.get('WHERE').includes(this.$constants('WHERE'));
-    };
-    Database.prototype._insertNotExists = function () {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, check, _b, result, _c, _d, result_1, id, sql_1, data;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
-                    case 0:
-                        if (!this.$db.get('WHERE'))
-                            throw new Error("Can't insert not exists without where condition");
-                        sql = '';
-                        check = false;
-                        sql = [
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('EXISTS'), "(").concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE')),
-                            "".concat(this.$constants('LIMIT'), " 1)"),
-                            "".concat(this.$constants('AS'), " 'exists'")
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        _b = __read.apply(void 0, [_e.sent(), 1]), result = _b[0].exists;
-                        check = !!parseInt(result);
-                        _c = check;
-                        switch (_c) {
-                            case false: return [3 /*break*/, 2];
-                            case true: return [3 /*break*/, 6];
-                        }
-                        return [3 /*break*/, 7];
-                    case 2: return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('INSERT'), returnId: true })];
-                    case 3:
-                        _d = __read.apply(void 0, [_e.sent(), 2]), result_1 = _d[0], id = _d[1];
-                        if (this.$db.get('TRANSACTION')) {
-                            (_a = this.$db.get('TRANSACTION')) === null || _a === void 0 ? void 0 : _a.query.push({
-                                table: this.$db.get('TABLE_NAME'),
-                                id: id
-                            });
-                        }
-                        if (!result_1) return [3 /*break*/, 5];
-                        sql_1 = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$constants('WHERE'), " id = ").concat(id);
-                        return [4 /*yield*/, this._queryStatement(sql_1)];
-                    case 4:
-                        data = _e.sent();
-                        return [2 /*return*/, (data === null || data === void 0 ? void 0 : data.shift()) || null];
-                    case 5: return [2 /*return*/, null];
-                    case 6:
-                        {
-                            return [2 /*return*/, null];
-                        }
-                        _e.label = 7;
-                    case 7:
-                        {
-                            return [2 /*return*/, null];
-                        }
-                        _e.label = 8;
-                    case 8: return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Database.prototype._setupPool = function () {
-        var _this = this;
-        var pool = connection_1.Pool;
-        return {
-            get: function (sql) { return __awaiter(_this, void 0, void 0, function () {
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0: return [4 /*yield*/, pool.query(sql)];
-                        case 1: return [2 /*return*/, _a.sent()];
-                    }
+    async drop() {
+        const sql = [
+            `${this.$constants('DROP_TABLE')}`,
+            `${this.$db.get('TABLE_NAME')}`
+        ].join(' ');
+        await this._queryStatement(sql);
+        return true;
+    }
+    _queryWhereIsExists() {
+        return this.$db.get('WHERE')?.includes(this.$constants('WHERE')) || false;
+    }
+    _bindTableAndColumnInQueryWhere(column) {
+        return `${this.$db.get('TABLE_NAME')}.\`${column}\``;
+    }
+    async _insertNotExists() {
+        if (!this.$db.get('WHERE'))
+            throw new Error("Can't insert not exists without where condition");
+        let sql = [
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('LIMIT')} 1)`,
+            `${this.$constants('AS')} 'exists'`
+        ].join(' ');
+        const [{ exists: result }] = await this._queryStatement(sql);
+        const check = !!Number.parseInt(result);
+        switch (check) {
+            case false: {
+                const [result, id] = await this._actionStatement({
+                    sql: this.$db.get('INSERT'),
+                    returnId: true
                 });
-            }); },
-            set: function (newConnection) {
+                if (this.$db.get('VOID'))
+                    return Promise.resolve();
+                if (result) {
+                    const sql = [
+                        `${this.$db.get('SELECT')}`,
+                        `${this.$db.get('FROM')}`,
+                        `${this.$db.get('TABLE_NAME')}`,
+                        `${this.$constants('WHERE')} id = ${id}`
+                    ].join(' ');
+                    const data = await this._queryStatement(sql);
+                    return data?.shift() || null;
+                }
+                return null;
+            }
+            case true: {
+                if (this.$db.get('VOID'))
+                    return Promise.resolve();
+                return null;
+            }
+            default: {
+                if (this.$db.get('VOID'))
+                    return Promise.resolve();
+                return null;
+            }
+        }
+    }
+    _setupPool() {
+        let pool = connection_1.Pool;
+        return {
+            load: () => pool,
+            get: async (sql) => await pool.query(sql),
+            set: (newConnection) => {
                 pool = newConnection;
                 return;
             }
         };
-    };
-    Database.prototype._queryStatement = function (sql) {
-        return __awaiter(this, void 0, void 0, function () {
-            var err_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        _a.trys.push([0, 2, , 3]);
-                        if (this.$db.get('DEBUG'))
-                            this.$utils.consoleDebug(sql);
-                        return [4 /*yield*/, this.$pool.get(sql)];
-                    case 1: return [2 /*return*/, _a.sent()];
-                    case 2:
-                        err_1 = _a.sent();
-                        throw new Error(err_1.message);
-                    case 3: return [2 /*return*/];
-                }
-            });
+    }
+    async _queryStatement(sql) {
+        if (this.$db.get('DEBUG'))
+            this.$utils.consoleDebug(sql);
+        return await this.$pool.get(sql);
+    }
+    async _actionStatement({ sql, returnId = false }) {
+        try {
+            if (this.$db.get('DEBUG'))
+                this.$utils.consoleDebug(sql);
+            if (returnId) {
+                const result = await this.$pool.get(sql);
+                return [result.affectedRows, result.insertId];
+            }
+            const { affectedRows: result } = await this.$pool.get(sql);
+            return result;
+        }
+        catch (err) {
+            throw new Error(err.message);
+        }
+    }
+    async _create() {
+        const [result, id] = await this._actionStatement({
+            sql: this.$db.get('INSERT'),
+            returnId: true
         });
-    };
-    Database.prototype._actionStatement = function (_a) {
-        var _b = _a === void 0 ? {} : _a, sql = _b.sql, _c = _b.returnId, returnId = _c === void 0 ? false : _c;
-        return __awaiter(this, void 0, void 0, function () {
-            var result_2, result, err_2;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0:
-                        _d.trys.push([0, 4, , 5]);
-                        if (this.$db.get('DEBUG'))
-                            this.$utils.consoleDebug(sql);
-                        if (!returnId) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.$pool.get(sql)];
-                    case 1:
-                        result_2 = _d.sent();
-                        return [2 /*return*/, [result_2.affectedRows, result_2.insertId]];
-                    case 2: return [4 /*yield*/, this.$pool.get(sql)];
-                    case 3:
-                        result = (_d.sent()).affectedRows;
-                        return [2 /*return*/, result];
-                    case 4:
-                        err_2 = _d.sent();
-                        throw new Error(err_2.message);
-                    case 5: return [2 /*return*/];
-                }
-            });
+        if (this.$db.get('VOID'))
+            return Promise.resolve();
+        if (result) {
+            const sql = [
+                `${this.$db.get('SELECT')}`,
+                `${this.$db.get('FROM')}`,
+                `${this.$db.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} id = ${id}`
+            ].join(' ');
+            const data = await this._queryStatement(sql);
+            const result = data?.shift() || null;
+            this.$db.set('RESULT', result);
+            return result;
+        }
+        return null;
+    }
+    async _createMultiple() {
+        const [result, id] = await this._actionStatement({
+            sql: this.$db.get('INSERT'),
+            returnId: true
         });
-    };
-    Database.prototype._create = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var _a, result, id, sql, data, result_3;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('INSERT'), returnId: true })];
-                    case 1:
-                        _a = __read.apply(void 0, [_b.sent(), 2]), result = _a[0], id = _a[1];
-                        if (this.$db.get('TRANSACTION')) {
-                            this.$db.get('TRANSACTION').query.push({
-                                table: this.$db.get('TABLE_NAME'),
-                                id: id
-                            });
-                        }
-                        if (!result) return [3 /*break*/, 3];
-                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$constants('WHERE'), " id = ").concat(id);
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 2:
-                        data = _b.sent();
-                        result_3 = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-                        this.$db.set('RESULT', result_3);
-                        return [2 /*return*/, result_3];
-                    case 3: return [2 /*return*/, null];
+        if (this.$db.get('VOID'))
+            return Promise.resolve();
+        if (result) {
+            const arrayId = [...Array(result)].map((_, i) => i + id);
+            const sql = [
+                `${this.$db.get('SELECT')}`,
+                `${this.$db.get('FROM')}`,
+                `${this.$db.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} id`,
+                `${this.$constants('IN')} (${arrayId})`
+            ].join(' ');
+            const data = await this._queryStatement(sql);
+            const resultData = data || null;
+            this.$db.set('RESULT', resultData);
+            return resultData;
+        }
+        return null;
+    }
+    async _updateOrInsert() {
+        if (!this.$db.get('WHERE')) {
+            throw new Error("Can't update or insert without where condition");
+        }
+        let sql = [
+            `${this.$constants('SELECT')}`,
+            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+            `*`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`,
+            `${this.$constants('LIMIT')} 1)`,
+            `${this.$constants('AS')} 'exists'`
+        ].join(' ');
+        let check = false;
+        const [{ exists: result }] = await this._queryStatement(sql);
+        check = !!parseInt(result);
+        switch (check) {
+            case false: {
+                const [result, id] = await this._actionStatement({
+                    sql: this.$db.get('INSERT'),
+                    returnId: true
+                });
+                if (this.$db.get('VOID'))
+                    return Promise.resolve();
+                if (result) {
+                    const sql = [
+                        `${this.$db.get('SELECT')}`,
+                        `${this.$db.get('FROM')}`,
+                        `${this.$db.get('TABLE_NAME')}`,
+                        `${this.$constants('WHERE')} id = ${id}`
+                    ].join(' ');
+                    const data = await this._queryStatement(sql);
+                    const resultData = { ...data?.shift(), action_status: 'insert' } || null;
+                    this.$db.set('RESULT', resultData);
+                    return resultData;
                 }
-            });
-        });
-    };
-    Database.prototype._createMultiple = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var _a, result, id, arrayId, arrayId_1, arrayId_1_1, id_1, sql, data, resultData;
-            var e_6, _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0: return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('INSERT'), returnId: true })];
-                    case 1:
-                        _a = __read.apply(void 0, [_c.sent(), 2]), result = _a[0], id = _a[1];
-                        if (!result) return [3 /*break*/, 3];
-                        arrayId = __spreadArray([], __read(Array(result)), false).map(function (_, i) { return i + id; });
-                        try {
-                            for (arrayId_1 = __values(arrayId), arrayId_1_1 = arrayId_1.next(); !arrayId_1_1.done; arrayId_1_1 = arrayId_1.next()) {
-                                id_1 = arrayId_1_1.value;
-                                if (this.$db.get('TRANSACTION')) {
-                                    this.$db.get('TRANSACTION').query.push({
-                                        table: this.$db.get('TABLE_NAME'),
-                                        id: id_1
-                                    });
-                                }
-                            }
+                return null;
+            }
+            case true: {
+                const result = await this._actionStatement({
+                    sql: [
+                        `${this.$db.get('UPDATE')}`,
+                        `${this.$db.get('WHERE')}`
+                    ].join(' ')
+                });
+                if (this.$db.get('VOID'))
+                    return Promise.resolve();
+                if (result) {
+                    const data = await this._queryStatement([
+                        `${this.$db.get('SELECT')}`,
+                        `${this.$db.get('FROM')}`,
+                        `${this.$db.get('TABLE_NAME')}`,
+                        `${this.$db.get('WHERE')}`
+                    ].join(' '));
+                    if (data?.length > 1) {
+                        for (const val of data) {
+                            val.action_status = 'update';
                         }
-                        catch (e_6_1) { e_6 = { error: e_6_1 }; }
-                        finally {
-                            try {
-                                if (arrayId_1_1 && !arrayId_1_1.done && (_b = arrayId_1.return)) _b.call(arrayId_1);
-                            }
-                            finally { if (e_6) throw e_6.error; }
-                        }
-                        sql = "".concat(this.$db.get('SELECT'), " ").concat(this.$db.get('FROM'), " ").concat(this.$db.get('TABLE_NAME'), " ").concat(this.$constants('WHERE'), " id ").concat(this.$constants('IN'), " (").concat(arrayId, ")");
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 2:
-                        data = _c.sent();
-                        resultData = data || null;
-                        this.$db.set('RESULT', resultData);
-                        return [2 /*return*/, resultData];
-                    case 3: return [2 /*return*/, null];
+                        return data || [];
+                    }
+                    return { ...data?.shift(), action_status: 'update' } || null;
                 }
-            });
+                return null;
+            }
+            default: {
+                return null;
+            }
+        }
+    }
+    async _update(ignoreWhere = false) {
+        if (!this.$db.get('WHERE') && !ignoreWhere)
+            throw new Error("can't update without where condition");
+        const result = await this._actionStatement({
+            sql: [
+                `${this.$db.get('UPDATE')}`, `${this.$db.get('WHERE')}`
+            ].join(' ')
         });
-    };
-    Database.prototype._updateOrInsert = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var sql, check, _a, result, _b, _c, result_4, id, sql_2, data, resultData, result_5, data, data_1, data_1_1, val;
-            var e_7, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
-                    case 0:
-                        if (!this.$db.get('WHERE'))
-                            throw new Error("Can't update or insert without where condition");
-                        sql = [
-                            "".concat(this.$constants('SELECT')),
-                            "".concat(this.$constants('EXISTS'), "(").concat(this.$constants('SELECT')),
-                            "*",
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE')),
-                            "".concat(this.$constants('LIMIT'), " 1)"),
-                            "".concat(this.$constants('AS'), " 'exists'")
-                        ].join(' ');
-                        check = false;
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 1:
-                        _a = __read.apply(void 0, [_e.sent(), 1]), result = _a[0].exists;
-                        check = !!parseInt(result);
-                        _b = check;
-                        switch (_b) {
-                            case false: return [3 /*break*/, 2];
-                            case true: return [3 /*break*/, 6];
-                        }
-                        return [3 /*break*/, 10];
-                    case 2: return [4 /*yield*/, this._actionStatement({ sql: this.$db.get('INSERT'), returnId: true })];
-                    case 3:
-                        _c = __read.apply(void 0, [_e.sent(), 2]), result_4 = _c[0], id = _c[1];
-                        if (this.$db.get('TRANSACTION')) {
-                            this.$db.get('TRANSACTION').query.push({
-                                table: this.$db.get('TABLE_NAME'),
-                                id: id
-                            });
-                        }
-                        if (!result_4) return [3 /*break*/, 5];
-                        sql_2 = [
-                            "".concat(this.$db.get('SELECT')),
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$constants('WHERE'), " id = ").concat(id)
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql_2)];
-                    case 4:
-                        data = _e.sent();
-                        resultData = __assign(__assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'insert' }) || null;
-                        this.$db.set('RESULT', resultData);
-                        return [2 /*return*/, resultData];
-                    case 5: return [2 /*return*/, null];
-                    case 6: return [4 /*yield*/, this._actionStatement({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
-                    case 7:
-                        result_5 = _e.sent();
-                        if (!result_5) return [3 /*break*/, 9];
-                        return [4 /*yield*/, this._queryStatement([
-                                "".concat(this.$db.get('SELECT')),
-                                "".concat(this.$db.get('FROM')),
-                                "".concat(this.$db.get('TABLE_NAME')),
-                                "".concat(this.$db.get('WHERE'))
-                            ].join(' '))];
-                    case 8:
-                        data = _e.sent();
-                        if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
-                            try {
-                                for (data_1 = __values(data), data_1_1 = data_1.next(); !data_1_1.done; data_1_1 = data_1.next()) {
-                                    val = data_1_1.value;
-                                    val.action_status = 'update';
-                                }
-                            }
-                            catch (e_7_1) { e_7 = { error: e_7_1 }; }
-                            finally {
-                                try {
-                                    if (data_1_1 && !data_1_1.done && (_d = data_1.return)) _d.call(data_1);
-                                }
-                                finally { if (e_7) throw e_7.error; }
-                            }
-                            return [2 /*return*/, data || []];
-                        }
-                        return [2 /*return*/, __assign(__assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'update' }) || null];
-                    case 9: return [2 /*return*/, null];
-                    case 10:
-                        {
-                            return [2 /*return*/, null];
-                        }
-                        _e.label = 11;
-                    case 11: return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Database.prototype._update = function (ignoreWhere) {
-        if (ignoreWhere === void 0) { ignoreWhere = false; }
-        return __awaiter(this, void 0, void 0, function () {
-            var result, sql, data, res;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!this.$db.get('WHERE') && !ignoreWhere)
-                            throw new Error("Can't update without where condition");
-                        return [4 /*yield*/, this._actionStatement({ sql: "".concat(this.$db.get('UPDATE'), " ").concat(this.$db.get('WHERE')) })];
-                    case 1:
-                        result = _a.sent();
-                        if (!result)
-                            return [2 /*return*/, null];
-                        sql = [
-                            "".concat(this.$db.get('SELECT')),
-                            "".concat(this.$db.get('FROM')),
-                            "".concat(this.$db.get('TABLE_NAME')),
-                            "".concat(this.$db.get('WHERE'))
-                        ].join(' ');
-                        return [4 /*yield*/, this._queryStatement(sql)];
-                    case 2:
-                        data = _a.sent();
-                        if ((data === null || data === void 0 ? void 0 : data.length) > 1)
-                            return [2 /*return*/, data || []];
-                        res = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-                        this.$db.set('RESULT', res);
-                        return [2 /*return*/, res];
-                }
-            });
-        });
-    };
-    Database.prototype._hiddenColumn = function (data) {
-        var _a;
-        var hidden = this.$db.get('HIDDEN');
-        if ((_a = Object.keys(data)) === null || _a === void 0 ? void 0 : _a.length) {
-            hidden.forEach(function (column) {
-                data.forEach(function (objColumn) {
+        if (this.$db.get('VOID'))
+            return Promise.resolve();
+        if (!result)
+            return null;
+        const sql = [
+            `${this.$db.get('SELECT')}`,
+            `${this.$db.get('FROM')}`,
+            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$db.get('WHERE')}`
+        ].join(' ');
+        const data = await this._queryStatement(sql);
+        if (data?.length > 1)
+            return data || [];
+        const res = data?.shift() || null;
+        this.$db.set('RESULT', res);
+        return res;
+    }
+    _hiddenColumn(data) {
+        const hidden = this.$db.get('HIDDEN');
+        if (Object.keys(data)?.length) {
+            hidden.forEach((column) => {
+                data.forEach((objColumn) => {
                     delete objColumn[column];
                 });
             });
         }
         return data;
-    };
-    Database.prototype._queryUpdate = function (data) {
-        var _this = this;
-        var keyValue = Object.entries(data).map(function (_a) {
-            var _b = __read(_a, 2), column = _b[0], value = _b[1];
-            return "".concat(column, " = ").concat(value == null || value === 'NULL'
+    }
+    _queryUpdate(data) {
+        const values = Object.entries(data).map(([column, value]) => {
+            return `${column} = ${value == null || value === 'NULL'
                 ? 'NULL'
-                : "'".concat(_this.$utils.covertBooleanToNumber(value), "'"));
+                : typeof value === 'string' && value.startsWith(this.$constants('RAW'))
+                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
+                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
         });
-        return "".concat(this.$constants('SET'), " ").concat(keyValue);
-    };
-    Database.prototype._queryInsert = function (data) {
-        var _this = this;
-        var columns = Object.keys(data).map(function (column) { return "".concat(column); });
-        var values = Object.values(data).map(function (value) {
-            return "".concat(value == null || value === 'NULL'
+        return `${this.$constants('SET')} ${values}`;
+    }
+    _queryInsert(data) {
+        const columns = Object.keys(data).map((column) => `\`${column}\``);
+        const values = Object.values(data).map((value) => {
+            return `${value == null || value === 'NULL'
                 ? 'NULL'
-                : "'".concat(_this.$utils.covertBooleanToNumber(value), "'"));
+                : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
         });
-        return "(".concat(columns, ") ").concat(this.$constants('VALUES'), " (").concat(values, ")");
-    };
-    Database.prototype._queryInsertMultiple = function (data) {
-        var e_8, _a;
-        var _this = this;
-        var _b;
-        var values = [];
-        try {
-            for (var data_2 = __values(data), data_2_1 = data_2.next(); !data_2_1.done; data_2_1 = data_2.next()) {
-                var objects = data_2_1.value;
-                var vals = Object.values(objects).map(function (value) {
-                    return "".concat(value == null || value === 'NULL'
-                        ? 'NULL'
-                        : "'".concat(_this.$utils.covertBooleanToNumber(value), "'"));
-                });
-                values.push("(".concat(vals.join(','), ")"));
-            }
+        return [
+            `(${columns})`,
+            `${this.$constants('VALUES')}`,
+            `(${values})`
+        ].join(' ');
+    }
+    _queryInsertMultiple(data) {
+        let values = [];
+        for (let objects of data) {
+            const vals = Object.values(objects).map((value) => {
+                return `${value == null || value === 'NULL'
+                    ? 'NULL'
+                    : typeof value === 'string' && value.includes(this.$constants('RAW'))
+                        ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
+                        : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+            });
+            values.push(`(${vals.join(',')})`);
         }
-        catch (e_8_1) { e_8 = { error: e_8_1 }; }
-        finally {
-            try {
-                if (data_2_1 && !data_2_1.done && (_a = data_2.return)) _a.call(data_2);
-            }
-            finally { if (e_8) throw e_8.error; }
-        }
-        var columns = Object.keys((_b = data[0]) !== null && _b !== void 0 ? _b : []).map(function (column) { return "".concat(column); });
-        return "(".concat(columns, ") ").concat(this.$constants('VALUES'), " ").concat(values.join(','));
-    };
-    Database.prototype._valueAndOperator = function (value, operator, useDefault) {
-        if (useDefault === void 0) { useDefault = false; }
+        const columns = Object.keys([...data]?.shift()).map((column) => `\`${column}\``);
+        return [
+            `(${columns})`,
+            `${this.$constants('VALUES')}`,
+            `${values.join(',')}`
+        ].join(' ');
+    }
+    _valueAndOperator(value, operator, useDefault = false) {
         if (useDefault)
             return [operator, '='];
         if (operator == null)
             throw new Error('bad arguments');
-        if (operator.toUpperCase() === this.$constants('LIKE'))
+        if (operator.toUpperCase() === this.$constants('LIKE')) {
             operator = operator.toUpperCase();
+        }
         return [value, operator];
-    };
-    Database.prototype._valueTrueFalse = function (value) {
+    }
+    _valueTrueFalse(value) {
         if (value === true)
             return 1;
         if (value === false)
             return 0;
         return value;
-    };
-    Database.prototype._queryGenrate = function () {
-        var arraySql = [];
+    }
+    _buildQuery() {
+        let sql = [];
         while (true) {
             if (this.$db.get('INSERT')) {
-                arraySql = [
-                    this.$db.get('INSERT'),
+                sql = [
+                    this.$db.get('INSERT')
                 ];
                 break;
             }
             if (this.$db.get('UPDATE')) {
-                arraySql = [
+                sql = [
                     this.$db.get('UPDATE'),
-                    this.$db.get('WHERE'),
+                    this.$db.get('WHERE')
                 ];
                 break;
             }
             if (this.$db.get('DELETE')) {
-                arraySql = [
+                sql = [
                     this.$db.get('DELETE')
                 ];
                 break;
             }
-            arraySql = [
+            sql = [
                 this.$db.get('SELECT'),
                 this.$db.get('FROM'),
                 this.$db.get('TABLE_NAME'),
@@ -2704,46 +2169,31 @@ var Database = /** @class */ (function (_super) {
             ];
             break;
         }
-        var filterSql = arraySql.filter(function (data) { return data !== '' || data != null; });
-        var sql = filterSql.join(' ');
-        return sql;
-    };
-    Database.prototype._setupLogger = function () {
-        var logger = [];
+        return sql.filter(s => s !== '' || s == null).join(' ');
+    }
+    _setupLogger() {
+        let logger = [];
         return {
-            get: function () { return logger; },
-            set: function (data) {
-                logger = __spreadArray(__spreadArray([], __read(logger), false), [data], false);
+            get: () => logger,
+            set: (data) => {
+                logger = [...logger, data];
                 return;
             },
-            check: function (data) { return logger.indexOf(data) != -1; }
+            check: (data) => logger.indexOf(data) != -1
         };
-    };
-    Database.prototype._initialConnection = function () {
+    }
+    _initialConnection() {
         this.$pool = this._setupPool();
         this.$logger = this._setupLogger();
         this.$utils = utils_1.default;
-        this.$constants = function (name) {
-            var e_9, _a;
+        this.$constants = (name) => {
             if (!name)
-                return constants_1.default;
-            try {
-                for (var _b = __values(Object === null || Object === void 0 ? void 0 : Object.entries(constants_1.default)), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var _d = __read(_c.value, 2), index = _d[0], constant = _d[1];
-                    if (index === name)
-                        return constant;
-                }
-            }
-            catch (e_9_1) { e_9 = { error: e_9_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_9) throw e_9.error; }
-            }
+                return constants_1.CONSTANTS;
+            if (!constants_1.CONSTANTS.hasOwnProperty(name.toUpperCase()))
+                throw new Error(`not found constants : ${name}`);
+            return constants_1.CONSTANTS[name.toUpperCase()];
         };
-    };
-    return Database;
-}(AbstractDatabase_1.default));
+    }
+}
 exports.Database = Database;
 exports.default = Database;

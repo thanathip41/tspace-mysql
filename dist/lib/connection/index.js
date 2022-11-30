@@ -1,79 +1,144 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PoolConnection = exports.Pool = void 0;
-var mysql_1 = require("mysql");
-var env_1 = __importDefault(require("../config/env"));
-var PoolConnection = /** @class */ (function () {
-    function PoolConnection(options) {
-        this.OPTIONS = new Map(Object.entries({
-            connectionLimit: 10,
-            dateStrings: true,
-            waitForConnections: false,
-            charset: 'utf8mb4',
-            host: String(env_1.default.DB_HOST),
-            port: Number.isNaN(Number(env_1.default.DB_PORT))
-                ? 3306
-                : Number(env_1.default.DB_PORT),
-            database: String(env_1.default.DB_DATABASE),
-            user: String(env_1.default.DB_USERNAME),
-            password: String(env_1.default.DB_PASSWORD)
-        }));
+exports.Pool = exports.PoolConnection = void 0;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const env_1 = require("../config/env");
+const mysql_1 = require("mysql");
+class PoolConnection {
+    OPTIONS = this._getJsonOptions();
+    constructor(options) {
         if (options) {
-            this.OPTIONS = new Map(Object.entries(__assign(__assign({}, Object.fromEntries(this.OPTIONS)), JSON.parse(JSON.stringify(options)))));
+            this.OPTIONS = new Map(Object.entries({
+                ...Object.fromEntries(this.OPTIONS),
+                ...JSON.parse(JSON.stringify(options))
+            }));
         }
     }
-    PoolConnection.prototype._pool = function () {
-        return (0, mysql_1.createPool)(Object.fromEntries(this.OPTIONS));
-    };
-    PoolConnection.prototype._messageError = function () {
-        console.log("\u001B[1m\u001B[31m\n            Connection lost to database ! \u001B[0m\n            ------------------------------- \u001B[33m\n                DB_HOST     : ".concat(this.OPTIONS.get('host'), "         \n                DB_PORT     : ").concat(this.OPTIONS.get('port'), "        \n                DB_DATABASE : ").concat(this.OPTIONS.get('database'), " \n                DB_USERNAME : ").concat(this.OPTIONS.get('user'), "          \n                DB_PASSWORD : ").concat(this.OPTIONS.get('password'), " \u001B[0m  \n            -------------------------------\n            "));
-        return;
-    };
-    PoolConnection.prototype.connection = function () {
-        var _this = this;
-        var pool = this._pool();
-        pool.getConnection(function (err, connection) {
+    /**
+     *
+     * Set a options connection pool
+     * @return {this} this
+     */
+    options(options) {
+        this.OPTIONS = new Map(Object.entries(options));
+        return this;
+    }
+    /**
+     *
+     * Get a connection pool
+     * @return {Connection} Connection
+     */
+    connection() {
+        const pool = (0, mysql_1.createPool)(Object.fromEntries(this.OPTIONS));
+        pool.getConnection((err, connection) => {
             if (err) {
-                _this._messageError();
-                return process.exit();
+                const message = this._messageError.bind(this);
+                process.nextTick(() => {
+                    console.log(message());
+                    return process.exit();
+                });
             }
             if (connection)
                 connection.release();
-            return;
         });
         return {
-            query: function (sql) {
-                return new Promise(function (resolve, reject) {
-                    pool.query(sql, function (err, results) {
+            query: (sql) => {
+                return new Promise((resolve, reject) => {
+                    pool.query(sql, (err, results) => {
                         if (err)
                             return reject(err);
                         return resolve(results);
                     });
                 });
+            },
+            connection: () => {
+                return new Promise((resolve, reject) => {
+                    pool.getConnection((err, connection) => {
+                        if (err)
+                            return reject(err);
+                        const query = (sql) => {
+                            return new Promise((resolve, reject) => {
+                                connection.query(sql, (err, result) => {
+                                    if (err)
+                                        return reject(err);
+                                    return resolve(result);
+                                });
+                            });
+                        };
+                        const startTransaction = () => query('START TRANSACTION');
+                        const commit = () => query('COMMIT');
+                        const rollback = () => query('ROLLBACK');
+                        return resolve({
+                            query,
+                            startTransaction,
+                            commit,
+                            rollback
+                        });
+                    });
+                });
             }
         };
-    };
-    PoolConnection.prototype.options = function (options) {
-        this.OPTIONS = new Map(Object.entries(options));
-        return this;
-    };
-    return PoolConnection;
-}());
+    }
+    _defaultOptions() {
+        return new Map(Object.entries({
+            connectionLimit: Number.isNaN(Number(env_1.env.DB_CONNECTION_LIMIT))
+                ? 10 * 5
+                : Number(env_1.env.DB_CONNECTION_LIMIT),
+            dateStrings: true,
+            connectTimeout: Number.isNaN(Number(env_1.env.DB_TIMEOUT))
+                ? 1000 * 30
+                : Number.isNaN(Number(env_1.env.DB_TIMEOUT)),
+            acquireTimeout: Number.isNaN(Number(env_1.env.DB_TIMEOUT))
+                ? 1000 * 30
+                : Number.isNaN(Number(env_1.env.DB_TIMEOUT)),
+            waitForConnections: true,
+            queueLimit: Number.isNaN(Number(env_1.env.DB_QUEUE_LIMIT))
+                ? 25
+                : Number.isNaN(Number(env_1.env.DB_QUEUE_LIMIT)),
+            charset: 'utf8mb4',
+            host: String(env_1.env.DB_HOST),
+            port: Number.isNaN(Number(env_1.env.DB_PORT))
+                ? 3306
+                : Number(env_1.env.DB_PORT),
+            database: String(env_1.env.DB_DATABASE),
+            user: String(env_1.env.DB_USERNAME),
+            password: String(env_1.env.DB_PASSWORD)
+        }));
+    }
+    _getJsonOptions() {
+        try {
+            const jsonPath = path_1.default.join(path_1.default.resolve(), 'tspace-mysql.json');
+            const jsonOptionsExists = fs_1.default.existsSync(jsonPath);
+            if (jsonOptionsExists) {
+                const jsonOptions = fs_1.default.readFileSync(jsonPath, 'utf8');
+                const options = JSON.parse(jsonOptions);
+                return new Map(Object.entries(options));
+            }
+            return this._defaultOptions();
+        }
+        catch (e) {
+            return this._defaultOptions();
+        }
+    }
+    _messageError() {
+        return `
+            \x1b[1m\x1b[31m
+            Connection lost to database ! \x1b[0m
+            --------------------------------- \x1b[33m
+                DB_HOST     : ${this.OPTIONS.get('host')}         
+                DB_PORT     : ${this.OPTIONS.get('port')}        
+                DB_DATABASE : ${this.OPTIONS.get('database')} 
+                DB_USERNAME : ${this.OPTIONS.get('user')}          
+                DB_PASSWORD : ${this.OPTIONS.get('password')} \x1b[0m  
+            ---------------------------------
+        `;
+    }
+}
 exports.PoolConnection = PoolConnection;
-var Pool = new PoolConnection().connection();
+const Pool = new PoolConnection().connection();
 exports.Pool = Pool;
 exports.default = Pool;

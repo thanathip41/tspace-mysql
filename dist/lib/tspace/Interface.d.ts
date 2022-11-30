@@ -38,7 +38,7 @@ export interface Pagination {
 }
 export interface Backup {
     database: string;
-    connection?: {
+    to?: {
         host: string;
         port: number;
         database: string;
@@ -68,12 +68,12 @@ export interface ConnectionOptions {
     username: string;
     password: string;
 }
-export interface Transaction {
-    query?: [
-        {
-            table: string;
-            id: string;
-        }
-    ] | undefined;
+export interface Execute {
+    sql: string;
+    type: string;
+    message?: string;
+    options?: {
+        [key: string]: any;
+    };
 }
 export declare type Pattern = 'snake_case' | 'camelCase';

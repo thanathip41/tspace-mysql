@@ -1,69 +1,43 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var timestamp = function () {
-    var d = new Date();
-    var year = d.getFullYear();
-    var month = ("0" + (d.getMonth() + 1)).slice(-2);
-    var date = ("0" + d.getDate()).slice(-2);
-    var hours = ("0" + d.getHours()).slice(-2);
-    var minutes = ("0" + d.getMinutes()).slice(-2);
-    var seconds = ("0" + d.getSeconds()).slice(-2);
-    var now = "".concat(year, "-").concat(month, "-").concat(date, " ").concat(hours, ":").concat(minutes, ":").concat(seconds);
+exports.utils = void 0;
+const timestamp = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = `0${(d.getMonth() + 1)}`.slice(-2);
+    const date = `0${(d.getDate())}`.slice(-2);
+    const hours = `0${(d.getHours())}`.slice(-2);
+    const minutes = `0${(d.getMinutes())}`.slice(-2);
+    const seconds = `0${(d.getSeconds())}`.slice(-2);
+    const ymd = `${[
+        year,
+        month,
+        date
+    ].join('-')}`;
+    const his = `${[
+        hours,
+        minutes,
+        seconds
+    ].join(':')}`;
+    return `${ymd} ${his}`;
+};
+const date = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = ("0" + (d.getMonth() + 1)).slice(-2);
+    const date = ("0" + d.getDate()).slice(-2);
+    const now = `${year}-${month}-${date}`;
     return now;
 };
-var date = function () {
-    var d = new Date();
-    var year = d.getFullYear();
-    var month = ("0" + (d.getMonth() + 1)).slice(-2);
-    var date = ("0" + d.getDate()).slice(-2);
-    var now = "".concat(year, "-").concat(month, "-").concat(date);
-    return now;
-};
-var escape = function (str) {
+const escape = (str) => {
     try {
-        var check = str == null || str === true || str === false || Number.isInteger(str);
+        const check = str == null || str === true || str === false || Number.isInteger(str);
         if (check)
             return str;
-        var regx = /[`+#$&*=;'"\\|,\?~]/;
-        var res = str.split(regx).join("");
-        var regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'OR ', 'SELECT ', 'FROM ', 'WHERE '];
-        for (var i in regxs) {
+        const regx = /[`+#$&*=;\\|,\?~]/;
+        let res = str.split(regx).join("");
+        const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'OR ', 'SELECT ', 'FROM ', 'WHERE '];
+        for (let i in regxs) {
             if (res.includes(regxs[i])) {
                 res = res.split(regxs[i]).join("");
             }
@@ -74,69 +48,54 @@ var escape = function (str) {
         return str;
     }
 };
-var escapeSubQuery = function (str) {
-    var check = str == null || str === true || str === false || Number.isInteger(str);
+const escapeSubQuery = (str) => {
+    const check = str == null || str === true || str === false || Number.isInteger(str);
     if (check)
         return str;
-    var regx = /[`+#$&;"\\|\?~]/;
-    var res = str.split(regx).join("");
-    var regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'TRUNCATE'];
-    for (var i in regxs) {
-        if (res.includes(regxs[i])) {
-            res = res.split(regxs[i]).join("");
+    const regx = /[`+#$&;\\|\?~]/;
+    let result = str.split(regx).join("");
+    const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'TRUNCATE'];
+    for (let i in regxs) {
+        if (result.includes(regxs[i])) {
+            result = result.split(regxs[i]).join("");
         }
     }
-    return res;
+    return result;
 };
-var columnRelation = function (name) {
-    var _a;
-    var matches = (_a = name === null || name === void 0 ? void 0 : name.match(/[A-Z]/g)) !== null && _a !== void 0 ? _a : [];
+const columnRelation = (name) => {
+    const matches = name?.match(/[A-Z]/g) ?? [];
     if (matches.length > 1) {
-        matches.forEach(function (matche, i) {
+        matches.forEach((matche, i) => {
             if (i > 0)
-                name = name.replace(matche, "_".concat(matche.toUpperCase()));
+                name = name.replace(matche, `_${matche.toUpperCase()}`);
         });
     }
-    return "".concat(name.toLocaleLowerCase());
+    return `${name.toLocaleLowerCase()}`;
 };
-var generateUUID = function () {
-    var date = +new Date();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16;
+const generateUUID = () => {
+    const date = +new Date();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        let r = Math.random() * 16;
         r = (date + r) % 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
 };
-var tableName = function (name) {
-    var tb = name.replace(/([A-Z])/g, function (str) { return "_" + str.toLowerCase(); }).slice(1);
-    var lastString = tb.slice(-1);
-    var rule = ['s', 'ss', 'sh', 'ch', 'x', 'z'];
-    if (lastString === 'y') {
-        tb = tb.slice(0, -1) + 'ies';
-    }
-    else {
-        var checkRule = rule.indexOf(lastString) >= 0;
-        var word = checkRule ? 'es' : 's';
-        tb = tb + word;
-    }
-    return tb;
-};
-var covertBooleanToNumber = function (data) {
+const covertBooleanToNumber = (data) => {
     if (Object.prototype.toString.apply(data).slice(8, -1) === 'Boolean')
         return +data;
     return data;
 };
-var snakeCase = function (obj) {
+const snakeCase = (obj) => {
     try {
         if (typeof (obj) !== "object")
             return obj;
-        Object.entries(obj).forEach(function (_a) {
-            var _b;
-            var _c = __read(_a, 2), oldName = _c[0], _ = _c[1];
-            var newName = oldName.replace(/([A-Z])/g, function (str) { return "_".concat(str.toLowerCase()); });
+        Object.entries(obj).forEach(([oldName, _]) => {
+            const newName = oldName.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
             if (newName !== oldName) {
                 if (obj.hasOwnProperty(oldName)) {
-                    obj = __assign(__assign({}, obj), (_b = {}, _b[newName] = obj[oldName], _b));
+                    obj = { ...obj,
+                        [newName]: obj[oldName]
+                    };
                     delete obj[oldName];
                 }
             }
@@ -149,17 +108,17 @@ var snakeCase = function (obj) {
         return obj;
     }
 };
-var camelCase = function (obj) {
+const camelCase = (obj) => {
     try {
         if (typeof (obj) !== "object")
             return obj;
-        Object.entries(obj).forEach(function (_a) {
-            var _b;
-            var _c = __read(_a, 2), oldName = _c[0], _ = _c[1];
-            var newName = oldName.replace(/(.(\_|-|\s)+.)/g, function (str) { return str[0] + (str[str.length - 1].toUpperCase()); });
+        Object.entries(obj).forEach(([oldName, _]) => {
+            const newName = oldName.replace(/(.(\_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
             if (newName !== oldName) {
                 if (obj.hasOwnProperty(oldName)) {
-                    obj = __assign(__assign({}, obj), (_b = {}, _b[newName] = obj[oldName], _b));
+                    obj = { ...obj,
+                        [newName]: obj[oldName]
+                    };
                     delete obj[oldName];
                 }
             }
@@ -172,12 +131,12 @@ var camelCase = function (obj) {
         return obj;
     }
 };
-var consoleDebug = function (debug) {
+const consoleDebug = (debug) => {
     if (debug == null)
         return;
-    console.log("SQL Statement: \u001B[33m".concat(debug, " \u001B[0m "));
+    console.log(`\nSQL Statement: \x1b[33m${debug} \x1b[0m`);
 };
-var faker = function (value) {
+const faker = (value) => {
     if (!value.search('timestamp'))
         return timestamp();
     if (!value.search('datetime'))
@@ -189,7 +148,7 @@ var faker = function (value) {
     if (!value.search('boolean'))
         return [true, false][Math.round(Math.random())];
     if (!value.search('longtext'))
-        return __spreadArray([], __read(Array(50)), false).map(function () { return Math.random().toString(36).substring(7); }).join('');
+        return [...Array(50)].map(() => Math.random().toString(36).substring(7)).join('');
     if (!value.search('int'))
         return Math.floor(Math.random() * 1000);
     if (!value.search('float'))
@@ -200,17 +159,18 @@ var faker = function (value) {
         return Buffer.from(Math.random().toString(36).substring(7)).toString('base64');
     return 'fake data';
 };
-exports.default = {
-    consoleDebug: consoleDebug,
-    tableName: tableName,
-    faker: faker,
-    columnRelation: columnRelation,
-    timestamp: timestamp,
-    date: date,
-    escape: escape,
-    escapeSubQuery: escapeSubQuery,
-    generateUUID: generateUUID,
-    covertBooleanToNumber: covertBooleanToNumber,
-    snakeCase: snakeCase,
-    camelCase: camelCase
+const utils = {
+    consoleDebug,
+    faker,
+    columnRelation,
+    timestamp,
+    date,
+    escape,
+    escapeSubQuery,
+    generateUUID,
+    covertBooleanToNumber,
+    snakeCase,
+    camelCase
 };
+exports.utils = utils;
+exports.default = utils;

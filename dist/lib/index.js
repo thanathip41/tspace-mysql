@@ -30,7 +30,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
   * The entry point.
   *
   * @module tspace-mysql
-*/
-var tspace = __importStar(require("./tspace"));
+  */
+const tspace = __importStar(require("./tspace"));
 __exportStar(require("./tspace"), exports);
 exports.default = tspace;

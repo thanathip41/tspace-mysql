@@ -1,6 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Table = function (table, npm) {
-    return "import { Schema , Blueprint , DB } from '".concat(npm, "'\n(async () => {\n    await new Schema().table('").concat(table, "',{ \n        id :  new Blueprint().int().notNull().primary().autoIncrement(),\n        name : new Blueprint().varchar(120).default('my name'),\n        uuid : new Blueprint().varchar(50),\n        email : new Blueprint().varchar(120).unique(),\n        email_verify : new Blueprint().tinyInt(),\n        password : new Blueprint().varchar(120),\n        birthdate : new Blueprint().date(),\n        created_at : new Blueprint().null().timestamp(),\n        updated_at : new Blueprint().null().timestamp()\n    })\n\n    /**\n     * \n     *  @Faker data\n     *  await new DB().table('").concat(table, "').faker(5)\n    */\n})()\n");
+const Table = (table, npm) => {
+    return `import { Schema , Blueprint , DB } from '${npm}'
+(async () => {
+    await new Schema().table('${table}',{ 
+        id :  new Blueprint().int().notNull().primary().autoIncrement(),
+        uuid : new Blueprint().varchar(50).null(),
+        name : new Blueprint().varchar(120).default('my name'),
+        email : new Blueprint().varchar(120).unique(),
+        email_verify : new Blueprint().tinyInt(),
+        password : new Blueprint().varchar(120),
+        birthdate : new Blueprint().date(),
+        created_at : new Blueprint().null().timestamp(),
+        updated_at : new Blueprint().null().timestamp()
+    })
+
+    /**
+     * 
+     *  @Faker data
+     *  await new DB().table('${table}').faker(5)
+    */
+})()
+`;
 };
 exports.default = Table;

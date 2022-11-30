@@ -1,3 +1,7 @@
+declare const CONSTANTS: {
+    [x: string]: string | Object;
+};
+export { CONSTANTS };
 declare const _default: Readonly<{
     [x: string]: string | Object;
 }>;

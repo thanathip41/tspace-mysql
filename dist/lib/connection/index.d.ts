@@ -1,7 +1,19 @@
-interface Connection {
-    query: (sql: string) => Promise<any[]>;
+export interface PoolCallback {
+    query: (sql: string, callback: (err: any, result: any) => void) => void;
+    release: () => void;
 }
-interface Options {
+export interface ConnectionTransaction {
+    query: (sql: string) => Promise<any[]>;
+    startTransaction: () => Promise<any[]>;
+    commit: () => Promise<any[]>;
+    rollback: () => Promise<any[]>;
+}
+export interface Connection {
+    query: (sql: string) => Promise<any[]>;
+    connection: () => Promise<ConnectionTransaction>;
+}
+export interface Options {
+    [key: string]: any;
     connectionLimit?: number;
     dateStrings?: boolean;
     waitForConnections?: boolean;
@@ -12,16 +24,25 @@ interface Options {
     user: string;
     password: string;
 }
-declare class PoolConnection {
-    [x: string]: any;
+export declare class PoolConnection {
     private OPTIONS;
     constructor(options?: Options);
-    private _pool;
-    private _messageError;
-    connection(): Connection;
+    /**
+     *
+     * Set a options connection pool
+     * @return {this} this
+     */
     options(options: Options): this;
+    /**
+     *
+     * Get a connection pool
+     * @return {Connection} Connection
+     */
+    connection(): Connection;
+    private _defaultOptions;
+    private _getJsonOptions;
+    private _messageError;
 }
 declare const Pool: Connection;
 export { Pool };
-export { PoolConnection };
 export default Pool;
