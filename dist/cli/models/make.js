@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const model_1 = __importDefault(require("./model"));
 const table_1 = __importDefault(require("../tables/table"));
 const pluralize_1 = __importDefault(require("pluralize"));
-exports.default = (formCommand) => {
-    const { file, migrate, dir, type, cwd, fs, npm } = formCommand;
+exports.default = (cmd) => {
+    const { file, migrate, dir, type, cwd, fs, npm } = cmd;
     if (dir) {
         try {
             fs.accessSync(cwd + `/${dir}`, fs.F_OK, {

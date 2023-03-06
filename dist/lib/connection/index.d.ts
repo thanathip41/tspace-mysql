@@ -1,48 +1,30 @@
-export interface PoolCallback {
-    query: (sql: string, callback: (err: any, result: any) => void) => void;
-    release: () => void;
-}
-export interface ConnectionTransaction {
-    query: (sql: string) => Promise<any[]>;
-    startTransaction: () => Promise<any[]>;
-    commit: () => Promise<any[]>;
-    rollback: () => Promise<any[]>;
-}
-export interface Connection {
-    query: (sql: string) => Promise<any[]>;
-    connection: () => Promise<ConnectionTransaction>;
-}
-export interface Options {
-    [key: string]: any;
-    connectionLimit?: number;
-    dateStrings?: boolean;
-    waitForConnections?: boolean;
-    charset?: string;
-    host: string;
-    port: number;
-    database: string;
-    user: string;
-    password: string;
-}
+import { Connection, Options } from '../tspace/Interface';
 export declare class PoolConnection {
     private OPTIONS;
+    /**
+     *
+     * @Init a options connection pool
+     */
     constructor(options?: Options);
     /**
      *
-     * Set a options connection pool
-     * @return {this} this
-     */
-    options(options: Options): this;
-    /**
-     *
-     * Get a connection pool
+     * Get a connection to database
      * @return {Connection} Connection
+     * @property {Function} Connection.query
+     * @property {Function} Connection.connection
      */
     connection(): Connection;
     private _defaultOptions;
-    private _getJsonOptions;
+    private _loadOptions;
     private _messageError;
 }
-declare const Pool: Connection;
-export { Pool };
-export default Pool;
+/**
+ *
+ * Connection to database when service is started
+ * @return {Connection} Connection
+ * @property {Function} Connection.query
+ * @property {Function} Connection.connection
+ */
+declare const pool: Connection;
+export { pool as Pool };
+export default pool;

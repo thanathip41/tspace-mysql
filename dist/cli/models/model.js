@@ -14,10 +14,9 @@ class ${model} extends Model {
      * this.usePrimaryKey('id') // => runing a uuid (universally unique identifier) when insert new data
      * this.useTimestamp({ createdAt : 'created_at' , updatedAt : 'updated_at' }) // runing a timestamp when insert or update
      * this.useSoftDelete()
-     * this.useDisableSoftDeleteInRelations()
-     * this.useTable('Users')
-     * this.useTableSingular()
-     * this.useTablePlural()
+     * this.useTable('users')
+     * this.useTableSingular() // 'user'
+     * this.useTablePlural() // 'users'
      * this.usePattern('snake_case')   
      * this.useUUID('uuid')
      * this.useRegistry()

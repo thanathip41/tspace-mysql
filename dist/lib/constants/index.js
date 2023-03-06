@@ -4,6 +4,7 @@ exports.CONSTANTS = void 0;
 const CONSTANTS = {
     ID: 'ID',
     SHOW: 'SHOW',
+    SHOW_TABLES: 'SHOW TABLES',
     FIELDS: 'FIELDS',
     COLUMNS: 'COLUMNS',
     WHERE: 'WHERE',
@@ -14,9 +15,9 @@ const CONSTANTS = {
     OR: 'OR',
     LIKE: 'LIKE',
     SELECT: 'SELECT',
+    SELECTED: '*',
     DISTINCT: 'DISTINCT',
     FROM: 'FROM',
-    STAR: 'STAR',
     OFFSET: 'OFFSET',
     GROUP_BY: 'GROUP BY',
     GROUP_CONCAT: 'GROUP_CONCAT',
@@ -102,7 +103,8 @@ const CONSTANTS = {
         DEBUG: false,
         UUID: false,
         PAGE: 1,
-        PER_PAGE: 1
+        PER_PAGE: 1,
+        HOOK: []
     },
     MODEL: {
         PRIMARY_KEY: 'id',
@@ -125,11 +127,6 @@ const CONSTANTS = {
         HAVING: '',
         TABLE_NAME: '',
         UUID_FORMAT: 'uuid',
-        TIMESTAMP: false,
-        TIMESTAMP_FORMAT: {
-            CREATED_AT: 'created_at',
-            UPDATED_AT: 'updated_at'
-        },
         HIDDEN: [],
         DEBUG: false,
         UUID: false,
@@ -137,9 +134,6 @@ const CONSTANTS = {
         SOFT_DELETE_FORMAT: 'deleted_at',
         SOFT_DELETE_RELATIONS: false,
         RELATION: [],
-        WITH: [],
-        WITH_EXISTS: false,
-        WITH_EXISTS_NOT_ID: [],
         PAGE: 1,
         PER_PAGE: 1,
         REGISTRY: {},
@@ -147,7 +141,16 @@ const CONSTANTS = {
         PATTERN: 'snake_case',
         DISTINCT: '',
         PLUCK: '',
-        SAVE: ''
+        SAVE: '',
+        HOOK: [],
+        WITH: [],
+        WITH_EXISTS: false,
+        WITH_EXISTS_NOT_ID: [],
+        TIMESTAMP: false,
+        TIMESTAMP_FORMAT: {
+            CREATED_AT: 'created_at',
+            UPDATED_AT: 'updated_at'
+        },
     }
 };
 exports.CONSTANTS = CONSTANTS;

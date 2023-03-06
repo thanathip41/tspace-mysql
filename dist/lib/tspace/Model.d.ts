@@ -1,44 +1,43 @@
 import { AbstractModel } from './AbstractModel';
 import { Relation, Pagination, RelationQuery } from './Interface';
 declare class Model extends AbstractModel {
-    private tableName?;
     constructor();
     /**
      *
      * define for initialize of models
      * @return {void} void
      */
-    define(): void;
+    protected define(): void;
     /**
      *
      * Assign function callback in model
      * @return {this} this
      */
-    useRegistry(): this;
+    protected useRegistry(): this;
     /**
     *
-    * Assign function callback in model
+    * Assign primary column in model
     * @return {this} this
     */
-    usePrimaryKey(primary: string): this;
+    protected usePrimaryKey(primary: string): this;
     /**
-     * Assign in model uuid when creating
-     * @param {string?} column [column=uuid] custom column replace this
+     * Assign generate uuid when creating in model
+     * @param {string?} column [column=uuid] make new name column for custom column replace uuid with this
      * @return {this} this
      */
-    useUUID(column?: string): this;
+    protected useUUID(column?: string): this;
     /**
-     * Assign in model console.log sql statement
+     * Assign in model console.log raw sql when fetching query statement
      * @return {this} this
      */
-    useDebug(): this;
+    protected useDebug(): this;
     /**
      *
      * Assign in model use pattern [snake_case , camelCase]
      * @param  {string} pattern
      * @return {this} this
      */
-    usePattern(pattern: string): this;
+    protected usePattern(pattern: string): this;
     /**
      *
      * Assign in model show data not be deleted
@@ -46,16 +45,16 @@ declare class Model extends AbstractModel {
      * @param {string?} column
      * @return {this} this
      */
-    useSoftDelete(column?: string): this;
+    protected useSoftDelete(column?: string): this;
     /**
      *
      * Assign timestamp when insert || updated created_at and update_at in table
      * @param {object} timestampFormat
-     * @property {string} timestampFormat.createdAt  - change column of created at
-     * @property {string} timestampFormat.updatedAt - change column of updated at
+     * @property {string} timestampFormat.createdAt  - change new name column replace by default [created at]
+     * @property {string} timestampFormat.updatedAt - change new name column replace by default updated at
      * @return {this} this
      */
-    useTimestamp(timestampFormat?: {
+    protected useTimestamp(timestampFormat?: {
         createdAt: string;
         updatedAt: string;
     }): this;
@@ -65,26 +64,46 @@ declare class Model extends AbstractModel {
      * @param {string} table table name in database
      * @return {this} this
      */
-    useTable(table: string): this;
+    protected useTable(table: string): this;
     /**
      *
      * Assign table name in model with signgular pattern
      * @return {this} this
      */
-    useTableSingular(): this;
+    protected useTableSingular(): this;
     /**
      *
      * Assign table name in model with pluarl pattern
      * @return {this} this
      */
-    useTablePlural(): this;
+    protected useTablePlural(): this;
+    /**
+     * Build  method for relation in model
+     * @param    {string} name name relation registry in your model
+     * @param    {Function} callback query callback
+     * @return   {this}   this
+     */
+    protected buildMethodRelation(name: string, callback?: Function): this;
     /**
      *
      * Clone instance of model
-     * @override Method
+     * @param {Model} instance instance of model
      * @return {this} this
      */
-    clone(instance: Model): this;
+    protected clone(instance: Model): this;
+    /**
+     *
+     * Copy an instance of model
+     * @param {Model} instance instance of model
+     * @param {Object} options keep data
+     * @return {Model} Model
+     */
+    protected copyModel(instance: Model, options?: {
+        update?: boolean;
+        insert?: boolean;
+        delete?: boolean;
+        where?: boolean;
+    }): Model;
     /**
      * Assign ignore delete_at in model
      * @param {boolean} condition
@@ -119,6 +138,13 @@ declare class Model extends AbstractModel {
      * @return {this} this
      */
     withExists(...nameRelations: Array<string>): this;
+    /**
+    *
+    * Use relations in registry of model return only exists result of relation query
+    * @param {...string} nameRelations if data exists return blank
+    * @return {this} this
+    */
+    has(...nameRelations: Array<string>): this;
     /**
      *
      * Use relation '${name}' registry of model return callback this query model
@@ -160,7 +186,7 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -172,7 +198,7 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -184,7 +210,7 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -196,59 +222,63 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    belongsToMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
      * Assign the relation in model Objects
-     * @param     {object}   relations registry relation in your model
-     * @property  {string}   relation.name
-     * @property  {string}   relation.as
-     * @property  {class}    relation.model
-     * @property  {string}   relation.localKey
-     * @property  {string}   relation.foreignKey
-     * @property  {string}   relation.freezeTable
-     * @param     {function} callback callback query relation of model
-     * @return    {this}     this
+     * @param    {object}  relation registry relation in your model
+     * @type     {object}  relation
+     * @property {class}  model
+     * @property {string?} name
+     * @property {string?}  as
+     * @property {string?} localKey
+     * @property {string?} foreignKey
+     * @property {string?} freezeTable
+     * @param    {function?} callback callback of query
+     * @return   {this} this
      */
-    hasOneQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
+    protected hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param     {object}   relations registry relation in your model
-     * @property  {string}   relation.name
-     * @property  {string}   relation.as
-     * @property  {class}    relation.model
-     * @property  {string}   relation.localKey
-     * @property  {string}   relation.foreignKey
-     * @property  {string}   relation.freezeTable
-     * @param     {function} callback callback query relation of model
-     * @return    {this}     this
+     * @param    {object}  relation registry relation in your model
+     * @type     {object}  relation
+     * @property {class}  model
+     * @property {string?} name
+     * @property {string?}  as
+     * @property {string?} localKey
+     * @property {string?} foreignKey
+     * @property {string?} freezeTable
+     * @param    {function?} callback callback of query
+     * @return   {this} this
      */
-    hasManyQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
+    protected hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param     {object}   relations registry relation in your model
-     * @property  {string}   relation.name
-     * @property  {string}   relation.as
-     * @property  {class}    relation.model
-     * @property  {string}   relation.localKey
-     * @property  {string}   relation.foreignKey
-     * @property  {string}   relation.freezeTable
-     * @param     {function} callback callback query relation of model
-     * @return    {this}     this
+     * @param    {object}  relation registry relation in your model
+     * @type     {object}  relation
+     * @property {class}  model
+     * @property {string?} name
+     * @property {string?}  as
+     * @property {string?} localKey
+     * @property {string?} foreignKey
+     * @property {string?} freezeTable
+     * @param    {function?} callback callback of query
+     * @return   {this} this
      */
-    belongsToQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
+    protected belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
      * Assign the relation in model Objects
-     * @param     {object}   relations registry relation in your model
-     * @property  {string}   relation.name
-     * @property  {string}   relation.as
-     * @property  {class}    relation.model
-     * @property  {string}   relation.localKey
-     * @property  {string}   relation.foreignKey
-     * @property  {string}   relation.freezeTable
-     * @param     {function} callback callback query relation of model
-     * @return    {this}     this
+     * @param    {object}  relation registry relation in your model
+     * @type     {object}  relation
+     * @property {class}  model
+     * @property {string?} name
+     * @property {string?}  as
+     * @property {string?} localKey
+     * @property {string?} foreignKey
+     * @property {string?} freezeTable
+     * @param    {function?} callback callback of query
+     * @return   {this} this
      */
-    belongsToManyQuery({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback: Function): this;
+    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
      * return only in trashed (data has been remove)
      * @return {promise}
@@ -331,11 +361,23 @@ declare class Model extends AbstractModel {
     */
     count(column?: string): Promise<number>;
     /**
+     *
+     * execute data return result is exists
+     * @return {promise<boolean>}
+     */
+    exists(): Promise<boolean>;
+    /**
      * delete data from the database
      * @override Method
      * @return {promise<boolean>}
      */
     delete(): Promise<boolean>;
+    /**
+     *
+     * force delete data from the database
+     * @return {promise<boolean>}
+     */
+    forceDelete(): Promise<boolean>;
     /**
      *
      * @override Method
@@ -492,25 +534,36 @@ declare class Model extends AbstractModel {
      */
     insertMultiple(data: Array<Object>): this;
     /**
+    *
+    * @param {object} data create not exists data
+    * @override Method
+    * @return {this} this this
+    */
+    createNotExists(data: object): this;
+    /**
      *
      * @override Method
      * @return {Promise<any>}
      */
-    save(): Promise<any>;
+    save(): Promise<{
+        [key: string]: any;
+    } | Array<any> | null | undefined>;
     /**
      *
      * fake data
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows?: number): Promise<any>;
-    private _queryStatementModel;
-    private _actionStatementModel;
+    faker(rows?: number): Promise<{
+        [key: string]: any;
+    }[]>;
     private _valuePattern;
     private _isPatternSnakeCase;
     private _classToTableName;
+    private _makeTableName;
     private _tableName;
     private _valueInRelation;
+    private _handleSoftDelete;
     private _buildQueryModel;
     private _showOnly;
     private _execute;
@@ -531,7 +584,6 @@ declare class Model extends AbstractModel {
     private _queryUpdateModel;
     private _queryInsertModel;
     private _queryInsertMultipleModel;
-    private _registry;
     private _insertNotExistsModel;
     private _createModel;
     private _createMultipleModel;
@@ -540,8 +592,8 @@ declare class Model extends AbstractModel {
     private _assertError;
     private _functionRelationName;
     private _handleRelationsQuery;
+    private _validateMethod;
     private _initialModel;
-    private _setupModel;
 }
 export { Model };
 export default Model;

@@ -1,0 +1,13 @@
+{
+    "host"                : "localhost",
+    "port"                : "3306",
+    "database"            : "database",
+    "user"                : "root",
+    "password"            : "",
+    "connectionLimit"     : "",
+    "dateStrings"         : "",
+    "connectTimeout"      : "",
+    "waitForConnections"  : "",
+    "queueLimit"          : "",
+    "charset"             : ""
+}

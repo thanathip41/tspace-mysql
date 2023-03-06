@@ -1,31 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AbstractDatabase {
-    $setters = [
-        '$attributes',
-        '$logger',
-        '$utils',
-        '$constants',
-        '$pool',
-        '$db'
-    ];
-    $utils = {};
-    $constants = (name) => { };
-    $db = {
-        get: (key) => { },
-        set: (key, value) => { },
-        clone: (data) => { }
-    };
-    $pool = {
-        get: (sql) => { },
-        set: (pool) => { },
-        load: () => { }
-    };
-    $logger = {
-        get: () => { },
-        set: (value) => { },
-        check: (value) => true || false
-    };
-    $attributes = {};
+    constructor() {
+        this.$setters = [
+            '$attributes',
+            '$logger',
+            '$utils',
+            '$constants',
+            '$pool',
+            '$state',
+        ];
+        this.$utils = {};
+        this.$constants = (name) => { };
+        this.$state = {
+            original: () => { },
+            get: (key) => { },
+            set: (key, value) => { },
+            clone: (data) => { }
+        };
+        this.$pool = {
+            query: (sql) => { },
+            set: (pool) => { },
+            get: () => { }
+        };
+        this.$logger = {
+            get: () => { },
+            set: (value) => { },
+            check: (value) => true || false
+        };
+        this.$attributes = null;
+    }
 }
 exports.default = AbstractDatabase;

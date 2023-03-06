@@ -1,4 +1,24 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -22,7 +42,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     pluck(column) {
-        this.$db.set('PLUCK', column);
+        this.$state.set('PLUCK', column);
         return this;
     }
     /**
@@ -31,15 +51,15 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     except(...columns) {
-        this.$db.set('EXCEPT', columns.length ? columns : ['id']);
+        this.$state.set('EXCEPT', columns.length ? columns : ['id']);
         return this;
     }
     /**
-     * data will return void
+     * data alaways will return void
      * @return {this} this
      */
     void() {
-        this.$db.set('VOID', true);
+        this.$state.set('VOID', true);
         return this;
     }
     /**
@@ -48,7 +68,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     only(...columns) {
-        this.$db.set('ONLY', columns);
+        this.$state.set('ONLY', columns);
         return this;
     }
     /**
@@ -57,7 +77,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     distinct(column = 'id') {
-        this.$db.set('SELECT', [
+        this.$state.set('SELECT', [
             `${this.$constants('SELECT')}`,
             `${this.$constants('DISTINCT')}`,
             `${column}`
@@ -71,9 +91,9 @@ class Database extends AbstractDatabase_1.default {
      */
     select(...columns) {
         let select = '*';
-        if (columns?.length)
+        if (columns === null || columns === void 0 ? void 0 : columns.length)
             select = columns.join(', ');
-        this.$db.set('SELECT', `${this.$constants('SELECT')} ${select}`);
+        this.$state.set('SELECT', `${this.$constants('SELECT')} ${select}`);
         return this;
     }
     /**
@@ -82,7 +102,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     chunk(chunk) {
-        this.$db.set('CHUNK', chunk);
+        this.$state.set('CHUNK', chunk);
         return this;
     }
     /**
@@ -102,19 +122,30 @@ class Database extends AbstractDatabase_1.default {
      * @param {any?} value
      * @return {this}
      */
+    resetWhere() {
+        this.$state.set('WHERE', '');
+        return this;
+    }
+    /**
+     * if has 2 arguments  default operator '='
+     * @param {string} column
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
     where(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
@@ -131,14 +162,14 @@ class Database extends AbstractDatabase_1.default {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('OR')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
@@ -151,14 +182,14 @@ class Database extends AbstractDatabase_1.default {
      */
     whereRaw(sql) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${sql}`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${sql}`
         ].join(' '));
@@ -171,14 +202,14 @@ class Database extends AbstractDatabase_1.default {
      */
     orWhereRaw(sql) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${sql}`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('OR')}`,
             `${sql}`
         ].join(' '));
@@ -192,14 +223,14 @@ class Database extends AbstractDatabase_1.default {
      */
     whereReference(tableAndLocalKey, tableAndForeignKey) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${tableAndLocalKey} = ${tableAndForeignKey}`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${tableAndLocalKey} = ${tableAndForeignKey}`
         ].join(' '));
@@ -213,15 +244,15 @@ class Database extends AbstractDatabase_1.default {
      */
     whereExists(sql) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this.$constants('EXISTS')}`,
                 `(${sql})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this.$constants('EXISTS')}`,
             `(${sql})`
@@ -236,14 +267,14 @@ class Database extends AbstractDatabase_1.default {
      */
     whereId(id, column = 'id') {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
         ].join(' '));
@@ -258,14 +289,14 @@ class Database extends AbstractDatabase_1.default {
         const column = 'email';
         email = this.$utils.escape(email);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} = '${email}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} = '${email}'`
         ].join(' '));
@@ -280,14 +311,14 @@ class Database extends AbstractDatabase_1.default {
     whereUser(id, column = 'user_id') {
         id = this.$utils.escape(id);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} = '${id}'`
         ].join(' '));
@@ -306,14 +337,14 @@ class Database extends AbstractDatabase_1.default {
             array = ['0'];
         const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
         ].join(' '));
@@ -326,21 +357,21 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     orWhereIn(column, array) {
-        const sql = this.$db.get('WHERE');
+        const sql = this.$state.get('WHERE');
         if (!Array.isArray(array))
             throw new Error(`[${array}] is't array`);
         if (!array.length)
             array = ['0'];
         const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!sql.includes(this.$constants('WHERE'))) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('OR')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${values})`
         ].join(' '));
@@ -353,21 +384,21 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     whereNotIn(column, array) {
-        const sql = this.$db.get('WHERE');
+        const sql = this.$state.get('WHERE');
         if (!Array.isArray(array))
             throw new Error(`[${array}] is't array`);
         if (!array.length)
             array = ['0'];
         const values = `${array.map((value) => `\'${value}\'`).join(',')}`;
         if (!sql.includes(this.$constants('WHERE'))) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${values})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${values})`
         ].join(' '));
@@ -380,17 +411,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     whereSubQuery(column, subQuery) {
-        const whereSubQuery = this.$db.get('WHERE');
+        const whereSubQuery = this.$state.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
         ].join(' '));
@@ -403,17 +434,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     whereNotSubQuery(column, subQuery) {
-        const whereSubQuery = this.$db.get('WHERE');
+        const whereSubQuery = this.$state.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_IN')} (${subQuery})`
         ].join(' '));
@@ -426,17 +457,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     orWhereSubQuery(column, subQuery) {
-        const whereSubQuery = this.$db.get('WHERE');
+        const whereSubQuery = this.$state.get('WHERE');
         subQuery = this.$utils.escapeSubQuery(subQuery);
         if (!whereSubQuery.includes(this.$constants('WHERE'))) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('OR')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')} (${subQuery})`
         ].join(' '));
@@ -457,15 +488,15 @@ class Database extends AbstractDatabase_1.default {
         value1 = this.$utils.escape(value1);
         value2 = this.$utils.escape(value2);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
                 `'${value1}' ${this.$constants('AND')} '${value2}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
             `'${value1}' ${this.$constants('AND')} '${value2}'`
@@ -479,14 +510,14 @@ class Database extends AbstractDatabase_1.default {
      */
     whereNull(column) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NULL')}`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NULL')}`
         ].join(' '));
@@ -499,14 +530,14 @@ class Database extends AbstractDatabase_1.default {
      */
     whereNotNull(column) {
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NOT_NULL')}`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IS_NOT_NULL')}`
         ].join(' '));
@@ -524,14 +555,14 @@ class Database extends AbstractDatabase_1.default {
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
         if (!this._queryWhereIsExists()) {
-            this.$db.set('WHERE', [
+            this.$state.set('WHERE', [
                 `${this.$constants('WHERE')}`,
                 `BINARY ${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
             ].join(' '));
             return this;
         }
-        this.$db.set('WHERE', [
-            `${this.$db.get('WHERE')}`,
+        this.$state.set('WHERE', [
+            `${this.$state.get('WHERE')}`,
             `${this.$constants('AND')}`,
             `BINARY ${this._bindTableAndColumnInQueryWhere(column)} ${operator} '${value}'`
         ].join(' '));
@@ -543,26 +574,27 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     whereQuery(callback) {
-        const db = new DB_1.default();
+        var _a;
+        const db = new DB_1.default((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
         if (!(repository instanceof DB_1.default)) {
             throw new Error(`unknown callback query: '[${repository}]'`);
         }
-        const where = repository?.$db.get('WHERE') || '';
+        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || '';
         if (where === '') {
             throw new Error(`unknown callback query with where condition`);
         }
         if (this._queryWhereIsExists()) {
             const query = where.replace('WHERE', '');
-            this.$db.set('WHERE', [
-                `${this.$db.get('WHERE')}`,
+            this.$state.set('WHERE', [
+                `${this.$state.get('WHERE')}`,
                 `${this.$constants('AND')}`,
                 `(${query})`
             ].join(' '));
             return this;
         }
         const query = where.replace('WHERE', '');
-        this.$db.set('WHERE', [
+        this.$state.set('WHERE', [
             `${this.$constants('WHERE')}`,
             `(${query})`
         ].join(' '));
@@ -599,7 +631,7 @@ class Database extends AbstractDatabase_1.default {
         }
         if (query.length <= 1)
             return this;
-        this.$db.set('SELECT', `${this.$db.get('SELECT')}, ${query.join(' ')} ${this.$constants('AS')} ${as}`);
+        this.$state.set('SELECT', `${this.$state.get('SELECT')}, ${query.join(' ')} ${this.$constants('AS')} ${as}`);
         return this;
     }
     /**
@@ -608,7 +640,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     having(condition) {
-        this.$db.set('HAVING', condition);
+        this.$state.set('HAVING', condition);
         return this;
     }
     /**
@@ -618,16 +650,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     join(pk, fk) {
-        const table = fk.split('.')?.shift();
-        if (this.$db.get('JOIN')) {
-            this.$db.set('JOIN', [
-                `${this.$db.get('JOIN')}`,
+        var _a;
+        const table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+        if (this.$state.get('JOIN')) {
+            this.$state.set('JOIN', [
+                `${this.$state.get('JOIN')}`,
                 `${this.$constants('INNER_JOIN')}`,
                 `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
-        this.$db.set('JOIN', [
+        this.$state.set('JOIN', [
             `${this.$constants('INNER_JOIN')}`,
             `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
@@ -640,19 +673,20 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     rightJoin(pk, fk) {
-        const table = fk.split('.')?.shift();
-        if (this.$db.get('JOIN')) {
-            this.$db.set('JOIN', [
-                `${this.$db.get('JOIN')}`,
+        var _a;
+        const table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+        if (this.$state.get('JOIN')) {
+            this.$state.set('JOIN', [
+                `${this.$state.get('JOIN')}`,
                 `${this.$constants('RIGHT_JOIN')}`,
                 `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
-        this.$db.set('JOIN', [
+        this.$state.set('JOIN', [
             `${this.$constants('RIGHT_JOIN')}`,
             `${table} ${this.$constants('ON')} ${pk} = ${fk}`
-        ].join(''));
+        ].join(' '));
         return this;
     }
     /**
@@ -662,16 +696,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     leftJoin(pk, fk) {
-        const table = fk.split('.')?.shift();
-        if (this.$db.get('JOIN')) {
-            this.$db.set('JOIN', [
-                `${this.$db.get('JOIN')}`,
+        var _a;
+        const table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+        if (this.$state.get('JOIN')) {
+            this.$state.set('JOIN', [
+                `${this.$state.get('JOIN')}`,
                 `${this.$constants('LEFT_JOIN')}`,
                 `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
-        this.$db.set('JOIN', [
+        this.$state.set('JOIN', [
             `${this.$constants('LEFT_JOIN')}`,
             `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
@@ -684,16 +719,17 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     crossJoin(pk, fk) {
-        const table = fk.split('.')?.shift();
-        if (this.$db.get('JOIN')) {
-            this.$db.set('JOIN', [
-                `${this.$db.get('JOIN')}`,
+        var _a;
+        const table = (_a = fk.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
+        if (this.$state.get('JOIN')) {
+            this.$state.set('JOIN', [
+                `${this.$state.get('JOIN')}`,
                 `${this.$constants('CROSS_JOIN')}`,
                 `${table} ${this.$constants('ON')} ${pk} = ${fk}`
             ].join(' '));
             return this;
         }
-        this.$db.set('JOIN', [
+        this.$state.set('JOIN', [
             `${this.$constants('CROSS_JOIN')}`,
             `${table} ${this.$constants('ON')} ${pk} = ${fk}`
         ].join(' '));
@@ -706,7 +742,14 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     orderBy(column, order = this.$constants('ASC')) {
-        this.$db.set('ORDER_BY', [
+        if (this.$state.get('ORDER_BY')) {
+            this.$state.set('ORDER_BY', [
+                `${this.$state.get('ORDER_BY')}`,
+                `,${column} ${order.toUpperCase()}`
+            ].join(' '));
+            return this;
+        }
+        this.$state.set('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${column} ${order.toUpperCase()}`
         ].join(' '));
@@ -717,17 +760,13 @@ class Database extends AbstractDatabase_1.default {
      * @param {string?} column [column=id]
      * @return {this}
      */
-    latest(column = 'id') {
-        if (this.$db.get('ORDER_BY')) {
-            this.$db.set('ORDER_BY', [
-                `${this.$db.get('ORDER_BY')}`,
-                `,${column} ${this.$constants('DESC')}`
-            ].join(' '));
-            return this;
-        }
-        this.$db.set('ORDER_BY', [
+    latest(...columns) {
+        let orderByDefault = 'id';
+        if (columns === null || columns === void 0 ? void 0 : columns.length)
+            orderByDefault = columns.join(', ');
+        this.$state.set('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
-            `${column} ${this.$constants('DESC')}`
+            `${orderByDefault} ${this.$constants('DESC')}`
         ].join(' '));
         return this;
     }
@@ -736,17 +775,13 @@ class Database extends AbstractDatabase_1.default {
      * @param {string?} column [column=id]
      * @return {this}
      */
-    oldest(column = 'id') {
-        if (this.$db.get('ORDER_BY')) {
-            this.$db.set('ORDER_BY', [
-                `${this.$db.get('ORDER_BY')}`,
-                `,${column} ${this.$constants('ASC')}`
-            ].join(' '));
-            return this;
-        }
-        this.$db.set('ORDER_BY', [
+    oldest(...columns) {
+        let orderByDefault = 'id';
+        if (columns === null || columns === void 0 ? void 0 : columns.length)
+            orderByDefault = columns.join(', ');
+        this.$state.set('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
-            `${column} ${this.$constants('ASC')}`
+            `${orderByDefault} ${this.$constants('ASC')}`
         ].join(' '));
         return this;
     }
@@ -755,8 +790,11 @@ class Database extends AbstractDatabase_1.default {
      * @param {string?} column [column=id]
      * @return {this}
      */
-    groupBy(column = 'id') {
-        this.$db.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
+    groupBy(...columns) {
+        let groupBy = 'id';
+        if (columns === null || columns === void 0 ? void 0 : columns.length)
+            groupBy = columns.join(', ');
+        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
         return this;
     }
     /**
@@ -765,7 +803,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     limit(number = 1) {
-        this.$db.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
+        this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
     }
     /**
@@ -774,7 +812,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this}
      */
     offset(number = 1) {
-        this.$db.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
+        this.$state.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
         return this;
     }
     /**
@@ -783,7 +821,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     hidden(...columns) {
-        this.$db.set('HIDDEN', columns);
+        this.$state.set('HIDDEN', columns);
         return this;
     }
     /**
@@ -794,12 +832,12 @@ class Database extends AbstractDatabase_1.default {
      */
     update(data) {
         const query = this._queryUpdate(data);
-        this.$db.set('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'UPDATE');
+        this.$state.set('SAVE', 'UPDATE');
         return this;
     }
     /**
@@ -810,12 +848,12 @@ class Database extends AbstractDatabase_1.default {
      */
     insert(data) {
         const query = this._queryInsert(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'INSERT');
+        this.$state.set('SAVE', 'INSERT');
         return this;
     }
     /**
@@ -826,12 +864,12 @@ class Database extends AbstractDatabase_1.default {
      */
     create(data) {
         const query = this._queryInsert(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'INSERT');
+        this.$state.set('SAVE', 'INSERT');
         return this;
     }
     /**
@@ -842,12 +880,12 @@ class Database extends AbstractDatabase_1.default {
      */
     createMultiple(data) {
         const query = this._queryInsertMultiple(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'INSERT_MULTIPLE');
+        this.$state.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     }
     /**
@@ -858,12 +896,12 @@ class Database extends AbstractDatabase_1.default {
      */
     insertMultiple(data) {
         const query = this._queryInsertMultiple(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'INSERT_MULTIPLE');
+        this.$state.set('SAVE', 'INSERT_MULTIPLE');
         return this;
     }
     /**
@@ -886,7 +924,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this this
      */
     debug(debug = true) {
-        this.$db.set('DEBUG', debug);
+        this.$state.set('DEBUG', debug);
         return this;
     }
     /**
@@ -895,7 +933,18 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this this
      */
     dd(debug = true) {
-        this.$db.set('DEBUG', debug);
+        this.$state.set('DEBUG', debug);
+        return this;
+    }
+    /**
+     * hook function when execute returned result to callback function
+     * @param {Function} func function for callback result
+     * @return {this}
+    */
+    hook(func) {
+        if (typeof func !== "function")
+            throw new Error(`this '${func}' is not a function`);
+        this.$state.set('HOOK', [...this.$state.get('HOOK'), func]);
         return this;
     }
     /**
@@ -905,12 +954,12 @@ class Database extends AbstractDatabase_1.default {
      */
     createNotExists(data) {
         const query = this._queryInsert(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$db.set('SAVE', 'INSERT_NOT_EXISTS');
+        this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
         return this;
     }
     /**
@@ -931,17 +980,17 @@ class Database extends AbstractDatabase_1.default {
     updateOrCreate(data) {
         const queryUpdate = this._queryUpdate(data);
         const queryInsert = this._queryInsert(data);
-        this.$db.set('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${queryInsert}`
         ].join(' '));
-        this.$db.set('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this.$db.get('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${queryUpdate}`
         ].join(' '));
-        this.$db.set('SAVE', 'UPDATE_OR_INSERT');
+        this.$state.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
     }
     /**
@@ -985,15 +1034,12 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     connection(options) {
-        const { host, port, database, username: user, password, ...others } = options;
-        const pool = new connection_1.PoolConnection({
-            host,
+        const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
+        const pool = new connection_1.PoolConnection(Object.assign({ host,
             port,
             database,
             user,
-            password,
-            ...others
-        });
+            password }, others));
         this.$pool.set(pool.connection());
         return this;
     }
@@ -1003,7 +1049,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     pool(pool) {
-        if (!pool?.hasOwnProperty('query')) {
+        if (!(pool === null || pool === void 0 ? void 0 : pool.hasOwnProperty('query'))) {
             throw new Error('pool must have a query property');
         }
         this.$pool.set(pool);
@@ -1015,7 +1061,7 @@ class Database extends AbstractDatabase_1.default {
      * @return {this} this
      */
     bind(connection) {
-        if (!connection?.hasOwnProperty('query')) {
+        if (!(connection === null || connection === void 0 ? void 0 : connection.hasOwnProperty('query'))) {
             throw new Error('connection must have a query property');
         }
         if (typeof connection.query !== 'function') {
@@ -1028,25 +1074,29 @@ class Database extends AbstractDatabase_1.default {
      * exceptColumns for method except
      * @return {promise<string>} string
      */
-    async exceptColumns() {
-        const sql = [
-            `${this.$constants('SHOW')}`,
-            `${this.$constants('COLUMNS')}`,
-            `${this.$constants('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`
-        ].join(' ');
-        const rawColumns = await this._queryStatement(sql);
-        const columns = rawColumns.map((column) => column.Field);
-        const removeExcept = columns.filter((column) => !this.$db.get('EXCEPT').includes(column));
-        return removeExcept.join(', ');
+    exceptColumns() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`
+            ].join(' ');
+            const rawColumns = yield this.queryStatement(sql);
+            const columns = rawColumns.map((column) => column.Field);
+            const removeExcept = columns.filter((column) => !this.$state.get('EXCEPT').includes(column));
+            return removeExcept.join(', ');
+        });
     }
     /**
      * execute sql statements with raw sql query
      * @param {string} sql sql execute return data
      * @return {promise<any>}
      */
-    async rawQuery(sql) {
-        return await this._queryStatement(sql);
+    rawQuery(sql) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.queryStatement(sql);
+        });
     }
     /**
      *
@@ -1055,14 +1105,16 @@ class Database extends AbstractDatabase_1.default {
      * @param {number} value
      * @return {promise<any>}
      */
-    async increment(column = 'id', value = 1) {
-        const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
-        this.$db.set('UPDATE', [
-            `${this.$constants('UPDATE')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        return await this._update(true);
+    increment(column = 'id', value = 1) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
+            this.$state.set('UPDATE', [
+                `${this.$constants('UPDATE')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${query}`
+            ].join(' '));
+            return yield this._update(true);
+        });
     }
     /**
      *
@@ -1071,26 +1123,30 @@ class Database extends AbstractDatabase_1.default {
      * @param {number} value
      * @return {promise<any>}
      */
-    async decrement(column = 'id', value = 1) {
-        const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
-        this.$db.set('UPDATE', [
-            `${this.$constants('UPDATE')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        return await this._update(true);
+    decrement(column = 'id', value = 1) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
+            this.$state.set('UPDATE', [
+                `${this.$constants('UPDATE')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${query}`
+            ].join(' '));
+            return yield this._update(true);
+        });
     }
     /**
      * execute data without condition
      * @return {promise<any>}
      */
-    async all() {
-        return await this._queryStatement([
-            `${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$constants('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`
-        ].join(' '));
+    all() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.queryStatement([
+                `${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$constants('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`
+            ].join(' '));
+        });
     }
     /**
      *
@@ -1098,86 +1154,89 @@ class Database extends AbstractDatabase_1.default {
      * @param {number} id
      * @return {promise<any>}
      */
-    async find(id) {
-        const result = await this._queryStatement([
-            `${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$constants('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$constants('WHERE')} id = ${id}`
-        ].join(' '));
-        return result?.shift() || null;
+    find(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield this.queryStatement([
+                `${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$constants('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} id = ${id}`
+            ].join(' '));
+            return (result === null || result === void 0 ? void 0 : result.shift()) || null;
+        });
     }
     /**
      *
      * execute data page & limit
      * @param {?object} paginationOptions
-     * @param {number} paginationOptions.limit
-     * @param {number} paginationOptions.page
+     * @param {number} paginationOptions.limit default 15
+     * @param {number} paginationOptions.page default 1
      * @return {promise<Pagination>}
      */
-    async pagination(paginationOptions) {
-        let limit = 15;
-        let page = 1;
-        if (paginationOptions != null) {
-            limit = paginationOptions?.limit || limit;
-            page = paginationOptions?.page || page;
-        }
-        const currentPage = page;
-        const nextPage = currentPage + 1;
-        const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
-        const offset = (page - 1) * limit;
-        let sql = this._buildQuery();
-        if (!sql.includes(this.$constants('LIMIT'))) {
-            sql = [
-                `${sql}`,
-                `${this.$constants('LIMIT')}`,
-                `${limit}`,
-                `${this.$constants('OFFSET')} ${offset}`
-            ].join(' ');
-        }
-        else {
-            sql = sql.replace(this.$db.get('LIMIT'), `${limit} ${this.$constants('OFFSET')} ${offset}`);
-        }
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        if (!result.length)
+    pagination(paginationOptions) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            let limit = 15;
+            let page = 1;
+            if (paginationOptions != null) {
+                limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
+                page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
+            }
+            const currentPage = page;
+            const nextPage = currentPage + 1;
+            const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
+            const offset = (page - 1) * limit;
+            let sql = this._buildQuery();
+            sql = sql.replace(this.$state.get('LIMIT'), `${limit} ${this.$constants('OFFSET')} ${offset}`);
+            if (!sql.includes(this.$constants('LIMIT'))) {
+                sql = [
+                    `${sql}`,
+                    `${this.$constants('LIMIT')}`,
+                    `${limit}`,
+                    `${this.$constants('OFFSET')} ${offset}`
+                ].join(' ');
+            }
+            const result = yield this.queryStatement(sql);
+            if ((_a = this.$state.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
+                this._hiddenColumn(result);
+            if (!result.length)
+                return {
+                    meta: {
+                        total: 0,
+                        limit,
+                        total_page: 0,
+                        current_page: currentPage,
+                        last_page: 0,
+                        next_page: 0,
+                        prev_page: 0
+                    },
+                    data: []
+                };
+            this.$state.set('SELECT', [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('COUNT')}(*)`,
+                `${this.$constants('AS')} total`
+            ].join(' '));
+            sql = this._buildQuery();
+            const count = yield this.queryStatement(sql);
+            const total = count.shift().total || 0;
+            let lastPage = Math.ceil(total / limit) || 0;
+            lastPage = lastPage > 1 ? lastPage : 1;
+            const totalPage = (_b = result === null || result === void 0 ? void 0 : result.length) !== null && _b !== void 0 ? _b : 0;
             return {
                 meta: {
-                    total: 0,
+                    total_page: totalPage,
+                    total,
                     limit,
-                    total_page: 0,
                     current_page: currentPage,
-                    last_page: 0,
-                    next_page: 0,
-                    prev_page: 0
+                    last_page: lastPage,
+                    next_page: nextPage,
+                    prev_page: prevPage
                 },
-                data: []
+                data: result !== null && result !== void 0 ? result : []
             };
-        this.$db.set('SELECT', [
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('COUNT')}(*)`,
-            `${this.$constants('AS')} total`
-        ].join(' '));
-        sql = this._buildQuery();
-        const count = await this._queryStatement(sql);
-        const total = count.shift().total || 0;
-        let lastPage = Math.ceil(total / limit) || 0;
-        lastPage = lastPage > 1 ? lastPage : 1;
-        const totalPage = result?.length ?? 0;
-        return {
-            meta: {
-                total_page: totalPage,
-                total,
-                limit,
-                current_page: currentPage,
-                last_page: lastPage,
-                next_page: nextPage,
-                prev_page: prevPage
-            },
-            data: result ?? []
-        };
+        });
     }
     /**
      *
@@ -1187,168 +1246,193 @@ class Database extends AbstractDatabase_1.default {
      * @param {number} paginationOptions.page
      * @return {promise<Pagination>}
      */
-    async paginate(paginationOptions) {
-        let limit = 15;
-        let page = 1;
-        if (paginationOptions != null) {
-            limit = paginationOptions?.limit || limit;
-            page = paginationOptions?.page || page;
-        }
-        return await this.pagination({ limit, page });
+    paginate(paginationOptions) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let limit = 15;
+            let page = 1;
+            if (paginationOptions != null) {
+                limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
+                page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
+            }
+            return yield this.pagination({ limit, page });
+        });
     }
     /**
      *
      * execute data return object | null
      * @return {promise<object | null>}
      */
-    async first() {
-        if (this.$db.get('EXCEPT')?.length)
-            this.select(await this.exceptColumns());
-        let sql = this._buildQuery();
-        if (!sql.includes(this.$constants('LIMIT')))
-            sql = `${sql} ${this.$constants('LIMIT')} 1`;
-        else
-            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        if (this.$db.get('PLUCK')) {
-            const pluck = this.$db.get('PLUCK');
-            const newData = result?.shift();
-            const checkProperty = newData.hasOwnProperty(pluck);
-            if (!checkProperty)
-                throw new Error(`can't find property '${pluck}' of result`);
-            return newData[pluck] || null;
-        }
-        return result?.shift() || null;
+    first() {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+                this.select(yield this.exceptColumns());
+            let sql = this._buildQuery();
+            if (!sql.includes(this.$constants('LIMIT')))
+                sql = `${sql} ${this.$constants('LIMIT')} 1`;
+            else
+                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
+            const result = yield this.queryStatement(sql);
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+                this._hiddenColumn(result);
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
+                const newData = result === null || result === void 0 ? void 0 : result.shift();
+                const checkProperty = newData.hasOwnProperty(pluck);
+                if (!checkProperty)
+                    throw new Error(`can't find property '${pluck}' of result`);
+                const r = newData[pluck] || null;
+                const hook = this.$state.get('HOOK');
+                if (hook)
+                    yield hook(r);
+                return r;
+            }
+            const r = (result === null || result === void 0 ? void 0 : result.shift()) || null;
+            const hook = this.$state.get('HOOK');
+            if (hook)
+                yield hook(r);
+            return r;
+        });
     }
     /**
      *
      * execute data return object | throw rror
      * @return {promise<object | null>}
      */
-    async findOne() {
-        return await this.first();
+    findOne() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.first();
+        });
     }
     /**
      *
      * execute data return object | throw Error
      * @return {promise<object | Error>}
      */
-    async firstOrError(message, options) {
-        if (this.$db.get('EXCEPT')?.length)
-            this.select(await this.exceptColumns());
-        let sql = this._buildQuery();
-        if (!sql.includes(this.$constants('LIMIT')))
-            sql = `${sql} ${this.$constants('LIMIT')} 1`;
-        else
-            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        if (this.$db.get('PLUCK')) {
-            const pluck = this.$db.get('PLUCK');
-            const newData = result?.shift();
-            const checkProperty = newData.hasOwnProperty(pluck);
-            if (!checkProperty)
-                throw new Error(`can't find property '${pluck}' of result`);
-            const data = newData[pluck] || null;
+    firstOrError(message, options) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+                this.select(yield this.exceptColumns());
+            let sql = this._buildQuery();
+            if (!sql.includes(this.$constants('LIMIT')))
+                sql = `${sql} ${this.$constants('LIMIT')} 1`;
+            else
+                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
+            const result = yield this.queryStatement(sql);
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+                this._hiddenColumn(result);
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
+                const newData = result === null || result === void 0 ? void 0 : result.shift();
+                const checkProperty = newData.hasOwnProperty(pluck);
+                if (!checkProperty)
+                    throw new Error(`can't find property '${pluck}' of result`);
+                const data = newData[pluck] || null;
+                if (data == null) {
+                    if (options == null) {
+                        throw { message, code: 400 };
+                    }
+                    throw Object.assign({ message }, options);
+                }
+                const hook = this.$state.get('HOOK');
+                if (hook)
+                    yield hook(data);
+                return data;
+            }
+            const data = (result === null || result === void 0 ? void 0 : result.shift()) || null;
             if (data == null) {
                 if (options == null) {
                     throw { message, code: 400 };
                 }
-                throw { message, ...options };
+                throw Object.assign({ message }, options);
             }
+            const hook = this.$state.get('HOOK');
+            if (hook)
+                yield hook(data);
             return data;
-        }
-        const data = result?.shift() || null;
-        if (data == null) {
-            if (options == null) {
-                throw { message, code: 400 };
-            }
-            throw { message, ...options };
-        }
-        return data;
+        });
     }
     /**
      *
      * execute data return object | null
      * @return {promise<object | null>}
      */
-    async findOneOrError(message, options) {
-        if (this.$db.get('EXCEPT')?.length)
-            this.select(await this.exceptColumns());
-        let sql = this._buildQuery();
-        if (!sql.includes(this.$constants('LIMIT')))
-            sql = `${sql} ${this.$constants('LIMIT')} 1`;
-        else
-            sql = sql.replace(this.$db.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        if (this.$db.get('PLUCK')) {
-            const pluck = this.$db.get('PLUCK');
-            const newData = result?.shift();
-            const checkProperty = newData.hasOwnProperty(pluck);
-            if (!checkProperty)
-                throw new Error(`can't find property '${pluck}' of result`);
-            return newData[pluck] || null;
-        }
-        return result?.shift() || null;
+    findOneOrError(message, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.firstOrError(message, options);
+        });
     }
     /**
      *
      * execute data return Array
      * @return {promise<Array<any>>}
      */
-    async get() {
-        if (this.$db.get('EXCEPT')?.length)
-            this.select(await this.exceptColumns());
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        if (this.$db.get('CHUNK')) {
-            const data = result.reduce((resultArray, item, index) => {
-                const chunkIndex = Math.floor(index / this.$db.get('CHUNK'));
-                if (!resultArray[chunkIndex])
-                    resultArray[chunkIndex] = [];
-                resultArray[chunkIndex].push(item);
-                return resultArray;
-            }, []);
-            return data || [];
-        }
-        if (this.$db.get('PLUCK')) {
-            const pluck = this.$db.get('PLUCK');
-            const newData = result.map((d) => d[pluck]);
-            if (newData.every((d) => d == null)) {
-                throw new Error(`can't find property '${pluck}' of result`);
+    get() {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+                this.select(yield this.exceptColumns());
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+                this._hiddenColumn(result);
+            if (this.$state.get('CHUNK')) {
+                const data = result.reduce((resultArray, item, index) => {
+                    const chunkIndex = Math.floor(index / this.$state.get('CHUNK'));
+                    if (!resultArray[chunkIndex])
+                        resultArray[chunkIndex] = [];
+                    resultArray[chunkIndex].push(item);
+                    return resultArray;
+                }, []);
+                const hook = this.$state.get('HOOK');
+                if (hook)
+                    yield hook(data || []);
+                return data || [];
             }
-            return newData || [];
-        }
-        return result || [];
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
+                const newData = result.map((d) => d[pluck]);
+                if (newData.every((d) => d == null)) {
+                    throw new Error(`can't find property '${pluck}' of result`);
+                }
+                const hook = this.$state.get('HOOK');
+                if (hook)
+                    yield hook(newData || []);
+                return newData || [];
+            }
+            const hook = this.$state.get('HOOK');
+            if (hook)
+                yield hook(result || []);
+            return result || [];
+        });
     }
     /**
      *
      * execute data return Array
      * @return {promise<Array<any>>}
      */
-    async findMany() {
-        return await this.get();
+    findMany() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.get();
+        });
     }
     /**
      *
      * execute data return json of result
      * @return {promise<string>}
      */
-    async toJSON() {
-        if (this.$db.get('EXCEPT')?.length)
-            this.select(await this.exceptColumns());
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        if (this.$db.get('HIDDEN')?.length)
-            this._hiddenColumn(result);
-        return JSON.stringify(result);
+    toJSON() {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+                this.select(yield this.exceptColumns());
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+                this._hiddenColumn(result);
+            return JSON.stringify(result);
+        });
     }
     /**
      *
@@ -1356,12 +1440,14 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<Array>}
      */
-    async toArray(column = 'id') {
-        this.$db.set('SELECT', `${this.$constants('SELECT')} ${column}`);
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        const toArray = result.map((data) => data[column]);
-        return toArray;
+    toArray(column = 'id') {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${column}`);
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            const toArray = result.map((data) => data[column]);
+            return toArray;
+        });
     }
     /**
      *
@@ -1369,32 +1455,38 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    async count(column = 'id') {
-        this.$db.set('SELECT', [
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('COUNT')}(${column})`,
-            `${this.$constants('AS')} total`
-        ].join(' '));
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        return result?.shift()?.total || 0;
+    count(column = 'id') {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('COUNT')}(${column})`,
+                `${this.$constants('AS')} total`
+            ].join(' '));
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.total) || 0;
+        });
     }
     /**
      *
      * execute data return result is exists
      * @return {promise<boolean>}
      */
-    async exists() {
-        const result = await this._queryStatement([
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`,
-            `${this.$constants('LIMIT')} 1) ${this.$constants('AS')} 'exists'`
-        ].join(' '));
-        return !!result?.shift()?.exists || false;
+    exists() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield this.queryStatement([
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`,
+                `${this.$constants('LIMIT')} 1) ${this.$constants('AS')} 'exists'`
+            ].join(' '));
+            return !!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.exists) || false;
+        });
     }
     /**
      *
@@ -1402,15 +1494,18 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    async avg(column = 'id') {
-        this.$db.set('SELECT', [
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('AVG')}(${column})`,
-            `${this.$constants('AS')} avg`
-        ].join(' '));
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        return result?.shift()?.avg || 0;
+    avg(column = 'id') {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('AVG')}(${column})`,
+                `${this.$constants('AS')} avg`
+            ].join(' '));
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.avg) || 0;
+        });
     }
     /**
      *
@@ -1418,11 +1513,14 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    async sum(column = 'id') {
-        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('SUM')}(${column}) ${this.$constants('AS')} sum`);
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        return result?.shift()?.sum || 0;
+    sum(column = 'id') {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('SUM')}(${column}) ${this.$constants('AS')} sum`);
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.sum) || 0;
+        });
     }
     /**
      *
@@ -1430,11 +1528,14 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    async max(column = 'id') {
-        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MAX')}(${column}) ${this.$constants('AS')} max`);
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        return result?.shift()?.max || 0;
+    max(column = 'id') {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MAX')}(${column}) ${this.$constants('AS')} max`);
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.max) || 0;
+        });
     }
     /**
      *
@@ -1442,48 +1543,57 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    async min(column = 'id') {
-        this.$db.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MIN')}(${column}) ${this.$constants('AS')} min`);
-        const sql = this._buildQuery();
-        const result = await this._queryStatement(sql);
-        return result?.shift()?.min || 0;
+    min(column = 'id') {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MIN')}(${column}) ${this.$constants('AS')} min`);
+            const sql = this._buildQuery();
+            const result = yield this.queryStatement(sql);
+            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.min) || 0;
+        });
     }
     /**
      *
      * delete data from database
      * @return {promise<boolean>}
      */
-    async delete() {
-        if (!this.$db.get('WHERE')) {
-            throw new Error("can't delete without where condition");
-        }
-        this.$db.set('DELETE', [
-            `${this.$constants('DELETE')}`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`
-        ].join(' '));
-        const result = await this._actionStatement({ sql: this.$db.get('DELETE') });
-        if (result)
-            return !!result ?? false;
-        return false;
+    delete() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.$state.get('WHERE')) {
+                throw new Error("can't delete without where condition");
+            }
+            this.$state.set('DELETE', [
+                `${this.$constants('DELETE')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`
+            ].join(' '));
+            const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
+            if (result)
+                return (_a = !!result) !== null && _a !== void 0 ? _a : false;
+            return false;
+        });
     }
     /**
      *
      * delete data from database ignore where condition
      * @return {promise<boolean>}
      */
-    async forceDelete() {
-        this.$db.set('DELETE', [
-            `${this.$constants('DELETE')}`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`
-        ].join(' '));
-        const result = await this._actionStatement({ sql: this.$db.get('DELETE') });
-        if (result)
-            return !!result ?? false;
-        return false;
+    forceDelete() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('DELETE', [
+                `${this.$constants('DELETE')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`
+            ].join(' '));
+            const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
+            if (result)
+                return (_a = !!result) !== null && _a !== void 0 ? _a : false;
+            return false;
+        });
     }
     /**
      *
@@ -1491,38 +1601,41 @@ class Database extends AbstractDatabase_1.default {
      * @param {string} column
      * @return {promise<Array>}
      */
-    async getGroupBy(column) {
-        this.$db.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
-        this.$db.set('SELECT', [
-            `${this.$db.get('SELECT')}`,
-            `, ${this.$constants('GROUP_CONCAT')}(id)`,
-            `${this.$constants('AS')} data`
-        ].join(' '));
-        const sql = this._buildQuery();
-        const results = await this._queryStatement(sql);
-        let data = [];
-        results.forEach((result) => {
-            const splits = result?.data?.split(',') ?? '0';
-            splits.forEach((split) => data = [...data, split]);
-        });
-        const sqlGroups = [
-            `${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$constants('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$constants('WHERE')} id ${this.$constants('IN')}`,
-            `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
-        ].join(' ');
-        const groups = await this._queryStatement(sqlGroups);
-        const resultData = results.map((result) => {
-            const id = result[column];
-            const newData = groups.filter((data) => data[column] === id);
-            return ({
-                [column]: id,
-                data: newData
+    getGroupBy(column) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
+            this.$state.set('SELECT', [
+                `${this.$state.get('SELECT')}`,
+                `, ${this.$constants('GROUP_CONCAT')}(id)`,
+                `${this.$constants('AS')} data`
+            ].join(' '));
+            const sql = this._buildQuery();
+            const results = yield this.queryStatement(sql);
+            let data = [];
+            results.forEach((result) => {
+                var _a, _b;
+                const splits = (_b = (_a = result === null || result === void 0 ? void 0 : result.data) === null || _a === void 0 ? void 0 : _a.split(',')) !== null && _b !== void 0 ? _b : '0';
+                splits.forEach((split) => data = [...data, split]);
             });
+            const sqlGroups = [
+                `${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$constants('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} id ${this.$constants('IN')}`,
+                `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
+            ].join(' ');
+            const groups = yield this.queryStatement(sqlGroups);
+            const resultData = results.map((result) => {
+                const id = result[column];
+                const newData = groups.filter((data) => data[column] === id);
+                return ({
+                    [column]: id,
+                    data: newData
+                });
+            });
+            return resultData;
         });
-        return resultData;
     }
     /**
      *
@@ -1530,44 +1643,49 @@ class Database extends AbstractDatabase_1.default {
      * @param {string} column
      * @return {promise<Array>}
      */
-    async findManyGroupBy(column) {
-        return await this.getGroupBy(column);
+    findManyGroupBy(column) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.getGroupBy(column);
+        });
     }
     /**
      * execute data when save *action [insert , update]
      * @return {Promise<any>} promise
      */
-    async save() {
-        const attributes = this.$attributes;
-        if (Object.keys(attributes)?.length) {
-            while (true) {
-                if (this.$db.get('WHERE')) {
-                    const query = this._queryUpdate(attributes);
-                    this.$db.set('UPDATE', [
-                        `${this.$constants('UPDATE')}`,
-                        `${this.$db.get('TABLE_NAME')}`,
+    save() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const attributes = this.$attributes;
+            if (attributes != null) {
+                while (true) {
+                    if (this.$state.get('WHERE')) {
+                        const query = this._queryUpdate(attributes);
+                        this.$state.set('UPDATE', [
+                            `${this.$constants('UPDATE')}`,
+                            `${this.$state.get('TABLE_NAME')}`,
+                            `${query}`
+                        ].join(' '));
+                        this.$state.set('SAVE', 'UPDATE');
+                        break;
+                    }
+                    const query = this._queryInsert(attributes);
+                    this.$state.set('INSERT', [
+                        `${this.$constants('INSERT')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
                         `${query}`
                     ].join(' '));
-                    this.$db.set('SAVE', 'UPDATE');
+                    this.$state.set('SAVE', 'INSERT');
                     break;
                 }
-                const query = this._queryInsert(attributes);
-                this.$db.set('INSERT', [
-                    `${this.$constants('INSERT')}`,
-                    `${this.$db.get('TABLE_NAME')}`,
-                    `${query}`
-                ].join(' '));
-                this.$db.set('SAVE', 'INSERT');
-                break;
             }
-        }
-        switch (this.$db.get('SAVE')) {
-            case 'INSERT_MULTIPLE': return await this._createMultiple();
-            case 'INSERT': return await this._create();
-            case 'UPDATE': return await this._update();
-            case 'INSERT_NOT_EXISTS': return await this._insertNotExists();
-            case 'UPDATE_OR_INSERT': return await this._updateOrInsert();
-        }
+            switch (this.$state.get('SAVE')) {
+                case 'INSERT_MULTIPLE': return yield this._createMultiple();
+                case 'INSERT': return yield this._create();
+                case 'UPDATE': return yield this._update();
+                case 'INSERT_NOT_EXISTS': return yield this._insertNotExists();
+                case 'UPDATE_OR_INSERT': return yield this._updateOrInsert();
+                default: throw new Error(`unknown this [${this.$state.get('SAVE')}]`);
+            }
+        });
     }
     /**
      *
@@ -1575,16 +1693,18 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    async showColumns(table = this.$db.get('TABLE_NAME')) {
-        const sql = [
-            `${this.$constants('SHOW')}`,
-            `${this.$constants('COLUMNS')}`,
-            `${this.$constants('FROM')}`,
-            `\`${table.replace(/\`/g, '')}\``
-        ].join(' ');
-        const rawColumns = await this._queryStatement(sql);
-        const columns = rawColumns.map((column) => column.Field);
-        return columns;
+    showColumns(table = this.$state.get('TABLE_NAME')) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `\`${table.replace(/\`/g, '')}\``
+            ].join(' ');
+            const rawColumns = yield this.queryStatement(sql);
+            const columns = rawColumns.map((column) => column.Field);
+            return columns;
+        });
     }
     /**
      *
@@ -1592,39 +1712,41 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    async showSchemas(table = this.$db.get('TABLE_NAME')) {
-        const sql = [
-            `${this.$constants('SHOW')}`,
-            `${this.$constants('COLUMNS')}`,
-            `${this.$constants('FROM')}`,
-            `\`${table.replace(/\`/g, '')}\``
-        ].join(' ');
-        const raw = await this._queryStatement(sql);
-        const schemas = raw.map((r) => {
-            const schema = [];
-            schema.push(`${r.Field}`);
-            schema.push(`${r.Type}`);
-            if (r.Null === 'YES') {
-                schema.push(`NULL`);
-            }
-            if (r.Null === 'NO') {
-                schema.push(`NOT NULL`);
-            }
-            if (r.Key === 'PRI') {
-                schema.push(`PRIMARY KEY`);
-            }
-            if (r.Key === 'UNI') {
-                schema.push(`UNIQUE`);
-            }
-            if (r.Default) {
-                schema.push(`DEFAULT '${r.Default}'`);
-            }
-            if (r.Extra) {
-                schema.push(`${r.Extra.toUpperCase()}`);
-            }
-            return schema.join(' ');
+    showSchemas(table = this.$state.get('TABLE_NAME')) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `\`${table.replace(/\`/g, '')}\``
+            ].join(' ');
+            const raw = yield this.queryStatement(sql);
+            const schemas = raw.map((r) => {
+                const schema = [];
+                schema.push(`${r.Field}`);
+                schema.push(`${r.Type}`);
+                if (r.Null === 'YES') {
+                    schema.push(`NULL`);
+                }
+                if (r.Null === 'NO') {
+                    schema.push(`NOT NULL`);
+                }
+                if (r.Key === 'PRI') {
+                    schema.push(`PRIMARY KEY`);
+                }
+                if (r.Key === 'UNI') {
+                    schema.push(`UNIQUE`);
+                }
+                if (r.Default) {
+                    schema.push(`DEFAULT '${r.Default}'`);
+                }
+                if (r.Extra) {
+                    schema.push(`${r.Extra.toUpperCase()}`);
+                }
+                return schema.join(' ');
+            });
+            return schemas;
         });
-        return schemas;
     }
     /**
      *
@@ -1632,20 +1754,22 @@ class Database extends AbstractDatabase_1.default {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    async showValues(table = this.$db.get('TABLE_NAME')) {
-        const sql = [
-            `${this.$constants('SELECT')}`,
-            '*',
-            `${this.$constants('FROM')}`,
-            `\`${table.replace(/\`/g, '')}\``
-        ].join(' ');
-        const raw = await this._queryStatement(sql);
-        const values = raw.map((value) => {
-            return `(${Object.values(value).map((v) => {
-                return v == null ? 'NULL' : `'${v}'`;
-            }).join(',')})`;
+    showValues(table = this.$state.get('TABLE_NAME')) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SELECT')}`,
+                '*',
+                `${this.$constants('FROM')}`,
+                `\`${table.replace(/\`/g, '')}\``
+            ].join(' ');
+            const raw = yield this.queryStatement(sql);
+            const values = raw.map((value) => {
+                return `(${Object.values(value).map((v) => {
+                    return v == null ? 'NULL' : `'${v}'`;
+                }).join(',')})`;
+            });
+            return values;
         });
-        return values;
     }
     /**
      *
@@ -1661,47 +1785,49 @@ class Database extends AbstractDatabase_1.default {
 
      * @return {Promise<boolean>}
      */
-    async backup({ database, to }) {
-        const tables = await this._queryStatement('SHOW TABLES');
-        let backup = [];
-        for (const t of tables) {
-            const table = String(Object.values(t).shift());
-            const schemas = await this.showSchemas(table);
-            const createTableSQL = [
-                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                `\`${database}.${table}\``,
-                `(${schemas.join(',')})`,
-                `${this.$constants('ENGINE')}`,
-            ];
-            const values = await this.showValues(table);
-            let valueSQL = [];
-            if (values.length) {
-                const columns = await this.showColumns(table);
-                valueSQL = [
-                    `${this.$constants('INSERT')}`,
+    backup({ database, to }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const tables = yield this.queryStatement('SHOW TABLES');
+            let backup = [];
+            for (const t of tables) {
+                const table = String(Object.values(t).shift());
+                const schemas = yield this.showSchemas(table);
+                const createTableSQL = [
+                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                     `\`${database}.${table}\``,
-                    `(${columns.map((column) => `\`${column}\``).join(',')})`,
-                    `${this.$constants('VALUES')} ${values.join(',')}`
+                    `(${schemas.join(',')})`,
+                    `${this.$constants('ENGINE')}`,
+                ];
+                const values = yield this.showValues(table);
+                let valueSQL = [];
+                if (values.length) {
+                    const columns = yield this.showColumns(table);
+                    valueSQL = [
+                        `${this.$constants('INSERT')}`,
+                        `\`${database}.${table}\``,
+                        `(${columns.map((column) => `\`${column}\``).join(',')})`,
+                        `${this.$constants('VALUES')} ${values.join(',')}`
+                    ];
+                }
+                backup = [
+                    ...backup,
+                    {
+                        table: createTableSQL.join(' '),
+                        values: valueSQL.join(' '),
+                    }
                 ];
             }
-            backup = [
-                ...backup,
-                {
-                    table: createTableSQL.join(' '),
-                    values: valueSQL.join(' '),
+            if (to != null && Object.keys(to).length)
+                this.connection(to);
+            yield this.queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
+            for (const b of backup) {
+                yield this.queryStatement(b.table);
+                if (b.values) {
+                    yield this.queryStatement(b.values);
                 }
-            ];
-        }
-        if (to != null && Object.keys(to).length)
-            this.connection(to);
-        await this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
-        for (const b of backup) {
-            await this._queryStatement(b.table);
-            if (b.values) {
-                await this._queryStatement(b.values);
             }
-        }
-        return true;
+            return true;
+        });
     }
     /**
      *
@@ -1718,354 +1844,352 @@ class Database extends AbstractDatabase_1.default {
 
      * @return {Promise<boolean>}
      */
-    async backupToFile({ filePath, database, connection }) {
-        const tables = await this._queryStatement('SHOW TABLES');
-        let backup = [];
-        for (const t of tables) {
-            const table = String(Object.values(t)?.shift());
-            const schemas = await this.showSchemas(table);
-            const createTableSQL = [
-                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                `\`${table}\``,
-                `(${schemas.join(',')})`,
-                `${this.$constants('ENGINE')};`,
-            ];
-            const values = await this.showValues(table);
-            let valueSQL = [];
-            if (values.length) {
-                const columns = await this.showColumns(table);
-                valueSQL = [
-                    `${this.$constants('INSERT')}`,
+    backupToFile({ filePath, database, connection }) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const tables = yield this.queryStatement(this.$constants('SHOW_TABLES'));
+            let backup = [];
+            for (const t of tables) {
+                const table = String((_a = Object.values(t)) === null || _a === void 0 ? void 0 : _a.shift());
+                const schemas = yield this.showSchemas(table);
+                const createTableSQL = [
+                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                     `\`${table}\``,
-                    `(${columns.map((column) => `\`${column}\``).join(',')})`,
-                    `${this.$constants('VALUES')} ${values.join(',')};`
+                    `(${schemas.join(',')})`,
+                    `${this.$constants('ENGINE')};`,
+                ];
+                const values = yield this.showValues(table);
+                let valueSQL = [];
+                if (values.length) {
+                    const columns = yield this.showColumns(table);
+                    valueSQL = [
+                        `${this.$constants('INSERT')}`,
+                        `\`${table}\``,
+                        `(${columns.map((column) => `\`${column}\``).join(',')})`,
+                        `${this.$constants('VALUES')} ${values.join(',')};`
+                    ];
+                }
+                backup = [
+                    ...backup,
+                    {
+                        table: createTableSQL.join(' '),
+                        values: valueSQL.join(' ')
+                    }
                 ];
             }
-            backup = [
-                ...backup,
-                {
-                    table: createTableSQL.join(' '),
-                    values: valueSQL.join(' ')
-                }
+            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
+                this.connection(connection);
+            let sql = [
+                `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
+                `START TRANSACTION;`,
+                `SET time_zone = "+00:00";`,
+                `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
+                `USE \`${database}\`;`
             ];
-        }
-        if (connection != null && Object.keys(connection)?.length)
-            this.connection(connection);
-        let sql = [
-            `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
-            `START TRANSACTION;`,
-            `SET time_zone = "+00:00";`,
-            `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
-            `USE \`${database}\`;`
-        ];
-        for (const b of backup) {
-            sql = [...sql, b.table];
-            if (b.values) {
-                sql = [...sql, b.values];
+            for (const b of backup) {
+                sql = [...sql, b.table];
+                if (b.values) {
+                    sql = [...sql, b.values];
+                }
             }
-        }
-        fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)([...sql, 'COMMIT;'].join('\n'), {
-            language: 'spark',
-            tabWidth: 2,
-            keywordCase: 'upper',
-            linesBetweenQueries: 1,
-        }));
-        return;
+            fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)([...sql, 'COMMIT;'].join('\n'), {
+                language: 'spark',
+                tabWidth: 2,
+                keywordCase: 'upper',
+                linesBetweenQueries: 1,
+            }));
+            return;
+        });
     }
     /**
      *
      * fake data
      * @param {number} rows number of rows
-     * @return {promise<any}
+     * @return {promise<any>}
      */
-    async faker(rows = 1) {
-        let data = [];
-        for (let row = 0; row < rows; row++) {
-            if (this.$db.get('TABLE_NAME') === '' || this.$db.get('TABLE_NAME') == null) {
-                throw new Error("unknow this table");
-            }
+    faker(rows = 1) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = [];
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('FIELDS')}`,
                 `${this.$constants('FROM')}`,
-                `${this.$db.get('TABLE_NAME')}`
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' ');
-            const fields = await this._queryStatement(sql);
-            let columnAndValue = {};
-            for (const { Field: field, Type: type } of fields) {
-                const passed = field.toLowerCase() === 'id' ||
-                    field.toLowerCase() === '_id' ||
-                    field.toLowerCase() === 'uuid';
-                if (passed)
-                    continue;
-                columnAndValue = {
-                    ...columnAndValue,
-                    [field]: this.$utils.faker(type)
-                };
+            const fields = yield this.queryStatement(sql);
+            for (let row = 0; row < rows; row++) {
+                if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
+                    throw new Error("unknow this table");
+                }
+                let columnAndValue = {};
+                for (const { Field: field, Type: type } of fields) {
+                    const passed = field.toLowerCase() === 'id' ||
+                        field.toLowerCase() === '_id' ||
+                        field.toLowerCase() === 'uuid';
+                    if (passed)
+                        continue;
+                    columnAndValue = Object.assign(Object.assign({}, columnAndValue), { [field]: this.$utils.faker(type) });
+                }
+                data = [...data, columnAndValue];
             }
-            data = [...data, columnAndValue];
-        }
-        const query = this._queryInsertMultiple(data);
-        this.$db.set('INSERT', [
-            `${this.$constants('INSERT')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        this.$db.set('SAVE', 'INSERT_MULTIPLE');
-        return this.save();
+            const query = this._queryInsertMultiple(data);
+            this.$state.set('INSERT', [
+                `${this.$constants('INSERT')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${query}`
+            ].join(' '));
+            this.$state.set('SAVE', 'INSERT_MULTIPLE');
+            return this.save();
+        });
     }
     /**
      *
      * truncate of table
      * @return {promise<boolean>}
      */
-    async truncate() {
-        const sql = [
-            `${this.$constants('TRUNCATE_TABLE')}`,
-            `${this.$db.get('TABLE_NAME')}`
-        ].join(' ');
-        await this._queryStatement(sql);
-        return true;
+    truncate() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('TRUNCATE_TABLE')}`,
+                `${this.$state.get('TABLE_NAME')}`
+            ].join(' ');
+            yield this.queryStatement(sql);
+            return true;
+        });
     }
     /**
      *
      * drop of table
      * @return {promise<boolean>}
      */
-    async drop() {
-        const sql = [
-            `${this.$constants('DROP_TABLE')}`,
-            `${this.$db.get('TABLE_NAME')}`
-        ].join(' ');
-        await this._queryStatement(sql);
-        return true;
+    drop() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('DROP_TABLE')}`,
+                `${this.$state.get('TABLE_NAME')}`
+            ].join(' ');
+            yield this.queryStatement(sql);
+            return true;
+        });
     }
     _queryWhereIsExists() {
-        return this.$db.get('WHERE')?.includes(this.$constants('WHERE')) || false;
+        var _a;
+        return ((_a = this.$state.get('WHERE')) === null || _a === void 0 ? void 0 : _a.includes(this.$constants('WHERE'))) || false;
     }
     _bindTableAndColumnInQueryWhere(column) {
-        return `${this.$db.get('TABLE_NAME')}.\`${column}\``;
+        return `${this.$state.get('TABLE_NAME')}.\`${column}\``;
     }
-    async _insertNotExists() {
-        if (!this.$db.get('WHERE'))
-            throw new Error("Can't insert not exists without where condition");
-        let sql = [
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`,
-            `${this.$constants('LIMIT')} 1)`,
-            `${this.$constants('AS')} 'exists'`
-        ].join(' ');
-        const [{ exists: result }] = await this._queryStatement(sql);
-        const check = !!Number.parseInt(result);
-        switch (check) {
-            case false: {
-                const [result, id] = await this._actionStatement({
-                    sql: this.$db.get('INSERT'),
-                    returnId: true
-                });
-                if (this.$db.get('VOID'))
-                    return Promise.resolve();
-                if (result) {
-                    const sql = [
-                        `${this.$db.get('SELECT')}`,
-                        `${this.$db.get('FROM')}`,
-                        `${this.$db.get('TABLE_NAME')}`,
-                        `${this.$constants('WHERE')} id = ${id}`
-                    ].join(' ');
-                    const data = await this._queryStatement(sql);
-                    return data?.shift() || null;
+    _insertNotExists() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.$state.get('WHERE'))
+                throw new Error("Can't insert not exists without where condition");
+            let sql = [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`,
+                `${this.$constants('LIMIT')} 1)`,
+                `${this.$constants('AS')} 'exists'`
+            ].join(' ');
+            const [{ exists: result }] = yield this.queryStatement(sql);
+            const check = !!Number.parseInt(result);
+            switch (check) {
+                case false: {
+                    const [result, id] = yield this.actionStatement({
+                        sql: this.$state.get('INSERT'),
+                        returnId: true
+                    });
+                    if (this.$state.get('VOID'))
+                        return null;
+                    if (result) {
+                        const sql = [
+                            `${this.$state.get('SELECT')}`,
+                            `${this.$state.get('FROM')}`,
+                            `${this.$state.get('TABLE_NAME')}`,
+                            `${this.$constants('WHERE')} id = ${id}`
+                        ].join(' ');
+                        const data = yield this.queryStatement(sql);
+                        return (data === null || data === void 0 ? void 0 : data.shift()) || null;
+                    }
+                    return null;
                 }
-                return null;
+                default: return null;
             }
-            case true: {
-                if (this.$db.get('VOID'))
-                    return Promise.resolve();
-                return null;
-            }
-            default: {
-                if (this.$db.get('VOID'))
-                    return Promise.resolve();
-                return null;
-            }
-        }
+        });
     }
-    _setupPool() {
-        let pool = connection_1.Pool;
-        return {
-            load: () => pool,
-            get: async (sql) => await pool.query(sql),
-            set: (newConnection) => {
-                pool = newConnection;
-                return;
-            }
-        };
+    queryStatement(sql) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.$state.get('DEBUG'))
+                this.$utils.consoleDebug(sql);
+            const result = yield this.$pool.query(sql);
+            return result;
+        });
     }
-    async _queryStatement(sql) {
-        if (this.$db.get('DEBUG'))
-            this.$utils.consoleDebug(sql);
-        return await this.$pool.get(sql);
-    }
-    async _actionStatement({ sql, returnId = false }) {
-        try {
-            if (this.$db.get('DEBUG'))
+    actionStatement({ sql, returnId = false }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.$state.get('DEBUG'))
                 this.$utils.consoleDebug(sql);
             if (returnId) {
-                const result = await this.$pool.get(sql);
+                const result = yield this.$pool.query(sql);
                 return [result.affectedRows, result.insertId];
             }
-            const { affectedRows: result } = await this.$pool.get(sql);
+            const { affectedRows: result } = yield this.$pool.query(sql);
             return result;
-        }
-        catch (err) {
-            throw new Error(err.message);
-        }
-    }
-    async _create() {
-        const [result, id] = await this._actionStatement({
-            sql: this.$db.get('INSERT'),
-            returnId: true
         });
-        if (this.$db.get('VOID'))
-            return Promise.resolve();
-        if (result) {
-            const sql = [
-                `${this.$db.get('SELECT')}`,
-                `${this.$db.get('FROM')}`,
-                `${this.$db.get('TABLE_NAME')}`,
-                `${this.$constants('WHERE')} id = ${id}`
-            ].join(' ');
-            const data = await this._queryStatement(sql);
-            const result = data?.shift() || null;
-            this.$db.set('RESULT', result);
-            return result;
-        }
-        return null;
     }
-    async _createMultiple() {
-        const [result, id] = await this._actionStatement({
-            sql: this.$db.get('INSERT'),
-            returnId: true
-        });
-        if (this.$db.get('VOID'))
-            return Promise.resolve();
-        if (result) {
-            const arrayId = [...Array(result)].map((_, i) => i + id);
-            const sql = [
-                `${this.$db.get('SELECT')}`,
-                `${this.$db.get('FROM')}`,
-                `${this.$db.get('TABLE_NAME')}`,
-                `${this.$constants('WHERE')} id`,
-                `${this.$constants('IN')} (${arrayId})`
-            ].join(' ');
-            const data = await this._queryStatement(sql);
-            const resultData = data || null;
-            this.$db.set('RESULT', resultData);
-            return resultData;
-        }
-        return null;
-    }
-    async _updateOrInsert() {
-        if (!this.$db.get('WHERE')) {
-            throw new Error("Can't update or insert without where condition");
-        }
-        let sql = [
-            `${this.$constants('SELECT')}`,
-            `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`,
-            `${this.$constants('LIMIT')} 1)`,
-            `${this.$constants('AS')} 'exists'`
-        ].join(' ');
-        let check = false;
-        const [{ exists: result }] = await this._queryStatement(sql);
-        check = !!parseInt(result);
-        switch (check) {
-            case false: {
-                const [result, id] = await this._actionStatement({
-                    sql: this.$db.get('INSERT'),
-                    returnId: true
-                });
-                if (this.$db.get('VOID'))
-                    return Promise.resolve();
-                if (result) {
-                    const sql = [
-                        `${this.$db.get('SELECT')}`,
-                        `${this.$db.get('FROM')}`,
-                        `${this.$db.get('TABLE_NAME')}`,
-                        `${this.$constants('WHERE')} id = ${id}`
-                    ].join(' ');
-                    const data = await this._queryStatement(sql);
-                    const resultData = { ...data?.shift(), action_status: 'insert' } || null;
-                    this.$db.set('RESULT', resultData);
-                    return resultData;
-                }
+    _create() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [result, id] = yield this.actionStatement({
+                sql: this.$state.get('INSERT'),
+                returnId: true
+            });
+            if (this.$state.get('VOID'))
                 return null;
+            if (result) {
+                const sql = [
+                    `${this.$state.get('SELECT')}`,
+                    `${this.$state.get('FROM')}`,
+                    `${this.$state.get('TABLE_NAME')}`,
+                    `${this.$constants('WHERE')} id = ${id}`
+                ].join(' ');
+                const data = yield this.queryStatement(sql);
+                const result = (data === null || data === void 0 ? void 0 : data.shift()) || null;
+                this.$state.set('RESULT', result);
+                return result;
             }
-            case true: {
-                const result = await this._actionStatement({
-                    sql: [
-                        `${this.$db.get('UPDATE')}`,
-                        `${this.$db.get('WHERE')}`
-                    ].join(' ')
-                });
-                if (this.$db.get('VOID'))
-                    return Promise.resolve();
-                if (result) {
-                    const data = await this._queryStatement([
-                        `${this.$db.get('SELECT')}`,
-                        `${this.$db.get('FROM')}`,
-                        `${this.$db.get('TABLE_NAME')}`,
-                        `${this.$db.get('WHERE')}`
-                    ].join(' '));
-                    if (data?.length > 1) {
-                        for (const val of data) {
-                            val.action_status = 'update';
-                        }
-                        return data || [];
-                    }
-                    return { ...data?.shift(), action_status: 'update' } || null;
-                }
-                return null;
-            }
-            default: {
-                return null;
-            }
-        }
-    }
-    async _update(ignoreWhere = false) {
-        if (!this.$db.get('WHERE') && !ignoreWhere)
-            throw new Error("can't update without where condition");
-        const result = await this._actionStatement({
-            sql: [
-                `${this.$db.get('UPDATE')}`, `${this.$db.get('WHERE')}`
-            ].join(' ')
-        });
-        if (this.$db.get('VOID'))
-            return Promise.resolve();
-        if (!result)
             return null;
-        const sql = [
-            `${this.$db.get('SELECT')}`,
-            `${this.$db.get('FROM')}`,
-            `${this.$db.get('TABLE_NAME')}`,
-            `${this.$db.get('WHERE')}`
-        ].join(' ');
-        const data = await this._queryStatement(sql);
-        if (data?.length > 1)
-            return data || [];
-        const res = data?.shift() || null;
-        this.$db.set('RESULT', res);
-        return res;
+        });
+    }
+    _createMultiple() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [result, id] = yield this.actionStatement({
+                sql: this.$state.get('INSERT'),
+                returnId: true
+            });
+            if (this.$state.get('VOID'))
+                return null;
+            if (result) {
+                const arrayId = [...Array(result)].map((_, i) => i + id);
+                const sql = [
+                    `${this.$state.get('SELECT')}`,
+                    `${this.$state.get('FROM')}`,
+                    `${this.$state.get('TABLE_NAME')}`,
+                    `${this.$constants('WHERE')} id`,
+                    `${this.$constants('IN')} (${arrayId})`
+                ].join(' ');
+                const data = yield this.queryStatement(sql);
+                const resultData = data || null;
+                this.$state.set('RESULT', resultData);
+                return resultData;
+            }
+            return null;
+        });
+    }
+    _updateOrInsert() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.$state.get('WHERE')) {
+                throw new Error("Can't update or insert without where condition");
+            }
+            let sql = [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+                `*`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`,
+                `${this.$constants('LIMIT')} 1)`,
+                `${this.$constants('AS')} 'exists'`
+            ].join(' ');
+            let check = false;
+            const [{ exists: result }] = yield this.queryStatement(sql);
+            check = !!parseInt(result);
+            switch (check) {
+                case false: {
+                    const [result, id] = yield this.actionStatement({
+                        sql: this.$state.get('INSERT'),
+                        returnId: true
+                    });
+                    if (this.$state.get('VOID'))
+                        return null;
+                    if (result) {
+                        const sql = [
+                            `${this.$state.get('SELECT')}`,
+                            `${this.$state.get('FROM')}`,
+                            `${this.$state.get('TABLE_NAME')}`,
+                            `${this.$constants('WHERE')} id = ${id}`
+                        ].join(' ');
+                        const data = yield this.queryStatement(sql);
+                        const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'insert' }) || null;
+                        this.$state.set('RESULT', resultData);
+                        return resultData;
+                    }
+                    return null;
+                }
+                case true: {
+                    const result = yield this.actionStatement({
+                        sql: [
+                            `${this.$state.get('UPDATE')}`,
+                            `${this.$state.get('WHERE')}`
+                        ].join(' ')
+                    });
+                    if (this.$state.get('VOID'))
+                        return null;
+                    if (result) {
+                        const data = yield this.queryStatement([
+                            `${this.$state.get('SELECT')}`,
+                            `${this.$state.get('FROM')}`,
+                            `${this.$state.get('TABLE_NAME')}`,
+                            `${this.$state.get('WHERE')}`
+                        ].join(' '));
+                        if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
+                            for (const val of data) {
+                                val.action_status = 'update';
+                            }
+                            return data || [];
+                        }
+                        return Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'update' }) || null;
+                    }
+                    return null;
+                }
+                default: {
+                    return null;
+                }
+            }
+        });
+    }
+    _update(ignoreWhere = false) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.$state.get('WHERE') && !ignoreWhere)
+                throw new Error("can't update without where condition");
+            const result = yield this.actionStatement({
+                sql: [
+                    `${this.$state.get('UPDATE')}`, `${this.$state.get('WHERE')}`
+                ].join(' ')
+            });
+            if (this.$state.get('VOID'))
+                return null;
+            if (!result)
+                return null;
+            const sql = [
+                `${this.$state.get('SELECT')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$state.get('WHERE')}`
+            ].join(' ');
+            const data = yield this.queryStatement(sql);
+            if ((data === null || data === void 0 ? void 0 : data.length) > 1)
+                return data || [];
+            const res = (data === null || data === void 0 ? void 0 : data.shift()) || null;
+            this.$state.set('RESULT', res);
+            return res;
+        });
     }
     _hiddenColumn(data) {
-        const hidden = this.$db.get('HIDDEN');
-        if (Object.keys(data)?.length) {
+        var _a;
+        const hidden = this.$state.get('HIDDEN');
+        if ((_a = Object.keys(data)) === null || _a === void 0 ? void 0 : _a.length) {
             hidden.forEach((column) => {
                 data.forEach((objColumn) => {
                     delete objColumn[column];
@@ -2076,6 +2200,8 @@ class Database extends AbstractDatabase_1.default {
     }
     _queryUpdate(data) {
         const values = Object.entries(data).map(([column, value]) => {
+            if (typeof value === 'string')
+                value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
             return `${column} = ${value == null || value === 'NULL'
                 ? 'NULL'
                 : typeof value === 'string' && value.startsWith(this.$constants('RAW'))
@@ -2087,6 +2213,8 @@ class Database extends AbstractDatabase_1.default {
     _queryInsert(data) {
         const columns = Object.keys(data).map((column) => `\`${column}\``);
         const values = Object.values(data).map((value) => {
+            if (typeof value === 'string')
+                value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
             return `${value == null || value === 'NULL'
                 ? 'NULL'
                 : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
@@ -2098,9 +2226,12 @@ class Database extends AbstractDatabase_1.default {
         ].join(' ');
     }
     _queryInsertMultiple(data) {
+        var _a;
         let values = [];
         for (let objects of data) {
             const vals = Object.values(objects).map((value) => {
+                if (typeof value === 'string')
+                    value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
                 return `${value == null || value === 'NULL'
                     ? 'NULL'
                     : typeof value === 'string' && value.includes(this.$constants('RAW'))
@@ -2109,7 +2240,7 @@ class Database extends AbstractDatabase_1.default {
             });
             values.push(`(${vals.join(',')})`);
         }
-        const columns = Object.keys([...data]?.shift()).map((column) => `\`${column}\``);
+        const columns = Object.keys((_a = [...data]) === null || _a === void 0 ? void 0 : _a.shift()).map((column) => `\`${column}\``);
         return [
             `(${columns})`,
             `${this.$constants('VALUES')}`,
@@ -2136,58 +2267,67 @@ class Database extends AbstractDatabase_1.default {
     _buildQuery() {
         let sql = [];
         while (true) {
-            if (this.$db.get('INSERT')) {
+            if (this.$state.get('INSERT')) {
                 sql = [
-                    this.$db.get('INSERT')
+                    this.$state.get('INSERT')
                 ];
                 break;
             }
-            if (this.$db.get('UPDATE')) {
+            if (this.$state.get('UPDATE')) {
                 sql = [
-                    this.$db.get('UPDATE'),
-                    this.$db.get('WHERE')
+                    this.$state.get('UPDATE'),
+                    this.$state.get('WHERE')
                 ];
                 break;
             }
-            if (this.$db.get('DELETE')) {
+            if (this.$state.get('DELETE')) {
                 sql = [
-                    this.$db.get('DELETE')
+                    this.$state.get('DELETE')
                 ];
                 break;
             }
             sql = [
-                this.$db.get('SELECT'),
-                this.$db.get('FROM'),
-                this.$db.get('TABLE_NAME'),
-                this.$db.get('JOIN'),
-                this.$db.get('WHERE'),
-                this.$db.get('GROUP_BY'),
-                this.$db.get('HAVING'),
-                this.$db.get('ORDER_BY'),
-                this.$db.get('LIMIT'),
-                this.$db.get('OFFSET')
+                this.$state.get('SELECT'),
+                this.$state.get('FROM'),
+                this.$state.get('TABLE_NAME'),
+                this.$state.get('JOIN'),
+                this.$state.get('WHERE'),
+                this.$state.get('GROUP_BY'),
+                this.$state.get('HAVING'),
+                this.$state.get('ORDER_BY'),
+                this.$state.get('LIMIT'),
+                this.$state.get('OFFSET')
             ];
             break;
         }
         return sql.filter(s => s !== '' || s == null).join(' ');
     }
-    _setupLogger() {
-        let logger = [];
-        return {
-            get: () => logger,
-            set: (data) => {
-                logger = [...logger, data];
-                return;
-            },
-            check: (data) => logger.indexOf(data) != -1
-        };
-    }
     _initialConnection() {
-        this.$pool = this._setupPool();
-        this.$logger = this._setupLogger();
         this.$utils = utils_1.default;
+        this.$pool = (() => {
+            let pool = connection_1.Pool;
+            return {
+                query: (sql) => __awaiter(this, void 0, void 0, function* () { return yield pool.query(sql); }),
+                get: () => pool,
+                set: (newConnection) => {
+                    pool = newConnection;
+                    return;
+                }
+            };
+        })();
+        this.$logger = (() => {
+            let logger = [];
+            return {
+                get: () => logger,
+                set: (data) => {
+                    logger = [...logger, data];
+                    return;
+                },
+                check: (data) => logger.indexOf(data) != -1
+            };
+        })();
         this.$constants = (name) => {
-            if (!name)
+            if (name == null)
                 return constants_1.CONSTANTS;
             if (!constants_1.CONSTANTS.hasOwnProperty(name.toUpperCase()))
                 throw new Error(`not found constants : ${name}`);

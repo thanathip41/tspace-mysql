@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Logger = void 0;
 class Logger {
-    SELF;
-    PROP = '';
     constructor(self, prop) {
+        this.PROP = '';
         this.SELF = self;
         this.PROP = prop;
         return this.initialize();
     }
     initialize() {
+        var _a;
         if (this.SELF == null)
             return;
         const runing = this.SELF[this.PROP];
@@ -27,7 +27,8 @@ class Logger {
             'hasMany',
             'belongsToMany',
             'constructor',
-            'boot'
+            'boot',
+            'define'
         ];
         const _use = this.PROP.substring(0, 3) !== 'use';
         const _private = this.PROP.charAt(0) !== '_';
@@ -41,7 +42,7 @@ class Logger {
         ].every((data) => data === true);
         if (!conditions)
             return;
-        return this.SELF.$logger?.set(this.PROP);
+        return (_a = this.SELF.$logger) === null || _a === void 0 ? void 0 : _a.set(this.PROP);
     }
 }
 exports.Logger = Logger;

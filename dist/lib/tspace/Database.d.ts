@@ -1,6 +1,5 @@
 import AbstractDatabase from './AbstractDatabase';
-import { Connection, ConnectionTransaction } from '../connection';
-import { Pagination, Backup, ConnectionOptions, BackupToFile } from './Interface';
+import { Pagination, Backup, ConnectionOptions, BackupToFile, Connection, ConnectionTransaction } from './Interface';
 declare class Database extends AbstractDatabase {
     constructor();
     /**
@@ -16,7 +15,7 @@ declare class Database extends AbstractDatabase {
      */
     except(...columns: Array<string>): this;
     /**
-     * data will return void
+     * data alaways will return void
      * @return {this} this
      */
     void(): this;
@@ -57,6 +56,14 @@ declare class Database extends AbstractDatabase {
      * @param {any?} value
      * @return {this}
      */
+    resetWhere(): this;
+    /**
+     * if has 2 arguments  default operator '='
+     * @param {string} column
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
     where(column: string, operator?: any, value?: any): this;
     /**
      * if has 2 arguments  default operator '='
@@ -84,7 +91,7 @@ declare class Database extends AbstractDatabase {
      * @param {string?} tableAndForeignKey
      * @return {this}
      */
-    whereReference(tableAndLocalKey: string, tableAndForeignKey?: any): this;
+    protected whereReference(tableAndLocalKey: string, tableAndForeignKey?: any): this;
     /**
      *
      * where exists
@@ -240,19 +247,19 @@ declare class Database extends AbstractDatabase {
      * @param {string?} column [column=id]
      * @return {this}
      */
-    latest(column?: string): this;
+    latest(...columns: Array<string>): this;
     /**
      *
      * @param {string?} column [column=id]
      * @return {this}
      */
-    oldest(column?: string): this;
+    oldest(...columns: Array<string>): this;
     /**
      *
      * @param {string?} column [column=id]
      * @return {this}
      */
-    groupBy(column?: string): this;
+    groupBy(...columns: Array<string>): this;
     /**
      *
      * @param {number=} number [number=1]
@@ -328,6 +335,12 @@ declare class Database extends AbstractDatabase {
      * @return {this} this this
      */
     dd(debug?: boolean): this;
+    /**
+     * hook function when execute returned result to callback function
+     * @param {Function} func function for callback result
+     * @return {this}
+    */
+    hook(func: Function): this;
     /**
      *
      * @param {object} data create not exists data
@@ -434,8 +447,8 @@ declare class Database extends AbstractDatabase {
      *
      * execute data page & limit
      * @param {?object} paginationOptions
-     * @param {number} paginationOptions.limit
-     * @param {number} paginationOptions.page
+     * @param {number} paginationOptions.limit default 15
+     * @param {number} paginationOptions.page default 1
      * @return {promise<Pagination>}
      */
     pagination(paginationOptions?: {
@@ -586,7 +599,9 @@ declare class Database extends AbstractDatabase {
      * execute data when save *action [insert , update]
      * @return {Promise<any>} promise
      */
-    save(): Promise<any>;
+    save(): Promise<{
+        [key: string]: any;
+    } | Array<any> | null | undefined>;
     /**
      *
      * show columns in table
@@ -643,7 +658,7 @@ declare class Database extends AbstractDatabase {
      *
      * fake data
      * @param {number} rows number of rows
-     * @return {promise<any}
+     * @return {promise<any>}
      */
     faker(rows?: number): Promise<any>;
     /**
@@ -661,9 +676,11 @@ declare class Database extends AbstractDatabase {
     private _queryWhereIsExists;
     private _bindTableAndColumnInQueryWhere;
     private _insertNotExists;
-    private _setupPool;
-    private _queryStatement;
-    private _actionStatement;
+    protected queryStatement(sql: string): Promise<Array<any>>;
+    protected actionStatement({ sql, returnId }: {
+        sql: string;
+        returnId?: boolean;
+    }): Promise<any>;
     private _create;
     private _createMultiple;
     private _updateOrInsert;
@@ -675,7 +692,6 @@ declare class Database extends AbstractDatabase {
     private _valueAndOperator;
     private _valueTrueFalse;
     private _buildQuery;
-    private _setupLogger;
     private _initialConnection;
 }
 export { Database };

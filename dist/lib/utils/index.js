@@ -24,8 +24,8 @@ const timestamp = () => {
 const date = () => {
     const d = new Date();
     const year = d.getFullYear();
-    const month = ("0" + (d.getMonth() + 1)).slice(-2);
-    const date = ("0" + d.getDate()).slice(-2);
+    const month = `0${(d.getMonth() + 1)}`.slice(-2);
+    const date = `0${(d.getDate())}`.slice(-2);
     const now = `${year}-${month}-${date}`;
     return now;
 };
@@ -34,15 +34,13 @@ const escape = (str) => {
         const check = str == null || str === true || str === false || Number.isInteger(str);
         if (check)
             return str;
-        const regx = /[`+#$&*=;\\|,\?~]/;
-        let res = str.split(regx).join("");
-        const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'OR ', 'SELECT ', 'FROM ', 'WHERE '];
+        const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'OR', 'SELECT ', 'FROM ', 'WHERE ', 'OR'];
         for (let i in regxs) {
-            if (res.includes(regxs[i])) {
-                res = res.split(regxs[i]).join("");
+            if (str.includes(regxs[i].toLocaleLowerCase())) {
+                str = str.split(regxs[i]).join("");
             }
         }
-        return res;
+        return str;
     }
     catch (e) {
         return str;
@@ -52,25 +50,20 @@ const escapeSubQuery = (str) => {
     const check = str == null || str === true || str === false || Number.isInteger(str);
     if (check)
         return str;
-    const regx = /[`+#$&;\\|\?~]/;
-    let result = str.split(regx).join("");
     const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'TRUNCATE'];
     for (let i in regxs) {
-        if (result.includes(regxs[i])) {
-            result = result.split(regxs[i]).join("");
+        if (str.includes(regxs[i])) {
+            str = str.split(regxs[i]).join("");
         }
     }
-    return result;
+    return str;
 };
 const columnRelation = (name) => {
-    const matches = name?.match(/[A-Z]/g) ?? [];
-    if (matches.length > 1) {
-        matches.forEach((matche, i) => {
-            if (i > 0)
-                name = name.replace(matche, `_${matche.toUpperCase()}`);
-        });
-    }
-    return `${name.toLocaleLowerCase()}`;
+    var _a;
+    const matches = (_a = name === null || name === void 0 ? void 0 : name.match(/[A-Z]/g)) !== null && _a !== void 0 ? _a : [];
+    if (matches.length < 1)
+        return `${name.toLocaleLowerCase()}`;
+    return name.replace(matches[0], `_${matches[0].toUpperCase()}`);
 };
 const generateUUID = () => {
     const date = +new Date();
@@ -90,12 +83,10 @@ const snakeCase = (obj) => {
         if (typeof (obj) !== "object")
             return obj;
         Object.entries(obj).forEach(([oldName, _]) => {
-            const newName = oldName.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
+            const newName = oldName.replace(/([A-Z])/g, (str) => `_${str.toLocaleLowerCase()}`);
             if (newName !== oldName) {
                 if (obj.hasOwnProperty(oldName)) {
-                    obj = { ...obj,
-                        [newName]: obj[oldName]
-                    };
+                    obj = Object.assign(Object.assign({}, obj), { [newName]: obj[oldName] });
                     delete obj[oldName];
                 }
             }
@@ -116,9 +107,7 @@ const camelCase = (obj) => {
             const newName = oldName.replace(/(.(\_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
             if (newName !== oldName) {
                 if (obj.hasOwnProperty(oldName)) {
-                    obj = { ...obj,
-                        [newName]: obj[oldName]
-                    };
+                    obj = Object.assign(Object.assign({}, obj), { [newName]: obj[oldName] });
                     delete obj[oldName];
                 }
             }
@@ -134,7 +123,7 @@ const camelCase = (obj) => {
 const consoleDebug = (debug) => {
     if (debug == null)
         return;
-    console.log(`\nSQL Statement: \x1b[33m${debug} \x1b[0m`);
+    console.log(`-----\n\x1b[33m${debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()}\x1b[0m`);
 };
 const faker = (value) => {
     if (!value.search('timestamp'))

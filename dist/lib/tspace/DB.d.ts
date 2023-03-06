@@ -1,5 +1,5 @@
 import { AbstractDB } from './AbstractDB';
-import { ConnectionTransaction } from '../connection';
+import { Connection, ConnectionOptions, ConnectionTransaction } from './Interface';
 declare class DB extends AbstractDB {
     constructor(table?: string);
     /**
@@ -18,10 +18,14 @@ declare class DB extends AbstractDB {
     };
     /**
      * cases query
-     * @param {array} cases array
+     * @param {arrayObject} cases array object {when , then }
+     * @param {string?} final else condition
      * @return {string} string
      */
-    caseUpdate(cases: any[]): string;
+    caseUpdate(cases: {
+        when: string;
+        then: string;
+    }[], final?: string): string | [];
     /**
      * generate UUID
      * @return {string} string
@@ -33,6 +37,17 @@ declare class DB extends AbstractDB {
      * @return {string} string
      */
     raw(sql: string): string;
+    /**
+     * Get a pool connection
+     * @param {Object} options options for connection database with credentials
+     * @param {string} option.host
+     * @param {number} option.port
+     * @param {string} option.database
+     * @param {string} option.username
+     * @param {string} option.password
+     * @return {Connection}
+     */
+    getConnection(options: ConnectionOptions): Connection;
     /**
      * Get a connection
      * @return {ConnectionTransaction} object
@@ -53,13 +68,14 @@ declare class DB extends AbstractDB {
     /**
      * select by cases
      * @static
-     * @param {array} cases array object
+     * @param {arrayObject} cases array object {when , then }
+     * @param {string?} final else condition
      * @return {this}
      */
     static caseUpdate(cases: {
         when: string;
         then: string;
-    }[]): string;
+    }[], final?: string): string | [];
     /**
      * Assign raw query for schema validation
      * @static
@@ -93,8 +109,18 @@ declare class DB extends AbstractDB {
      * @property {function} connection.rollback - rollback transaction of query
      */
     static beginTransaction(): Promise<ConnectionTransaction>;
+    /**
+     * Get a pool connection
+     * @param {Object} options options for connection database with credentials
+     * @param {string} option.host
+     * @param {number} option.port
+     * @param {string} option.database
+     * @param {string} option.username
+     * @param {string} option.password
+     * @return {Connection}
+     */
+    static getConnection(options: ConnectionOptions): Connection;
     private _initialDB;
-    private _setupDB;
 }
 export { DB };
 export default DB;

@@ -1,4 +1,4 @@
-declare const _default: (cmd: {
+declare const _default: Readonly<{
     [x: string]: any;
-}) => void;
+}>;
 export default _default;

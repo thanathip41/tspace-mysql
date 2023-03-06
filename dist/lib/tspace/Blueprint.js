@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Blueprint = void 0;
 class Blueprint {
-    type = '';
-    attrbuites = [];
+    constructor() {
+        this.type = '';
+        this.attrbuites = [];
+    }
     /**
      * Assign type 'int' in table
      * @return {this} this

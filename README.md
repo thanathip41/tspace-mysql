@@ -15,7 +15,7 @@ npm install tspace-mysql --save
 ```
 ## Basic Usage
 - [Configuration](#configuration)
-- [Running Queries](#running-queryies)
+- [Running Queries](#running-queries)
 - [Database Transactions](#database-transactions)
 - [Connection](#connection)
 - [Backup](#backup)
@@ -26,21 +26,33 @@ npm install tspace-mysql --save
   - [One To Many](#one-to-many)
   - [Belongs To](#belongs-to)
   - [Many To Many](#many-to-many)
+  - [Relation in Relation](#relation-in-relation)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
   - [Make Model](#make-model)
   - [Make Migration](#make-migration)
   - [Migrate](#migrate)
+  - [Query](#query)
+  - [Menerate Models](#generate-models)
 - [Blueprint](#blueprint)
 
 ## Configuration
 Created your environment variables is to use a .env file, you may establish a connection is this:
 ```js
-DB_HOST = localhost
-DB_PORT = 3306
+DB_HOST     = localhost
+DB_PORT     = 3306
 DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
+
+/** default
+    DB_CONNECTION_LIMIT = 30
+    DB_CONNECTION_ERROR = true
+    DB_QUEUE_LIMIT      = 25
+    DB_TIMEOUT          = 30000
+    DB_DATE_STRINGS     = true
+*/
+
 ```
 ## Running Queries
 Once you have configured your database connection, you may run queries is this :
@@ -52,6 +64,16 @@ Once you have configured your database connection, you may run queries is this :
 |-------------|--------------|----------------------------|
 | 1           | tspace       | tspace@gmail.com           |
 | 2           | tspace2      | tspace2@gmail.com          |
++-------------+--------------+----------------------------+
+
+
++-------------+--------------+----------------------------+
+|                     table posts                         |
++-------------+--------------+----------------------------+
+| id          | user_id      | title                      |
+|-------------|--------------|----------------------------|
+| 1           | 1            | posts tspace               |
+| 2           | 2            | posts tspace2              |
 +-------------+--------------+----------------------------+
 
 import { DB } from 'tspace-mysql'
@@ -66,14 +88,51 @@ const selectQuery = await new DB('users').select('id','username').findOne()
     // selectQuery => { id : 1, username : 'tspace'}
 const selectQueries = await new DB('users').select('id','username').findMany() 
     // selectQueries => [{ id : 1, username : 'tspace' } , { id : 2, username : 'tspace2'}]
+
+/**
+ * @example except
+ */
+await new DB('users').except('id','username').findOne() 
 ```
+
+Running A OrderBy & GroupBy Query
+```js
+await new DB('users').orderBy('id','asc').findOne()
+await new DB('users').orderBy('id','desc').findOne()
+await new DB('users').oldest('id').findOne()
+await new DB('users').latest('id').findOne()
+
+await new DB('users').groupBy('id').findOne()
+await new DB('users').groupBy('id','usernamename').findOne()
+```
+
+Running A Join Query
+```js
+await new DB('posts').join('posts.user_id' , 'users.id').findOne()
+await new DB('posts').leftJoin('posts.user_id' , 'users.id').findOne()
+await new DB('posts').rightJoin('posts.user_id' , 'users.id').findOne()
+```
+
 Running A Where Query
 ```js
 const user = await new DB('users').where('id',1).findOne()
     // user => { id : 1 , username : 'tspace', email : 'tspace@gmail.com'}
 const users = await new DB('users').where('id','!=',1).findMany()
     // users => [{ id : 2 , username : 'tspace2' , email : 'tspace2@gmail.com' }]
+
+const whereIn = await new DB('users').whereIn('id',[1,2]).findMany()
+const whereBetween = await new DB('users').whereBetween('id',[1,2]).findMany()
+const whereSubQuery = await new DB('users').whereSubQuery('id','select id from users').findMany()
+// await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
+const whereNull = await new DB('users').whereNull('username').findOne()
 ```
+
+Running A Hook Query
+```js
+const hookResult = (result) => console.log(result)
+const user = await new DB('users').where('id',1).hook(hookResult).findOne()
+```
+
 Running A Insert Query
 ```js
 const user = await new DB('users')
@@ -91,6 +150,33 @@ const reposity = new DB('users')
     await reposity.save()
 const { result } = reposity
     // result =>  { id : 4 , username : 'tspace4', email : 'tspace4@gmail.com'}
+
+const users = await new DB('users')
+    .createMultiple([
+        {
+            name :'tspace4',
+            email : 'tspace4@gmail.com'
+        },
+        {
+            name :'tspace5',
+            email : 'tspace5@gmail.com'
+        },
+        {
+            name :'tspace6',
+            email : 'tspace6@gmail.com'
+        },
+    ]).save()
+
+const users = await new DB('users')
+    .where('name','tspace4')
+    .where('email','tspace4@gmail.com')
+    .createNotExists({
+            name :'tspace4',
+            email : 'tspace4@gmail.com'
+    })
+    .save()
+    // if has exists return null, if not exists created new data
+
 ```
 Running A Update Query
 ```js
@@ -110,7 +196,19 @@ const reposity = new DB('users').where('id',1)
     await reposity.save()
 const { result } = reposity
     // result =>  { id : 1 , username : 'tspace1++', email : 'tspace1++@gmail.com'} 
-```    
+```
+
+Running A  Update Or Created Query
+```js
+const user = await new DB('users')
+    .where('id',1)
+    .updateOrCreate({
+          name : 'tspace1**',
+          email : 'tspace1@gmail.com'
+    }).save()
+    // user =>  { username : 'tspace1**', email : 'tspace1@gmail.com' } 
+```  
+
 Running A Delete Query
 ```js
 const deleted = await new DB('users').where('id',1).delete()
@@ -118,7 +216,7 @@ const deleted = await new DB('users').where('id',1).delete()
 ``` 
 ## Database Transactions 
 
-Within a database transaction, you may use the:
+Within a Database Transaction, you may use the:
 
 ```js
 const connection = await new DB().beginTransaction()
@@ -157,15 +255,8 @@ try {
             title : `tspace-post3`
         }
     ])
-    /**
-     *
-     * bind method for make sure this connection has same transaction in connection
-     * @params {Function} connection 
-     */
-    .bind(connection)
+    .bind(connection) // don't forget this
     .save()
-
-    // throw new Error('try error')
 
     /**
      *
@@ -187,14 +278,16 @@ try {
 ## Connection
 When establishing a connection, you may establish options is this:
 ```js
+const connection = await new DB().getConnection({
+    host: 'localhost',
+    port : 3306,
+    database: 'database'
+    username: 'username',
+    password: 'password',
+})
+
 const users = await new DB('users')
-    .connection({
-       host: 'localhost',
-       port : 3306,
-       database: 'database'
-       username: 'username',
-       password: 'password',
-    })
+    .bind(connection)
     .findMany()
 // users => [{ .... }]
 ```
@@ -265,7 +358,17 @@ import { Model } from 'tspace-mysql'
 class User extends Model {
   constructor(){
     super()
-    this.useTimestamp()
+    this.useTimestamp() /** created_at , updated_at
+    /**
+     * 
+     * @Custom 
+     * 
+     * this.useTimestamp({
+     *    createdAt : 'created_at',
+     *    updatedAt : 'updated_at'
+     * }) 
+     */
+
     /*
      * the "snake case", plural name of the class will be used as the table name 
      * 
@@ -289,7 +392,7 @@ import Phone  from '../Phone'
 class User extends Model {
     constructor(){
         super()
-        this.useTimestamp()
+        this.useTimestamp() 
         /**
          *
          * @hasOne Get the phone associated with the user.
@@ -298,13 +401,12 @@ class User extends Model {
         this.hasOne({ name : 'phone' , model : Phone })
     }
     /**
-     * @hasOneQuery Get the phone associated with the user. using function callback
+     * Mark a method for relationship 
+     * @hasOne Get the phone associated with the user. using function callback
      * @function 
      */
     phone (callback ?: Function) {
-        return  this.hasOneQuery({ model : Phone }, (query) => {
-            return callback ? callback(query) : query
-        })
+        return this.hasOneBuilder({ name : 'phone' , model : Phone } , callback)
     }
 }
 export default User
@@ -335,13 +437,12 @@ class Post extends Model {
         this.hasMany({ name : 'comments' , model : Comment })
     }
     /**
+     * 
      * @hasManyQuery Get the comments for the post. using function callback
      * @function 
      */
     comments (callback ?: Function) {
-        return  this.hasManyQuery({ model : Comment }, (query) => {
-            return callback ? callback(query) : query
-        })
+        return  this.hasManyBuilder({ name : 'comments' , model : Comment } , callback)
     }
 }
 export default Post
@@ -372,13 +473,12 @@ class Phone extends Model {
         this.belognsTo({ name : 'user' , model : User })
     }
     /**
+     * 
      * @belongsToQuery Get the user that owns the phone.. using function callback
      * @function 
      */
     user (callback ?: Function) {
-        return  this.belongsToQuery({ model : User }, (query) => {
-            return callback ? callback(query) : query
-        })
+        return this.belongsToBuilder({ name : 'user' , model : User }, callback)
     }
 }
 export default Phone
@@ -413,9 +513,7 @@ class User extends Model {
      * @function 
      */
     roles (callback ?: Function) {
-        return  this.belongsToManyQuery({ model : Role }, (query) => {
-            return callback ? callback(query) : query
-        })
+        return this.belognsToManyBuilder({ model : Role } , callback)
     }
 }
 export default User
@@ -428,6 +526,52 @@ const user = await new User().relations('roles').findOne()
 const userUsingFunction = await new User().roles().findOne()
 // user?.roles => [{...}]
 ```
+
+## Relation in Relation
+Relationships can deep relations. 
+let's example a deep in relations :
+```js
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'posts' , model : Post })
+    }
+}
++--------------------------------------------------------------------------+
+class Post extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'comments' , model : Comment })
+        this.belongsTo({ name : 'user' , model : User })
+    }
+}
++--------------------------------------------------------------------------+
+class Comment extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'users' , model : User })
+        this.belongsTo({ name : 'post' , model : Post })
+    }
+}
++--------------------------------------------------------------------------+
+await new User().relations('posts')
+    .relationQuery('posts', (query : Post) => { // relationQuery return a callback query in model registry
+        return query.relations('comments','user')
+        .relationQuery('comments', (query : Comment) => {
+            return query.relations('user','post')
+        })
+        .relationQuery('user', (query : User) => {
+            return query.relations('posts').relationQuery('posts',(query : Post)=> {
+                return query.relations('comments','user')
+                // relation n to ...n
+            })
+        })
+    })
+    .findMany()
+```
+
 ## Query Builder
 Methods builder for queries
 ```js
@@ -436,13 +580,20 @@ whereSensitive(column , operator , value)
 whereId(id)  
 whereUser(userId)  
 whereEmail(value)  
-orWhere(column , operator , value)   
 whereIn(column , [])
 whereNotIn(column , [])
 whereNull(column)
 whereNotNull(column)
 whereBetween (column , [value1 , value2])
+whereQuery(callback)
+whereRaw(sql)
+whereExists(sql)
 whereSubQuery(colmn , rawSQL)
+whereNotSubQuery(colmn , rawSQL)
+orWhere(column , operator , value)   
+orWhereRaw(sql)
+orWhereIn(column , [])
+orWhereSubQuery(colmn , rawSQL)
 select(column1 ,column2 ,...N)
 except(column1 ,column2 ,...N)
 only(column1 ,column2 ,...N)
@@ -451,8 +602,8 @@ join(primary key , table.foreign key)
 rightJoin (primary key , table.foreign key) 
 leftJoin (primary key , table.foreign key) 
 limit (limit)
-orderBy (column ,'ASC' || 'DSCE')
 having (condition)
+orderBy (column ,'ASC' || 'DSCE')
 latest (column)
 oldest (column)
 groupBy (column)
@@ -464,6 +615,7 @@ updateOrCreate (objects)
 connection(options)
 backup({ database , connection })
 backupToFile({ filePath, database , connection })
+hook((result) => ...) // callback result to function
 
 /** 
  * registry relation in your models
@@ -510,9 +662,13 @@ save() /*for action statements insert update or delete */
 ```
 
 ## Cli
-To get started, let's install npm install tspace-mysql -g
+To get started, let's install tspace-mysql
 you may use a basic cli :
 
+```sh
+npm install tspace-mysql -g
+
+```
 ## Make Model
 Command will be placed Model in the specific directory
 ```js
@@ -590,6 +746,20 @@ tspace-mysql migrate --dir=App/Models/Migrations --type=js
 // => migrate all schemas in folder <Migrations>. created into database
 ```
 
+# Query
+Command will be execute a query
+```js
+tspace-mysql query "SELECT * FROM users"
+
+```
+
+# Generate Models
+Command will be generate models from table in database
+```js
+tspace-mysql generate:models
+
+```
+
 ## Blueprint
 Schema table created by command make:migration,  you may use the:
 ```js
@@ -638,12 +808,12 @@ timestamp ()
  * @Attrbuites
  * 
 */
-unsigned ()
-unique ()
-null ()
-notNull ()
+unsigned()
+unique()
+null()
+notNull()
 primary() 
-default (string) 
-defaultTimestamp () 
-autoIncrement () 
+default(string) 
+defaultTimestamp() 
+autoIncrement() 
 ```
