@@ -109,7 +109,7 @@ class PoolConnection {
                 "password"              : "",
                 "connectionLimit"       : "",
                 "dateStrings"           : "",
-                "connectTimeout"        : "",
+                "idleTimeout"           : "",
                 "waitForConnections"    : "",
                 "queueLimit"            : "",
                 "charset"               : ""

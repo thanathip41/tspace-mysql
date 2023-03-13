@@ -151,6 +151,7 @@ const CONSTANTS = {
             CREATED_AT: 'created_at',
             UPDATED_AT: 'updated_at'
         },
+        SCHEMA: null
     }
 };
 exports.CONSTANTS = CONSTANTS;

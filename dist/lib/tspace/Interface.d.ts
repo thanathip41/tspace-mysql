@@ -5,6 +5,7 @@ export interface Relation {
     localKey?: string | undefined;
     foreignKey?: string | undefined;
     freezeTable?: string | undefined;
+    pivot?: string | undefined;
     query?: any | undefined;
     relation?: Object | undefined;
 }
@@ -15,6 +16,7 @@ export interface RelationQuery {
     localKey?: string | undefined;
     foreignKey?: string | undefined;
     freezeTable?: string | undefined;
+    pivot?: string | undefined;
     query?: any | undefined;
     relation?: Object | undefined;
 }

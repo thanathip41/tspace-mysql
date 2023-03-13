@@ -123,7 +123,7 @@ const camelCase = (obj) => {
 const consoleDebug = (debug) => {
     if (debug == null)
         return;
-    console.log(`-----\n\x1b[33m${debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()}\x1b[0m`);
+    console.log(`\n\x1b[33m${debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
 };
 const faker = (value) => {
     if (!value.search('timestamp'))

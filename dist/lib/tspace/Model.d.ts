@@ -15,10 +15,10 @@ declare class Model extends AbstractModel {
      */
     protected useRegistry(): this;
     /**
-    *
-    * Assign primary column in model
-    * @return {this} this
-    */
+     *
+     * Assign primary column in model
+     * @return {this} this
+     */
     protected usePrimaryKey(primary: string): this;
     /**
      * Assign generate uuid when creating in model
@@ -77,6 +77,15 @@ declare class Model extends AbstractModel {
      * @return {this} this
      */
     protected useTablePlural(): this;
+    /**
+     *
+     * Assign schema column in model
+     * @param {Object<Function>} schema type String Number and Date
+     * @return {this} this
+     */
+    protected useSchema(schema: {
+        [key: string]: Function;
+    }): this;
     /**
      * Build  method for relation in model
      * @param    {string} name name relation registry in your model
@@ -222,7 +231,7 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot }: Relation): this;
     /**
      * Assign the relation in model Objects
      * @param    {object}  relation registry relation in your model
@@ -278,7 +287,7 @@ declare class Model extends AbstractModel {
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
+    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }: RelationQuery, callback?: Function): this;
     /**
      * return only in trashed (data has been remove)
      * @return {promise}
@@ -540,6 +549,7 @@ declare class Model extends AbstractModel {
     * @return {this} this this
     */
     createNotExists(data: object): this;
+    getSchema(): Promise<any>;
     /**
      *
      * @override Method
@@ -566,13 +576,13 @@ declare class Model extends AbstractModel {
     private _handleSoftDelete;
     private _buildQueryModel;
     private _showOnly;
+    private _validateSchema;
     private _execute;
     private _executeGroup;
     private _relationMapData;
     private _handleRelationsExists;
     private _queryRelationsExists;
     private _relation;
-    private _handleBelongsToMany;
     private _belongsToMany;
     private _pagination;
     private _result;

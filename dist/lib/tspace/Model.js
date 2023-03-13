@@ -37,8 +37,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * define for initialize of models
      * @return {void} void
      */
-    define() {
-    }
+    define() { }
     /**
      *
      * Assign function callback in model
@@ -49,10 +48,10 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
-    *
-    * Assign primary column in model
-    * @return {this} this
-    */
+     *
+     * Assign primary column in model
+     * @return {this} this
+     */
     usePrimaryKey(primary) {
         this.$state.set('PRIMARY_KEY', primary);
         return this;
@@ -152,6 +151,16 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a;
         const table = this._classToTableName((_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name);
         this.$state.set('TABLE_NAME', `\`${pluralize_1.default.plural(table)}\``);
+        return this;
+    }
+    /**
+     *
+     * Assign schema column in model
+     * @param {Object<Function>} schema type String Number and Date
+     * @return {this} this
+     */
+    useSchema(schema) {
+        this.$state.set('SCHEMA', schema);
         return this;
     }
     /**
@@ -444,7 +453,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    belongsToMany({ name, as, model, localKey, foreignKey, freezeTable }) {
+    belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot }) {
         const relation = {
             name,
             model,
@@ -453,6 +462,7 @@ class Model extends AbstractModel_1.AbstractModel {
             localKey,
             foreignKey,
             freezeTable,
+            pivot,
             query: null
         };
         this.$state.set('RELATION', [...this.$state.get('RELATION'), relation]);
@@ -576,7 +586,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }, callback) {
+    belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }, callback) {
         const nameRelation = name == null
             ? this._functionRelationName()
             : String(name);
@@ -588,6 +598,7 @@ class Model extends AbstractModel_1.AbstractModel {
             localKey,
             foreignKey,
             freezeTable,
+            pivot,
             query: null
         };
         const r = this._handleRelationsQuery(nameRelation, relation);
@@ -1307,6 +1318,54 @@ class Model extends AbstractModel_1.AbstractModel {
         this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
         return this;
     }
+    getSchema() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `\`${this.$state.get('TABLE_NAME').replace(/\`/g, '')}\``
+            ].join(' ');
+            const raw = yield this.queryStatement(sql);
+            const schemas = raw.map((r) => {
+                let schema = { [r.Field]: String };
+                const numberLists = [
+                    'tinyint',
+                    'smallint',
+                    'mediumint',
+                    'int',
+                    'bigint',
+                    'float',
+                    'double',
+                    'decimal',
+                    'real',
+                    'bit',
+                    'boolean',
+                    'serial'
+                ];
+                const dateAndTimeLists = [
+                    'date',
+                    'datetime',
+                    'time',
+                    'timestamp',
+                    'year'
+                ];
+                if (numberLists.includes(r.Type)) {
+                    schema = {
+                        [r.Field]: Number
+                    };
+                }
+                if (dateAndTimeLists.includes(r.Type)) {
+                    schema = {
+                        [r.Field]: Date
+                    };
+                }
+                return schema;
+            });
+            const result = Object.assign({}, ...schemas);
+            return result;
+        });
+    }
     /**
      *
      * @override Method
@@ -1314,6 +1373,7 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
+            this._validateMethod('save');
             const attributes = this.$attributes;
             if (attributes != null) {
                 while (true) {
@@ -1418,12 +1478,13 @@ class Model extends AbstractModel_1.AbstractModel {
         return (_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, '');
     }
     _valueInRelation(relationModel) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         const relation = relationModel.relation;
         const model = (_a = relationModel.model) === null || _a === void 0 ? void 0 : _a.name;
         const table = relationModel.freezeTable
             ? relationModel.freezeTable
             : (_b = relationModel.query) === null || _b === void 0 ? void 0 : _b._tableName();
+        let pivot = null;
         const name = relationModel.name;
         const as = relationModel.as;
         this._assertError(!model || model == null, 'not found model');
@@ -1459,8 +1520,12 @@ class Model extends AbstractModel_1.AbstractModel {
                 `${this.$state.get('PRIMARY_KEY')}`
             ].join('_'));
             foreignKey = 'id';
+            pivot = (_c = relationModel.pivot) !== null && _c !== void 0 ? _c : this._valuePattern([
+                pluralize_1.default.singular(this === null || this === void 0 ? void 0 : this._tableName()),
+                pluralize_1.default.singular((_d = relationModel.query) === null || _d === void 0 ? void 0 : _d._tableName())
+            ].sort().join('_'));
         }
-        return { name, as, relation, table, localKey, foreignKey, model };
+        return { name, as, relation, table, localKey, foreignKey, model, pivot };
     }
     _handleSoftDelete() {
         if (this.$state.get('SOFT_DELETE')) {
@@ -1527,9 +1592,36 @@ class Model extends AbstractModel_1.AbstractModel {
         });
         return result;
     }
+    _validateSchema(results) {
+        const schema = this.$state.get('SCHEMA');
+        if (schema == null)
+            return;
+        if (!results.length)
+            return;
+        const typeOf = (data) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
+        for (const result of results) {
+            for (const key in result) {
+                const s = schema[key];
+                if (s == null)
+                    this._assertError(`not found this column [${key}] in schema`);
+                const regexDate = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/;
+                const regexDateTime = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]/;
+                if (regexDate.test(result[key]) || regexDateTime.test(result[key])) {
+                    if (typeOf(new Date(result[key])) === typeOf(new s()))
+                        continue;
+                    this._assertError(`this column [${key}] is invalid schema field type`);
+                }
+                if (typeOf(result[key]) === typeOf(new s()))
+                    continue;
+                this._assertError(`this column [${key}] is invalid schema field type`);
+            }
+        }
+        return this;
+    }
     _execute({ sql, type, message, options }) {
         return __awaiter(this, void 0, void 0, function* () {
             let result = yield this.queryStatement(sql);
+            this._validateSchema(result);
             if (!result.length)
                 return this._returnEmpty(type, result, message, options);
             const relations = this.$state.get('WITH');
@@ -1629,7 +1721,7 @@ class Model extends AbstractModel_1.AbstractModel {
             const relation = relations[index];
             if (!((_a = Object.keys(relation)) === null || _a === void 0 ? void 0 : _a.length))
                 continue;
-            const { localKey, foreignKey } = this._valueInRelation(relation);
+            const { localKey, foreignKey, pivot } = this._valueInRelation(relation);
             const query = relation.query;
             this._assertError(query == null, `unknown callback query in [relation : '${relation.name}']`);
             let clone = new Model().clone(query);
@@ -1640,6 +1732,21 @@ class Model extends AbstractModel_1.AbstractModel {
                     const sql = clone._handleRelationsExists(r);
                     clone.whereExists(sql);
                 }
+            }
+            if (relation.relation === this.$constants('RELATIONSHIP').belongsToMany) {
+                const sql = clone
+                    .bind(this.$pool.get())
+                    .whereReference(`\`${this._tableName()}\`.\`${localKey}\``, `\`${query._tableName()}\`.\`${foreignKey}\``)
+                    .toString();
+                this.whereExists(sql);
+                const thisPivot = new Model();
+                thisPivot.$state.set('TABLE_NAME', `\`${pivot}\``);
+                const sqlPivot = thisPivot
+                    .bind(this.$pool.get())
+                    .whereReference(`\`${this._tableName()}\`.\`${foreignKey}\``, `\`${pivot}\`.\`${this._valuePattern([pluralize_1.default.singular(this._tableName()), foreignKey].join("_"))}\``)
+                    .toString();
+                this.whereExists(sqlPivot);
+                continue;
             }
             const sql = clone
                 .bind(this.$pool.get())
@@ -1676,66 +1783,15 @@ class Model extends AbstractModel_1.AbstractModel {
             return dataFromRelation;
         });
     }
-    _handleBelongsToMany(dataFromParent, relation, pivotTable) {
+    _belongsToMany(dataFromParent, relation) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.$state.get('WITH_EXISTS')) {
-                let { name, localKey, foreignKey, model, table } = this._valueInRelation(relation);
-                const localKeyId = dataFromParent.map((parent) => {
-                    const data = parent[localKey];
-                    if (!parent.hasOwnProperty(localKey)) {
-                        this._assertError(data == null, "unknown relationship without primary or foreign key");
-                    }
-                    return data;
-                }).filter((data) => data != null);
-                const dataPerentId = Array.from(new Set(localKeyId)).join(',') || [];
-                if (!dataPerentId.length && this.$state.get('WITH_EXISTS'))
-                    return [];
-                const modelOther = new relation.model();
-                const other = this._classToTableName(modelOther.constructor.name, { singular: true });
-                const otherlocalKey = 'id';
-                const otherforeignKey = this._valuePattern(`${other}Id`);
-                const sqldataChilds = [
-                    `${this.$constants('SELECT')}`,
-                    `*`,
-                    `${this.$constants('FROM')}`,
-                    `${pivotTable}`,
-                    `${this.$constants('WHERE')}`,
-                    `${otherforeignKey} ${this.$constants('IN')} (${dataPerentId})`
-                ].join(' ');
-                let dataChilds = yield this.queryStatement(sqldataChilds);
-                const otherId = dataChilds.map((sub) => sub[otherforeignKey]).filter((data) => data != null);
-                const otherArrId = Array.from(new Set(otherId)) || [];
-                const otherdataChilds = yield this.queryStatement(modelOther
-                    .bind(this.$pool.get())
-                    .whereIn(otherlocalKey, otherArrId)
-                    .debug(this.$state.get('DEBUG'))
-                    .toString());
-                dataChilds.forEach((sub) => {
-                    sub[other] = [];
-                    otherdataChilds.forEach((otherSub) => {
-                        if (otherSub[otherlocalKey] === sub[otherforeignKey]) {
-                            sub[other] = otherSub;
-                        }
-                    });
-                });
-                dataFromParent.forEach((dataPerent) => {
-                    if (dataPerent[name] == null)
-                        dataPerent[name] = [];
-                    dataChilds.forEach((sub) => {
-                        if (sub[localKey] === dataPerent[otherforeignKey]) {
-                            dataPerent[name].push(sub);
-                        }
-                    });
-                });
-                if (this.$state.get('HIDDEN').length)
-                    this._hiddenColumnModel(dataFromParent);
-                return dataFromParent;
-            }
-            let { name, localKey, foreignKey } = this._valueInRelation(relation);
+            const { name, foreignKey, pivot } = this._valueInRelation(relation);
+            const pivotTable = String(((_a = relation.pivot) !== null && _a !== void 0 ? _a : pivot));
             const localKeyId = dataFromParent.map((parent) => {
-                const data = parent[localKey];
-                if (!parent.hasOwnProperty(localKey)) {
-                    this._assertError(data == null, "unknown relationship without primary or foreign key");
+                const data = parent[foreignKey];
+                if (!parent.hasOwnProperty(foreignKey)) {
+                    this._assertError(data == null, `unknown relationship without primary or foreign key in relation : [${relation === null || relation === void 0 ? void 0 : relation.name}]`);
                 }
                 return data;
             }).filter((data) => data != null);
@@ -1746,13 +1802,14 @@ class Model extends AbstractModel_1.AbstractModel {
             const other = this._classToTableName(modelOther.constructor.name, { singular: true });
             const otherlocalKey = 'id';
             const otherforeignKey = this._valuePattern(`${other}Id`);
+            const localKeyPivotTable = this._valuePattern([pluralize_1.default.singular(this._tableName()), foreignKey].join("_"));
             const sqldataChilds = [
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
                 `${pivotTable}`,
                 `${this.$constants('WHERE')}`,
-                `${foreignKey} ${this.$constants('IN')} (${dataPerentId})`
+                `${localKeyPivotTable} ${this.$constants('IN')} (${dataPerentId})`
             ].join(' ');
             let dataChilds = yield this.queryStatement(sqldataChilds);
             const otherId = dataChilds.map((sub) => sub[otherforeignKey]).filter((data) => data != null);
@@ -1763,7 +1820,6 @@ class Model extends AbstractModel_1.AbstractModel {
                 .debug(this.$state.get('DEBUG'))
                 .toString());
             dataChilds.forEach((sub) => {
-                sub[other] = [];
                 otherdataChilds.forEach((otherSub) => {
                     if (otherSub[otherlocalKey] === sub[otherforeignKey]) {
                         sub[other] = otherSub;
@@ -1774,7 +1830,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 if (dataPerent[name] == null)
                     dataPerent[name] = [];
                 dataChilds.forEach((sub) => {
-                    if (sub[foreignKey] === dataPerent[localKey]) {
+                    if (sub[localKeyPivotTable] === dataPerent[foreignKey]) {
                         dataPerent[name].push(sub);
                     }
                 });
@@ -1782,27 +1838,6 @@ class Model extends AbstractModel_1.AbstractModel {
             if (this.$state.get('HIDDEN').length)
                 this._hiddenColumnModel(dataFromParent);
             return dataFromParent;
-        });
-    }
-    _belongsToMany(dataFromParent, relation) {
-        var _a, _b;
-        return __awaiter(this, void 0, void 0, function* () {
-            const local = this._classToTableName(this.constructor.name, { singular: true });
-            const modelOther = new relation.model();
-            const other = this._classToTableName(modelOther.constructor.name, { singular: true });
-            try {
-                const pivotTable = (_a = relation.freezeTable) !== null && _a !== void 0 ? _a : `${local}_${other}`;
-                return yield this._handleBelongsToMany(dataFromParent, relation, pivotTable);
-            }
-            catch (err) {
-                try {
-                    const pivotTable = (_b = relation.freezeTable) !== null && _b !== void 0 ? _b : `${other}_${local}`;
-                    return yield this._handleBelongsToMany(dataFromParent, relation, pivotTable);
-                }
-                catch (e) {
-                    throw new Error(err.message);
-                }
-            }
         });
     }
     _pagination(data) {
@@ -1896,16 +1931,14 @@ class Model extends AbstractModel_1.AbstractModel {
             if (this._isPatternSnakeCase()) {
                 const empty = this.$utils.snakeCase(this._result(emptyData));
                 const hook = this.$state.get('HOOK');
-                if (hook === null || hook === void 0 ? void 0 : hook.length)
-                    for (let i = 0; i < hook.length; i++)
-                        yield hook[i](empty);
+                for (let i in hook)
+                    yield hook[i](empty);
                 return empty;
             }
             const empty = this._result(emptyData);
             const hook = this.$state.get('HOOK');
-            if (hook === null || hook === void 0 ? void 0 : hook.length)
-                for (let i = 0; i < hook.length; i++)
-                    yield hook[i](empty);
+            for (let i in hook)
+                yield hook[i](empty);
             return empty;
         });
     }
@@ -1980,9 +2013,8 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
             }
             const hook = this.$state.get('HOOK');
-            if (hook === null || hook === void 0 ? void 0 : hook.length)
-                for (let i = 0; i < hook.length; i++)
-                    yield hook[i](result);
+            for (let i in hook)
+                yield hook[i](result);
             return result;
         });
     }
@@ -2222,15 +2254,13 @@ class Model extends AbstractModel_1.AbstractModel {
                 const result = (data === null || data === void 0 ? void 0 : data.shift()) || null;
                 this.$state.set('RESULT', result);
                 const hook = this.$state.get('HOOK');
-                if (hook === null || hook === void 0 ? void 0 : hook.length)
-                    for (let i = 0; i < hook.length; i++)
-                        yield hook[i](result);
+                for (let i in hook)
+                    yield hook[i](result);
                 return result;
             }
             const hook = this.$state.get('HOOK');
-            if (hook === null || hook === void 0 ? void 0 : hook.length)
-                for (let i = 0; i < hook.length; i++)
-                    yield hook[i](result || []);
+            for (let i in hook)
+                yield hook[i](result || []);
             return null;
         });
     }
@@ -2373,10 +2403,25 @@ class Model extends AbstractModel_1.AbstractModel {
                     'updateOrCreate',
                     'updateOrInsert',
                     'insertOrUpdate',
-                    'update'
+                    'update',
+                    'delete'
                 ];
                 const findMethodNotAllowed = methodCallings.find((methodCalling) => methodsNotAllowed.includes(methodCalling));
                 this._assertError(methodCallings.some((methodCalling) => methodsNotAllowed.includes(methodCalling)), `this method ${method} can't using method : [ ${findMethodNotAllowed} ]`);
+                break;
+            }
+            case 'save': {
+                const methodCallings = this.$logger.get();
+                const methodsSomeAllowed = [
+                    'create',
+                    'createNotExists',
+                    'updateOrCreate',
+                    'updateOrInsert',
+                    'insertOrUpdate',
+                    'update',
+                    'delete'
+                ];
+                this._assertError(!methodCallings.some((methodCalling) => methodsSomeAllowed.includes(methodCalling)), `this ${method} method need some : [ ${methodsSomeAllowed.join(', ')} ] methods`);
                 break;
             }
         }

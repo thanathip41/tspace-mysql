@@ -1283,14 +1283,14 @@ class Database extends AbstractDatabase_1.default {
                     throw new Error(`can't find property '${pluck}' of result`);
                 const r = newData[pluck] || null;
                 const hook = this.$state.get('HOOK');
-                if (hook)
-                    yield hook(r);
+                for (let i in hook)
+                    yield hook[i](r);
                 return r;
             }
             const r = (result === null || result === void 0 ? void 0 : result.shift()) || null;
             const hook = this.$state.get('HOOK');
-            if (hook)
-                yield hook(r);
+            for (let i in hook)
+                yield hook[i](r);
             return r;
         });
     }
@@ -1336,8 +1336,8 @@ class Database extends AbstractDatabase_1.default {
                     throw Object.assign({ message }, options);
                 }
                 const hook = this.$state.get('HOOK');
-                if (hook)
-                    yield hook(data);
+                for (let i in hook)
+                    yield hook[i](data);
                 return data;
             }
             const data = (result === null || result === void 0 ? void 0 : result.shift()) || null;
@@ -1348,8 +1348,8 @@ class Database extends AbstractDatabase_1.default {
                 throw Object.assign({ message }, options);
             }
             const hook = this.$state.get('HOOK');
-            if (hook)
-                yield hook(data);
+            for (let i in hook)
+                yield hook[i](data);
             return data;
         });
     }
@@ -1386,8 +1386,8 @@ class Database extends AbstractDatabase_1.default {
                     return resultArray;
                 }, []);
                 const hook = this.$state.get('HOOK');
-                if (hook)
-                    yield hook(data || []);
+                for (let i in hook)
+                    yield hook[i](data || []);
                 return data || [];
             }
             if (this.$state.get('PLUCK')) {
@@ -1397,13 +1397,13 @@ class Database extends AbstractDatabase_1.default {
                     throw new Error(`can't find property '${pluck}' of result`);
                 }
                 const hook = this.$state.get('HOOK');
-                if (hook)
-                    yield hook(newData || []);
+                for (let i in hook)
+                    yield hook[i](newData || []);
                 return newData || [];
             }
             const hook = this.$state.get('HOOK');
-            if (hook)
-                yield hook(result || []);
+            for (let i in hook)
+                yield hook[i](result || []);
             return result || [];
         });
     }

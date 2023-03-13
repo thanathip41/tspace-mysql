@@ -45,12 +45,13 @@ DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
 
-/** default
-    DB_CONNECTION_LIMIT = 30
-    DB_CONNECTION_ERROR = true
-    DB_QUEUE_LIMIT      = 25
-    DB_TIMEOUT          = 30000
-    DB_DATE_STRINGS     = true
+/** 
+ * @default
+ *  DB_CONNECTION_LIMIT = 10
+ *  DB_CONNECTION_ERROR = true
+ *  DB_QUEUE_LIMIT      = 0
+ *  DB_TIMEOUT          = 60000
+ *  DB_DATE_STRINGS     = true
 */
 
 ```
@@ -212,7 +213,7 @@ const user = await new DB('users')
 Running A Delete Query
 ```js
 const deleted = await new DB('users').where('id',1).delete()
-    // deleted => true
+    // deleted => Boolean
 ``` 
 ## Database Transactions 
 
@@ -300,7 +301,7 @@ Backup database, you may backup is this:
  * @param conection defalut current connection
  */
 const backup = await new DB().backup({
-     database: 'try-to-backup',  // clone current database to this
+     database: 'try-to-backup',  // clone current database to this database
      connection ?: {
         host: 'localhost',
         port : 3306,
@@ -358,16 +359,31 @@ import { Model } from 'tspace-mysql'
 class User extends Model {
   constructor(){
     super()
-    this.useTimestamp() /** created_at , updated_at
     /**
      * 
-     * @Custom 
-     * 
+     * Assign setting global in your model
+     * @useMethod
+     *
+     * this.useDebug() 
+     * this.usePrimaryKey('id')
      * this.useTimestamp({
      *    createdAt : 'created_at',
      *    updatedAt : 'updated_at'
-     * }) 
-     */
+     * }) // runing a timestamp when insert or update
+     * this.useSoftDelete()
+     * this.useTable('users')
+     * this.useTableSingular() // 'user'
+     * this.useTablePlural() // 'users'
+     * this.usePattern('snake_case')   
+     * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
+     * this.useRegistry()
+     * this.useSchema({
+     *   id : Number,
+     *   username : String
+     *   created_at : Date,
+     *   updated_at : Date,
+     *  }) // validate type of schema when return result
+    */
 
     /*
      * the "snake case", plural name of the class will be used as the table name 
@@ -565,7 +581,7 @@ await new User().relations('posts')
         .relationQuery('user', (query : User) => {
             return query.relations('posts').relationQuery('posts',(query : Post)=> {
                 return query.relations('comments','user')
-                // relation n to ...n
+                // relation n, n, ...n
             })
         })
     })
@@ -624,7 +640,7 @@ hook((result) => ...) // callback result to function
 hasOne({ name , model , localKey , foreignKey , freezeTable , as })
 hasMany({ name , model , localKey , foreignKey , freezeTable , as })
 belongsTo({ name , model , localKey , foreignKey , freezeTable , as })
-belongsToMany({ name , model , localKey , foreignKey , freezeTable , as })
+belongsToMany({ name , model , localKey , foreignKey , freezeTable , as , pivot })
 /** 
  * @relation using registry in your models
 */
