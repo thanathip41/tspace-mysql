@@ -2,6 +2,19 @@ import { AbstractDB } from './AbstractDB';
 import { Connection, ConnectionOptions, ConnectionTransaction } from './Interface';
 declare class DB extends AbstractDB {
     constructor(table?: string);
+    union(a: string, b: string): Promise<any[]>;
+    /**
+     * Covert result to array
+     * @param {any} result table name
+     * @return {Array} array
+     */
+    makeArray(result: any): Array<any>;
+    /**
+     * Covert result to object or null
+     * @param {any} result table name
+     * @return {Record | null} object or null
+     */
+    makeObject(result: any): Record<string, any> | null;
     /**
      * Assign table name
      * @param {string} table table name
@@ -49,8 +62,20 @@ declare class DB extends AbstractDB {
      */
     getConnection(options: ConnectionOptions): Connection;
     /**
+     * Covert result to array
+     * @param {any} result table name
+     * @return {Array} array
+     */
+    static makeArray(result: any): any[];
+    /**
+     * Covert result to object | null
+     * @param {any} result table name
+     * @return {Record | null} object | null
+     */
+    static makeObject(result: any): Record<string, any> | null;
+    /**
      * Get a connection
-     * @return {ConnectionTransaction} object
+     * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -101,7 +126,7 @@ declare class DB extends AbstractDB {
     /**
      * Get a connection
      * @static
-     * @return {ConnectionTransaction} object
+     * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -120,6 +145,7 @@ declare class DB extends AbstractDB {
      * @return {Connection}
      */
     static getConnection(options: ConnectionOptions): Connection;
+    private _typeOf;
     private _initialDB;
 }
 export { DB };

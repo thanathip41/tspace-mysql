@@ -1,6 +1,6 @@
-import Database from './Database';
+import Builder from './Builder';
 import { Connection, ConnectionOptions } from './Interface';
-declare abstract class AbstractDB extends Database {
+declare abstract class AbstractDB extends Builder {
     abstract table(tableName: string): void;
     abstract beginTransaction(): Promise<any>;
     abstract generateUUID(): string;

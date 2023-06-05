@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class AbstractDatabase {
+exports.AbstractBuilder = void 0;
+class AbstractBuilder {
     constructor() {
         this.$setters = [
             '$attributes',
@@ -31,4 +32,5 @@ class AbstractDatabase {
         this.$attributes = null;
     }
 }
-exports.default = AbstractDatabase;
+exports.AbstractBuilder = AbstractBuilder;
+exports.default = AbstractBuilder;

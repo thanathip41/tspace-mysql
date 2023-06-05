@@ -1,5 +1,5 @@
-import { Database } from "./Database";
-declare class Schema extends Database {
+import { Builder } from "./Builder";
+declare class Schema extends Builder {
     table: (table: string, schemas: {
         [x: string]: any;
     }) => Promise<void>;

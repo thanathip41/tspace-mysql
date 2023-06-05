@@ -1,6 +1,6 @@
 import { Relation, RelationQuery } from './Interface';
-import Database from './Database';
-declare abstract class AbstractModel extends Database {
+import Builder from './Builder';
+declare abstract class AbstractModel extends Builder {
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;

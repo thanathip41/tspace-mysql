@@ -5,11 +5,11 @@ declare const utils: {
     timestamp: () => string;
     date: () => string;
     escape: (str: any) => any;
-    escapeSubQuery: (str: any) => any;
     generateUUID: () => string;
     covertBooleanToNumber: (data: any) => any;
-    snakeCase: (obj: any) => any;
-    camelCase: (obj: any) => any;
+    snakeCase: (data: any) => any;
+    camelCase: (data: any) => any;
+    randomString: (length?: number) => string;
 };
 export { utils };
 export default utils;

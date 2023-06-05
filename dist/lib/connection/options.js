@@ -10,9 +10,9 @@ const environment = () => {
     var _a;
     const NODE_ENV = (_a = process.env) === null || _a === void 0 ? void 0 : _a.NODE_ENV;
     const env = path_1.default.join(path_1.default.resolve(), '.env');
-    const envWithEnviroment = path_1.default.join(path_1.default.resolve(), `.env.${NODE_ENV}`);
     if (NODE_ENV == null)
         return env;
+    const envWithEnviroment = path_1.default.join(path_1.default.resolve(), `.env.${NODE_ENV}`);
     if (fs_1.default.existsSync(envWithEnviroment))
         return envWithEnviroment;
     return env;
@@ -36,7 +36,8 @@ for (const [key, value] of Object.entries(env)) {
     if (value == null)
         continue;
     if (typeof value === 'string' && ['true', 'false'].some(v => value.toLowerCase() === v)) {
-        env[key] = JSON.parse(value.toLowerCase());
+        const configEnv = env;
+        configEnv[key] = JSON.parse(value.toLowerCase());
     }
 }
 exports.default = Object.freeze(Object.assign({}, env));

@@ -30,33 +30,9 @@ const date = () => {
     return now;
 };
 const escape = (str) => {
-    try {
-        const check = str == null || str === true || str === false || Number.isInteger(str);
-        if (check)
-            return str;
-        const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'OR', 'SELECT ', 'FROM ', 'WHERE ', 'OR'];
-        for (let i in regxs) {
-            if (str.includes(regxs[i].toLocaleLowerCase())) {
-                str = str.split(regxs[i]).join("");
-            }
-        }
+    if (typeof str !== 'string')
         return str;
-    }
-    catch (e) {
-        return str;
-    }
-};
-const escapeSubQuery = (str) => {
-    const check = str == null || str === true || str === false || Number.isInteger(str);
-    if (check)
-        return str;
-    const regxs = ['DROP TABLE', 'UPDATE ', 'DELETE FROM ', 'TRUNCATE'];
-    for (let i in regxs) {
-        if (str.includes(regxs[i])) {
-            str = str.split(regxs[i]).join("");
-        }
-    }
-    return str;
+    return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, '');
 };
 const columnRelation = (name) => {
     var _a;
@@ -78,46 +54,46 @@ const covertBooleanToNumber = (data) => {
         return +data;
     return data;
 };
-const snakeCase = (obj) => {
+const snakeCase = (data) => {
     try {
-        if (typeof (obj) !== "object")
-            return obj;
-        Object.entries(obj).forEach(([oldName, _]) => {
+        if (typeof (data) !== "object")
+            return data;
+        Object.entries(data).forEach(([oldName, _]) => {
             const newName = oldName.replace(/([A-Z])/g, (str) => `_${str.toLocaleLowerCase()}`);
             if (newName !== oldName) {
-                if (obj.hasOwnProperty(oldName)) {
-                    obj = Object.assign(Object.assign({}, obj), { [newName]: obj[oldName] });
-                    delete obj[oldName];
+                if (data.hasOwnProperty(oldName)) {
+                    data = Object.assign(Object.assign({}, data), { [newName]: data[oldName] });
+                    delete data[oldName];
                 }
             }
-            if (typeof (obj[newName]) === "object")
-                obj[newName] = snakeCase(obj[newName]);
+            if (typeof (data[newName]) === "object")
+                data[newName] = snakeCase(data[newName]);
         });
-        return obj;
+        return data;
     }
     catch (e) {
-        return obj;
+        return data;
     }
 };
-const camelCase = (obj) => {
+const camelCase = (data) => {
     try {
-        if (typeof (obj) !== "object")
-            return obj;
-        Object.entries(obj).forEach(([oldName, _]) => {
+        if (typeof (data) !== "object")
+            return data;
+        Object.entries(data).forEach(([oldName]) => {
             const newName = oldName.replace(/(.(\_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
             if (newName !== oldName) {
-                if (obj.hasOwnProperty(oldName)) {
-                    obj = Object.assign(Object.assign({}, obj), { [newName]: obj[oldName] });
-                    delete obj[oldName];
+                if (data.hasOwnProperty(oldName)) {
+                    data = Object.assign(Object.assign({}, data), { [newName]: data[oldName] });
+                    delete data[oldName];
                 }
             }
-            if (typeof (obj[newName]) === "object")
-                obj[newName] = camelCase(obj[newName]);
+            if (typeof (data[newName]) === "object")
+                data[newName] = camelCase(data[newName]);
         });
-        return obj;
+        return data;
     }
     catch (e) {
-        return obj;
+        return data;
     }
 };
 const consoleDebug = (debug) => {
@@ -125,7 +101,16 @@ const consoleDebug = (debug) => {
         return;
     console.log(`\n\x1b[33m${debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
 };
+const randomString = (length = 100) => {
+    let str = '';
+    const salt = 3;
+    for (let i = 0; i < length / salt; i++) {
+        str += Math.random().toString(36).substring(salt);
+    }
+    return str.slice(-length).toLocaleLowerCase().replace(/'/g, 'g');
+};
 const faker = (value) => {
+    var _a, _b;
     if (!value.search('timestamp'))
         return timestamp();
     if (!value.search('datetime'))
@@ -137,15 +122,20 @@ const faker = (value) => {
     if (!value.search('boolean'))
         return [true, false][Math.round(Math.random())];
     if (!value.search('longtext'))
-        return [...Array(50)].map(() => Math.random().toString(36).substring(7)).join('');
+        return randomString(500);
+    if (!value.search('text'))
+        return randomString(500);
     if (!value.search('int'))
-        return Math.floor(Math.random() * 1000);
+        return Number(Math.floor(Math.random() * 1000));
     if (!value.search('float'))
-        return (Math.random() * 100).toFixed(2);
+        return Number((Math.random() * 100).toFixed(2));
     if (!value.search('double'))
-        return (Math.random() * 100).toFixed(2);
-    if (!value.search('varchar'))
-        return Buffer.from(Math.random().toString(36).substring(7)).toString('base64');
+        return Number((Math.random() * 100).toFixed(2));
+    if (!value.search('varchar')) {
+        const regex = /\d+/g;
+        const limit = Number((_b = (_a = value === null || value === void 0 ? void 0 : value.match(regex)) === null || _a === void 0 ? void 0 : _a.pop()) !== null && _b !== void 0 ? _b : 255);
+        return randomString(limit);
+    }
     return 'fake data';
 };
 const utils = {
@@ -155,11 +145,11 @@ const utils = {
     timestamp,
     date,
     escape,
-    escapeSubQuery,
     generateUUID,
     covertBooleanToNumber,
     snakeCase,
-    camelCase
+    camelCase,
+    randomString
 };
 exports.utils = utils;
 exports.default = utils;

@@ -32,6 +32,63 @@ class DB extends AbstractDB_1.AbstractDB {
             this.table(table);
         return new Proxy(this, ProxyHandler_1.proxyHandler);
     }
+    union(a, b) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.queryStatement([
+                a,
+                'UNION',
+                b
+            ].join(' '));
+        });
+    }
+    /**
+     * Covert result to array
+     * @param {any} result table name
+     * @return {Array} array
+     */
+    makeArray(result) {
+        switch (this._typeOf(result)) {
+            case 'object': {
+                if (Object.keys(result).length)
+                    return [result];
+                return [];
+            }
+            case 'array': {
+                return result;
+            }
+            case 'undefined':
+            case 'null': {
+                return [];
+            }
+            default: return [].concat(result);
+        }
+    }
+    /**
+     * Covert result to object or null
+     * @param {any} result table name
+     * @return {Record | null} object or null
+     */
+    makeObject(result) {
+        switch (this._typeOf(result)) {
+            case 'object': {
+                if (Object.keys(result).length)
+                    return result;
+                return null;
+            }
+            case 'array': {
+                if (result[0] == null)
+                    return null;
+                return result[0];
+            }
+            case 'undefined':
+            case 'null': {
+                return null;
+            }
+            default: return {
+                "0": result
+            };
+        }
+    }
     /**
      * Assign table name
      * @param {string} table table name
@@ -114,8 +171,56 @@ class DB extends AbstractDB_1.AbstractDB {
         return pool.connection();
     }
     /**
+     * Covert result to array
+     * @param {any} result table name
+     * @return {Array} array
+     */
+    static makeArray(result) {
+        switch (new this()._typeOf(result)) {
+            case 'object': {
+                if (Object.keys(result).length)
+                    return [result];
+                return [];
+            }
+            case 'array': {
+                return result;
+            }
+            case 'undefined':
+            case 'null': {
+                return [];
+            }
+            default: return [].concat(result);
+        }
+    }
+    /**
+     * Covert result to object | null
+     * @param {any} result table name
+     * @return {Record | null} object | null
+     */
+    static makeObject(result) {
+        switch (new this()._typeOf(result)) {
+            case 'object': {
+                if (Object.keys(result).length)
+                    return result;
+                return null;
+            }
+            case 'array': {
+                if (result[0] == null)
+                    return null;
+                return result[0];
+            }
+            case 'undefined':
+            case 'null': {
+                return null;
+            }
+            default: return {
+                "0": result
+            };
+        }
+    }
+    /**
      * Get a connection
-     * @return {ConnectionTransaction} object
+     * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -200,7 +305,7 @@ class DB extends AbstractDB_1.AbstractDB {
     /**
      * Get a connection
      * @static
-     * @return {ConnectionTransaction} object
+     * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -233,11 +338,15 @@ class DB extends AbstractDB_1.AbstractDB {
             password }, others));
         return pool.connection();
     }
+    _typeOf(data) {
+        return Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
+    }
     _initialDB() {
         this.$state = (() => {
             let db = new Map(Object.entries(Object.assign({}, this.$constants('DB'))));
+            let original = new Map(Object.entries(Object.assign({}, this.$constants('DB'))));
             return {
-                original: () => db,
+                original: () => original,
                 get: (key) => {
                     if (key == null)
                         return db;

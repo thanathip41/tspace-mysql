@@ -1,5 +1,5 @@
 import { Pagination } from './Interface';
-declare abstract class AbstractDatabase {
+declare abstract class AbstractBuilder {
     protected $setters: string[];
     protected $utils: {
         [key: string]: Function;
@@ -47,14 +47,21 @@ declare abstract class AbstractDatabase {
     abstract orWhereSubQuery(column: string, subQuery: string): this;
     abstract whereBetween(column: string, arrayValue: Array<any>): this;
     abstract having(condition: string): this;
+    abstract havingRaw(condition: string): this;
     abstract join(pk: string, fk: string): this;
     abstract rightJoin(pk: string, fk: string): this;
     abstract leftJoin(pk: string, fk: string): this;
     abstract crossJoin(pk: string, fk: string): this;
     abstract orderBy(column: string, order: string): this;
+    abstract orderByRaw(column: string, order: string): this;
     abstract latest(...columns: Array<string>): this;
+    abstract latestRaw(...columns: Array<string>): this;
     abstract oldest(...columns: Array<string>): this;
+    abstract oldestRaw(...columns: Array<string>): this;
     abstract groupBy(...columns: string[]): this;
+    abstract groupByRaw(...columns: string[]): this;
+    abstract random(): this;
+    abstract inRandom(): this;
     abstract limit(number: number): this;
     abstract hidden(...columns: string[]): this;
     abstract insert(objects: object): this;
@@ -113,4 +120,5 @@ declare abstract class AbstractDatabase {
     abstract decrement(column: string, value: number): Promise<any>;
     abstract faker(round: number): Promise<any>;
 }
-export default AbstractDatabase;
+export { AbstractBuilder };
+export default AbstractBuilder;

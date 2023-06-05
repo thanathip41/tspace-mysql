@@ -10,10 +10,28 @@ declare class Model extends AbstractModel {
     protected define(): void;
     /**
      *
+     * boot for initialize of models
+     * @return {void} void
+     */
+    protected boot(): void;
+    /**
+     *
      * Assign function callback in model
      * @return {this} this
      */
     protected useRegistry(): this;
+    /**
+     *
+     * Assign model calling all relationships in model
+     * @return {this} this
+     */
+    protected useLoadRelationInRegistry(): this;
+    /**
+     *
+     * Assign model built-in relation functions to a results
+     * @return {this} this
+     */
+    protected useBuiltInRelationFunctions(): this;
     /**
      *
      * Assign primary column in model
@@ -79,13 +97,22 @@ declare class Model extends AbstractModel {
     protected useTablePlural(): this;
     /**
      *
-     * Assign schema column in model
-     * @param {Object<Function>} schema type String Number and Date
+     * Assign schema column in model for validation data types
+     * @param {Object<Function>} schema types (String Number and Date)
      * @return {this} this
      */
-    protected useSchema(schema: {
-        [key: string]: Function;
-    }): this;
+    protected useSchema(schema: Record<string, Function>): this;
+    /**
+     * Assign hook function when execute returned results to callback function
+     * @param {Function} arrayFunction function for callback result
+     * @return {this}
+    */
+    protected useHook(functions: Array<Function>): this;
+    /**
+     * exceptColumns for method except
+     * @return {promise<string>} string
+     */
+    protected exceptColumns(): Promise<string>;
     /**
      * Build  method for relation in model
      * @param    {string} name name relation registry in your model
@@ -120,6 +147,12 @@ declare class Model extends AbstractModel {
      */
     ignoreSoftDelete(condition?: boolean): this;
     /**
+     * Assign table name
+     * @param {string} table table name
+     * @return {this} this
+     */
+    tableName(table: string): this;
+    /**
      * Assign ignore delete_at in model
      *  @param {boolean} condition
      * @return {this} this
@@ -142,17 +175,24 @@ declare class Model extends AbstractModel {
     with(...nameRelations: Array<string>): this;
     /**
      *
+     * Use relations in registry of model return ignore soft deleted
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    withTrashed(...nameRelations: Array<string>): this;
+    /**
+     *
      * Use relations in registry of model return only exists result of relation query
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
     withExists(...nameRelations: Array<string>): this;
     /**
-    *
-    * Use relations in registry of model return only exists result of relation query
-    * @param {...string} nameRelations if data exists return blank
-    * @return {this} this
-    */
+     *
+     * Use relations in registry of model return only exists result of relation query
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
     has(...nameRelations: Array<string>): this;
     /**
      *
@@ -184,6 +224,13 @@ declare class Model extends AbstractModel {
      * @return {this} this
      */
     relationQuery(nameRelation: string, callback: Function): this;
+    /**
+     *
+     * Use relations in registry of model return ignore soft deleted
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    relationTrashed(...nameRelations: Array<string>): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -228,10 +275,12 @@ declare class Model extends AbstractModel {
      * @property {class}  relation.model
      * @property {string} relation.localKey
      * @property {string} relation.foreignKey
-     * @property {string} relation.freezeTable
+     * @property {string} relation.freezeTable freeae table name
+     * @property {string} relation.pivot table name of pivot
+     * @property {string} relation.oldVersion return value of old version
      * @return   {this}   this
      */
-    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot }: Relation): this;
+    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion }: Relation): this;
     /**
      * Assign the relation in model Objects
      * @param    {object}  relation registry relation in your model
@@ -303,12 +352,8 @@ declare class Model extends AbstractModel {
      * @return {promise}
      */
     restore(): Promise<any>;
-    /**
-     *
-     * @override Method
-     * @return {promise<string>}
-    */
-    exceptColumns(): Promise<string>;
+    toTableName(): string;
+    toTableNameAndColumn(column: string): string;
     /**
      *
      * @override Method
@@ -390,7 +435,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<any>}
+     * @return {promise<{[key: string]:any} | null>}
     */
     first(): Promise<{
         [key: string]: any;
@@ -398,9 +443,11 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<any>}
+     * @return {promise<{[key: string]:any} | null>}
     */
-    findOne(): Promise<any>;
+    findOne(): Promise<{
+        [key: string]: any;
+    } | null>;
     /**
      *
      * @override Method
@@ -432,7 +479,7 @@ declare class Model extends AbstractModel {
      * @override Method
      * @return {promise<object | null>}
     */
-    find(id: number): Promise<any>;
+    find(id: number): Promise<Record<string, any> | null>;
     /**
      *
      * @override Method
@@ -448,7 +495,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @param {?object} paginationOptions by default page = 1 , limit = 15
+     * @param {object?} paginationOptions by default page = 1 , limit = 15
      * @property {number} paginationOptions.limit
      * @property {number} paginationOptions.page
      * @return {promise<Pagination>}
@@ -483,49 +530,81 @@ declare class Model extends AbstractModel {
      * @param {object} data
      * @return {this} this
      */
-    update(data: object): this;
+    update(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @override Method
      * @param {object} data for insert
      * @return {this} this
      */
-    insert(data: object): this;
+    insert(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @override Method
      * @param {object} data for insert
      * @return {this} this
      */
-    create(data: object): this;
+    create(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrCreate(data: object): this;
+    updateOrCreate(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrInsert(data: object): this;
+    updateOrInsert(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
     *
     * @override Method
     * @param {object} data for update or create
     * @return {this} this
     */
-    insertOrUpdate(data: object): this;
+    insertOrUpdate(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    createOrUpdate(data: object): this;
+    createOrUpdate(data: Record<string, any> & {
+        length?: never;
+    }): this;
+    /**
+     *
+     * @override Method
+     * @param {object} data for create
+     * @return {this} this
+     */
+    createOrSelect(data: Record<string, any> & {
+        length?: never;
+    }): this;
+    /**
+    *
+    * @override Method
+    * @param {object} data for update or create
+    * @return {this} this
+    */
+    insertOrSelect(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * insert multiple data into the database
@@ -533,7 +612,9 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Array<Object>): this;
+    createMultiple(data: Array<{
+        [key: string]: any;
+    }>): this;
     /**
      *
      * insert muliple data into the database
@@ -541,32 +622,48 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    insertMultiple(data: Array<Object>): this;
+    insertMultiple(data: Array<{
+        [key: string]: any;
+    }>): this;
     /**
-    *
-    * @param {object} data create not exists data
-    * @override Method
-    * @return {this} this this
-    */
-    createNotExists(data: object): this;
+     *
+     * @param {object} data create not exists data
+     * @override Method
+     * @return {this} this this
+     */
+    createNotExists(data: Record<string, any> & {
+        length?: never;
+    }): this;
+    /**
+     *
+     * @param {object} data create not exists data
+     * @override Method
+     * @return {this} this this
+     */
+    insertNotExists(data: {
+        [key: string]: any;
+    } & {
+        length?: never;
+    }): this;
+    /**
+     *
+     * get schema of table
+     * @return {this} this this
+     */
     getSchema(): Promise<any>;
     /**
      *
      * @override Method
-     * @return {Promise<any>}
+     * @return {Promise<Record<string,any> | Array<any> | null | undefined>}
      */
-    save(): Promise<{
-        [key: string]: any;
-    } | Array<any> | null | undefined>;
+    save(): Promise<Record<string, any> | Array<any> | null | undefined>;
     /**
      *
-     * fake data
+     * fake data into to this table
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows?: number): Promise<{
-        [key: string]: any;
-    }[]>;
+    faker(rows?: number): Promise<Record<string, any>[]>;
     private _valuePattern;
     private _isPatternSnakeCase;
     private _classToTableName;
@@ -595,12 +692,14 @@ declare class Model extends AbstractModel {
     private _queryInsertModel;
     private _queryInsertMultipleModel;
     private _insertNotExistsModel;
-    private _createModel;
+    private _insertModel;
     private _createMultipleModel;
     private _updateOrInsertModel;
+    private _insertOrSelectModel;
     private _updateModel;
     private _assertError;
     private _functionRelationName;
+    private _handleRelations;
     private _handleRelationsQuery;
     private _validateMethod;
     private _initialModel;

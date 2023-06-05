@@ -6,7 +6,7 @@ const proxyHandler = {
     set: (self, name, value) => {
         var _a;
         if ((_a = self.$setters) === null || _a === void 0 ? void 0 : _a.includes(name))
-            throw new Error(`no allow to set this ${name}`);
+            throw new Error(`No allow to set this : ${name}`);
         self.$attributes = Object.assign(Object.assign({}, self.$attributes), { [name]: value });
         return true;
     },

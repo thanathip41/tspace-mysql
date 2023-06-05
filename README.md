@@ -27,6 +27,7 @@ npm install tspace-mysql --save
   - [Belongs To](#belongs-to)
   - [Many To Many](#many-to-many)
   - [Relation in Relation](#relation-in-relation)
+  - [Built in Relation Functions](#built-in-relation-functions)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
   - [Make Model](#make-model)
@@ -124,8 +125,11 @@ const users = await new DB('users').where('id','!=',1).findMany()
 const whereIn = await new DB('users').whereIn('id',[1,2]).findMany()
 const whereBetween = await new DB('users').whereBetween('id',[1,2]).findMany()
 const whereSubQuery = await new DB('users').whereSubQuery('id','select id from users').findMany()
-// await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
+// same As await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
 const whereNull = await new DB('users').whereNull('username').findOne()
+const whereNotNull = await new DB('users').whereNotNull('username').findOne()
+const whereQuery = await new DB('users').whereQuery(query => query.where('id',1).where('username','tspace')).whereIn('id',[1,2]).findOne()
+    // SELECT * FROM `users` WHERE ( `users`.`id` = '1' AND `users`.`username` = 'tspace') AND `users`.`id` IN ('1','2'') LIMIT 1
 ```
 
 Running A Hook Query
@@ -172,11 +176,21 @@ const users = await new DB('users')
     .where('name','tspace4')
     .where('email','tspace4@gmail.com')
     .createNotExists({
-            name :'tspace4',
-            email : 'tspace4@gmail.com'
+        name :'tspace4',
+        email : 'tspace4@gmail.com'
     })
     .save()
     // if has exists return null, if not exists created new data
+
+const users = await new DB('users')
+    .where('name','tspace4')
+    .where('email','tspace4@gmail.com')
+    .createOrSelect({
+        name :'tspace4',
+        email : 'tspace4@gmail.com'
+    })
+    .save()
+    // if has exists return data, if not exists created new data
 
 ```
 Running A Update Query
@@ -377,12 +391,14 @@ class User extends Model {
      * this.usePattern('snake_case')   
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
      * this.useRegistry()
+     * this.useLoadRelationInRegistry()
+     * this.useBuiltInRelationFunctions()
      * this.useSchema({
      *   id : Number,
      *   username : String
      *   created_at : Date,
      *   updated_at : Date,
-     *  }) // validate type of schema when return result
+     *  }) // validate type of schema when return results
     */
 
     /*
@@ -586,6 +602,48 @@ await new User().relations('posts')
         })
     })
     .findMany()
+```
+
+## Built in Relation Functions
+Relationships can using built in function in results 
+let's example a built in function :
+```js
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'posts' , model : Post })
+        this.useBuiltInRelationFunctions()
+    }
+}
++--------------------------------------------------------------------------+
+class Post extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'comments' , model : Comment })
+        this.belongsTo({ name : 'user' , model : User })
+        this.useBuiltInRelationFunctions()
+    }
+}
++--------------------------------------------------------------------------+
+class Comment extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'users' , model : User })
+        this.belongsTo({ name : 'post' , model : Post })
+        this.useBuiltInRelationFunctions()
+    }
+}
++--------------------------------------------------------------------------+
+const user = await new User().findOne()
+const posts = await user.$posts()
+
+/** Warning built in function has Big-O effect */
+for (const post of posts) {
+    const comments = await post.$comments()
+}
+
 ```
 
 ## Query Builder

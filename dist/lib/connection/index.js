@@ -84,6 +84,7 @@ class PoolConnection {
             connectTimeout: Number(options_1.default.TIMEOUT),
             waitForConnections: Boolean(options_1.default.WAIT_FOR_CONNECTIONS),
             queueLimit: Number(options_1.default.QUEUE_LIMIT),
+            multipleStatements: true,
             charset: String(options_1.default.CHARSET),
             host: String(options_1.default.HOST),
             port: Number.isNaN(Number(options_1.default.PORT))

@@ -1,7 +1,7 @@
 declare class Logger {
     private SELF;
     private PROP;
-    constructor(self: any, prop: string);
+    constructor(self: Record<string, any>, prop: string);
     private initialize;
 }
 export { Logger };

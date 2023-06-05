@@ -1,6 +1,6 @@
-import AbstractDatabase from './AbstractDatabase';
+import { AbstractBuilder } from './AbstractBuilder';
 import { Pagination, Backup, ConnectionOptions, BackupToFile, Connection, ConnectionTransaction } from './Interface';
-declare class Database extends AbstractDatabase {
+declare class Builder extends AbstractBuilder {
     constructor();
     /**
      *
@@ -37,6 +37,7 @@ declare class Database extends AbstractDatabase {
      * @return {this} this
      */
     select(...columns: Array<string>): this;
+    selectRaw(...columns: Array<string>): this;
     /**
      * chunks data from array
      * @param {number} chunk
@@ -59,12 +60,20 @@ declare class Database extends AbstractDatabase {
     resetWhere(): this;
     /**
      * if has 2 arguments  default operator '='
-     * @param {string} column
+     * @param {string} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
      * @return {this}
      */
-    where(column: string, operator?: any, value?: any): this;
+    where(column: string | any, operator?: any, value?: any): this;
+    /**
+     * where using object operator only '='
+     * @param {Object} columns
+     * @return {this}
+     */
+    whereObject(columns: {
+        [key: string]: any;
+    }): this;
     /**
      * if has 2 arguments  default operator '='
      * @param {string} column
@@ -102,7 +111,6 @@ declare class Database extends AbstractDatabase {
     /**
      *
      * @param {number} id
-     * @param {string?} column custom it *if column is not id
      * @return {this} this
      */
     whereId(id: number, column?: string): this;
@@ -114,11 +122,11 @@ declare class Database extends AbstractDatabase {
     whereEmail(email: string): this;
     /**
      *
-     * @param {number} id
+     * @param {number} userId
      * @param {string?} column custom it *if column is not user_id
      * @return {this}
      */
-    whereUser(id: number, column?: string): this;
+    whereUser(userId: number, column?: string): this;
     /**
      * using array value where in value in array
      * @param {string} column
@@ -141,6 +149,13 @@ declare class Database extends AbstractDatabase {
      */
     whereNotIn(column: string, array: Array<any>): this;
     /**
+     * where not in data using array values
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereNotIn(column: string, array: Array<any>): this;
+    /**
      * where sub query using sub query sql
      * @param {string} column
      * @param {string} subQuery
@@ -161,6 +176,13 @@ declare class Database extends AbstractDatabase {
      * @return {this}
      */
     orWhereSubQuery(column: string, subQuery: string): this;
+    /**
+     * or where not sub query using query sql
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    orWhereNotSubQuery(column: string, subQuery: string): this;
     /**
      * where between using [value1, value2]
      * @param {string} column
@@ -189,6 +211,14 @@ declare class Database extends AbstractDatabase {
      */
     whereSensitive(column: string, operator?: any, value?: any): this;
     /**
+     * where Strict (uppercase, lowercase)
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    whereStrict(column: string, operator?: any, value?: any): this;
+    /**
      * where group query
      * @param {function} callback callback query
      * @return {this}
@@ -201,12 +231,6 @@ declare class Database extends AbstractDatabase {
      * @return {this}
      */
     case(cases: string | any[], as: string): this;
-    /**
-     *
-     * @param {string} condition
-     * @return {this}
-     */
-    having(condition: string): this;
     /**
      *
      * @param {string} pk talbe.pk
@@ -236,42 +260,101 @@ declare class Database extends AbstractDatabase {
      */
     crossJoin(pk: string, fk: string): this;
     /**
-     *
+     * sort the result in ASC or DESC order.
      * @param {string} column
      * @param {string?} order [order=asc] asc, desc
      * @return {this}
      */
     orderBy(column: string, order?: string | undefined): this;
     /**
-     *
-     * @param {string?} column [column=id]
+     * sort the result in ASC or DESC order. can using with raw query
+     * @param {string} column
+     * @param {string?} order [order=asc] asc, desc
+     * @return {this}
+     */
+    orderByRaw(column: string, order?: string | undefined): this;
+    /**
+     * sort the result in using DESC for order by.
+     * @param {string?} columns [column=id]
      * @return {this}
      */
     latest(...columns: Array<string>): this;
     /**
-     *
-     * @param {string?} column [column=id]
+     * sort the result in using DESC for order by. can using with raw query
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
+    latestRaw(...columns: Array<string>): this;
+    /**
+     * sort the result in using ASC for order by.
+     * @param {string?} columns [column=id]
      * @return {this}
      */
     oldest(...columns: Array<string>): this;
     /**
+     * sort the result in using ASC for order by. can using with raw query
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
+    oldestRaw(...columns: Array<string>): this;
+    /**
      *
-     * @param {string?} column [column=id]
+     * @param {string?} columns [column=id]
      * @return {this}
      */
     groupBy(...columns: Array<string>): this;
     /**
+    *
+    * @param {string?} columns [column=id]
+    * @return {this}
+    */
+    groupByRaw(...columns: Array<string>): this;
+    /**
      *
+     * @param {string} condition
+     * @return {this}
+     */
+    having(condition: string): this;
+    /**
+     *
+     * @param {string} condition
+     * @return {this}
+     */
+    havingRaw(condition: string): this;
+    /**
+     *  sort the result in random order.
+     * @return {this}
+     */
+    random(): this;
+    /**
+     *  sort the result in random order.
+     * @return {this}
+     */
+    inRandom(): this;
+    /**
+     * limit data
      * @param {number=} number [number=1]
      * @return {this}
      */
     limit(number?: number): this;
     /**
+     * limit data
+     * @param {number=} number [number=1]
+     * @return {this}
+     */
+    take(number?: number): this;
+    /**
      *
      * @param {number=} number [number=1]
      * @return {this}
      */
-    offset(number?: number | undefined): this;
+    offset(number?: number): this;
+    /**
+     *
+     * @param {number=} number [number=1]
+     * @return {this}
+     */
+    skip(number?: number): this;
     /**
      *
      * @param {...string} columns
@@ -284,21 +367,33 @@ declare class Database extends AbstractDatabase {
      * @param {object} data
      * @return {this} this
      */
-    update(data: object): this;
+    update(data: {
+        [key: string]: any;
+    } & {
+        length?: unknown;
+    }): this;
     /**
      *
      * insert data into the database
      * @param {object} data
      * @return {this} this
      */
-    insert(data: object): this;
+    insert(data: {
+        [key: string]: any;
+    } & {
+        length?: unknown;
+    }): this;
     /**
      *
      * insert data into the database
      * @param {object} data
      * @return {this} this
      */
-    create(data: object): this;
+    create(data: {
+        [key: string]: any;
+    } & {
+        length?: unknown;
+    }): this;
     /**
      *
      * insert muliple data into the database
@@ -342,45 +437,83 @@ declare class Database extends AbstractDatabase {
     */
     hook(func: Function): this;
     /**
+     * hook function when execute returned result to callback function
+     * @param {Function} func function for callback result
+     * @return {this}
+    */
+    before(func: Function): this;
+    /**
      *
      * @param {object} data create not exists data
      * @return {this} this this
      */
-    createNotExists(data: object): this;
+    createNotExists(data: {
+        [key: string]: any;
+    } & {
+        length?: unknown;
+    }): this;
     /**
      *
      * @param {object} data insert not exists data
      * @return {this} this this
      */
-    insertNotExists(data: object): this;
+    insertNotExists(data: Record<string, any> & {
+        length?: never;
+    }): this;
+    /**
+     *
+     * check data if exists if exists then return result. if not exists insert data
+     * @param {object} data insert data
+     * @return {this} this this
+     */
+    createOrSelect(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    updateOrCreate(data: object): this;
+    insertOrSelect(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    updateOrInsert(data: object): this;
+    updateOrCreate(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data insert or update data
      * @return {this} this this
      */
-    insertOrUpdate(data: object): this;
+    updateOrInsert(data: Record<string, any> & {
+        length?: never;
+    }): this;
+    /**
+     *
+     * check data if exists if exists then update. if not exists insert
+     * @param {object} data insert or update data
+     * @return {this} this this
+     */
+    insertOrUpdate(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * check data if exists if exists then update. if not exists insert
      * @param {object} data create or update data
      * @return {this} this this
      */
-    createOrUpdate(data: object): this;
+    createOrUpdate(data: Record<string, any> & {
+        length?: never;
+    }): this;
     /**
      *
      * @param {Object} options options for connection database with credentials
@@ -408,7 +541,7 @@ declare class Database extends AbstractDatabase {
      * exceptColumns for method except
      * @return {promise<string>} string
      */
-    exceptColumns(): Promise<string>;
+    protected exceptColumns(): Promise<string>;
     /**
      * execute sql statements with raw sql query
      * @param {string} sql sql execute return data
@@ -438,11 +571,11 @@ declare class Database extends AbstractDatabase {
     all(): Promise<any>;
     /**
      *
-     * execute data with where by id
+     * execute data with where by primary key default = id
      * @param {number} id
      * @return {promise<any>}
      */
-    find(id: number): Promise<any>;
+    find(id: number): Promise<Record<string, any> | null>;
     /**
      *
      * execute data page & limit
@@ -681,8 +814,10 @@ declare class Database extends AbstractDatabase {
         sql: string;
         returnId?: boolean;
     }): Promise<any>;
-    private _create;
-    private _createMultiple;
+    private _insert;
+    private _checkValueHasRaw;
+    private _insertMultiple;
+    private _insertOrSelect;
     private _updateOrInsert;
     private _update;
     private _hiddenColumn;
@@ -694,5 +829,5 @@ declare class Database extends AbstractDatabase {
     private _buildQuery;
     private _initialConnection;
 }
-export { Database };
-export default Database;
+export { Builder };
+export default Builder;

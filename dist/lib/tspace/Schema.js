@@ -10,8 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Schema = void 0;
-const Database_1 = require("./Database");
-class Schema extends Database_1.Database {
+const Builder_1 = require("./Builder");
+class Schema extends Builder_1.Builder {
     constructor() {
         super(...arguments);
         this.table = (table, schemas) => __awaiter(this, void 0, void 0, function* () {
@@ -33,6 +33,7 @@ class Schema extends Database_1.Database {
                 ].join(' ');
                 yield this.rawQuery(sql);
                 console.log(`Migrats : '${table}' created successfully`);
+                return;
             }
             catch (err) {
                 console.log((_a = err.message) === null || _a === void 0 ? void 0 : _a.replace(/ER_TABLE_EXISTS_ERROR:/g, ""));

@@ -8,6 +8,9 @@ export interface Relation {
     pivot?: string | undefined;
     query?: any | undefined;
     relation?: Object | undefined;
+    exists?: boolean | undefined;
+    trashed?: boolean | undefined;
+    oldVersion?: boolean | undefined;
 }
 export interface RelationQuery {
     name?: string;
@@ -104,4 +107,4 @@ export interface Execute {
         [key: string]: any;
     };
 }
-export declare type Pattern = 'snake_case' | 'camelCase';
+export type Pattern = 'snake_case' | 'camelCase';
