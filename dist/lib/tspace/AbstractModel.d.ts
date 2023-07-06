@@ -11,6 +11,8 @@ declare abstract class AbstractModel extends Builder {
     protected abstract useTimestamp(): this;
     protected abstract useSoftDelete(): this;
     protected abstract usePattern(pattern: string): this;
+    protected abstract useLoadRelationsInRegistry(): this;
+    protected abstract useBuiltInRelationFunctions(): this;
     protected abstract define(): void;
     protected abstract hasOne({ name, model, localKey, foreignKey, freezeTable, as }: Relation): this;
     protected abstract hasMany({ name, model, localKey, foreignKey, freezeTable, as }: Relation): this;
@@ -32,10 +34,12 @@ declare abstract class AbstractModel extends Builder {
     abstract with(...nameRelations: string[]): this;
     abstract withQuery(nameRelations: string, callback: Function): this;
     abstract withExists(...nameRelations: string[]): this;
+    abstract withAndTrashed(...nameRelations: string[]): this;
     abstract has(...nameRelations: string[]): this;
     abstract relations(...nameRelations: string[]): this;
     abstract relationQuery(nameRelations: string, callback: Function): this;
     abstract relationsExists(...nameRelations: string[]): this;
+    abstract relationsAndTrashed(...nameRelations: string[]): this;
 }
 export { AbstractModel };
 export default AbstractModel;

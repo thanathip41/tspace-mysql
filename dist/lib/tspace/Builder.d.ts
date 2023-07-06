@@ -52,14 +52,6 @@ declare class Builder extends AbstractBuilder {
     when(condition: string | number | undefined | null | Boolean, callback: Function): this;
     /**
      * if has 2 arguments  default operator '='
-     * @param {string} column
-     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
-     * @param {any?} value
-     * @return {this}
-     */
-    resetWhere(): this;
-    /**
-     * if has 2 arguments  default operator '='
      * @param {string} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
@@ -94,13 +86,6 @@ declare class Builder extends AbstractBuilder {
      * @return {this} this
      */
     orWhereRaw(sql: string): this;
-    /**
-     *
-     * @param {string} tableAndLocalKey
-     * @param {string?} tableAndForeignKey
-     * @return {this}
-     */
-    protected whereReference(tableAndLocalKey: string, tableAndForeignKey?: any): this;
     /**
      *
      * where exists
@@ -191,17 +176,43 @@ declare class Builder extends AbstractBuilder {
      */
     whereBetween(column: string, array: Array<any>): this;
     /**
+     * where between using [value1, value2]
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereBetween(column: string, array: Array<any>): this;
+    /**
+     * where not between using [value1, value2]
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotBetween(column: string, array: Array<any>): this;
+    /**
      * where null using NULL
      * @param {string} column
      * @return {this}
      */
     whereNull(column: string): this;
     /**
+   * where null using NULL
+   * @param {string} column
+   * @return {this}
+   */
+    orWhereNull(column: string): this;
+    /**
      * where not null using NULL
      * @param {string} column
      * @return {this}
      */
     whereNotNull(column: string): this;
+    /**
+     * where not null using NULL
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNotNull(column: string): this;
     /**
      * where sensitive (uppercase, lowercase)
      * @param {string} column
@@ -219,11 +230,31 @@ declare class Builder extends AbstractBuilder {
      */
     whereStrict(column: string, operator?: any, value?: any): this;
     /**
+     * or where sensitive (uppercase, lowercase)
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhereSensitive(column: string, operator?: any, value?: any): this;
+    /**
      * where group query
      * @param {function} callback callback query
      * @return {this}
      */
     whereQuery(callback: Function): this;
+    /**
+     * where group query
+     * @param {function} callback callback query
+     * @return {this}
+     */
+    whereGroup(callback: Function): this;
+    /**
+     * where group query
+     * @param {function} callback callback query
+     * @return {this}
+     */
+    orWhereQuery(callback: Function): this;
     /**
      * select by cases
      * @param {array} cases array object [{ when : 'id < 7' , then : 'id is than under 7'}]
@@ -400,14 +431,14 @@ declare class Builder extends AbstractBuilder {
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Array<any>): this;
+    createMultiple(data: Array<Record<string, any>>): this;
     /**
      *
      * insert muliple data into the database
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    insertMultiple(data: Array<any>): this;
+    insertMultiple(data: Array<Record<string, any>>): this;
     /**
      *
      * @return {string} return sql query
@@ -541,7 +572,7 @@ declare class Builder extends AbstractBuilder {
      * exceptColumns for method except
      * @return {promise<string>} string
      */
-    protected exceptColumns(): Promise<string>;
+    protected exceptColumns(): Promise<string[]>;
     /**
      * execute sql statements with raw sql query
      * @param {string} sql sql execute return data
@@ -605,9 +636,7 @@ declare class Builder extends AbstractBuilder {
      * execute data return object | null
      * @return {promise<object | null>}
      */
-    first(): Promise<{
-        [key: string]: any;
-    } | null>;
+    first(): Promise<Record<string, any> | null>;
     /**
      *
      * execute data return object | throw rror
@@ -623,9 +652,7 @@ declare class Builder extends AbstractBuilder {
      */
     firstOrError(message: string, options?: {
         [key: string]: any;
-    }): Promise<{
-        [key: string]: any;
-    }>;
+    }): Promise<Record<string, any>>;
     /**
      *
      * execute data return object | null
@@ -806,6 +833,14 @@ declare class Builder extends AbstractBuilder {
      * @return {promise<boolean>}
      */
     drop(): Promise<boolean>;
+    protected resultHandler(data: any): any;
+    /**
+     *
+     * @param {string} tableAndLocalKey
+     * @param {string?} tableAndForeignKey
+     * @return {this}
+     */
+    protected whereReference(tableAndLocalKey: string, tableAndForeignKey?: any): this;
     private _queryWhereIsExists;
     private _bindTableAndColumnInQueryWhere;
     private _insertNotExists;

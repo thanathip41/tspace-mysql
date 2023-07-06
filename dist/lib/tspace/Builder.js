@@ -31,6 +31,7 @@ const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const DB_1 = require("./DB");
 const connection_1 = require("../connection");
+const StateHandler_1 = require("./StateHandler");
 class Builder extends AbstractBuilder_1.AbstractBuilder {
     constructor() {
         super();
@@ -90,26 +91,28 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     select(...columns) {
-        let select = '*';
-        if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            select = columns.map((column) => {
-                if (column.includes(this.$constants('RAW')))
-                    return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
-                return `\`${column}\``;
-            }).join(', ');
-        }
+        if (!columns.length)
+            return this;
+        const select = columns.map((column) => {
+            if (column === '*')
+                return column;
+            if (column.includes(this.$constants('RAW')))
+                return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
+            return `\`${column}\``;
+        }).join(', ');
         this.$state.set('SELECT', `${this.$constants('SELECT')} ${select}`);
         return this;
     }
     selectRaw(...columns) {
-        let select = '*';
-        if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            select = columns.map((column) => {
-                if (column.includes(this.$constants('RAW')))
-                    return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
+        if (!columns.length)
+            return this;
+        const select = columns.map((column) => {
+            if (column === '*')
                 return column;
-            }).join(', ');
-        }
+            if (column.includes(this.$constants('RAW')))
+                return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
+            return column;
+        }).join(', ');
         this.$state.set('SELECT', `${this.$constants('SELECT')} ${select}`);
         return this;
     }
@@ -128,19 +131,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     when(condition, callback) {
-        if (condition)
-            callback(this);
-        return this;
-    }
-    /**
-     * if has 2 arguments  default operator '='
-     * @param {string} column
-     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
-     * @param {any?} value
-     * @return {this}
-     */
-    resetWhere() {
-        this.$state.set('WHERE', '');
+        if (!condition)
+            return this;
+        const cb = callback(this);
+        if (cb instanceof Promise)
+            throw new Error('"when" is not supported a Promise');
         return this;
     }
     /**
@@ -238,21 +233,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     /**
      *
-     * @param {string} tableAndLocalKey
-     * @param {string?} tableAndForeignKey
-     * @return {this}
-     */
-    whereReference(tableAndLocalKey, tableAndForeignKey) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${tableAndLocalKey} = ${tableAndForeignKey}`
-        ].join(' '));
-        return this;
-    }
-    /**
-     *
      * where exists
      * @param {string} sql
      * @return {this}
@@ -277,7 +257,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             this._queryWhereIsExists()
                 ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
                 : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} = ${id}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} = ${this.$utils.escape(id)}`,
         ].join(' '));
         return this;
     }
@@ -327,7 +307,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             this._queryWhereIsExists()
                 ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
                 : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('IN')}`,
             `(${values})`
         ].join(' '));
@@ -349,7 +329,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             this._queryWhereIsExists()
                 ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
                 : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('IN')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('IN')}`,
             `(${values})`
         ].join(' '));
@@ -413,7 +393,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('IN')}`,
-            `(${this.$utils.escape(subQuery)})`
+            `(${subQuery})`
         ].join(' '));
         return this;
     }
@@ -430,7 +410,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('NOT_IN')}`,
-            `(${this.$utils.escape(subQuery)})`
+            `(${subQuery})`
         ].join(' '));
         return this;
     }
@@ -447,7 +427,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('IN')}`,
-            `(${this.$utils.escape(subQuery)})`
+            `(${subQuery})`
         ].join(' '));
         return this;
     }
@@ -464,7 +444,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('NOT_IN')}`,
-            `(${this.$utils.escape(subQuery)})`
+            `(${subQuery})`
         ].join(' '));
         return this;
     }
@@ -485,7 +465,49 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
-            `'${this.$utils.escape(value1)}' ${this.$constants('AND')} '${this.$utils.escape(value2)}'`
+            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
+        ].join(' '));
+        return this;
+    }
+    /**
+     * where between using [value1, value2]
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        if (!array.length)
+            return this;
+        const [value1, value2] = array;
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
+                : `${this.$constants('WHERE')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
+            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
+        ].join(' '));
+        return this;
+    }
+    /**
+     * where not between using [value1, value2]
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        if (!array.length)
+            return this;
+        const [value1, value2] = array;
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
+                : `${this.$constants('WHERE')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_BETWEEN')}`,
+            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
         ].join(' '));
         return this;
     }
@@ -505,6 +527,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+   * where null using NULL
+   * @param {string} column
+   * @return {this}
+   */
+    orWhereNull(column) {
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
+                : `${this.$constants('WHERE')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)}`,
+            `${this.$constants('IS_NULL')}`
+        ].join(' '));
+        return this;
+    }
+    /**
      * where not null using NULL
      * @param {string} column
      * @return {this}
@@ -513,6 +550,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         this.$state.set('WHERE', [
             this._queryWhereIsExists()
                 ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
+                : `${this.$constants('WHERE')}`,
+            `${this._bindTableAndColumnInQueryWhere(column)}`,
+            `${this.$constants('IS_NOT_NULL')}`
+        ].join(' '));
+        return this;
+    }
+    /**
+     * where not null using NULL
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNotNull(column) {
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
                 : `${this.$constants('WHERE')}`,
             `${this._bindTableAndColumnInQueryWhere(column)}`,
             `${this.$constants('IS_NOT_NULL')}`
@@ -551,6 +603,27 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.whereSensitive(column, operator, value);
     }
     /**
+     * or where sensitive (uppercase, lowercase)
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhereSensitive(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
+                : `${this.$constants('WHERE')}`,
+            `BINARY ${this._bindTableAndColumnInQueryWhere(column)}`,
+            `${operator}`,
+            `${this._checkValueHasRaw(this.$utils.escape(value))}`
+        ].join(' '));
+        return this;
+    }
+    /**
      * where group query
      * @param {function} callback callback query
      * @return {this}
@@ -559,9 +632,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a;
         const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
-        if (!(repository instanceof DB_1.DB)) {
-            throw new Error(`unknown callback query: '[${repository}]'`);
-        }
+        if (repository instanceof Promise)
+            throw new Error('"whereQuery" is not supported a Promise');
+        if (!(repository instanceof DB_1.DB))
+            throw new Error(`Unknown callback query: '[${repository}]'`);
         const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || '';
         if (where === '')
             return this;
@@ -569,6 +643,39 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         this.$state.set('WHERE', [
             this._queryWhereIsExists()
                 ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
+                : `${this.$constants('WHERE')}`,
+            `(${query})`
+        ].join(' '));
+        return this;
+    }
+    /**
+     * where group query
+     * @param {function} callback callback query
+     * @return {this}
+     */
+    whereGroup(callback) {
+        return this.whereQuery(callback);
+    }
+    /**
+     * where group query
+     * @param {function} callback callback query
+     * @return {this}
+     */
+    orWhereQuery(callback) {
+        var _a;
+        const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
+        const repository = callback(db);
+        if (repository instanceof Promise)
+            throw new Error('"whereQuery" is not supported a Promise');
+        if (!(repository instanceof DB_1.DB))
+            throw new Error(`Unknown callback query: '[${repository}]'`);
+        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || '';
+        if (where === '')
+            return this;
+        const query = where.replace('WHERE', '');
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
                 : `${this.$constants('WHERE')}`,
             `(${query})`
         ].join(' '));
@@ -1236,8 +1343,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' ');
             const rawColumns = yield this.queryStatement(sql);
             const columns = rawColumns.map((column) => column.Field);
-            const removeExcept = columns.filter((column) => !this.$state.get('EXCEPT').includes(column));
-            return removeExcept.join(', ');
+            const removeExcept = columns.filter((column) => !String(this.$state.get('EXCEPT')).includes(column));
+            return removeExcept;
         });
     }
     /**
@@ -1327,7 +1434,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<Pagination>}
      */
     pagination(paginationOptions) {
-        var _a, _b;
+        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
             let limit = 15;
             let page = 1;
@@ -1340,7 +1447,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
             const offset = (page - 1) * limit;
             let sql = this._buildQuery();
-            sql = sql.replace(this.$state.get('LIMIT'), `${limit} ${this.$constants('OFFSET')} ${offset}`);
             if (!sql.includes(this.$constants('LIMIT'))) {
                 sql = [
                     `${sql}`,
@@ -1348,6 +1454,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     `${limit}`,
                     `${this.$constants('OFFSET')} ${offset}`
                 ].join(' ');
+            }
+            else {
+                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} ${limit} ${this.$constants('OFFSET')} ${offset}`);
             }
             const result = yield this.queryStatement(sql);
             if ((_a = this.$state.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
@@ -1370,17 +1479,22 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('COUNT')}(*)`,
                 `${this.$constants('AS')} total`
             ].join(' '));
-            sql = this._buildQuery();
-            const count = yield this.queryStatement(sql);
-            const total = count.shift().total || 0;
+            const sqlTotal = [
+                this.$state.get('SELECT'),
+                this.$state.get('FROM'),
+                this.$state.get('TABLE_NAME'),
+                this.$state.get('WHERE'),
+            ].join(' ');
+            const count = yield this.queryStatement(sqlTotal);
+            const total = ((_b = count === null || count === void 0 ? void 0 : count.shift()) === null || _b === void 0 ? void 0 : _b.total) || 0;
             let lastPage = Math.ceil(total / limit) || 0;
             lastPage = lastPage > 1 ? lastPage : 1;
-            const totalPage = (_b = result === null || result === void 0 ? void 0 : result.length) !== null && _b !== void 0 ? _b : 0;
+            const totalPage = (_c = result === null || result === void 0 ? void 0 : result.length) !== null && _c !== void 0 ? _c : 0;
             return {
                 meta: {
+                    total: total,
+                    limit: limit,
                     total_page: totalPage,
-                    total,
-                    limit,
                     current_page: currentPage,
                     last_page: lastPage,
                     next_page: nextPage,
@@ -1418,7 +1532,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
-                this.select(yield this.exceptColumns());
+                this.select(...yield this.exceptColumns());
             this.limit(1);
             let sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
@@ -1440,7 +1554,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const hook = this.$state.get('HOOK');
             for (let i in hook)
                 yield hook[i](r);
-            return r;
+            return this.resultHandler(r);
         });
     }
     /**
@@ -1462,7 +1576,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
-                this.select(yield this.exceptColumns());
+                this.select(...yield this.exceptColumns());
             let sql = this._buildQuery();
             if (!sql.includes(this.$constants('LIMIT')))
                 sql = `${sql} ${this.$constants('LIMIT')} 1`;
@@ -1487,7 +1601,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 const hook = this.$state.get('HOOK');
                 for (let i in hook)
                     yield hook[i](data);
-                return data;
+                return this.resultHandler(data);
             }
             const data = (result === null || result === void 0 ? void 0 : result.shift()) || null;
             if (data == null) {
@@ -1499,7 +1613,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const hook = this.$state.get('HOOK');
             for (let i in hook)
                 yield hook[i](data);
-            return data;
+            return this.resultHandler(data);
         });
     }
     /**
@@ -1521,7 +1635,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
-                this.select(yield this.exceptColumns());
+                this.select(...yield this.exceptColumns());
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
             if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
@@ -1537,7 +1651,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 const hook = this.$state.get('HOOK');
                 for (let i in hook)
                     yield hook[i](data || []);
-                return data || [];
+                return this.resultHandler(data || []);
             }
             if (this.$state.get('PLUCK')) {
                 const pluck = this.$state.get('PLUCK');
@@ -1548,12 +1662,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 const hook = this.$state.get('HOOK');
                 for (let i in hook)
                     yield hook[i](newData || []);
-                return newData || [];
+                return this.resultHandler(newData || []);
             }
             const hook = this.$state.get('HOOK');
             for (let i in hook)
                 yield hook[i](result || []);
-            return result || [];
+            return this.resultHandler(result || []);
         });
     }
     /**
@@ -1575,12 +1689,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
-                this.select(yield this.exceptColumns());
+                this.select(...yield this.exceptColumns());
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
             if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            return JSON.stringify(result);
+            return this.resultHandler(JSON.stringify(result));
         });
     }
     /**
@@ -1595,7 +1709,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
             const toArray = result.map((data) => data[column]);
-            return toArray;
+            return this.resultHandler(toArray);
         });
     }
     /**
@@ -1610,11 +1724,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             this.$state.set('SELECT', [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('COUNT')}(${column})`,
-                `${this.$constants('AS')} total`
+                `${this.$constants('AS')} \`total\``
             ].join(' '));
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
-            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.total) || 0;
+            this.$state.resetState();
+            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.total) || 0));
         });
     }
     /**
@@ -1632,9 +1747,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$state.get('FROM')}`,
                 `${this.$state.get('TABLE_NAME')}`,
                 `${this.$state.get('WHERE')}`,
-                `${this.$constants('LIMIT')} 1) ${this.$constants('AS')} 'exists'`
+                `${this.$constants('LIMIT')} 1) ${this.$constants('AS')} \`exists\``
             ].join(' '));
-            return !!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.exists) || false;
+            return Boolean(this.resultHandler(!!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.exists) || false));
         });
     }
     /**
@@ -1649,11 +1764,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             this.$state.set('SELECT', [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('AVG')}(${column})`,
-                `${this.$constants('AS')} avg`
+                `${this.$constants('AS')} \`avg\``
             ].join(' '));
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
-            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.avg) || 0;
+            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.avg) || 0));
         });
     }
     /**
@@ -1665,10 +1780,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     sum(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('SUM')}(${column}) ${this.$constants('AS')} sum`);
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('SUM')}(${column}) ${this.$constants('AS')} \`sum\``);
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
-            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.sum) || 0;
+            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.sum) || 0));
         });
     }
     /**
@@ -1680,10 +1795,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     max(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MAX')}(${column}) ${this.$constants('AS')} max`);
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MAX')}(${column}) ${this.$constants('AS')} \`max\``);
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
-            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.max) || 0;
+            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.max) || 0));
         });
     }
     /**
@@ -1695,10 +1810,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     min(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MIN')}(${column}) ${this.$constants('AS')} min`);
+            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('MIN')}(${column}) ${this.$constants('AS')} \`min\``);
             const sql = this._buildQuery();
             const result = yield this.queryStatement(sql);
-            return ((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.min) || 0;
+            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.min) || 0));
         });
     }
     /**
@@ -1720,8 +1835,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' '));
             const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
             if (result)
-                return (_a = !!result) !== null && _a !== void 0 ? _a : false;
-            return false;
+                return Boolean(this.resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
+            return Boolean(this.resultHandler(false));
         });
     }
     /**
@@ -1730,7 +1845,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<boolean>}
      */
     forceDelete() {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
@@ -1740,8 +1855,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' '));
             const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
             if (result)
-                return (_a = !!result) !== null && _a !== void 0 ? _a : false;
-            return false;
+                return Boolean(this.resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
+            return Boolean(this.resultHandler((_b = !!result) !== null && _b !== void 0 ? _b : false));
         });
     }
     /**
@@ -1771,7 +1886,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `*`,
                 `${this.$constants('FROM')}`,
                 `${this.$state.get('TABLE_NAME')}`,
-                `${this.$constants('WHERE')} id ${this.$constants('IN')}`,
+                `${this.$constants('WHERE')} id`,
+                `${this.$constants('IN')}`,
                 `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
             ].join(' ');
             const groups = yield this.queryStatement(sqlGroups);
@@ -1783,7 +1899,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     data: newData
                 });
             });
-            return resultData;
+            return this.resultHandler(!resultData);
         });
     }
     /**
@@ -1870,8 +1986,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('FROM')}`,
                 `\`${table.replace(/\`/g, '')}\``
             ].join(' ');
-            const raw = yield this.queryStatement(sql);
-            const schemas = raw.map((r) => {
+            const raws = yield this.queryStatement(sql);
+            return raws.map((r) => {
                 const schema = [];
                 schema.push(`${r.Field}`);
                 schema.push(`${r.Type}`);
@@ -1895,7 +2011,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 return schema.join(' ');
             });
-            return schemas;
         });
     }
     /**
@@ -2121,9 +2236,30 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return true;
         });
     }
+    resultHandler(data) {
+        this.$state.set('RESULT', data);
+        this.$state.resetState();
+        this.$logger.reset();
+        return data;
+    }
+    /**
+     *
+     * @param {string} tableAndLocalKey
+     * @param {string?} tableAndForeignKey
+     * @return {this}
+     */
+    whereReference(tableAndLocalKey, tableAndForeignKey) {
+        this.$state.set('WHERE', [
+            this._queryWhereIsExists()
+                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
+                : `${this.$constants('WHERE')}`,
+            `${tableAndLocalKey} = ${tableAndForeignKey}`
+        ].join(' '));
+        return this;
+    }
     _queryWhereIsExists() {
         var _a;
-        return ((_a = this.$state.get('WHERE')) === null || _a === void 0 ? void 0 : _a.includes(this.$constants('WHERE'))) || false;
+        return ((_a = String(this.$state.get('WHERE'))) === null || _a === void 0 ? void 0 : _a.includes(this.$constants('WHERE'))) || false;
     }
     _bindTableAndColumnInQueryWhere(column) {
         return `${this.$state.get('TABLE_NAME')}.\`${column}\``;
@@ -2150,21 +2286,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         sql: this.$state.get('INSERT'),
                         returnId: true
                     });
-                    if (this.$state.get('VOID'))
-                        return null;
-                    if (result) {
-                        const sql = [
-                            `${this.$state.get('SELECT')}`,
-                            `${this.$state.get('FROM')}`,
-                            `${this.$state.get('TABLE_NAME')}`,
-                            `${this.$constants('WHERE')} id = ${id}`
-                        ].join(' ');
-                        const data = yield this.queryStatement(sql);
-                        return (data === null || data === void 0 ? void 0 : data.shift()) || null;
-                    }
-                    return null;
+                    if (this.$state.get('VOID') || !result)
+                        return this.resultHandler(null);
+                    const sql = [
+                        `${this.$state.get('SELECT')}`,
+                        `${this.$state.get('FROM')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
+                        `${this.$constants('WHERE')} id = ${id}`
+                    ].join(' ');
+                    const data = yield this.queryStatement(sql);
+                    return this.resultHandler((data === null || data === void 0 ? void 0 : data.shift()) || null);
                 }
-                default: return null;
+                default: return this.resultHandler(null);
             }
         });
     }
@@ -2194,21 +2327,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 sql: this.$state.get('INSERT'),
                 returnId: true
             });
-            if (this.$state.get('VOID'))
-                return null;
-            if (result) {
-                const sql = [
-                    `${this.$state.get('SELECT')}`,
-                    `${this.$state.get('FROM')}`,
-                    `${this.$state.get('TABLE_NAME')}`,
-                    `${this.$constants('WHERE')} id = ${id}`
-                ].join(' ');
-                const data = yield this.queryStatement(sql);
-                const result = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-                this.$state.set('RESULT', result);
-                return result;
-            }
-            return null;
+            if (this.$state.get('VOID') || !result)
+                return this.resultHandler(null);
+            const sql = [
+                `${this.$state.get('SELECT')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} ${this.$state.get('TABLE_NAME')}.\`id\` = ${id}`
+            ].join(' ');
+            const data = yield this.queryStatement(sql);
+            const resultData = (data === null || data === void 0 ? void 0 : data.shift()) || null;
+            this.$state.set('RESULT', resultData);
+            return this.resultHandler(resultData);
         });
     }
     _checkValueHasRaw(value) {
@@ -2222,23 +2352,19 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 sql: this.$state.get('INSERT'),
                 returnId: true
             });
-            if (this.$state.get('VOID'))
-                return null;
-            if (result) {
-                const arrayId = [...Array(result)].map((_, i) => i + id);
-                const sql = [
-                    `${this.$state.get('SELECT')}`,
-                    `${this.$state.get('FROM')}`,
-                    `${this.$state.get('TABLE_NAME')}`,
-                    `${this.$constants('WHERE')} id`,
-                    `${this.$constants('IN')} (${arrayId})`
-                ].join(' ');
-                const data = yield this.queryStatement(sql);
-                const resultData = data || null;
-                this.$state.set('RESULT', resultData);
-                return resultData;
-            }
-            return null;
+            if (this.$state.get('VOID') || !result)
+                return this.resultHandler(null);
+            const arrayId = [...Array(result)].map((_, i) => i + id);
+            const sql = [
+                `${this.$state.get('SELECT')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
+                `${this.$constants('WHERE')} id`,
+                `${this.$constants('IN')} (${arrayId})`
+            ].join(' ');
+            const data = yield this.queryStatement(sql);
+            const resultData = data || null;
+            return this.resultHandler(resultData);
         });
     }
     _insertOrSelect() {
@@ -2265,21 +2391,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         sql: this.$state.get('INSERT'),
                         returnId: true
                     });
-                    if (this.$state.get('VOID'))
-                        return null;
-                    if (result) {
-                        const sql = [
-                            `${this.$state.get('SELECT')}`,
-                            `${this.$state.get('FROM')}`,
-                            `${this.$state.get('TABLE_NAME')}`,
-                            `${this.$constants('WHERE')} id = ${id}`
-                        ].join(' ');
-                        const data = yield this.queryStatement(sql);
-                        const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'insert' }) || null;
-                        this.$state.set('RESULT', resultData);
-                        return resultData;
-                    }
-                    return null;
+                    if (this.$state.get('VOID') || !result)
+                        return this.resultHandler(null);
+                    const sql = [
+                        `${this.$state.get('SELECT')}`,
+                        `${this.$state.get('FROM')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
+                        `${this.$constants('WHERE')} id = ${id}`
+                    ].join(' ');
+                    const data = yield this.queryStatement(sql);
+                    const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'insert' }) || null;
+                    return this.resultHandler(resultData);
                 }
                 case true: {
                     const data = yield this.queryStatement([
@@ -2290,14 +2412,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     ].join(' '));
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                         for (const val of data) {
-                            val.action_status = 'select';
+                            val.$action = 'select';
                         }
-                        return data || [];
+                        return this.resultHandler(data || []);
                     }
-                    return Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'select' }) || null;
+                    const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'select' }) || null;
+                    return this.resultHandler(resultData);
                 }
                 default: {
-                    return null;
+                    return this.resultHandler(null);
                 }
             }
         });
@@ -2326,21 +2449,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         sql: this.$state.get('INSERT'),
                         returnId: true
                     });
-                    if (this.$state.get('VOID'))
-                        return null;
-                    if (result) {
-                        const sql = [
-                            `${this.$state.get('SELECT')}`,
-                            `${this.$state.get('FROM')}`,
-                            `${this.$state.get('TABLE_NAME')}`,
-                            `${this.$constants('WHERE')} id = ${id}`
-                        ].join(' ');
-                        const data = yield this.queryStatement(sql);
-                        const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'insert' }) || null;
-                        this.$state.set('RESULT', resultData);
-                        return resultData;
-                    }
-                    return null;
+                    if (this.$state.get('VOID') || !result)
+                        return this.resultHandler(null);
+                    const sql = [
+                        `${this.$state.get('SELECT')}`,
+                        `${this.$state.get('FROM')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
+                        `${this.$constants('WHERE')} id = ${id}`
+                    ].join(' ');
+                    const data = yield this.queryStatement(sql);
+                    const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'insert' }) || null;
+                    return this.resultHandler(resultData);
                 }
                 case true: {
                     const result = yield this.actionStatement({
@@ -2349,27 +2468,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                             `${this.$state.get('WHERE')}`
                         ].join(' ')
                     });
-                    if (this.$state.get('VOID'))
-                        return null;
-                    if (result) {
-                        const data = yield this.queryStatement([
-                            `${this.$state.get('SELECT')}`,
-                            `${this.$state.get('FROM')}`,
-                            `${this.$state.get('TABLE_NAME')}`,
-                            `${this.$state.get('WHERE')}`
-                        ].join(' '));
-                        if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
-                            for (const val of data) {
-                                val.action_status = 'update';
-                            }
-                            return data || [];
+                    if (this.$state.get('VOID') || !result)
+                        return this.resultHandler(null);
+                    const data = yield this.queryStatement([
+                        `${this.$state.get('SELECT')}`,
+                        `${this.$state.get('FROM')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
+                        `${this.$state.get('WHERE')}`
+                    ].join(' '));
+                    if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
+                        for (const val of data) {
+                            val.$action = 'update';
                         }
-                        return Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { action_status: 'update' }) || null;
+                        return this.resultHandler(data || []);
                     }
-                    return null;
+                    const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'update' }) || null;
+                    return this.resultHandler(resultData);
                 }
                 default: {
-                    return null;
+                    return this.resultHandler(null);
                 }
             }
         });
@@ -2383,10 +2500,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     `${this.$state.get('UPDATE')}`, `${this.$state.get('WHERE')}`
                 ].join(' ')
             });
-            if (this.$state.get('VOID'))
-                return null;
-            if (!result)
-                return null;
+            if (this.$state.get('VOID') || !result)
+                return this.resultHandler(null);
             const sql = [
                 `${this.$state.get('SELECT')}`,
                 `${this.$state.get('FROM')}`,
@@ -2395,10 +2510,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' ');
             const data = yield this.queryStatement(sql);
             if ((data === null || data === void 0 ? void 0 : data.length) > 1)
-                return data || [];
+                return this.resultHandler(data || []);
             const res = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-            this.$state.set('RESULT', res);
-            return res;
+            return this.resultHandler(res);
         });
     }
     _hiddenColumn(data) {
@@ -2468,7 +2582,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (useDefault)
             return [operator, '='];
         if (operator == null)
-            throw new Error('bad arguments');
+            throw new Error('Bad arguments');
         if (operator.toUpperCase() === this.$constants('LIKE')) {
             operator = operator.toUpperCase();
         }
@@ -2499,7 +2613,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
             if (this.$state.get('DELETE')) {
                 sql = [
-                    this.$state.get('DELETE')
+                    this.$state.get('DELETE'),
+                    this.$state.get('WHERE')
                 ];
                 break;
             }
@@ -2540,6 +2655,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     logger = [...logger, data];
                     return;
                 },
+                reset: () => {
+                    logger = [];
+                    return;
+                },
                 check: (data) => logger.indexOf(data) != -1
             };
         })();
@@ -2547,9 +2666,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (name == null)
                 return constants_1.CONSTANTS;
             if (!constants_1.CONSTANTS.hasOwnProperty(name.toUpperCase()))
-                throw new Error(`not found constants : ${name}`);
+                throw new Error(`Not found constants : ${name}`);
             return constants_1.CONSTANTS[name.toUpperCase()];
         };
+        this.$state = new StateHandler_1.StateHandler(this.$constants('DEFAULT'));
     }
 }
 exports.Builder = Builder;

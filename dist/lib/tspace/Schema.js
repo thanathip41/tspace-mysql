@@ -39,6 +39,23 @@ class Schema extends Builder_1.Builder {
                 console.log((_a = err.message) === null || _a === void 0 ? void 0 : _a.replace(/ER_TABLE_EXISTS_ERROR:/g, ""));
             }
         });
+        this.createTable = (table, schemas) => __awaiter(this, void 0, void 0, function* () {
+            let columns = [];
+            for (const key in schemas) {
+                const data = schemas[key];
+                const { type, attrbuites } = data;
+                columns = [
+                    ...columns,
+                    `${key} ${type} ${attrbuites === null || attrbuites === void 0 ? void 0 : attrbuites.join(' ')}`
+                ];
+            }
+            const sql = [
+                `CREATE TABLE IF NOT EXISTS`,
+                `${table} (${columns === null || columns === void 0 ? void 0 : columns.join(', ')})`,
+                `ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8`
+            ].join(' ');
+            return yield this.rawQuery(sql);
+        });
     }
 }
 exports.Schema = Schema;

@@ -16,6 +16,8 @@ export declare class PoolConnection {
     connection(): Connection;
     private _defaultOptions;
     private _loadOptions;
+    private _convertStringToObject;
+    private _covertKeyTypeToCorrectType;
     private _messageError;
 }
 /**

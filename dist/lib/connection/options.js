@@ -24,20 +24,25 @@ const env = {
     USERNAME: process.env.DB_USERNAME || process.env.TSPACE_USERNAME,
     PASSWORD: process.env.DB_PASSWORD || process.env.TSPACE_PASSWORD || '',
     DATABASE: process.env.DB_DATABASE || process.env.TSPACE_DATABASE,
-    CONNECTION_LIMIT: process.env.DB_CONNECTION_LIMIT || process.env.TSPACE_CONNECTION_LIMIT || 10,
+    CONNECTION_LIMIT: process.env.DB_CONNECTION_LIMIT || process.env.TSPACE_CONNECTION_LIMIT || 30,
     QUEUE_LIMIT: process.env.DB_QUEUE_LIMIT || process.env.TSPACE_QUEUE_LIMIT || 0,
     TIMEOUT: process.env.DB_TIMEOUT || process.env.TSPACE_TIMEOUT || 1000 * 60,
     CHARSET: process.env.DB_CHARSET || process.env.TSPACE_CHARSET || 'utf8mb4',
     CONNECTION_ERROR: process.env.DB_CONNECTION_ERROR || process.env.TSPACE_CONNECTION_ERROR || true,
     WAIT_FOR_CONNECTIONS: process.env.DB_WAIT_FOR_CONNECTIONS || process.env.TSPACE_WAIT_FOR_CONNECTIONS || true,
-    DATE_STRINGS: process.env.DB_DATE_STRINGS || process.env.TSPACE_DATE_STRINGS || true
+    DATE_STRINGS: process.env.DB_DATE_STRINGS || process.env.TSPACE_DATE_STRINGS || true,
+    KEEP_ALIVE_DELAY: process.env.DB_KEEP_ALIVE_DELAY || process.env.TSPACE_KEEP_ALIVE_DELAY || 0,
+    ENABLE_KEEP_ALIVE: process.env.DB_ENABLE_KEEP_ALIVE || process.env.TSPACE_ENABLE_KEEP_ALIVE || false,
+    MULTIPLE_STATEMENTS: process.env.MULTIPLE_STATEMENTS || process.env.TSPACE_MULTIPLE_STATEMENTS || false
 };
 for (const [key, value] of Object.entries(env)) {
     if (value == null)
         continue;
     if (typeof value === 'string' && ['true', 'false'].some(v => value.toLowerCase() === v)) {
-        const configEnv = env;
-        configEnv[key] = JSON.parse(value.toLowerCase());
+        env[key] = JSON.parse(value.toLowerCase());
+        continue;
     }
+    if (/^[0-9]+$/.test(value))
+        env[key] = +value;
 }
 exports.default = Object.freeze(Object.assign({}, env));

@@ -9,6 +9,7 @@ const CONSTANTS = Object.freeze({
     COLUMNS: 'COLUMNS',
     WHERE: 'WHERE',
     BETWEEN: 'BETWEEN',
+    NOT_BETWEEN: 'NOT BETWEEN',
     AND: 'AND',
     IS_NULL: 'IS NULL',
     IS_NOT_NULL: 'IS NOT NULL',
@@ -74,6 +75,9 @@ const CONSTANTS = Object.freeze({
     PATTERN: {
         snake_case: 'snake_case',
         camelCase: 'camelCase'
+    },
+    DEFAULT: {
+        DEBUG: false,
     },
     DB: {
         PRIMARY_KEY: 'id',
@@ -155,7 +159,9 @@ const CONSTANTS = Object.freeze({
             UPDATED_AT: 'updated_at'
         },
         SCHEMA: null,
-        FUNCTION_RELATION: false
+        FUNCTION_RELATION: false,
+        CREATE_TABLE: null,
+        QUERIES: 0
     }
 });
 exports.CONSTANTS = CONSTANTS;

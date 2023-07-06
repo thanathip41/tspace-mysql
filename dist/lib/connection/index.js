@@ -34,7 +34,7 @@ class PoolConnection {
                     return;
                 const message = this._messageError.bind(this);
                 process.nextTick(() => {
-                    console.log(message());
+                    console.log(message(err === null || err === void 0 ? void 0 : err.message));
                     return process.exit();
                 });
             });
@@ -79,65 +79,114 @@ class PoolConnection {
     }
     _defaultOptions() {
         return new Map(Object.entries({
-            connectionLimit: Number(options_1.default.CONNECTION_LIMIT),
+            connectionLimit: Number.isNaN(Number(options_1.default.CONNECTION_LIMIT)) ? 30 : Number(options_1.default.CONNECTION_LIMIT),
             dateStrings: Boolean(options_1.default.DATE_STRINGS),
-            connectTimeout: Number(options_1.default.TIMEOUT),
+            connectTimeout: Number.isNaN(Number(options_1.default.TIMEOUT)) ? 60 * 1000 : Number(options_1.default.TIMEOUT),
             waitForConnections: Boolean(options_1.default.WAIT_FOR_CONNECTIONS),
-            queueLimit: Number(options_1.default.QUEUE_LIMIT),
-            multipleStatements: true,
+            queueLimit: Number.isNaN(Number(options_1.default.QUEUE_LIMIT) ? 0 : Number(options_1.default.QUEUE_LIMIT)),
             charset: String(options_1.default.CHARSET),
             host: String(options_1.default.HOST),
-            port: Number.isNaN(Number(options_1.default.PORT))
-                ? 3306
-                : Number(options_1.default.PORT),
+            port: Number.isNaN(Number(options_1.default.PORT)) ? 3306 : Number(options_1.default.PORT),
             database: String(options_1.default.DATABASE),
             user: String(options_1.default.USERNAME),
-            password: String(options_1.default.PASSWORD) !== ''
-                ? String(options_1.default.PASSWORD)
-                : ''
+            password: String(options_1.default.PASSWORD) === '' ? '' : String(options_1.default.PASSWORD),
+            multipleStatements: options_1.default.MULTIPLE_STATEMENTS || false,
+            enableKeepAlive: options_1.default.ENABLE_KEEP_ALIVE || false,
+            keepAliveInitialDelay: options_1.default.KEEP_ALIVE_DELAY || 0,
         }));
     }
     _loadOptions() {
         try {
             /**
-             *
-             * @Json connection
-             *
-                "host"                  : "",
-                "port"                  : "",
-                "database"              : "",
-                "user"                  : "",
-                "password"              : "",
-                "connectionLimit"       : "",
-                "dateStrings"           : "",
-                "idleTimeout"           : "",
-                "waitForConnections"    : "",
-                "queueLimit"            : "",
-                "charset"               : ""
+             *  @source data
+             *  source db {
+             *       host               = localhost
+             *       port               = 3306
+             *       database           = npm
+             *       user               = root
+             *       password           =
+             *       connectionLimit    =
+             *       dateStrings        =
+             *       connectTimeout     =
+             *       waitForConnections =
+             *       queueLimit         =
+             *       charset            =
+             *   }
              */
-            const jsonPath = path_1.default.join(path_1.default.resolve(), 'tspace-mysql.json');
-            const jsonOptionsExists = fs_1.default.existsSync(jsonPath);
-            if (!jsonOptionsExists)
+            const dbOptionsPath = path_1.default.join(path_1.default.resolve(), 'db.tspace');
+            const dbOptionsExists = fs_1.default.existsSync(dbOptionsPath);
+            if (!dbOptionsExists)
                 return this._defaultOptions();
-            const jsonOptions = fs_1.default.readFileSync(jsonPath, 'utf8');
-            const options = JSON.parse(jsonOptions);
+            const dbOptions = fs_1.default.readFileSync(dbOptionsPath, 'utf8');
+            const options = this._convertStringToObject(dbOptions);
+            if (options == null)
+                return this._defaultOptions();
             return new Map(Object.entries(options));
         }
         catch (e) {
             return this._defaultOptions();
         }
     }
-    _messageError() {
+    _convertStringToObject(str, target = 'db') {
+        if (str.toLocaleLowerCase().includes('#ignore'))
+            return null;
+        str = str.trim();
+        const sources = str.split('\n\n');
+        if (!sources.length)
+            return null;
+        const lines = sources[0].split('\r\n');
+        if (!lines.length)
+            return null;
+        const sourceObj = {};
+        let targetKey = '';
+        for (const line of lines) {
+            let [key, value] = line.split('=');
+            const sourceKey = key.match(/source\s+(\w+)/);
+            const sourceKeyClose = key.match(/}/g);
+            if (sourceKey != null) {
+                targetKey = sourceKey[1];
+                continue;
+            }
+            if (sourceKeyClose != null && sourceKeyClose.length) {
+                targetKey = '';
+                continue;
+            }
+            if (key == null || value == null)
+                continue;
+            key = key.trim();
+            value = value.trim();
+            if (!sourceObj.hasOwnProperty(targetKey))
+                sourceObj[targetKey] = {};
+            sourceObj[targetKey][key] = value;
+        }
+        return this._covertKeyTypeToCorrectType(sourceObj[target]) || null;
+    }
+    _covertKeyTypeToCorrectType(data) {
+        for (const [key, value] of Object.entries(data)) {
+            if (value == null)
+                continue;
+            if (typeof value === 'string' && ['true', 'false'].some(v => value.toLowerCase() === v)) {
+                data[key] = JSON.parse(value.toLowerCase());
+                continue;
+            }
+            if (/^[0-9]+$/.test(value))
+                data[key] = +value;
+        }
+        return data;
+    }
+    _messageError(err) {
         return `
             \x1b[1m\x1b[31m
             Connection lost to database ! \x1b[0m
-            --------------------------------- \x1b[33m
+            ------------------------------- \x1b[33m
                 HOST     : ${this.OPTIONS.get('host')}         
                 PORT     : ${this.OPTIONS.get('port')}        
                 DATABASE : ${this.OPTIONS.get('database')} 
                 USERNAME : ${this.OPTIONS.get('user')}          
-                PASSWORD : ${this.OPTIONS.get('password')} \x1b[0m  
-            ---------------------------------
+                PASSWORD : ${this.OPTIONS.get('password')} \x1b[0m 
+            -------------------------------
+            \x1b[1m\x1b[31mError Message 
+            : ${err !== null && err !== void 0 ? err : ''} \x1b[0m
         `;
     }
 }

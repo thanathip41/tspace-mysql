@@ -11,7 +11,7 @@ class ${model} extends Model {
      * @useMethod
      *
      * this.useDebug() // => runing a uuid (universally unique identifier) when insert new data
-     * this.usePrimaryKey('id') // => runing a uuid (universally unique identifier) when insert new data
+     * this.usePrimaryKey('id')
      * this.useTimestamp({ createdAt : 'created_at' , updatedAt : 'updated_at' }) // runing a timestamp when insert or update
      * this.useSoftDelete()
      * this.useTable('users')

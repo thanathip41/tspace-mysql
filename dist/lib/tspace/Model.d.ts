@@ -5,42 +5,112 @@ declare class Model extends AbstractModel {
     /**
      *
      * define for initialize of models
+     * @example
+     *  class User extends Model {
+     *     define() {
+     *       this.useUUID()
+     *       this.usePrimaryKey('id')
+     *       this.useTimestamp()
+     *       this.useSoftDelete()
+     *     }
+     *  }
      * @return {void} void
      */
     protected define(): void;
     /**
      *
-     * boot for initialize of models
+     * boot for initialize of models like constructor()
+     *  @example
+     *  class User extends Model {
+     *     boot() {
+     *       this.useUUID()
+     *       this.usePrimaryKey('id')
+     *       this.useTimestamp()
+     *       this.useSoftDelete()
+     *     }
+     *  }
      * @return {void} void
      */
     protected boot(): void;
     /**
      *
-     * Assign function callback in model
+     * Assign auto create table when not exists table
+     * @param {object} schema using Blueprint for schema
+     * @example
+     * import { Blueprint } from 'tspace-mysql'
+     * class User extends Model {
+     *     constructor() {
+     *        this.useCreateTableIfNotExists ({
+     *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
+     *            uuid        : new Blueprint().varchar(50).null(),
+     *            email       : new Blueprint().varchar(50).null(),
+     *            name        : new Blueprint().varchar(255).null(),
+     *            created_at  : new Blueprint().timestamp().null(),
+     *            updated_at  : new Blueprint().timestamp().null()
+     *         })
+     *     }
+     * }
+     * @return {this} this
+     */
+    protected useCreateTableIfNotExists(schema: Record<string, any>): this;
+    /**
+     *
+     * Assign function callback in model like constructor()
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useRegistry()
+     *     }
+     * }
      * @return {this} this
      */
     protected useRegistry(): this;
     /**
      *
      * Assign model calling all relationships in model
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useLoadRelationInRegistry()
+     *     }
+     * }
      * @return {this} this
      */
-    protected useLoadRelationInRegistry(): this;
+    protected useLoadRelationsInRegistry(): this;
     /**
      *
      * Assign model built-in relation functions to a results
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useBuiltInRelationsFunction()
+     *     }
+     * }
      * @return {this} this
      */
     protected useBuiltInRelationFunctions(): this;
     /**
      *
      * Assign primary column in model
+     * @param {string} primary
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.usePrimaryKey()
+     *     }
+     * }
      * @return {this} this
      */
     protected usePrimaryKey(primary: string): this;
     /**
      * Assign generate uuid when creating in model
      * @param {string?} column [column=uuid] make new name column for custom column replace uuid with this
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useUUID()
+     *     }
+     * }
      * @return {this} this
      */
     protected useUUID(column?: string): this;
@@ -53,14 +123,26 @@ declare class Model extends AbstractModel {
      *
      * Assign in model use pattern [snake_case , camelCase]
      * @param  {string} pattern
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.usePattern('camelCase')
+     *     }
+     * }
      * @return {this} this
      */
-    protected usePattern(pattern: string): this;
+    protected usePattern(pattern: "snake_case" | "camelCase"): this;
     /**
      *
      * Assign in model show data not be deleted
      * Relations has reference this method
-     * @param {string?} column
+     * @param {string?} column default deleted_at
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useSoftDelete('delete_at')
+     *     }
+     * }
      * @return {this} this
      */
     protected useSoftDelete(column?: string): this;
@@ -70,6 +152,15 @@ declare class Model extends AbstractModel {
      * @param {object} timestampFormat
      * @property {string} timestampFormat.createdAt  - change new name column replace by default [created at]
      * @property {string} timestampFormat.updatedAt - change new name column replace by default updated at
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useTimestamp({
+     *           createdAt : 'createdAt',
+     *           updatedAt : 'updatedAt'
+     *        })
+     *     }
+     * }
      * @return {this} this
      */
     protected useTimestamp(timestampFormat?: {
@@ -80,39 +171,74 @@ declare class Model extends AbstractModel {
      *
      * Assign table name in model
      * @param {string} table table name in database
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useTable('setTableNameIsUser') // => 'setTableNameIsUser'
+     *     }
+     * }
      * @return {this} this
      */
     protected useTable(table: string): this;
     /**
      *
      * Assign table name in model with signgular pattern
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useTableSingular() // => 'user'
+     *     }
+     * }
      * @return {this} this
      */
     protected useTableSingular(): this;
     /**
      *
      * Assign table name in model with pluarl pattern
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useTablePlural() // => 'users'
+     *     }
+     * }
      * @return {this} this
      */
     protected useTablePlural(): this;
     /**
      *
      * Assign schema column in model for validation data types
-     * @param {Object<Function>} schema types (String Number and Date)
+     * @param {Object<NumberConstructor | StringConstructor | DateConstructor>} schema types (String Number and Date)
+     * @example
+     * class User extends Model {
+     *   constructor() {
+     *     this.useSchema({
+     *        id       : Number,
+     *        email    : String,
+     *        name     : String,
+     *        date     : Date
+     *     })
+     *   }
+     * }
      * @return {this} this
      */
-    protected useSchema(schema: Record<string, Function>): this;
+    protected useSchema(schema: Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
     /**
      * Assign hook function when execute returned results to callback function
-     * @param {Function} arrayFunction function for callback result
+     * @param {Array<Function>} arrayFunctions functions for callback result
+     * @example
+     * class User extends Model {
+     *   constructor() {
+     *     this.useHook([(results) => console.log(results)])
+     *   }
+     * }
      * @return {this}
     */
-    protected useHook(functions: Array<Function>): this;
+    protected useHook(arrayFunctions: Array<Function>): this;
     /**
      * exceptColumns for method except
      * @return {promise<string>} string
      */
-    protected exceptColumns(): Promise<string>;
+    protected exceptColumns(): Promise<string[]>;
     /**
      * Build  method for relation in model
      * @param    {string} name name relation registry in your model
@@ -139,13 +265,30 @@ declare class Model extends AbstractModel {
         insert?: boolean;
         delete?: boolean;
         where?: boolean;
+        limit?: boolean;
+        offset?: boolean;
     }): Model;
     /**
-     * Assign ignore delete_at in model
-     * @param {boolean} condition
+     *
+     * execute the query using raw sql syntax
+     * @override method
+     * @param {string} sql
      * @return {this} this
      */
-    ignoreSoftDelete(condition?: boolean): this;
+    protected queryStatement(sql: string): Promise<Array<any>>;
+    /**
+     *
+     * execute the query using raw sql syntax actions for insert update and delete
+     * @override method
+     * @param {Object} actions
+     * @property {Function} actions.sql
+     * @property {Function} actions.returnId
+     * @return {this} this
+     */
+    protected actionStatement({ sql, returnId }: {
+        sql: string;
+        returnId?: boolean;
+    }): Promise<any>;
     /**
      * Assign table name
      * @param {string} table table name
@@ -159,6 +302,12 @@ declare class Model extends AbstractModel {
      */
     disableSoftDelete(condition?: boolean): this;
     /**
+     * Assign ignore delete_at in model
+     * @param {boolean} condition
+     * @return {this} this
+     */
+    ignoreSoftDelete(condition?: boolean): this;
+    /**
      * Assign build in function to result of data
      * @param {object} func
      * @return {this} this
@@ -170,20 +319,56 @@ declare class Model extends AbstractModel {
      *
      * Use relations in registry of model return result of relation query
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship
+     *  await new User().with('posts').findMany()
      * @return {this} this
      */
     with(...nameRelations: Array<string>): this;
     /**
      *
-     * Use relations in registry of model return ignore soft deleted
+     * Use relations in registry of model return normal and in trash
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withTrashed(...nameRelations: Array<string>): this;
+    withAndTrashed(...nameRelations: Array<string>): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
      * @param {...string} nameRelations if data exists return blank
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship if relations is exists
+     *  await new User().withExists('posts').findMany()
      * @return {this} this
      */
     withExists(...nameRelations: Array<string>): this;
@@ -191,6 +376,24 @@ declare class Model extends AbstractModel {
      *
      * Use relations in registry of model return only exists result of relation query
      * @param {...string} nameRelations if data exists return blank
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship if relations is exists
+     *  await new User().has('posts').findMany()
      * @return {this} this
      */
     has(...nameRelations: Array<string>): this;
@@ -199,13 +402,70 @@ declare class Model extends AbstractModel {
      * Use relation '${name}' registry of model return callback this query model
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *
+     *   class Comment extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'users' , model : User })
+     *           this.belongsTo({ name : 'post' , model : Post })
+     *       }
+     *   }
+     *
+     *   await new User().with('posts')
+     *   .withQuery('posts', (query : Post) => {
+     *       return query.with('comments','user')
+     *       .withQuery('comments', (query : Comment) => {
+     *           return query.with('user','post')
+     *       })
+     *       .withQuery('user', (query : User) => {
+     *           return query.with('posts').withQuery('posts',(query : Post)=> {
+     *               return query.with('comments','user')
+     *               // relation n, n, ...n
+     *           })
+     *       })
+     *   })
+     *  .findMany()
      * @return {this} this
      */
     withQuery(nameRelation: string, callback: Function): this;
     /**
      *
-     * Use relations in registry of model retrun result of relation query
+     * Use relations in registry of model return result of relation query
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship
+     *  await new User().relations('posts').findMany()
      * @return {this} this
      */
     relations(...nameRelations: Array<string>): this;
@@ -213,7 +473,25 @@ declare class Model extends AbstractModel {
      *
      * Use relations in registry of model return only exists result of relation query
      * @param {...string} nameRelations if data exists return blank
-     * @return {this}
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship if relations is exists
+     *  await new User().relationsExists('posts').findMany()
+     * @return {this} this
      */
     relationsExists(...nameRelations: Array<string>): this;
     /**
@@ -221,6 +499,45 @@ declare class Model extends AbstractModel {
      * Use relation '${name}' registry of model return callback this query model
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *
+     *   class Comment extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'users' , model : User })
+     *           this.belongsTo({ name : 'post' , model : Post })
+     *       }
+     *   }
+     *
+     *   await new User().with('posts')
+     *   .relationQuery('posts', (query : Post) => {
+     *       return query.with('comments','user')
+     *       .relationQuery('comments', (query : Comment) => {
+     *           return query.with('user','post')
+     *       })
+     *       .relationQuery('user', (query : User) => {
+     *           return query.with('posts').relationQuery('posts',(query : Post)=> {
+     *               return query.with('comments','user')
+     *               // relation n, n, ...n
+     *           })
+     *       })
+     *   })
+     *  .findMany()
      * @return {this} this
      */
     relationQuery(nameRelation: string, callback: Function): this;
@@ -230,7 +547,7 @@ declare class Model extends AbstractModel {
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationTrashed(...nameRelations: Array<string>): this;
+    relationsAndTrashed(...nameRelations: Array<string>): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -428,12 +745,6 @@ declare class Model extends AbstractModel {
     delete(): Promise<boolean>;
     /**
      *
-     * force delete data from the database
-     * @return {promise<boolean>}
-     */
-    forceDelete(): Promise<boolean>;
-    /**
-     *
      * @override Method
      * @return {promise<{[key: string]:any} | null>}
     */
@@ -468,18 +779,6 @@ declare class Model extends AbstractModel {
     }): Promise<{
         [key: string]: any;
     }>;
-    /**
-     *
-     * @override Method
-     * @return {promise<array>}
-    */
-    all(): Promise<Array<any>>;
-    /**
-     *
-     * @override Method
-     * @return {promise<object | null>}
-    */
-    find(id: number): Promise<Record<string, any> | null>;
     /**
      *
      * @override Method
@@ -612,9 +911,7 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Array<{
-        [key: string]: any;
-    }>): this;
+    createMultiple(data: Array<Record<string, any>>): this;
     /**
      *
      * insert muliple data into the database
@@ -622,9 +919,7 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    insertMultiple(data: Array<{
-        [key: string]: any;
-    }>): this;
+    insertMultiple(data: Array<Record<string, any>>): this;
     /**
      *
      * @param {object} data create not exists data
@@ -647,7 +942,7 @@ declare class Model extends AbstractModel {
     }): this;
     /**
      *
-     * get schema of table
+     * get schema from table
      * @return {this} this this
      */
     getSchema(): Promise<any>;
@@ -682,7 +977,6 @@ declare class Model extends AbstractModel {
     private _relation;
     private _belongsToMany;
     private _pagination;
-    private _result;
     private _returnEmpty;
     private _returnResult;
     private _hiddenColumnModel;
@@ -702,6 +996,7 @@ declare class Model extends AbstractModel {
     private _handleRelations;
     private _handleRelationsQuery;
     private _validateMethod;
+    private _tryToCreateTable;
     private _initialModel;
 }
 export { Model };

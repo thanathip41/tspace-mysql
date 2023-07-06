@@ -1,0 +1,14 @@
+#ignore
+source db {
+    host               = localhost
+    port               = 3306
+    database           = npm
+    user               = root
+    password           =
+    connectionLimit    = 10 
+    dateStrings        = true
+    connectTimeout     = 60000
+    waitForConnections = true
+    queueLimit         = 0
+    charset            = utf8mb4
+}

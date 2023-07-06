@@ -1,16 +1,12 @@
 import { Pagination } from './Interface';
+import { StateHandler } from './StateHandler';
 declare abstract class AbstractBuilder {
     protected $setters: string[];
     protected $utils: {
         [key: string]: Function;
     };
     protected $constants: Function;
-    protected $state: {
-        original: Function;
-        get: Function;
-        set: Function;
-        clone: Function;
-    };
+    protected $state: StateHandler;
     protected $pool: {
         query: Function;
         set: Function;
@@ -19,6 +15,7 @@ declare abstract class AbstractBuilder {
     protected $logger: {
         get: Function;
         set: (value: string) => void;
+        reset: () => void;
         check: (value: string) => boolean;
     };
     protected $attributes: {
@@ -46,6 +43,7 @@ declare abstract class AbstractBuilder {
     abstract whereNotSubQuery(column: string, subQuery: string): this;
     abstract orWhereSubQuery(column: string, subQuery: string): this;
     abstract whereBetween(column: string, arrayValue: Array<any>): this;
+    abstract whereNotBetween(column: string, arrayValue: Array<any>): this;
     abstract having(condition: string): this;
     abstract havingRaw(condition: string): this;
     abstract join(pk: string, fk: string): this;

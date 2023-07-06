@@ -26,7 +26,8 @@ npm install tspace-mysql --save
   - [One To Many](#one-to-many)
   - [Belongs To](#belongs-to)
   - [Many To Many](#many-to-many)
-  - [Relation in Relation](#relation-in-relation)
+  - [Deeply Nested Relations](#deeply-nested-relations)
+  - [Relation Exists](#relation-exists)
   - [Built in Relation Functions](#built-in-relation-functions)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
@@ -34,11 +35,11 @@ npm install tspace-mysql --save
   - [Make Migration](#make-migration)
   - [Migrate](#migrate)
   - [Query](#query)
-  - [Menerate Models](#generate-models)
+  - [Generate Models](#generate-models)
 - [Blueprint](#blueprint)
 
 ## Configuration
-Created your environment variables is to use a .env file, you may establish a connection is this:
+Created your environment variables is to use a '.env' file, you may establish a connection is this:
 ```js
 DB_HOST     = localhost
 DB_PORT     = 3306
@@ -54,6 +55,22 @@ DB_DATABASE = database
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = true
 */
+```
+Or you can created file name 'db.tspace' to use a connection  this:
+```js
+source db {
+    host               = localhost
+    port               = 3306
+    database           = npm
+    user               = root
+    password           = 
+    connectionLimit    = 10 
+    dateStrings        = true
+    connectTimeout     = 60000
+    waitForConnections = true
+    queueLimit         = 0
+    charset            = utf8mb4
+}
 
 ```
 ## Running Queries
@@ -91,6 +108,8 @@ const selectQuery = await new DB('users').select('id','username').findOne()
 const selectQueries = await new DB('users').select('id','username').findMany() 
     // selectQueries => [{ id : 1, username : 'tspace' } , { id : 2, username : 'tspace2'}]
 
+const selectQueryRaw = await new DB('users').selectRaw('COUNT(id)').findMany() 
+
 /**
  * @example except
  */
@@ -110,9 +129,9 @@ await new DB('users').groupBy('id','usernamename').findOne()
 
 Running A Join Query
 ```js
-await new DB('posts').join('posts.user_id' , 'users.id').findOne()
-await new DB('posts').leftJoin('posts.user_id' , 'users.id').findOne()
-await new DB('posts').rightJoin('posts.user_id' , 'users.id').findOne()
+await new DB('posts').join('posts.user_id' , 'users.id').findMany()
+await new DB('posts').leftJoin('posts.user_id' , 'users.id').findMany()
+await new DB('posts').rightJoin('posts.user_id' , 'users.id').findMany()
 ```
 
 Running A Where Query
@@ -384,22 +403,32 @@ class User extends Model {
      *    createdAt : 'created_at',
      *    updatedAt : 'updated_at'
      * }) // runing a timestamp when insert or update
-     * this.useSoftDelete()
+     * this.useSoftDelete('deletedAt') // => default target to colmun deleted_at 
      * this.useTable('users')
-     * this.useTableSingular() // 'user'
-     * this.useTablePlural() // 'users'
-     * this.usePattern('snake_case')   
+     * this.useTableSingular() // => 'user'
+     * this.useTablePlural() // => 'users'
+     * this.usePattern('snake_case') // => default 'snake_case'   
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
-     * this.useRegistry()
-     * this.useLoadRelationInRegistry()
-     * this.useBuiltInRelationFunctions()
+     * this.useRegistry() // => build-in functions registry
+     * this.useLoadRelationsInRegistry() // => auto generated results from relationship to results
+     * this.useBuiltInRelationFunctions() // => build-in functions relationships to results
      * this.useSchema({
      *   id : Number,
      *   username : String
      *   created_at : Date,
      *   updated_at : Date,
-     *  }) // validate type of schema when return results
-    */
+     *  }) // => validate type of schema when return results
+     * this.useCreateTableIfNotExists ({ 
+     *     id          : new Blueprint().int().notNull().primary().autoIncrement(),
+     *     uuid        : new Blueprint().varchar(50).null(),
+     *     user_id     : new Blueprint().int().notNull(),
+     *     title       : new Blueprint().varchar(255).null(),
+     *     created_at  : new Blueprint().timestamp().null(),
+     *     updated_at  : new Blueprint().timestamp().null(),
+     *     deleted_at  : new Blueprint().timestamp().null()
+     *   })
+     */
+
 
     /*
      * the "snake case", plural name of the class will be used as the table name 
@@ -506,7 +535,7 @@ class Phone extends Model {
     }
     /**
      * 
-     * @belongsToQuery Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function callback
      * @function 
      */
     user (callback ?: Function) {
@@ -541,7 +570,7 @@ class User extends Model {
         this.belognsToMany({ name : 'roles' , model : Role })
     }
     /**
-     * @belongsToQuery Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function callback
      * @function 
      */
     roles (callback ?: Function) {
@@ -559,8 +588,8 @@ const userUsingFunction = await new User().roles().findOne()
 // user?.roles => [{...}]
 ```
 
-## Relation in Relation
-Relationships can deep relations. 
+## Deeply Nested Relations
+Relationships can deeply relations. 
 let's example a deep in relations :
 ```js
 import { Model } from 'tspace-mysql'
@@ -588,8 +617,9 @@ class Comment extends Model {
     }
 }
 +--------------------------------------------------------------------------+
+// Deeply nested relations
 await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => { // relationQuery return a callback query in model registry
+    .relationQuery('posts', (query : Post) => { 
         return query.relations('comments','user')
         .relationQuery('comments', (query : Comment) => {
             return query.relations('user','post')
@@ -602,6 +632,129 @@ await new User().relations('posts')
         })
     })
     .findMany()
+
+// Select some columns in nested relations    
+await new User().relations('posts')
+    .relationQuery('posts', (query : Post) => query.select('id','user_id','title'))
+    .findMany()
+
+// Where some columns in nested relations
+await new User().relations('posts')
+    .relationQuery('posts', (query : Post) => query.whereIn('id',[1,3,5]))
+    .findMany()
+
+// Sort data in  nested relations
+await new User().relations('posts')
+    .relationQuery('posts', (query : Post) => query.latest('id'))
+    .findMany()
+
+// Limit data in  nested relations
+await new User().relations('posts')
+    .relationQuery('posts', (query : Post) => {
+        return query
+        .limit(1)
+        .relations('comments')
+        .relationQuery('comments', (query : Comment) => query.limit(1))
+    })
+    .findMany()
+
+```
+## Relation Exists
+Relationships can return only result is not isempty related with soft delete. 
+let's example a exists in relations :
+```js
++-------------+--------------+----------------------------+--------------------+
+|                     table users                         |                    |
++-------------+--------------+----------------------------+--------------------+
+| id          | username     | email                      | deleted_at         |
+|-------------|--------------|----------------------------|--------------------|
+| 1           | tspace1      | tspace1@gmail.com          |                    |
+| 2           | tspace2      | tspace2@gmail.com          |                    |
+| 3           | tspace3      | tspace3@gmail.com          |                    |
++-------------+--------------+----------------------------+--------------------+
+
+
++-------------+--------------+----------------------------+--------------------+
+|                     table posts                         |                    |
++-------------+--------------+----------------------------+--------------------+
+| id          | user_id      | title                      | deleted_at         |
+|-------------|--------------|----------------------------|--------------------|
+| 1           | 1            | posts 1                    |2020-07-15 00:00:00 |
+| 2           | 2            | posts 2                    |                    |
+| 3           | 3            | posts 3                    |2020-07-15 00:00:00 |
++-------------+--------------+----------------------------+--------------------+
+
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'posts' , model : Post })
+        this.useSoftDelete()
+    }
+}
+
++--------------------------------------------------------------------------+
+
+class Post extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'comments' , model : Comment })
+        this.belongsTo({ name : 'user' , model : User })
+        this.useSoftDelete()
+    }
+}
+// normal relations
+await new User().relations('posts').findMany()
+/*
+ * @returns [
+ *  {
+ *      id : 1,
+ *      username:  "tspace1",
+ *      email : "tspace1@gmail.com",
+ *      posts : []  
+ *  },
+ *  {
+ *      id : 2,
+ *      username:  "tspace2",
+ *      email : "tspace2@gmail.com",
+ *      posts : [
+ *       {
+ *          id : 2,
+ *          user_id :  2,
+ *          title : "posts 2"
+ *        }
+ *      ]   
+ *  },
+ *  {
+ *      id : 3,
+ *      username:  "tspace3",
+ *      email : "tspace3@gmail.com",
+ *      posts : []  
+ *  }
+ * ]
+*/
+
+await new User().relationsExists('posts').findMany()
+/* 
+ * @returns [
+ *  {
+ *      id : 2,
+ *      username:  "tspace2",
+ *      email : "tspace2@gmail.com",
+ *      posts : [
+ *       {
+ *          id : 2,
+ *          user_id :  2,
+ *          title : "posts 2"
+ *        }
+ *      ]  
+ *  }
+ * ]
+ * because posts id 1 and id 3 has been removed from database using soft delete
+ */
+
+
 ```
 
 ## Built in Relation Functions
@@ -669,6 +822,7 @@ orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
 select(column1 ,column2 ,...N)
+selectRaw(column1 ,column2 ,...N)
 except(column1 ,column2 ,...N)
 only(column1 ,column2 ,...N)
 hidden(column1 ,column2 ,...N)
@@ -677,10 +831,15 @@ rightJoin (primary key , table.foreign key)
 leftJoin (primary key , table.foreign key) 
 limit (limit)
 having (condition)
+havingRaw (condition)
 orderBy (column ,'ASC' || 'DSCE')
+orderByRaw(column ,'ASC' || 'DSCE')
 latest (column)
+latestRaw (column)
 oldest (column)
+oldestRaw (column)
 groupBy (column)
+groupByRaw (column)
 create(objects)
 createMultiple(array objects)
 update (objects)
@@ -801,9 +960,9 @@ tspace-mysql make:migration users --dir=app/Models/Migrations
   * @arg --dir=directory => find migrate in directory. default find in root folder
   * @arg --type=js // extension js default ts
   */
-tspace-mysql migrate <folder> --type=... --dir=....
+tspace-mysql migrate <folder> --type=<type file js or ts> --dir=<directory for migrate>
  
-tspace-mysql migrate --dir=App/Models/Migrations --type=js
+tspace-mysql migrate --dir=app/Models/Migrations --type=js
 
 /**
  * 
@@ -830,7 +989,7 @@ tspace-mysql query "SELECT * FROM users"
 # Generate Models
 Command will be generate models from table in database
 ```js
-tspace-mysql generate:models
+tspace-mysql generate:models --dir=<folder for creating>
 
 ```
 
@@ -840,14 +999,14 @@ Schema table created by command make:migration,  you may use the:
 import { Schema , Blueprint , DB } from 'tspace-mysql'
 (async () => {
     await new Schema().table('users',{ 
-        id :  new Blueprint().int().notNull().primary().autoIncrement(),
-        uuid : new Blueprint().varchar(120).null()
-        name : new Blueprint().varchar(120).default('name'),
-        email : new Blueprint().varchar(255).unique().notNull(),
+        id           :  new Blueprint().int().notNull().primary().autoIncrement(),
+        uuid         : new Blueprint().varchar(120).null()
+        name         : new Blueprint().varchar(120).default('name'),
+        email        : new Blueprint().varchar(255).unique().notNull(),
         email_verify : new Blueprint().tinyInt(),
-        password : new Blueprint().varchar(255),
-        created_at : new Blueprint().null().timestamp(),
-        updated_at : new Blueprint().null().timestamp()
+        password     : new Blueprint().varchar(255),
+        created_at   : new Blueprint().null().timestamp(),
+        updated_at   : new Blueprint().null().timestamp()
     })
     /**
      *  

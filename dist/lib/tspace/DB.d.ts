@@ -1,8 +1,11 @@
 import { AbstractDB } from './AbstractDB';
 import { Connection, ConnectionOptions, ConnectionTransaction } from './Interface';
+/**
+ * Assign table name
+ * @param {string?} table table name
+ */
 declare class DB extends AbstractDB {
     constructor(table?: string);
-    union(a: string, b: string): Promise<any[]>;
     /**
      * Covert result to array
      * @param {any} result table name

@@ -19,11 +19,19 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DB = void 0;
 const AbstractDB_1 = require("./AbstractDB");
 const ProxyHandler_1 = require("./ProxyHandler");
 const connection_1 = require("../connection");
+const StateHandler_1 = __importDefault(require("./StateHandler"));
+/**
+ * Assign table name
+ * @param {string?} table table name
+ */
 class DB extends AbstractDB_1.AbstractDB {
     constructor(table) {
         super();
@@ -31,15 +39,6 @@ class DB extends AbstractDB_1.AbstractDB {
         if (table)
             this.table(table);
         return new Proxy(this, ProxyHandler_1.proxyHandler);
-    }
-    union(a, b) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield this.queryStatement([
-                a,
-                'UNION',
-                b
-            ].join(' '));
-        });
     }
     /**
      * Covert result to array
@@ -342,30 +341,7 @@ class DB extends AbstractDB_1.AbstractDB {
         return Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
     }
     _initialDB() {
-        this.$state = (() => {
-            let db = new Map(Object.entries(Object.assign({}, this.$constants('DB'))));
-            let original = new Map(Object.entries(Object.assign({}, this.$constants('DB'))));
-            return {
-                original: () => original,
-                get: (key) => {
-                    if (key == null)
-                        return db;
-                    if (!db.has(key))
-                        throw new Error(`can't get this [${key}]`);
-                    return db.get(key);
-                },
-                set: (key, value) => {
-                    if (!db.has(key))
-                        throw new Error(`can't set this [${key}]`);
-                    db.set(key, value);
-                    return;
-                },
-                clone: (data) => {
-                    db = new Map(Object.entries(Object.assign({}, data)));
-                    return;
-                }
-            };
-        })();
+        this.$state = new StateHandler_1.default(this.$constants('DB'));
         return this;
     }
 }
