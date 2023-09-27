@@ -4,6 +4,7 @@ exports.CONSTANTS = void 0;
 const CONSTANTS = Object.freeze({
     ID: 'ID',
     SHOW: 'SHOW',
+    BINARY: 'BINARY',
     SHOW_TABLES: 'SHOW TABLES',
     FIELDS: 'FIELDS',
     COLUMNS: 'COLUMNS',
@@ -11,6 +12,7 @@ const CONSTANTS = Object.freeze({
     BETWEEN: 'BETWEEN',
     NOT_BETWEEN: 'NOT BETWEEN',
     AND: 'AND',
+    NULL: 'NULL',
     IS_NULL: 'IS NULL',
     IS_NOT_NULL: 'IS NOT NULL',
     OR: 'OR',
@@ -66,6 +68,9 @@ const CONSTANTS = Object.freeze({
     CREATE_TABLE_NOT_EXISTS: 'CREATE TABLE IF NOT EXISTS',
     ENGINE: 'ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8',
     RAND: 'RAND()',
+    ALTER_TABLE: 'ALTER TABLE',
+    ADD: 'ADD',
+    AFTER: 'AFTER',
     RELATIONSHIP: {
         hasOne: 'hasOne',
         hasMany: 'hasMany',
@@ -83,7 +88,7 @@ const CONSTANTS = Object.freeze({
         PRIMARY_KEY: 'id',
         VOID: false,
         RESULT: null,
-        DISTINCT: '',
+        DISTINCT: false,
         PLUCK: '',
         SAVE: '',
         DELETE: '',
@@ -91,13 +96,12 @@ const CONSTANTS = Object.freeze({
         INSERT: '',
         SELECT: '',
         ONLY: [],
-        EXCEPT: [],
+        EXCEPTS: [],
         CHUNK: 0,
         COUNT: '',
         FROM: '',
         JOIN: '',
         WHERE: '',
-        TEST: [],
         GROUP_BY: '',
         ORDER_BY: '',
         LIMIT: '',
@@ -110,7 +114,7 @@ const CONSTANTS = Object.freeze({
         UUID: false,
         PAGE: 1,
         PER_PAGE: 1,
-        HOOK: []
+        HOOKS: []
     },
     MODEL: {
         PRIMARY_KEY: 'id',
@@ -120,7 +124,7 @@ const CONSTANTS = Object.freeze({
         UPDATE: '',
         INSERT: '',
         ONLY: [],
-        EXCEPT: [],
+        EXCEPTS: [],
         CHUNK: 0,
         COUNT: '',
         FROM: '',
@@ -145,10 +149,10 @@ const CONSTANTS = Object.freeze({
         REGISTRY: {},
         RESULT: null,
         PATTERN: 'snake_case',
-        DISTINCT: '',
+        DISTINCT: false,
         PLUCK: '',
         SAVE: '',
-        HOOK: [],
+        HOOKS: [],
         RELATIONS: [],
         RELATIONS_TRASHED: false,
         RELATIONS_EXISTS: false,
@@ -158,10 +162,11 @@ const CONSTANTS = Object.freeze({
             CREATED_AT: 'created_at',
             UPDATED_AT: 'updated_at'
         },
-        SCHEMA: null,
+        VALIDATE_SCHEMA: false,
+        VALIDATE_SCHEMA_DEFINED: null,
         FUNCTION_RELATION: false,
-        CREATE_TABLE: null,
-        QUERIES: 0
+        SCHEMA_TABLE: null,
+        RETRY_QUERIES: 0
     }
 });
 exports.CONSTANTS = CONSTANTS;

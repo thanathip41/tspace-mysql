@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = require("child_process");
-exports.default = (formCommand) => {
+exports.default = (commandInput) => {
     var _a, _b, _c;
-    const { type, dir, cwd, fs } = formCommand;
+    const { type, dir, cwd, fs } = commandInput;
     try {
         if (dir == null)
             throw new Error('Not found directory');

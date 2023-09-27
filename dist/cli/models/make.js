@@ -10,12 +10,12 @@ exports.default = (cmd) => {
     const { file, migrate, dir, type, cwd, fs, npm } = cmd;
     if (dir) {
         try {
-            fs.accessSync(cwd + `/${dir}`, fs.F_OK, {
+            fs.accessSync(`${cwd}/${dir}`, fs.F_OK, {
                 recursive: true
             });
         }
         catch (e) {
-            fs.mkdirSync(cwd + `/${dir}`, {
+            fs.mkdirSync(`${cwd}/${dir}`, {
                 recursive: true
             });
         }

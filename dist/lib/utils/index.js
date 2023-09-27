@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.utils = void 0;
 const timestamp = () => {
@@ -33,6 +42,18 @@ const escape = (str) => {
     if (typeof str !== 'string')
         return str;
     return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, '');
+};
+const isSubQuery = (subQuery) => {
+    const checkIsSubQuery = (/\bSELECT\s+(?!\*)/i.test(subQuery));
+    if (!checkIsSubQuery)
+        return false;
+    const selectMatch = subQuery.match(/^\s*SELECT\s+(.*)\s+FROM/i);
+    if (!selectMatch)
+        return false;
+    const selectColumns = selectMatch[1].trim().split(',');
+    if (selectColumns.length !== 1)
+        return false;
+    return true;
 };
 const columnRelation = (name) => {
     var _a;
@@ -107,7 +128,7 @@ const randomString = (length = 100) => {
     for (let i = 0; i < length / salt; i++) {
         str += Math.random().toString(36).substring(salt);
     }
-    return str.slice(-length).toLocaleLowerCase().replace(/'/g, 'g');
+    return str.toLocaleLowerCase().replace(/'/g, '').slice(-length);
 };
 const faker = (value) => {
     var _a, _b;
@@ -138,6 +159,11 @@ const faker = (value) => {
     }
     return 'fake data';
 };
+const hookHandle = (hooks, result) => __awaiter(void 0, void 0, void 0, function* () {
+    for (const hook of hooks)
+        yield hook(result);
+    return;
+});
 const utils = {
     consoleDebug,
     faker,
@@ -145,11 +171,13 @@ const utils = {
     timestamp,
     date,
     escape,
+    isSubQuery,
     generateUUID,
     covertBooleanToNumber,
     snakeCase,
     camelCase,
-    randomString
+    randomString,
+    hookHandle
 };
 exports.utils = utils;
 exports.default = utils;

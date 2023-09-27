@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AbstractBuilder = void 0;
-const StateHandler_1 = require("./StateHandler");
+const StateHandler_1 = require("../StateHandler");
 class AbstractBuilder {
     constructor() {
         this.$setters = [

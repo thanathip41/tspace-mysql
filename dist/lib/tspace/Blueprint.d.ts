@@ -1,11 +1,27 @@
+/**
+ * Make schema for table with Blueprint
+ * @example
+ *   import { Schema , Blueprint }  from 'tspace-mysql'
+ *   await new Schema().table('persos1',{
+ *      id          : new Blueprint().int().notNull().primary().autoIncrement(),
+ *      name        : new Blueprint().varchar(255).default('my name'),
+ *      email       : new Blueprint().varchar(255).unique(),
+ *      json        : new Blueprint().json().null(),
+ *      verify      : new Blueprint().tinyInt(1).notNull(),
+ *      created_at  : new Blueprint().timestamp().null(),
+ *      updated_at  : new Blueprint().timestamp().null(),
+ *      deleted_at  : new Blueprint().timestamp().null()
+ *   })
+ */
 declare class Blueprint {
     protected type: string;
-    protected attrbuites: Array<string>;
+    protected attributes: Array<string>;
+    protected valueType: NumberConstructor | StringConstructor | DateConstructor;
     /**
      * Assign type 'int' in table
      * @return {this} this
      */
-    int(): this;
+    int(number?: number): this;
     /**
      * Assign type 'TINYINT' in table
      * @param {number} number
@@ -13,11 +29,23 @@ declare class Blueprint {
      */
     tinyInt(number?: number): this;
     /**
+     * Assign type 'TINYINT' in table
+     * @param {number} number
+     * @return {this} this
+     */
+    tinyint(number?: number): this;
+    /**
      * Assign type 'BIGINT' in table
      * @param {number} number [number = 10]
      * @return {this} this
      */
     bigInt(number?: number): this;
+    /**
+     * Assign type 'BIGINT' in table
+     * @param {number} number [number = 10]
+     * @return {this} this
+     */
+    bigint(number?: number): this;
     /**
      * Assign type 'DOUBLE' in table
      * @param {number} length  between 1-255
@@ -34,7 +62,7 @@ declare class Blueprint {
     float(length?: number, decimal?: number): this;
     /**
      * Assign type 'VARCHAR' in table
-     * @param {number} length  [length = 100] length of string
+     * @param {number} length  [length = 191] length of string
      * @return {this} this
      */
     varchar(length?: number): this;
@@ -50,17 +78,37 @@ declare class Blueprint {
      */
     longText(): this;
     /**
+     * Assign type 'LONGTEXT' in table
+     * @return {this} this
+     */
+    longtext(): this;
+    /**
+     * Assign type 'JSON' in table
+     * @return {this} this
+     */
+    json(): this;
+    /**
      * Assign type 'MEDIUMTEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     mediumText(): this;
+    /**
+     * Assign type 'MEDIUMTEXT' in table
+     * @return {this} this
+     */
+    mediumtext(): this;
     /**
      * Assign type 'TINYTEXT' in table
      * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     tinyText(): this;
+    /**
+    * Assign type 'TINYTEXT' in table
+    * @param {number} length [length = 1] length of string
+    * @return {this} this
+    */
+    tinytext(): this;
     /**
      * Assign type 'TEXT' in table
      * @param {number} length [length = 1] length of string
@@ -84,53 +132,68 @@ declare class Blueprint {
      */
     dateTime(): this;
     /**
+     * Assign type 'DATETIME' in table
+     * @return {this} this
+     */
+    datetime(): this;
+    /**
      * Assign type 'TIMESTAMP' in table
      * @return {this} this
      */
     timestamp(): this;
     /**
-     * Assign type 'UNSIGNED' in table
+     * Assign attributes 'UNSIGNED' in table
      * @return {this} this
      */
     unsigned(): this;
     /**
-     * Assign type 'UNIQUE' in table
+     * Assign attributes 'UNIQUE' in table
      * @return {this} this
      */
     unique(): this;
     /**
-     * Assign type 'NULL' in table
+     * Assign attributes 'NULL' in table
      * @return {this} this
      */
     null(): this;
     /**
-     * Assign type 'NOT NULL' in table
+     * Assign attributes 'NOT NULL' in table
      * @return {this} this
      */
     notNull(): this;
     /**
-     * Assign type 'PRIMARY KEY' in table
+     * Assign attributes 'PRIMARY KEY' in table
      * @return {this} this
      */
     primary(): this;
     /**
-     * Assign attrbuites 'default' in table
-     * @param {string | number} n  default value
+     * Assign attributes 'default' in table
+     * @param {string | number} value  default value
      * @return {this} this
      */
-    default(n: string | number): this;
+    default(value: string | number): this;
     /**
-     * Assign attrbuites 'default currentTimestamp' in table
+     * Assign attributes 'default currentTimestamp' in table
      * @return {this} this
      */
     currentTimestamp(): this;
     /**
-     * Assign attrbuites 'autoIncrement' in table
+     * Assign attributes 'default currentTimestamp' in table
+     * @return {this} this
+     */
+    currenttimestamp(): this;
+    /**
+     * Assign attributes 'autoIncrement' in table
      * @return {this} this
      */
     autoIncrement(): this;
+    /**
+     * Assign attributes 'autoIncrement' in table
+     * @return {this} this
+     */
+    autoincrement(): this;
     private _addAssignType;
-    private _addAssignAttrbuite;
+    private _addAssignAttribute;
 }
 export { Blueprint };
 export default Blueprint;

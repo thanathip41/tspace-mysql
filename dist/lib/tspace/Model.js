@@ -16,7 +16,7 @@ exports.Model = void 0;
 const pluralize_1 = __importDefault(require("pluralize"));
 const DB_1 = require("./DB");
 const Schema_1 = require("./Schema");
-const AbstractModel_1 = require("./AbstractModel");
+const AbstractModel_1 = require("./Abstract/AbstractModel");
 const ProxyHandler_1 = require("./ProxyHandler");
 const StateHandler_1 = require("./StateHandler");
 class Model extends AbstractModel_1.AbstractModel {
@@ -73,7 +73,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * import { Blueprint } from 'tspace-mysql'
      * class User extends Model {
      *     constructor() {
-     *        this.useCreateTableIfNotExists ({
+     *        this.useSchema ({
      *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *            uuid        : new Blueprint().varchar(50).null(),
      *            email       : new Blueprint().varchar(50).null(),
@@ -85,8 +85,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * }
      * @return {this} this
      */
-    useCreateTableIfNotExists(schema) {
-        this.$state.set('CREATE_TABLE', schema);
+    useSchema(schema) {
+        this.$state.set('SCHEMA_TABLE', schema);
         return this;
     }
     /**
@@ -194,7 +194,7 @@ class Model extends AbstractModel_1.AbstractModel {
             this.$constants('PATTERN').snake_case,
             this.$constants('PATTERN').camelCase
         ];
-        this._assertError(!allowPattern.includes(pattern), `tspace-mysql support only pattern [${allowPattern}]`);
+        this._assertError(!allowPattern.includes(pattern), `tspace-mysql support only pattern ["${this.$constants('PATTERN').snake_case}","${this.$constants('PATTERN').camelCase}"]`);
         this.$state.set('PATTERN', pattern);
         return this;
     }
@@ -206,7 +206,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
-     *        this.useSoftDelete('delete_at')
+     *        this.useSoftDelete('deletedAt')
      *     }
      * }
      * @return {this} this
@@ -301,18 +301,31 @@ class Model extends AbstractModel_1.AbstractModel {
      * @example
      * class User extends Model {
      *   constructor() {
-     *     this.useSchema({
-     *        id       : Number,
-     *        email    : String,
-     *        name     : String,
-     *        date     : Date
-     *     })
+     *     this.useValidationSchema()
      *   }
      * }
      * @return {this} this
      */
-    useSchema(schema) {
-        this.$state.set('SCHEMA', schema);
+    useValidationSchema(schema) {
+        this.$state.set('VALIDATE_SCHEMA', true);
+        this.$state.set('VALIDATE_SCHEMA_DEFINED', schema);
+        return this;
+    }
+    /**
+    *
+    * Assign schema column in model for validation data types
+    * @param {Object<NumberConstructor | StringConstructor | DateConstructor>} schema types (String Number and Date)
+    * @example
+    * class User extends Model {
+    *   constructor() {
+    *     this.useValidationSchema()
+    *   }
+    * }
+    * @return {this} this
+    */
+    useValidateSchema(schema) {
+        this.$state.set('VALIDATE_SCHEMA', true);
+        this.$state.set('VALIDATE_SCHEMA_DEFINED', schema);
         return this;
     }
     /**
@@ -326,11 +339,11 @@ class Model extends AbstractModel_1.AbstractModel {
      * }
      * @return {this}
     */
-    useHook(arrayFunctions) {
+    useHooks(arrayFunctions) {
         for (const func of arrayFunctions) {
             if (typeof func !== "function")
                 throw new Error(`this '${func}' is not a function`);
-            this.$state.set('HOOK', [...this.$state.get('HOOK'), func]);
+            this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
         }
         return this;
     }
@@ -340,20 +353,50 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     exceptColumns() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.$state.get('SCHEMA')) {
-                const columns = Object.keys(this.$state.get('SCHEMA'));
-                const removeExcept = columns.filter((column) => !String(this.$state.get('EXCEPT')).includes(column));
-                return removeExcept;
+            const excepts = this.$state.get('EXCEPTS');
+            const hasDot = excepts.some((except) => /\./.test(except));
+            const names = excepts.map((except) => {
+                if (/\./.test(except))
+                    return except.split('.')[0];
+                return null;
+            }).filter((d) => d != null);
+            const tableNames = names.length ? [...new Set(names)] : [this.$state.get('TABLE_NAME')];
+            const removeExcepts = [];
+            for (const tableName of tableNames) {
+                if (this.$state.get('SCHEMA_TABLE') && (tableName === this.$state.get('TABLE_NAME').replace(/`/g, ''))) {
+                    const columns = Object.keys(this.$state.get('SCHEMA_TABLE'));
+                    const removeExcept = columns.filter((column) => {
+                        return excepts.every((except) => {
+                            if (/\./.test(except)) {
+                                const [table, _] = except.split('.');
+                                return except !== `${table}.${column}`;
+                            }
+                            return except !== column;
+                        });
+                    });
+                    removeExcepts.push(hasDot ? removeExcept.map(r => `\`${tableName}\`.${r}`) : removeExcept);
+                    continue;
+                }
+                const sql = [
+                    `${this.$constants('SHOW')}`,
+                    `${this.$constants('COLUMNS')}`,
+                    `${this.$constants('FROM')}`,
+                    `${tableName}`
+                ].join(' ');
+                const rawColumns = yield this.queryStatement(sql);
+                const columns = rawColumns.map((column) => column.Field);
+                const removeExcept = columns.filter((column) => {
+                    return excepts.every((except) => {
+                        if (/\./.test(except)) {
+                            const [table, _] = except.split('.');
+                            return except !== `${table}.${column}`;
+                        }
+                        return except !== column;
+                    });
+                });
+                removeExcepts.push(hasDot ? removeExcept.map(r => `\`${tableName}\`.${r}`) : removeExcept);
             }
-            const rawColumns = yield this.queryStatement([
-                `${this.$constants('SHOW')}`,
-                `${this.$constants('COLUMNS')}`,
-                `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`
-            ].join(' '));
-            const columns = rawColumns.map((column) => column.Field);
-            const removeExcept = columns.filter((column) => !String(this.$state.get('EXCEPT')).includes(column));
-            return removeExcept;
+            return removeExcepts.flat();
         });
     }
     /**
@@ -399,6 +442,8 @@ class Model extends AbstractModel_1.AbstractModel {
         const copy = Object.fromEntries(instance.$state.get());
         const newInstance = new Model();
         newInstance.$state.clone(copy);
+        newInstance.$state.set('SAVE', '');
+        newInstance.$state.set('DEBUG', false);
         if ((options === null || options === void 0 ? void 0 : options.insert) == null)
             newInstance.$state.set('INSERT', '');
         if ((options === null || options === void 0 ? void 0 : options.update) == null)
@@ -411,7 +456,6 @@ class Model extends AbstractModel_1.AbstractModel {
             newInstance.$state.set('LIMIT', '');
         if ((options === null || options === void 0 ? void 0 : options.offset) == null)
             newInstance.$state.set('OFFSET', '');
-        newInstance.$state.set('SAVE', '');
         return newInstance;
     }
     /**
@@ -426,12 +470,12 @@ class Model extends AbstractModel_1.AbstractModel {
             try {
                 if (this.$state.get('DEBUG'))
                     this.$utils.consoleDebug(sql);
-                this.$state.set('QUERIES', this.$state.get('QUERIES') + 1);
+                this.$state.set('RETRY_QUERIES', Number(this.$state.get('RETRY_QUERIES')) + 1);
                 const result = yield this.$pool.query(sql);
                 return result;
             }
-            catch (e) {
-                yield this._tryToCreateTable(e);
+            catch (error) {
+                yield this._checkSchemaOrNextError(error);
                 return yield this.queryStatement(sql);
             }
         });
@@ -450,7 +494,7 @@ class Model extends AbstractModel_1.AbstractModel {
             try {
                 if (this.$state.get('DEBUG'))
                     this.$utils.consoleDebug(sql);
-                this.$state.set('QUERIES', this.$state.get('QUERIES') + 1);
+                this.$state.set('RETRY_QUERIES', Number(this.$state.get('RETRY_QUERIES')) + 1);
                 if (returnId) {
                     const result = yield this.$pool.query(sql);
                     return [result.affectedRows, result.insertId];
@@ -459,7 +503,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 return result;
             }
             catch (e) {
-                yield this._tryToCreateTable(e);
+                yield this._checkSchemaOrNextError(e);
                 return yield this.actionStatement({
                     sql,
                     returnId
@@ -496,7 +540,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * Assign build in function to result of data
-     * @param {object} func
+     * @param {Record} func
      * @return {this} this
      */
     registry(func) {
@@ -543,11 +587,32 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      *
-     * Use relations in registry of model return normal and in trash
+     * Use relations in registry of model return ignore soft delete
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withAndTrashed(...nameRelations) {
+    withAll(...nameRelations) {
+        const relations = this._handleRelations(nameRelations);
+        relations.forEach(relation => relation.all = true);
+        const setRelations = this.$state.get('RELATIONS').length
+            ? [...relations.map((w) => {
+                    const exists = this.$state.get('RELATIONS').find((r) => r.name === w.name);
+                    if (exists)
+                        return null;
+                    return w;
+                }).filter((d) => d != null),
+                ...this.$state.get('RELATIONS')]
+            : relations;
+        this.$state.set('RELATIONS', setRelations);
+        return this;
+    }
+    /**
+     *
+     * Use relations in registry of model return only in trash (soft delete)
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    withTrashed(...nameRelations) {
         const relations = this._handleRelations(nameRelations);
         relations.forEach(relation => relation.trashed = true);
         const setRelations = this.$state.get('RELATIONS').length
@@ -793,8 +858,17 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsAndTrashed(...nameRelations) {
-        return this.withAndTrashed(...nameRelations);
+    relationsAll(...nameRelations) {
+        return this.withAll(...nameRelations);
+    }
+    /**
+     *
+     * Use relations in registry of model return only in trash (soft delete)
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    relationsTrashed(...nameRelations) {
+        return this.withTrashed(...nameRelations);
     }
     /**
      * Assign the relation in model Objects
@@ -1042,6 +1116,16 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
+     * where not null using NULL
+     * @override
+     * @return {this}
+     */
+    whereTrashed() {
+        this.disableSoftDelete();
+        this.whereNotNull(this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT')));
+        return this;
+    }
+    /**
      * return only in trashed (data has been remove)
      * @return {promise}
      */
@@ -1049,7 +1133,7 @@ class Model extends AbstractModel_1.AbstractModel {
         return __awaiter(this, void 0, void 0, function* () {
             this.disableSoftDelete();
             this.whereNotNull(this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT')));
-            const sql = this._buildQueryModel();
+            const sql = this._buildQueryStatement();
             return yield this._execute({ sql, type: 'GET' });
         });
     }
@@ -1061,7 +1145,7 @@ class Model extends AbstractModel_1.AbstractModel {
         return __awaiter(this, void 0, void 0, function* () {
             this.disableSoftDelete();
             this.whereNotNull(this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT')));
-            const sql = this._buildQueryModel();
+            const sql = this._buildQueryStatement();
             return yield this._execute({ sql, type: 'GET' });
         });
     }
@@ -1091,151 +1175,6 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     toTableNameAndColumn(column) {
         return `\`${this._tableName()}\`.\`${this._valuePattern(column)}\``;
-    }
-    /**
-     *
-     * @override Method
-     * @return {string}
-    */
-    toString() {
-        const sql = this._buildQueryModel();
-        if (this.$state.get('DEBUG'))
-            this.$utils.consoleDebug(sql);
-        return this.resultHandler(sql);
-    }
-    /**
-     *
-     * @override Method
-     * @return {string}
-    */
-    toSQL() {
-        const sql = this._buildQueryModel();
-        if (this.$state.get('DEBUG'))
-            this.$utils.consoleDebug(sql);
-        return this.resultHandler(sql);
-    }
-    /**
-     *
-     * @override Method
-     * @return {promise<string>}
-    */
-    toJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            if (this.$state.get('HIDDEN').length)
-                this._hiddenColumnModel(result);
-            return this.resultHandler(JSON.stringify(result));
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<Array>}
-    */
-    toArray(column = 'id') {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(column);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            const toArray = result.map((data) => data[column]);
-            return this.resultHandler(toArray);
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    avg(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(`${this.$constants('AVG')}(${column}) ${this.$constants('AS')} \`avg\``);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.avg) || 0));
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string} column [column=id]
-     * @return {promise<number>}
-    */
-    sum(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(`${this.$constants('SUM')}(${column}) ${this.$constants('AS')} \`sum\``);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.sum) || 0));
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    max(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(`${this.$constants('MAX')}(${column}) ${this.$constants('AS')} \`max\``);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.max) || 0));
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    min(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(`${this.$constants('MIN')}(${column}) ${this.$constants('AS')} \`min\``);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.min) || 0));
-        });
-    }
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    count(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(`${this.$constants('COUNT')}(${column}) ${this.$constants('AS')} \`total\``);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.total) || 0));
-        });
-    }
-    /**
-     *
-     * execute data return result is exists
-     * @return {promise<boolean>}
-     */
-    exists() {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            this.limit(1);
-            const sql = this._buildQueryModel();
-            const result = yield this.queryStatement([
-                `${this.$constants('SELECT')}`,
-                `${this.$constants('EXISTS')}`,
-                `(${sql})`,
-                `${this.$constants('AS')} \`exists\``
-            ].join(' '));
-            return Boolean(this.resultHandler(!!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.exists) || false));
-        });
     }
     /**
      * delete data from the database
@@ -1277,15 +1216,15 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<{[key: string]:any} | null>}
+     * @return {promise<Record<string,any> | null>}
     */
     first() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             this._validateMethod('first');
             if (this.$state.get('VOID'))
-                return this.resultHandler(null);
-            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+                return this.resultHandler(undefined);
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
             if (this.$state.get('RELATIONS_EXISTS')) {
@@ -1295,7 +1234,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 });
             }
             return yield this._execute({
-                sql: this._buildQueryModel(),
+                sql: this._buildQueryStatement(),
                 type: 'FIRST'
             });
         });
@@ -1303,7 +1242,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<{[key: string]:any} | null>}
+     * @return {promise<Record<string,any> | null>}
     */
     findOne() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1319,7 +1258,7 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             this._validateMethod('firstOrError');
-            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
             if (this.$state.get('RELATIONS_EXISTS')) {
@@ -1329,7 +1268,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 });
             }
             return yield this._execute({
-                sql: this._buildQueryModel(),
+                sql: this._buildQueryStatement(),
                 type: 'FIRST_OR_ERROR',
                 message,
                 options
@@ -1357,9 +1296,9 @@ class Model extends AbstractModel_1.AbstractModel {
             this._validateMethod('get');
             if (this.$state.get('VOID'))
                 return [];
-            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
-            let sql = this._buildQueryModel();
+            let sql = this._buildQueryStatement();
             if (this.$state.get('RELATIONS_EXISTS'))
                 sql = this._queryRelationsExists();
             return yield this._execute({
@@ -1396,14 +1335,14 @@ class Model extends AbstractModel_1.AbstractModel {
                 limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
                 page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
             }
-            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             const offset = (page - 1) * limit;
             this.$state.set('PER_PAGE', limit);
             this.$state.set('PAGE', page);
             this.limit(limit);
             this.offset(offset);
-            let sql = this._buildQueryModel();
+            let sql = this._buildQueryStatement();
             if (this.$state.get('RELATIONS_EXISTS'))
                 sql = this._queryRelationsExists();
             return yield this._execute({
@@ -1434,7 +1373,7 @@ class Model extends AbstractModel_1.AbstractModel {
     getGroupBy(column) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this.$state.get('EXCEPT')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
             this.$state.set('SELECT', [
@@ -1442,7 +1381,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 `${this.$constants('GROUP_CONCAT')}(id)`,
                 `${this.$constants('AS')} data`
             ].join(' '));
-            const sql = this._buildQueryModel();
+            const sql = this._buildQueryStatement();
             const results = yield this.queryStatement(sql);
             let data = [];
             results.forEach((result) => {
@@ -1475,11 +1414,46 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      *
      * update data in the database
+     * @param {object} data
+     * @param {array?} updateNotExists options for except update some records in your ${data}
+     * @return {this} this
+     */
+    update(data, updateNotExists = []) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
+        if (updateNotExists.length) {
+            for (const c of updateNotExists) {
+                for (const column in data) {
+                    if (c !== column)
+                        continue;
+                    const value = data[column];
+                    data[column] = this._updateHandler(column, value);
+                    break;
+                }
+            }
+        }
+        const query = this._queryUpdateModel(data);
+        this.$state.set('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this.$state.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this.$state.set('SAVE', 'UPDATE');
+        return this;
+    }
+    /**
+     *
      * @override Method
      * @param {object} data
      * @return {this} this
      */
-    update(data) {
+    updateNotExists(data) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
+        for (const column in data) {
+            const value = data[column];
+            data[column] = this._updateHandler(column, value);
+        }
         const query = this._queryUpdateModel(data);
         this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
@@ -1496,6 +1470,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     insert(data) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
         const query = this._queryInsertModel(data);
         this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
@@ -1512,6 +1488,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     create(data) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
         const query = this._queryInsertModel(data);
         this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
@@ -1528,6 +1506,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     updateOrCreate(data) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
         const queryUpdate = this._queryUpdateModel(data);
         const queryInsert = this._queryInsertModel(data);
         this.$state.set('INSERT', [
@@ -1577,6 +1557,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     createOrSelect(data) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
         const queryInsert = this._queryInsertModel(data);
         this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
@@ -1661,50 +1643,22 @@ class Model extends AbstractModel_1.AbstractModel {
                 `${this.$constants('FROM')}`,
                 `\`${this.$state.get('TABLE_NAME').replace(/\`/g, '')}\``
             ].join(' ');
-            const raw = yield this.queryStatement(sql);
-            const schemas = raw.map((r) => {
-                let schema = { [r.Field]: String };
-                const numberLists = [
-                    'tinyint',
-                    'smallint',
-                    'mediumint',
-                    'int',
-                    'bigint',
-                    'float',
-                    'double',
-                    'decimal',
-                    'real',
-                    'bit',
-                    'boolean',
-                    'serial'
-                ];
-                const dateAndTimeLists = [
-                    'date',
-                    'datetime',
-                    'time',
-                    'timestamp',
-                    'year'
-                ];
-                if (numberLists.includes(r.Type)) {
-                    schema = {
-                        [r.Field]: Number
-                    };
-                }
-                if (dateAndTimeLists.includes(r.Type)) {
-                    schema = {
-                        [r.Field]: Date
-                    };
-                }
-                return schema;
-            });
-            const result = Object.assign({}, ...schemas);
-            return result;
+            return yield this.queryStatement(sql);
         });
+    }
+    getSchemaModel() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.$state.get('SCHEMA_TABLE');
+        });
+    }
+    getTableName() {
+        var _a;
+        return (_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, '');
     }
     /**
      *
      * @override Method
-     * @return {Promise<Record<string,any> | Array<any> | null | undefined>}
+     * @return {Promise<Record<string,any> | any[] | null | undefined>}
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1746,12 +1700,14 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      *
      * fake data into to this table
+     * @override Method
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
     faker(rows = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             let data = [];
+            this.void();
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('FIELDS')}`,
@@ -1883,7 +1839,13 @@ class Model extends AbstractModel_1.AbstractModel {
         }
         return this;
     }
-    _buildQueryModel() {
+    /**
+     *
+     * generate sql statements
+     * @override
+     * @return {string} string generated query string
+     */
+    _buildQueryStatement() {
         let sql = [];
         while (true) {
             this._handleSoftDelete();
@@ -1943,27 +1905,37 @@ class Model extends AbstractModel_1.AbstractModel {
         return result;
     }
     _validateSchema(results) {
-        const schema = this.$state.get('SCHEMA');
-        if (schema == null)
-            return;
         if (!results.length)
+            return;
+        const validateSchema = Boolean(this.$state.get('VALIDATE_SCHEMA'));
+        if (!validateSchema)
+            return;
+        const schemaTable = this.$state.get('SCHEMA_TABLE');
+        const schemaTableDefined = this.$state.get('VALIDATE_SCHEMA_DEFINED');
+        this._assertError(schemaTableDefined == null && schemaTable == null, "Can't validate schema withouted schema");
+        const schema = schemaTableDefined !== null && schemaTableDefined !== void 0 ? schemaTableDefined : Object.keys(schemaTable).reduce((acc, key) => {
+            acc[key] = schemaTable[key].valueType;
+            return acc;
+        }, {});
+        if (schema == null)
             return;
         const typeOf = (data) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
         const regexDate = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/;
         const regexDateTime = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]/;
-        const selectedAll = this.$state.get('SELECT').replace('SELECT', '').trim() === '*';
+        const select = this.$state.get('SELECT');
+        const selectedAll = select.replace('SELECT', '').trim() === '*';
         for (const result of results) {
             const schemaKeys = Object.keys(schema);
             const resultKeys = Object.keys(result);
             if (schemaKeys.some(s => !resultKeys.includes(s)) && selectedAll) {
                 const columns = schemaKeys.filter(x => !resultKeys.includes(x));
-                this._assertError(`Not found this column [ ${columns.join(', ')} ] in result`);
+                this._assertError(`Not found this column "${columns.join(', ')}" in result`);
             }
             for (const column in result) {
                 const s = schema[column];
                 if (s == null && selectedAll) {
                     if (!schemaKeys.every(s => resultKeys.includes(s))) {
-                        this._assertError(`Not found this column [ ${column} ] in result`);
+                        this._assertError(`Not found this column "${column}" in result`);
                     }
                     continue;
                 }
@@ -1972,13 +1944,13 @@ class Model extends AbstractModel_1.AbstractModel {
                 if (regexDate.test(result[column]) || regexDateTime.test(result[column])) {
                     if (typeOf(new Date(result[column])) === typeOf(new s()))
                         continue;
-                    this._assertError(`This column [ ${column} ] is invalid schema field type`);
+                    this._assertError(`This column "${column}" is invalid schema field type`);
                 }
                 if (result[column] == null)
                     continue;
                 if (typeOf(result[column]) === typeOf(new s()))
                     continue;
-                this._assertError(`This column [ ${column} ] is invalid schema field type`);
+                this._assertError(`This column "${column}" is invalid schema field type`);
             }
         }
         return;
@@ -2075,6 +2047,7 @@ class Model extends AbstractModel_1.AbstractModel {
         }
         const sql = clone
             .bind(this.$pool.get())
+            .select(this.$state.get('PRIMARY_KEY'))
             .whereReference(`\`${this._tableName()}\`.\`${localKey}\``, `\`${query._tableName()}\`.\`${foreignKey}\``)
             .toString();
         return sql;
@@ -2117,11 +2090,12 @@ class Model extends AbstractModel_1.AbstractModel {
             }
             const sql = clone
                 .bind(this.$pool.get())
+                .select(this.$state.get('PRIMARY_KEY'))
                 .whereReference(`\`${this._tableName()}\`.\`${localKey}\``, `\`${query._tableName()}\`.\`${foreignKey}\``)
                 .toString();
             this.whereExists(sql);
         }
-        const sql = this._buildQueryModel();
+        const sql = this._buildQueryStatement();
         return sql;
     }
     _relation(parents, relation) {
@@ -2146,7 +2120,8 @@ class Model extends AbstractModel_1.AbstractModel {
                 .bind(this.$pool.get())
                 .whereIn(foreignKey, dataPerentId)
                 .debug(this.$state.get('DEBUG'))
-                .when(relation.trashed, (query) => query.disableSoftDelete())
+                .when(relation.trashed, (query) => query.whereTrashed())
+                .when(relation.all, (query) => query.disableSoftDelete())
                 .get();
             return dataFromRelation;
         });
@@ -2179,7 +2154,8 @@ class Model extends AbstractModel_1.AbstractModel {
             const sqldataChilds = queryChildModel
                 .whereIn(localKeyPivotTable, dataPerentId)
                 .when(relation.exists, (query) => query.whereExists(sql))
-                .when(relation.trashed, (query) => query.disableSoftDelete())
+                .when(relation.trashed, (query) => query.whereTrashed())
+                .when(relation.all, (query) => query.disableSoftDelete())
                 .toString();
             const dataChilds = yield this.queryStatement(sqldataChilds);
             const otherId = dataChilds.map((sub) => sub[otherforeignKey]).filter((data) => data != null);
@@ -2307,15 +2283,11 @@ class Model extends AbstractModel_1.AbstractModel {
             }
             if (this._isPatternSnakeCase()) {
                 const empty = this.$utils.snakeCase(this.resultHandler(emptyData));
-                const hook = this.$state.get('HOOK');
-                for (let i in hook)
-                    yield hook[i](empty);
+                yield this.$utils.hookHandle(this.$state.get('HOOKS'), empty);
                 return empty;
             }
             const empty = this.resultHandler(emptyData);
-            const hook = this.$state.get('HOOK');
-            for (let i in hook)
-                yield hook[i](empty);
+            yield this.$utils.hookHandle(this.$state.get('HOOKS'), empty);
             return empty;
         });
     }
@@ -2407,9 +2379,7 @@ class Model extends AbstractModel_1.AbstractModel {
                     throw new Error('Missing method first get or pagination');
                 }
             }
-            const hook = this.$state.get('HOOK');
-            for (let i in hook)
-                yield hook[i](result);
+            yield this.$utils.hookHandle(this.$state.get('HOOKS'), result);
             return result;
         });
     }
@@ -2609,7 +2579,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 returnId: true
             });
             if (this.$state.get('VOID'))
-                return this.resultHandler(null);
+                return this.resultHandler(undefined);
             if (!result)
                 return this.resultHandler(null);
             const resultData = yield new Model().copyModel(this)
@@ -2626,7 +2596,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 returnId: true
             });
             if (this.$state.get('VOID'))
-                return this.resultHandler(null);
+                return this.resultHandler(undefined);
             if (!result)
                 return this.resultHandler(null);
             const arrayId = [...Array(result)].map((_, i) => i + id);
@@ -2647,7 +2617,7 @@ class Model extends AbstractModel_1.AbstractModel {
                         returnId: true
                     });
                     if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(null);
+                        return this.resultHandler(undefined);
                     const data = yield new Model().copyModel(this).bind(this.$pool.get()).where('id', id).first();
                     const resultData = data == null
                         ? null
@@ -2659,7 +2629,7 @@ class Model extends AbstractModel_1.AbstractModel {
                         sql: new Model().copyModel(this, { update: true, where: true }).toString()
                     });
                     if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(null);
+                        return this.resultHandler(undefined);
                     const data = yield new Model().copyModel(this, { where: true }).bind(this.$pool.get()).get();
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                         for (const v of data)
@@ -2684,7 +2654,7 @@ class Model extends AbstractModel_1.AbstractModel {
                         returnId: true
                     });
                     if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(null);
+                        return this.resultHandler(undefined);
                     const data = yield new Model().copyModel(this).bind(this.$pool.get()).where('id', id).first();
                     const resultData = data == null
                         ? null
@@ -2693,7 +2663,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
                 case true: {
                     if (this.$state.get('VOID'))
-                        return this.resultHandler(null);
+                        return this.resultHandler(undefined);
                     const data = yield new Model().copyModel(this, { where: true }).bind(this.$pool.get()).get();
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                         for (const v of data)
@@ -2709,10 +2679,10 @@ class Model extends AbstractModel_1.AbstractModel {
     _updateModel() {
         return __awaiter(this, void 0, void 0, function* () {
             this._assertError(!String(this.$state.get('WHERE')), "can not update [ update ] without where condition");
-            const sql = this._buildQueryModel();
+            const sql = this._buildQueryStatement();
             const result = yield this.actionStatement({ sql });
             if (this.$state.get('VOID') || !result || result == null)
-                return this.resultHandler(null);
+                return this.resultHandler(undefined);
             const data = yield new Model().copyModel(this, { where: true }).bind(this.$pool.get()).get();
             if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                 return this.resultHandler(data || []);
@@ -2759,6 +2729,7 @@ class Model extends AbstractModel_1.AbstractModel {
             'insert',
             'create',
             'update',
+            'updateNotExists',
             'delete',
             'forceDelete',
             'restore',
@@ -2797,23 +2768,49 @@ class Model extends AbstractModel_1.AbstractModel {
             }
         }
     }
-    _tryToCreateTable(e) {
-        var _a;
+    _checkSchemaOrNextError(e) {
+        var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
-            const createTable = this.$state.get('CREATE_TABLE');
-            if (createTable == null)
-                throw e;
-            const errorMessage = (_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : '';
-            const errorWhenTableIsNotExists = "doesn't exist";
-            if (!errorMessage.toLocaleLowerCase().includes(errorWhenTableIsNotExists))
-                throw e;
-            if (this.$state.get('QUERIES') > 3)
-                throw e;
             try {
+                if (this.$state.get('RETRY_QUERIES') > 3)
+                    throw e;
+                const schemaTable = this.$state.get('SCHEMA_TABLE');
+                if (schemaTable == null)
+                    throw e;
+                const errorMessage = (_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : '';
+                if (errorMessage.toLocaleLowerCase().includes('unknown column')) {
+                    const pattern = /'([^']+)'/;
+                    const column = errorMessage.match(pattern)
+                        ? String(errorMessage.match(pattern)[0]).replace(/'/g, '').split('.').pop()
+                        : null;
+                    if (column == null)
+                        throw e;
+                    const type = (_c = (_b = schemaTable[column]) === null || _b === void 0 ? void 0 : _b.type) !== null && _c !== void 0 ? _c : null;
+                    const attributes = (_e = (_d = schemaTable[column]) === null || _d === void 0 ? void 0 : _d.attributes) !== null && _e !== void 0 ? _e : null;
+                    if (type == null || attributes == null)
+                        throw e;
+                    const entries = Object.entries(schemaTable);
+                    const indexWithColumn = entries.findIndex(([key]) => key === column);
+                    const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
+                    if (findAfterIndex == null)
+                        throw e;
+                    const sql = [
+                        `${this.$constants('ALTER_TABLE')}`,
+                        `${this.$state.get('TABLE_NAME')}`,
+                        `${this.$constants('ADD')}`,
+                        `\`${column}\` ${type} ${attributes.join(' ')}`,
+                        `${this.$constants('AFTER')}`,
+                        `\`${findAfterIndex !== null && findAfterIndex !== void 0 ? findAfterIndex : ''}\``
+                    ].join(' ');
+                    yield this.queryStatement(sql);
+                    return;
+                }
+                if (!errorMessage.toLocaleLowerCase().includes("doesn't exist"))
+                    throw e;
                 const tableName = this.$state.get('TABLE_NAME');
-                yield new Schema_1.Schema()
-                    .debug(this.$state.get('DEBUG'))
-                    .createTable(tableName, createTable);
+                const sql = new Schema_1.Schema().createTable(tableName, schemaTable);
+                yield this.queryStatement(sql);
+                return;
             }
             catch (e) {
                 throw e;

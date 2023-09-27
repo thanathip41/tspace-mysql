@@ -1,26 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Model = (model, npm) => {
-    return `import { Model } from '${npm}'
+const Model = (model, npm, schema) => {
+    return `import { Model , Blueprint } from '${npm}'
 class ${model} extends Model {
   constructor(){
     super()
     /**
      * 
-     * Assign setting global in your model
-     * @useMethod
+     * @Configuration registry in your model
      *
-     * this.useDebug() // => runing a uuid (universally unique identifier) when insert new data
-     * this.usePrimaryKey('id')
-     * this.useTimestamp({ createdAt : 'created_at' , updatedAt : 'updated_at' }) // runing a timestamp when insert or update
-     * this.useSoftDelete()
-     * this.useTable('users')
-     * this.useTableSingular() // 'user'
-     * this.useTablePlural() // 'users'
-     * this.usePattern('snake_case')   
-     * this.useUUID('uuid')
-     * this.useRegistry()
-    */
+     * this.useDebug() 
+     * this.useTimestamp({
+     *    createdAt : 'created_at',
+     *    updatedAt : 'updated_at'
+     * }) // runing a timestamp when insert or update
+     * this.useSoftDelete('deletedAt') // => default target to colmun deleted_at 
+     * this.usePattern('snake_case') // => default 'snake_case'   
+     * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
+     * this.useRegistry() // => build-in functions registry
+     * this.useLoadRelationsInRegistry() // => auto generated results from relationship to results
+     * this.useBuiltInRelationFunctions() // => build-in functions relationships to results
+     */
+
+    /**
+     * 
+     * @Schema table
+     *  
+     */
+    ${schema}
   }
 }
 export { ${model} }

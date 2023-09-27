@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AbstractDB = void 0;
-const Builder_1 = __importDefault(require("./Builder"));
+const Builder_1 = __importDefault(require("../Builder"));
 class AbstractDB extends Builder_1.default {
 }
 exports.AbstractDB = AbstractDB;

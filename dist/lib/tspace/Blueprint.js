@@ -1,17 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Blueprint = void 0;
+/**
+ * Make schema for table with Blueprint
+ * @example
+ *   import { Schema , Blueprint }  from 'tspace-mysql'
+ *   await new Schema().table('persos1',{
+ *      id          : new Blueprint().int().notNull().primary().autoIncrement(),
+ *      name        : new Blueprint().varchar(255).default('my name'),
+ *      email       : new Blueprint().varchar(255).unique(),
+ *      json        : new Blueprint().json().null(),
+ *      verify      : new Blueprint().tinyInt(1).notNull(),
+ *      created_at  : new Blueprint().timestamp().null(),
+ *      updated_at  : new Blueprint().timestamp().null(),
+ *      deleted_at  : new Blueprint().timestamp().null()
+ *   })
+ */
 class Blueprint {
     constructor() {
-        this.type = '';
-        this.attrbuites = [];
+        this.type = 'INT';
+        this.attributes = [];
+        this.valueType = String;
     }
     /**
      * Assign type 'int' in table
      * @return {this} this
      */
-    int() {
+    int(number) {
         this._addAssignType('INT');
+        this.valueType = Number;
         return this;
     }
     /**
@@ -21,6 +38,17 @@ class Blueprint {
      */
     tinyInt(number = 1) {
         this._addAssignType(`TINYINT(${number})`);
+        this.valueType = Number;
+        return this;
+    }
+    /**
+     * Assign type 'TINYINT' in table
+     * @param {number} number
+     * @return {this} this
+     */
+    tinyint(number = 1) {
+        this._addAssignType(`TINYINT(${number})`);
+        this.valueType = Number;
         return this;
     }
     /**
@@ -30,6 +58,17 @@ class Blueprint {
      */
     bigInt(number = 10) {
         this._addAssignType(`BIGINT(${number})`);
+        this.valueType = Number;
+        return this;
+    }
+    /**
+     * Assign type 'BIGINT' in table
+     * @param {number} number [number = 10]
+     * @return {this} this
+     */
+    bigint(number = 10) {
+        this._addAssignType(`BIGINT(${number})`);
+        this.valueType = Number;
         return this;
     }
     /**
@@ -39,6 +78,7 @@ class Blueprint {
      * @return {this} this
      */
     double(length = 0, decimal = 0) {
+        this.valueType = Number;
         if (!length || !decimal) {
             this._addAssignType(`DOUBLE`);
             return this;
@@ -53,6 +93,7 @@ class Blueprint {
      * @return {this} this
      */
     float(length = 0, decimal = 0) {
+        this.valueType = Number;
         if (!length || !decimal) {
             this._addAssignType(`FLOAT`);
             return this;
@@ -62,10 +103,10 @@ class Blueprint {
     }
     /**
      * Assign type 'VARCHAR' in table
-     * @param {number} length  [length = 100] length of string
+     * @param {number} length  [length = 191] length of string
      * @return {this} this
      */
-    varchar(length = 100) {
+    varchar(length = 191) {
         if (length > 255)
             length = 255;
         this._addAssignType(`VARCHAR(${length})`);
@@ -89,11 +130,34 @@ class Blueprint {
         return this;
     }
     /**
+     * Assign type 'LONGTEXT' in table
+     * @return {this} this
+     */
+    longtext() {
+        this._addAssignType(`LONGTEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'JSON' in table
+     * @return {this} this
+     */
+    json() {
+        this._addAssignType(`JSON`);
+        return this;
+    }
+    /**
      * Assign type 'MEDIUMTEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     mediumText() {
+        this._addAssignType(`MEDIUMTEXT`);
+        return this;
+    }
+    /**
+     * Assign type 'MEDIUMTEXT' in table
+     * @return {this} this
+     */
+    mediumtext() {
         this._addAssignType(`MEDIUMTEXT`);
         return this;
     }
@@ -103,6 +167,15 @@ class Blueprint {
      * @return {this} this
      */
     tinyText() {
+        this._addAssignType(`TINYTEXT`);
+        return this;
+    }
+    /**
+    * Assign type 'TINYTEXT' in table
+    * @param {number} length [length = 1] length of string
+    * @return {this} this
+    */
+    tinytext() {
         this._addAssignType(`TINYTEXT`);
         return this;
     }
@@ -121,7 +194,7 @@ class Blueprint {
      * @return {this} this
      */
     enum(...enums) {
-        this._addAssignType(`ENUM('${enums}')`);
+        this._addAssignType(`ENUM(${enums.map(e => `'${e.replace(/'/g, '')}'`)})`);
         return this;
     }
     /**
@@ -130,6 +203,7 @@ class Blueprint {
      */
     date() {
         this._addAssignType(`DATE`);
+        this.valueType = Date;
         return this;
     }
     /**
@@ -138,6 +212,16 @@ class Blueprint {
      */
     dateTime() {
         this._addAssignType(`DATETIME`);
+        this.valueType = Date;
+        return this;
+    }
+    /**
+     * Assign type 'DATETIME' in table
+     * @return {this} this
+     */
+    datetime() {
+        this._addAssignType(`DATETIME`);
+        this.valueType = Date;
         return this;
     }
     /**
@@ -146,81 +230,96 @@ class Blueprint {
      */
     timestamp() {
         this._addAssignType(`TIMESTAMP`);
+        this.valueType = Date;
         return this;
     }
     /**
-     * Assign type 'UNSIGNED' in table
+     * Assign attributes 'UNSIGNED' in table
      * @return {this} this
      */
     unsigned() {
-        this._addAssignAttrbuite(`UNSIGNED`);
+        this._addAssignAttribute(`UNSIGNED`);
         return this;
     }
     /**
-     * Assign type 'UNIQUE' in table
+     * Assign attributes 'UNIQUE' in table
      * @return {this} this
      */
     unique() {
-        this._addAssignAttrbuite(`UNIQUE`);
+        this._addAssignAttribute(`UNIQUE`);
         return this;
     }
     /**
-     * Assign type 'NULL' in table
+     * Assign attributes 'NULL' in table
      * @return {this} this
      */
     null() {
-        this._addAssignAttrbuite(`NULL`);
+        this._addAssignAttribute(`NULL`);
         return this;
     }
     /**
-     * Assign type 'NOT NULL' in table
+     * Assign attributes 'NOT NULL' in table
      * @return {this} this
      */
     notNull() {
-        this._addAssignAttrbuite(`NOT NULL`);
+        this._addAssignAttribute(`NOT NULL`);
         return this;
     }
     /**
-     * Assign type 'PRIMARY KEY' in table
+     * Assign attributes 'PRIMARY KEY' in table
      * @return {this} this
      */
     primary() {
-        this._addAssignAttrbuite(`PRIMARY KEY`);
+        this._addAssignAttribute(`PRIMARY KEY`);
         return this;
     }
     /**
-     * Assign attrbuites 'default' in table
-     * @param {string | number} n  default value
+     * Assign attributes 'default' in table
+     * @param {string | number} value  default value
      * @return {this} this
      */
-    default(n) {
-        this._addAssignAttrbuite(`DEFAULT '${n}'`);
+    default(value) {
+        this._addAssignAttribute(`DEFAULT '${value}'`);
         return this;
     }
     /**
-     * Assign attrbuites 'default currentTimestamp' in table
+     * Assign attributes 'default currentTimestamp' in table
      * @return {this} this
      */
     currentTimestamp() {
-        this._addAssignAttrbuite(`DEFAULT CURRENT_TIMESTAMP`);
+        this._addAssignAttribute(`DEFAULT CURRENT_TIMESTAMP`);
         return this;
     }
     /**
-     * Assign attrbuites 'autoIncrement' in table
+     * Assign attributes 'default currentTimestamp' in table
+     * @return {this} this
+     */
+    currenttimestamp() {
+        this._addAssignAttribute(`DEFAULT CURRENT_TIMESTAMP`);
+        return this;
+    }
+    /**
+     * Assign attributes 'autoIncrement' in table
      * @return {this} this
      */
     autoIncrement() {
-        this._addAssignAttrbuite(`AUTO_INCREMENT`);
+        this._addAssignAttribute(`AUTO_INCREMENT`);
+        return this;
+    }
+    /**
+     * Assign attributes 'autoIncrement' in table
+     * @return {this} this
+     */
+    autoincrement() {
+        this._addAssignAttribute(`AUTO_INCREMENT`);
         return this;
     }
     _addAssignType(type) {
-        if (this.type)
-            return this;
         this.type = type;
         return this;
     }
-    _addAssignAttrbuite(attrbuite) {
-        this.attrbuites = [...this.attrbuites, attrbuite];
+    _addAssignAttribute(attribute) {
+        this.attributes = [...this.attributes, attribute];
         return this;
     }
 }

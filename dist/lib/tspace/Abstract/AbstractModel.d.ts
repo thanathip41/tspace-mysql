@@ -1,5 +1,5 @@
-import { Relation, RelationQuery } from './Interface';
-import Builder from './Builder';
+import { Relation, RelationQuery } from '../Interface';
+import Builder from '../Builder';
 declare abstract class AbstractModel extends Builder {
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
@@ -10,6 +10,7 @@ declare abstract class AbstractModel extends Builder {
     protected abstract useTableSingular(): this;
     protected abstract useTimestamp(): this;
     protected abstract useSoftDelete(): this;
+    protected abstract useHooks(functions: Function[]): this;
     protected abstract usePattern(pattern: string): this;
     protected abstract useLoadRelationsInRegistry(): this;
     protected abstract useBuiltInRelationFunctions(): this;
@@ -25,21 +26,21 @@ declare abstract class AbstractModel extends Builder {
     protected abstract belongsToManyBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
     abstract ignoreSoftDelete(): this;
     abstract disableSoftDelete(): this;
-    abstract registry(func: {
-        [key: string]: Function;
-    }): this;
-    abstract onlyTrashed(): Promise<any>;
-    abstract trashed(): Promise<any>;
-    abstract restore(): Promise<any>;
+    abstract registry(func: Record<string, Function>): this;
+    abstract onlyTrashed(): Promise<any[]>;
+    abstract trashed(): Promise<any[]>;
+    abstract restore(): Promise<any[]>;
     abstract with(...nameRelations: string[]): this;
     abstract withQuery(nameRelations: string, callback: Function): this;
     abstract withExists(...nameRelations: string[]): this;
-    abstract withAndTrashed(...nameRelations: string[]): this;
+    abstract withTrashed(...nameRelations: string[]): this;
+    abstract withAll(...nameRelations: string[]): this;
     abstract has(...nameRelations: string[]): this;
     abstract relations(...nameRelations: string[]): this;
     abstract relationQuery(nameRelations: string, callback: Function): this;
     abstract relationsExists(...nameRelations: string[]): this;
-    abstract relationsAndTrashed(...nameRelations: string[]): this;
+    abstract relationsAll(...nameRelations: string[]): this;
+    abstract relationsTrashed(...nameRelations: string[]): this;
 }
 export { AbstractModel };
 export default AbstractModel;

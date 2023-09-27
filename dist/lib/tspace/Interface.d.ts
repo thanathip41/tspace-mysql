@@ -9,6 +9,7 @@ export interface Relation {
     query?: any | undefined;
     relation?: Object | undefined;
     exists?: boolean | undefined;
+    all?: boolean | undefined;
     trashed?: boolean | undefined;
     oldVersion?: boolean | undefined;
 }
@@ -54,6 +55,18 @@ export interface Backup {
 export interface BackupToFile {
     database: string;
     filePath: string;
+    table?: string;
+    connection?: {
+        host: string;
+        port: number;
+        database: string;
+        username: string;
+        password: string;
+    };
+}
+export interface BackupTableToFile {
+    filePath: string;
+    table: string;
     connection?: {
         host: string;
         port: number;

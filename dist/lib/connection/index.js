@@ -1,12 +1,36 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Pool = exports.PoolConnection = void 0;
+exports.loadOptionsEnvironment = exports.Pool = exports.PoolConnection = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const options_1 = __importDefault(require("./options"));
+const options_1 = __importStar(require("./options"));
+Object.defineProperty(exports, "loadOptionsEnvironment", { enumerable: true, get: function () { return options_1.loadOptionsEnvironment; } });
 const mysql2_1 = require("mysql2");
 class PoolConnection {
     /**
@@ -28,17 +52,16 @@ class PoolConnection {
      */
     connection() {
         const pool = (0, mysql2_1.createPool)(Object.fromEntries(this.OPTIONS));
-        if (options_1.default.CONNECTION_ERROR) {
-            pool.getConnection((err, _) => {
-                if (err == null || !err)
-                    return;
-                const message = this._messageError.bind(this);
-                process.nextTick(() => {
-                    console.log(message(err === null || err === void 0 ? void 0 : err.message));
+        pool.getConnection((err, _) => {
+            if (err == null || !err)
+                return;
+            const message = this._messageError.bind(this);
+            process.nextTick(() => {
+                console.log(message(err === null || err === void 0 ? void 0 : err.message));
+                if (options_1.default.CONNECTION_ERROR)
                     return process.exit();
-                });
             });
-        }
+        });
         return {
             query: (sql) => {
                 return new Promise((resolve, reject) => {
@@ -90,9 +113,9 @@ class PoolConnection {
             database: String(options_1.default.DATABASE),
             user: String(options_1.default.USERNAME),
             password: String(options_1.default.PASSWORD) === '' ? '' : String(options_1.default.PASSWORD),
-            multipleStatements: options_1.default.MULTIPLE_STATEMENTS || false,
-            enableKeepAlive: options_1.default.ENABLE_KEEP_ALIVE || false,
-            keepAliveInitialDelay: options_1.default.KEEP_ALIVE_DELAY || 0,
+            multipleStatements: Boolean(options_1.default.MULTIPLE_STATEMENTS || false),
+            enableKeepAlive: Boolean(options_1.default.ENABLE_KEEP_ALIVE || false),
+            keepAliveInitialDelay: Number.isNaN(Number(options_1.default.KEEP_ALIVE_DELAY || 0) ? 0 : Number(options_1.default.KEEP_ALIVE_DELAY)),
         }));
     }
     _loadOptions() {

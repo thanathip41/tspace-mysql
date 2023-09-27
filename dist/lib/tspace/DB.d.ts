@@ -1,4 +1,4 @@
-import { AbstractDB } from './AbstractDB';
+import { AbstractDB } from './Abstract/AbstractDB';
 import { Connection, ConnectionOptions, ConnectionTransaction } from './Interface';
 /**
  * Assign table name
@@ -63,7 +63,17 @@ declare class DB extends AbstractDB {
      * @param {string} option.password
      * @return {Connection}
      */
-    getConnection(options: ConnectionOptions): Connection;
+    getConnection(options?: ConnectionOptions): Promise<Connection>;
+    /**
+     * Get a connection
+     * @return {ConnectionTransaction} object - Connection for the transaction
+     * @type     {object} connection
+     * @property {function} connection.query - execute query sql then release connection to pool
+     * @property {function} connection.startTransaction - start transaction of query
+     * @property {function} connection.commit - commit transaction of query
+     * @property {function} connection.rollback - rollback transaction of query
+     */
+    beginTransaction(): Promise<ConnectionTransaction>;
     /**
      * Covert result to array
      * @param {any} result table name
@@ -76,16 +86,6 @@ declare class DB extends AbstractDB {
      * @return {Record | null} object | null
      */
     static makeObject(result: any): Record<string, any> | null;
-    /**
-     * Get a connection
-     * @return {ConnectionTransaction} object - Connection for the transaction
-     * @type     {object} connection
-     * @property {function} connection.query - execute query sql then release connection to pool
-     * @property {function} connection.startTransaction - start transaction of query
-     * @property {function} connection.commit - commit transaction of query
-     * @property {function} connection.rollback - rollback transaction of query
-     */
-    beginTransaction(): Promise<ConnectionTransaction>;
     /**
      * Assign table name
      * @static
@@ -147,7 +147,7 @@ declare class DB extends AbstractDB {
      * @param {string} option.password
      * @return {Connection}
      */
-    static getConnection(options: ConnectionOptions): Connection;
+    static getConnection(options: ConnectionOptions): Promise<Connection>;
     private _typeOf;
     private _initialDB;
 }

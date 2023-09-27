@@ -3,7 +3,7 @@
 [![NPM version](https://img.shields.io/npm/v/tspace-mysql.svg)](https://www.npmjs.com)
 [![NPM downloads](https://img.shields.io/npm/dm/tspace-mysql.svg)](https://www.npmjs.com)
 
-Tspace-mysql is an ORM that can run in NodeJs and can be used with TypeScript. 
+tspace-mysql is an ORM that can run in NodeJs and can be used with TypeScript. 
 Its always support the latest TypeScript and JavaScript features and provide additional features that help you to develop.
 
 ## Install
@@ -29,12 +29,14 @@ npm install tspace-mysql --save
   - [Deeply Nested Relations](#deeply-nested-relations)
   - [Relation Exists](#relation-exists)
   - [Built in Relation Functions](#built-in-relation-functions)
+- [Schema Sync](#schema-sync)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
   - [Make Model](#make-model)
   - [Make Migration](#make-migration)
   - [Migrate](#migrate)
   - [Query](#query)
+  - [Dump](#dump)
   - [Generate Models](#generate-models)
 - [Blueprint](#blueprint)
 
@@ -50,7 +52,6 @@ DB_DATABASE = database
 /** 
  * @default
  *  DB_CONNECTION_LIMIT = 10
- *  DB_CONNECTION_ERROR = true
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = true
@@ -63,7 +64,7 @@ source db {
     port               = 3306
     database           = npm
     user               = root
-    password           = 
+    password           = database
     connectionLimit    = 10 
     dateStrings        = true
     connectTimeout     = 60000
@@ -97,8 +98,8 @@ Once you have configured your database connection, you may run queries is this :
 
 import { DB } from 'tspace-mysql'
 (async () => {
-    await new DB('users').findMany() // SELECT * FROM users => Array
-    await new DB('users').findOne() //  SELECT * FROM users LIMIT 1 => Object
+    await new DB('users').findMany() //  SELECT * FROM users => Array
+    await new DB('users').findOne()  //  SELECT * FROM users LIMIT 1 => Object
 })()
 ```
 Running A Select Query
@@ -137,116 +138,139 @@ await new DB('posts').rightJoin('posts.user_id' , 'users.id').findMany()
 Running A Where Query
 ```js
 const user = await new DB('users').where('id',1).findOne()
-    // user => { id : 1 , username : 'tspace', email : 'tspace@gmail.com'}
+// SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
+
 const users = await new DB('users').where('id','!=',1).findMany()
-    // users => [{ id : 2 , username : 'tspace2' , email : 'tspace2@gmail.com' }]
+// SELECT * FROM `users` WHERE `users`.`id` != '1';
 
 const whereIn = await new DB('users').whereIn('id',[1,2]).findMany()
+// SELECT * FROM `users` WHERE `users`.`id` BETWEEN '1' AND '2';
+
 const whereBetween = await new DB('users').whereBetween('id',[1,2]).findMany()
-const whereSubQuery = await new DB('users').whereSubQuery('id','select id from users').findMany()
-// same As await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
+// SELECT * FROM `users` WHERE `users`.`id` BETWEEN '1' AND '2';
+
+const whereSubQuery = await new DB('users').whereSubQuery('id','SELECT id FROM users').findMany()
+// SELECT * FROM `users` WHERE `users`.`id` IN (SELECT id FROM users);
+// or use -> await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
+
 const whereNull = await new DB('users').whereNull('username').findOne()
+// SELECT * FROM `users` WHERE `users`.`username` IS NULL LIMIT 1;
+
 const whereNotNull = await new DB('users').whereNotNull('username').findOne()
-const whereQuery = await new DB('users').whereQuery(query => query.where('id',1).where('username','tspace')).whereIn('id',[1,2]).findOne()
-    // SELECT * FROM `users` WHERE ( `users`.`id` = '1' AND `users`.`username` = 'tspace') AND `users`.`id` IN ('1','2'') LIMIT 1
+// SELECT * FROM `users` WHERE `users`.`username` IS NOT NULL LIMIT 1;
+
+const whereQuery = await new DB('users').whereQuery(query => query.where('id',1).where('username','values')).whereIn('id',[1,2]).findOne()
+// SELECT * FROM `users` WHERE ( `users`.`id` = '1' AND `users`.`username` = 'values') AND `users`.`id` IN ('1','2'') LIMIT 1;
+
+const whereExists = await new DB('users').whereExists(new DB('users').select('id').where('id',1).toString()).findOne()
+// SELECT * FROM `users` WHERE EXISTS (SELECT `id` FROM `users` WHERE id = 1) LIMIT 1;
+
+const whereJson= await  new DB('users').whereJSON('json', { targetKey : 'id', value : '1234' }).findOne()
+// SELECT * FROM `users` WHERE `users`.`json`->>'$.id' = '1234' LIMIT 1;
 ```
 
 Running A Hook Query
 ```js
-const hookResult = (result) => console.log(result)
+const hookResult = (result) => console.log('hook!! result => ',result)
 const user = await new DB('users').where('id',1).hook(hookResult).findOne()
 ```
 
 Running A Insert Query
 ```js
 const user = await new DB('users')
-    .create({
-        name : 'tspace3',
-        email : 'tspace3@gmail.com'
-    }).save()
-    // user =>  { id : 3 , username : 'tspace3', email : 'tspace3@gmail.com'}
+.create({
+    name : 'tspace3',
+    email : 'tspace3@gmail.com'
+})
+.save()
+// user =>  { id : 3 , username : 'tspace3', email : 'tspace3@gmail.com'}
 
 +--------------------------------------------------------------------------+
 
 const reposity = new DB('users')
-    reposity.name = 'tspace4'
-    reposity.email = 'tspace4@gmail.com'
-    await reposity.save()
+reposity.name = 'tspace4'
+reposity.email = 'tspace4@gmail.com'
+
+await reposity.save()
+
 const { result } = reposity
-    // result =>  { id : 4 , username : 'tspace4', email : 'tspace4@gmail.com'}
+// result =>  { id : 4 , username : 'tspace4', email : 'tspace4@gmail.com'}
 
 const users = await new DB('users')
-    .createMultiple([
-        {
-            name :'tspace4',
-            email : 'tspace4@gmail.com'
-        },
-        {
-            name :'tspace5',
-            email : 'tspace5@gmail.com'
-        },
-        {
-            name :'tspace6',
-            email : 'tspace6@gmail.com'
-        },
-    ]).save()
-
-const users = await new DB('users')
-    .where('name','tspace4')
-    .where('email','tspace4@gmail.com')
-    .createNotExists({
+.createMultiple([
+    {
         name :'tspace4',
         email : 'tspace4@gmail.com'
-    })
-    .save()
-    // if has exists return null, if not exists created new data
+    },
+    {
+        name :'tspace5',
+        email : 'tspace5@gmail.com'
+    },
+    {
+        name :'tspace6',
+        email : 'tspace6@gmail.com'
+    },
+])
+.save()
 
 const users = await new DB('users')
-    .where('name','tspace4')
-    .where('email','tspace4@gmail.com')
-    .createOrSelect({
-        name :'tspace4',
-        email : 'tspace4@gmail.com'
-    })
-    .save()
-    // if has exists return data, if not exists created new data
+.where('name','tspace4')
+.where('email','tspace4@gmail.com')
+.createNotExists({
+    name :'tspace4',
+    email : 'tspace4@gmail.com'
+})
+.save()
+// if has exists return null, if not exists created new data
+
+const users = await new DB('users')
+.where('name','tspace4')
+.where('email','tspace4@gmail.com')
+.createOrSelect({
+    name :'tspace4',
+    email : 'tspace4@gmail.com'
+})
+.save()
+// if has exists return data, if not exists created new data
 
 ```
 Running A Update Query
 ```js
 const user = await new DB('users')
-    .where('id',1)
-    .update({
-          name : 'tspace1**',
-          email : 'tspace1@gmail.com'
-    }).save()
-    // user =>  { id : 1 , username : 'tspace1**', email : 'tspace1@gmail.com'} 
+.where('id',1)
+.update({
+        name : 'tspace1**',
+        email : 'tspace1@gmail.com'
+}).save()
+// user =>  { id : 1 , username : 'tspace1**', email : 'tspace1@gmail.com'} 
 
 +--------------------------------------------------------------------------+
 
 const reposity = new DB('users').where('id',1)
-    reposity.name = 'tspace1++'
-    reposity.email = 'tspace1++@gmail.com'
-    await reposity.save()
-const { result } = reposity
-    // result =>  { id : 1 , username : 'tspace1++', email : 'tspace1++@gmail.com'} 
-```
+reposity.name = 'tspace1++'
+reposity.email = 'tspace1++@gmail.com'
 
+await reposity.save()
+
+const { result } = reposity
+// result =>  { id : 1 , username : 'tspace1++', email : 'tspace1++@gmail.com'} 
+
+```
 Running A  Update Or Created Query
 ```js
 const user = await new DB('users')
-    .where('id',1)
-    .updateOrCreate({
-          name : 'tspace1**',
-          email : 'tspace1@gmail.com'
-    }).save()
-    // user =>  { username : 'tspace1**', email : 'tspace1@gmail.com' } 
+.where('id',1)
+.updateOrCreate({
+        name : 'tspace1**',
+        email : 'tspace1@gmail.com'
+}).save()
+// user =>  { username : 'tspace1**', email : 'tspace1@gmail.com' } 
 ```  
 
 Running A Delete Query
 ```js
 const deleted = await new DB('users').where('id',1).delete()
-    // deleted => Boolean
+// deleted => Boolean
 ``` 
 ## Database Transactions 
 
@@ -275,7 +299,8 @@ try {
         .bind(connection)
         .save()
 
-    const posts = await new Post().createMultiple([
+    const posts = await new Post()
+    .createMultiple([
         {
             user_id : user.id,
             title : `tspace-post1`
@@ -308,7 +333,6 @@ try {
 }
 
 ```
-
 ## Connection
 When establishing a connection, you may establish options is this:
 ```js
@@ -321,8 +345,8 @@ const connection = await new DB().getConnection({
 })
 
 const users = await new DB('users')
-    .bind(connection)
-    .findMany()
+.bind(connection)
+.findMany()
 // users => [{ .... }]
 ```
 
@@ -350,15 +374,15 @@ const backup = await new DB().backup({
  * @param {object | null} conection defalut current connection
  */
 const backupToFile = await new DB().backupToFile({
-     database: 'try-to-backup',
-     filePath: 'backup.sql',
-     connection ?: {
+    database: 'try-to-backup',
+    filePath: 'backup.sql',
+    connection ?: {
         host: 'localhost',
         port : 3306,
         database: 'database'
         username: 'username',
         password: 'password',
-  }
+    }
 })
 // backupToFile => backup.sql
 ```
@@ -407,18 +431,13 @@ class User extends Model {
      * this.useTable('users')
      * this.useTableSingular() // => 'user'
      * this.useTablePlural() // => 'users'
-     * this.usePattern('snake_case') // => default 'snake_case'   
+     * this.usePattern('camelCase') // => default 'snake_case'   
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
      * this.useRegistry() // => build-in functions registry
-     * this.useLoadRelationsInRegistry() // => auto generated results from relationship to results
+     * this.useLoadRelationsInRegistry() // => auto generated result from relationship to results
      * this.useBuiltInRelationFunctions() // => build-in functions relationships to results
-     * this.useSchema({
-     *   id : Number,
-     *   username : String
-     *   created_at : Date,
-     *   updated_at : Date,
-     *  }) // => validate type of schema when return results
-     * this.useCreateTableIfNotExists ({ 
+     * this.useHooks([(r) => console.log(r)])
+     * this.useSchema ({ 
      *     id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *     uuid        : new Blueprint().varchar(50).null(),
      *     user_id     : new Blueprint().int().notNull(),
@@ -426,7 +445,9 @@ class User extends Model {
      *     created_at  : new Blueprint().timestamp().null(),
      *     updated_at  : new Blueprint().timestamp().null(),
      *     deleted_at  : new Blueprint().timestamp().null()
-     *   })
+     *  }) // auto-generated table when table is not exists and auto-create column when column not exists
+     * 
+     * this.useValidateSchema() // => validate type of value when return results reference to the schema in 'this.useSchema'
      */
 
 
@@ -618,49 +639,54 @@ class Comment extends Model {
 }
 +--------------------------------------------------------------------------+
 // Deeply nested relations
-await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => { 
-        return query.relations('comments','user')
-        .relationQuery('comments', (query : Comment) => {
-            return query.relations('user','post')
-        })
-        .relationQuery('user', (query : User) => {
-            return query.relations('posts').relationQuery('posts',(query : Post)=> {
-                return query.relations('comments','user')
-                // relation n, n, ...n
-            })
+await new User()
+.relations('posts')
+.relationQuery('posts', (query : Post) => { 
+    return query.relations('comments','user')
+    .relationQuery('comments', (query : Comment) => {
+        return query.relations('user','post')
+    })
+    .relationQuery('user', (query : User) => {
+        return query.relations('posts').relationQuery('posts',(query : Post)=> {
+            return query.relations('comments','user')
+            // relation n, n, ...n
         })
     })
-    .findMany()
+})
+.findMany()
 
 // Select some columns in nested relations    
-await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => query.select('id','user_id','title'))
-    .findMany()
+await new User()
+.relations('posts')
+.relationQuery('posts', (query : Post) => query.select('id','user_id','title'))
+.findMany()
 
 // Where some columns in nested relations
-await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => query.whereIn('id',[1,3,5]))
-    .findMany()
+await new User()
+.relations('posts')
+.relationQuery('posts', (query : Post) => query.whereIn('id',[1,3,5]))
+.findMany()
 
 // Sort data in  nested relations
-await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => query.latest('id'))
-    .findMany()
+await new User()
+.relations('posts')
+.relationQuery('posts', (query : Post) => query.latest('id'))
+.findMany()
 
 // Limit data in  nested relations
-await new User().relations('posts')
-    .relationQuery('posts', (query : Post) => {
-        return query
-        .limit(1)
-        .relations('comments')
-        .relationQuery('comments', (query : Comment) => query.limit(1))
-    })
-    .findMany()
+await new User()
+.relations('posts')
+.relationQuery('posts', (query : Post) => {
+    return query
+    .limit(1)
+    .relations('comments')
+    .relationQuery('comments', (query : Comment) => query.limit(1))
+})
+.findMany()
 
 ```
 ## Relation Exists
-Relationships can return only result is not isempty related with soft delete. 
+Relationships can return only result is not empty in relations. 
 let's example a exists in relations :
 ```js
 +-------------+--------------+----------------------------+--------------------+
@@ -751,12 +777,11 @@ await new User().relationsExists('posts').findMany()
  *      ]  
  *  }
  * ]
- * because posts id 1 and id 3 has been removed from database using soft delete
+ * because posts id 1 and id 3 has been removed from database (using soft delete)
  */
 
 
 ```
-
 ## Built in Relation Functions
 Relationships can using built in function in results 
 let's example a built in function :
@@ -792,13 +817,69 @@ class Comment extends Model {
 const user = await new User().findOne()
 const posts = await user.$posts()
 
-/** Warning built in function has Big-O effect */
+/** Warning built-in function has Big-O effect */
 for (const post of posts) {
     const comments = await post.$comments()
 }
 
 ```
 
+## Schema Sync
+Sync schema to Models in your directory, 
+Sync will check for create or update table or columns with useSchema in your models. 
+Let's examine a basic model sync class:
+
+```js
+/**
+* 
+* @Ex directory
+* 
+* - node_modules
+* - src
+*   - index.ts
+*   - Models
+*    - User.ts
+*    - Post.ts
+*
+*  // file User.ts
+*  class User extends Model {
+*      constructor(){
+*          super()
+*          this.hasMany({ name : 'posts' , model : Post })
+*          this.useSchema ({ 
+*               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+*               uuid        : new Blueprint().varchar(50).null(),
+*               email       : new Blueprint().int().notNull().unique(),
+*               name        : new Blueprint().varchar(255).null(),
+*               created_at  : new Blueprint().timestamp().null(),
+*               updated_at  : new Blueprint().timestamp().null(),
+*               deleted_at  : new Blueprint().timestamp().null()
+*           })
+*       }
+*   }
+* 
+*   // file Post.ts
+*   class Post extends Model {
+*      constructor(){
+*          super()
+*          this.hasMany({ name : 'comments' , model : Comment })
+*          this.belongsTo({ name : 'user' , model : User })
+*          this.useSchema ({ 
+*               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+*               uuid        : new Blueprint().varchar(50).null(),
+*               user_id     : new Blueprint().int().notNull(),
+*               title       : new Blueprint().varchar(255).null(),
+*               created_at  : new Blueprint().timestamp().null(),
+*               updated_at  : new Blueprint().timestamp().null(),
+*               deleted_at  : new Blueprint().timestamp().null()
+*           })
+*       }
+*   }
+*  
+*/
+await Schema.sync(`src/Models` , { force : true })
+
+```
 ## Query Builder
 Methods builder for queries
 ```js
@@ -813,6 +894,7 @@ whereNull(column)
 whereNotNull(column)
 whereBetween (column , [value1 , value2])
 whereQuery(callback)
+whereJson(column, { targetKey, value , operator })
 whereRaw(sql)
 whereExists(sql)
 whereSubQuery(colmn , rawSQL)
@@ -822,6 +904,7 @@ orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
 select(column1 ,column2 ,...N)
+distinct()
 selectRaw(column1 ,column2 ,...N)
 except(column1 ,column2 ,...N)
 only(column1 ,column2 ,...N)
@@ -853,23 +936,32 @@ hook((result) => ...) // callback result to function
 /** 
  * registry relation in your models
  * @relationship
-*/
-hasOne({ name , model , localKey , foreignKey , freezeTable , as })
-hasMany({ name , model , localKey , foreignKey , freezeTable , as })
-belongsTo({ name , model , localKey , foreignKey , freezeTable , as })
-belongsToMany({ name , model , localKey , foreignKey , freezeTable , as , pivot })
+ */
+hasOne({ name, model, localKey, foreignKey, freezeTable , as })
+hasMany({ name, model, localKey, foreignKey, freezeTable , as })
+belongsTo({ name, model, localKey, foreignKey, freezeTable , as })
+belongsToMany({ name, model, localKey, foreignKey, freezeTable, as, pivot })
 /** 
  * @relation using registry in your models
-*/
+ */
 relations(name1 , name2,...nameN)
 /** 
+ * @relation using registry in your models ignore soft delete
+ */
+relationsAll(name1 , name2,...nameN) 
+/** 
  * @relation using registry in your models. if exists child data remove this data
-*/
+ */
 relationsExists(name1 , name2,...nameN) 
 /** 
  * @relation call a name of relation in registry, callback query of data
-*/
+ */
 relationQuery(name, (callback) )
+/** 
+ * @relation using registry in your models return only in trash (soft delete)
+ */
+relationsTrashed(name1 , name2,...nameN) 
+
 
 /**
  * queries statements
@@ -881,7 +973,6 @@ find(id)
 delelte()
 exists ()
 onlyTrashed()
-toSQL()
 toString()
 toJSON()
 toArray(column)
@@ -985,11 +1076,21 @@ Command will be execute a query
 tspace-mysql query "SELECT * FROM users"
 
 ```
+# Dump
+Command will be dump database or table into file
+```js
+tspace-mysql dump:db "database" --values // backup with values in the tables
+
+tspace-mysql dump:table "table" --values // backup with values in the table
+
+```
 
 # Generate Models
 Command will be generate models from table in database
 ```js
-tspace-mysql generate:models --dir=<folder for creating>
+tspace-mysql generate:models --dir=<folder for creating> 
+or 
+tspace-mysql gen:models --dir=<folder for creating> --env=development
 
 ```
 
@@ -998,13 +1099,14 @@ Schema table created by command make:migration,  you may use the:
 ```js
 import { Schema , Blueprint , DB } from 'tspace-mysql'
 (async () => {
-    await new Schema().table('users',{ 
-        id           :  new Blueprint().int().notNull().primary().autoIncrement(),
+    await new Schema().table('users', { 
+        id           : new Blueprint().int().notNull().primary().autoIncrement(),
         uuid         : new Blueprint().varchar(120).null()
         name         : new Blueprint().varchar(120).default('name'),
         email        : new Blueprint().varchar(255).unique().notNull(),
         email_verify : new Blueprint().tinyInt(),
         password     : new Blueprint().varchar(255),
+        json         : new Blueprint().json(),
         created_at   : new Blueprint().null().timestamp(),
         updated_at   : new Blueprint().null().timestamp()
     })
@@ -1016,15 +1118,16 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
 })()
 
 /**
- * type of schema in database
+ * add Type of schema in database
  * @Types
  * 
 */
-int ()
+int (number)
 tinyInt (number) 
 bigInt (number)
 double ()
 float ()
+json ()
 varchar (number)
 char (number)
 longText()
@@ -1037,7 +1140,7 @@ dateTime()
 timestamp ()
 
 /**
- * attrbuites of schema in database
+ * add Attrbuites of schema in database
  * @Attrbuites
  * 
 */

@@ -1,4 +1,4 @@
-import { AbstractModel } from './AbstractModel';
+import { AbstractModel } from './Abstract/AbstractModel';
 import { Relation, Pagination, RelationQuery } from './Interface';
 declare class Model extends AbstractModel {
     constructor();
@@ -40,7 +40,7 @@ declare class Model extends AbstractModel {
      * import { Blueprint } from 'tspace-mysql'
      * class User extends Model {
      *     constructor() {
-     *        this.useCreateTableIfNotExists ({
+     *        this.useSchema ({
      *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *            uuid        : new Blueprint().varchar(50).null(),
      *            email       : new Blueprint().varchar(50).null(),
@@ -52,7 +52,7 @@ declare class Model extends AbstractModel {
      * }
      * @return {this} this
      */
-    protected useCreateTableIfNotExists(schema: Record<string, any>): this;
+    protected useSchema(schema: Record<string, any>): this;
     /**
      *
      * Assign function callback in model like constructor()
@@ -140,7 +140,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
-     *        this.useSoftDelete('delete_at')
+     *        this.useSoftDelete('deletedAt')
      *     }
      * }
      * @return {this} this
@@ -211,17 +211,25 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *   constructor() {
-     *     this.useSchema({
-     *        id       : Number,
-     *        email    : String,
-     *        name     : String,
-     *        date     : Date
-     *     })
+     *     this.useValidationSchema()
      *   }
      * }
      * @return {this} this
      */
-    protected useSchema(schema: Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
+    protected useValidationSchema(schema?: null | Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
+    /**
+    *
+    * Assign schema column in model for validation data types
+    * @param {Object<NumberConstructor | StringConstructor | DateConstructor>} schema types (String Number and Date)
+    * @example
+    * class User extends Model {
+    *   constructor() {
+    *     this.useValidationSchema()
+    *   }
+    * }
+    * @return {this} this
+    */
+    protected useValidateSchema(schema?: null | Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
     /**
      * Assign hook function when execute returned results to callback function
      * @param {Array<Function>} arrayFunctions functions for callback result
@@ -233,7 +241,7 @@ declare class Model extends AbstractModel {
      * }
      * @return {this}
     */
-    protected useHook(arrayFunctions: Array<Function>): this;
+    protected useHooks(arrayFunctions: Array<Function>): this;
     /**
      * exceptColumns for method except
      * @return {promise<string>} string
@@ -275,7 +283,7 @@ declare class Model extends AbstractModel {
      * @param {string} sql
      * @return {this} this
      */
-    protected queryStatement(sql: string): Promise<Array<any>>;
+    protected queryStatement(sql: string): Promise<any[]>;
     /**
      *
      * execute the query using raw sql syntax actions for insert update and delete
@@ -309,12 +317,10 @@ declare class Model extends AbstractModel {
     ignoreSoftDelete(condition?: boolean): this;
     /**
      * Assign build in function to result of data
-     * @param {object} func
+     * @param {Record} func
      * @return {this} this
      */
-    registry(func: {
-        [key: string]: Function;
-    }): this;
+    registry(func: Record<string, Function>): this;
     /**
      *
      * Use relations in registry of model return result of relation query
@@ -342,11 +348,18 @@ declare class Model extends AbstractModel {
     with(...nameRelations: Array<string>): this;
     /**
      *
-     * Use relations in registry of model return normal and in trash
+     * Use relations in registry of model return ignore soft delete
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withAndTrashed(...nameRelations: Array<string>): this;
+    withAll(...nameRelations: Array<string>): this;
+    /**
+     *
+     * Use relations in registry of model return only in trash (soft delete)
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    withTrashed(...nameRelations: Array<string>): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -547,7 +560,14 @@ declare class Model extends AbstractModel {
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsAndTrashed(...nameRelations: Array<string>): this;
+    relationsAll(...nameRelations: Array<string>): this;
+    /**
+     *
+     * Use relations in registry of model return only in trash (soft delete)
+     * @param {...string} nameRelations if data exists return blank
+     * @return {this} this
+     */
+    relationsTrashed(...nameRelations: Array<string>): this;
     /**
      * Assign the relation in model Objects
      * @param    {object} relations registry relation in your model
@@ -655,6 +675,12 @@ declare class Model extends AbstractModel {
      */
     protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }: RelationQuery, callback?: Function): this;
     /**
+     * where not null using NULL
+     * @override
+     * @return {this}
+     */
+    whereTrashed(): this;
+    /**
      * return only in trashed (data has been remove)
      * @return {promise}
      */
@@ -668,75 +694,9 @@ declare class Model extends AbstractModel {
      * restore data in trashed
      * @return {promise}
      */
-    restore(): Promise<any>;
+    restore(): Promise<any[]>;
     toTableName(): string;
     toTableNameAndColumn(column: string): string;
-    /**
-     *
-     * @override Method
-     * @return {string}
-    */
-    toString(): string;
-    /**
-     *
-     * @override Method
-     * @return {string}
-    */
-    toSQL(): string;
-    /**
-     *
-     * @override Method
-     * @return {promise<string>}
-    */
-    toJSON(): Promise<string>;
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<Array>}
-    */
-    toArray(column?: string): Promise<Array<any>>;
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    avg(column?: string): Promise<number>;
-    /**
-     *
-     * @override Method
-     * @param {string} column [column=id]
-     * @return {promise<number>}
-    */
-    sum(column?: string): Promise<number>;
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    max(column?: string): Promise<number>;
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    min(column?: string): Promise<number>;
-    /**
-     *
-     * @override Method
-     * @param {string=} column [column=id]
-     * @return {promise<number>}
-    */
-    count(column?: string): Promise<number>;
-    /**
-     *
-     * execute data return result is exists
-     * @return {promise<boolean>}
-     */
-    exists(): Promise<boolean>;
     /**
      * delete data from the database
      * @override Method
@@ -746,51 +706,39 @@ declare class Model extends AbstractModel {
     /**
      *
      * @override Method
-     * @return {promise<{[key: string]:any} | null>}
+     * @return {promise<Record<string,any> | null>}
     */
-    first(): Promise<{
-        [key: string]: any;
-    } | null>;
+    first(): Promise<Record<string, any> | null>;
     /**
      *
      * @override Method
-     * @return {promise<{[key: string]:any} | null>}
+     * @return {promise<Record<string,any> | null>}
     */
-    findOne(): Promise<{
-        [key: string]: any;
-    } | null>;
+    findOne(): Promise<Record<string, any> | null>;
     /**
      *
      * @override Method
      * @return {promise<object | Error>}
     */
-    firstOrError(message: string, options?: {
-        [key: string]: any;
-    }): Promise<{
-        [key: string]: any;
-    }>;
+    firstOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
     /**
      *
      * @override Method
      * @return {promise<any>}
     */
-    findOneOrError(message: string, options?: {
-        [key: string]: any;
-    }): Promise<{
-        [key: string]: any;
-    }>;
+    findOneOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
     /**
      *
      * @override Method
      * @return {promise<array>}
     */
-    get(): Promise<Array<any>>;
+    get(): Promise<any[]>;
     /**
      *
      * @override Method
      * @return {promise<array>}
     */
-    findMany(): Promise<Array<any>>;
+    findMany(): Promise<any[]>;
     /**
      *
      * @override Method
@@ -821,16 +769,23 @@ declare class Model extends AbstractModel {
      * @param {string} column
      * @return {Promise<array>}
      */
-    getGroupBy(column: string): Promise<Array<any>>;
+    getGroupBy(column: string): Promise<any[]>;
     /**
      *
      * update data in the database
+     * @param {object} data
+     * @param {array?} updateNotExists options for except update some records in your ${data}
+     * @return {this} this
+     */
+    update(data: Record<string, any>, updateNotExists?: string[]): this;
+    /**
+     *
      * @override Method
      * @param {object} data
      * @return {this} this
      */
-    update(data: Record<string, any> & {
-        length?: never;
+    updateNotExists(data: Record<string, any> & {
+        length?: unknown;
     }): this;
     /**
      *
@@ -838,72 +793,56 @@ declare class Model extends AbstractModel {
      * @param {object} data for insert
      * @return {this} this
      */
-    insert(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    insert(data: Record<string, any>): this;
     /**
      *
      * @override Method
      * @param {object} data for insert
      * @return {this} this
      */
-    create(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    create(data: Record<string, any>): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrCreate(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    updateOrCreate(data: Record<string, any>): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrInsert(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    updateOrInsert(data: Record<string, any>): this;
     /**
     *
     * @override Method
     * @param {object} data for update or create
     * @return {this} this
     */
-    insertOrUpdate(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    insertOrUpdate(data: Record<string, any>): this;
     /**
      *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    createOrUpdate(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    createOrUpdate(data: Record<string, any>): this;
     /**
      *
      * @override Method
      * @param {object} data for create
      * @return {this} this
      */
-    createOrSelect(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    createOrSelect(data: Record<string, any>): this;
     /**
     *
     * @override Method
     * @param {object} data for update or create
     * @return {this} this
     */
-    insertOrSelect(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    insertOrSelect(data: Record<string, any>): this;
     /**
      *
      * insert multiple data into the database
@@ -911,7 +850,7 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Array<Record<string, any>>): this;
+    createMultiple(data: Record<string, any>[]): this;
     /**
      *
      * insert muliple data into the database
@@ -919,42 +858,39 @@ declare class Model extends AbstractModel {
      * @param {array<object>} data create multiple data
      * @return {this} this this
      */
-    insertMultiple(data: Array<Record<string, any>>): this;
+    insertMultiple(data: Record<string, any>[]): this;
     /**
      *
      * @param {object} data create not exists data
      * @override Method
      * @return {this} this this
      */
-    createNotExists(data: Record<string, any> & {
-        length?: never;
-    }): this;
+    createNotExists(data: Record<string, any>): this;
     /**
      *
      * @param {object} data create not exists data
      * @override Method
      * @return {this} this this
      */
-    insertNotExists(data: {
-        [key: string]: any;
-    } & {
-        length?: never;
-    }): this;
+    insertNotExists(data: Record<string, any>): this;
     /**
      *
      * get schema from table
      * @return {this} this this
      */
     getSchema(): Promise<any>;
+    getSchemaModel(): Promise<any>;
+    getTableName(): any;
     /**
      *
      * @override Method
-     * @return {Promise<Record<string,any> | Array<any> | null | undefined>}
+     * @return {Promise<Record<string,any> | any[] | null | undefined>}
      */
-    save(): Promise<Record<string, any> | Array<any> | null | undefined>;
+    save(): Promise<Record<string, any> | any[] | null | undefined>;
     /**
      *
      * fake data into to this table
+     * @override Method
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
@@ -966,7 +902,13 @@ declare class Model extends AbstractModel {
     private _tableName;
     private _valueInRelation;
     private _handleSoftDelete;
-    private _buildQueryModel;
+    /**
+     *
+     * generate sql statements
+     * @override
+     * @return {string} string generated query string
+     */
+    protected _buildQueryStatement(): string;
     private _showOnly;
     private _validateSchema;
     private _execute;
@@ -996,7 +938,7 @@ declare class Model extends AbstractModel {
     private _handleRelations;
     private _handleRelationsQuery;
     private _validateMethod;
-    private _tryToCreateTable;
+    private _checkSchemaOrNextError;
     private _initialModel;
 }
 export { Model };

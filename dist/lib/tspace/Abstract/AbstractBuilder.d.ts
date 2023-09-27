@@ -1,5 +1,5 @@
-import { Pagination } from './Interface';
-import { StateHandler } from './StateHandler';
+import { Pagination } from '../Interface';
+import { StateHandler } from '../StateHandler';
 declare abstract class AbstractBuilder {
     protected $setters: string[];
     protected $utils: {
@@ -35,15 +35,20 @@ declare abstract class AbstractBuilder {
     abstract whereUser(id: number): this;
     abstract whereEmail(value: string): this;
     abstract whereQuery(callback: Function): this;
+    abstract whereJSON(column: string, { targetKey, value, operator }: {
+        targetKey: string;
+        value: string;
+        operator: string;
+    }): this;
     abstract orWhere(column: string, operator: string, value: string): this;
-    abstract whereIn(column: string, arrayValues: Array<any>): this;
-    abstract orWhereIn(column: string, arrayValues: Array<any>): this;
-    abstract whereNotIn(column: string, arrayValues: Array<any>): this;
+    abstract whereIn(column: string, arrayValues: any[]): this;
+    abstract orWhereIn(column: string, arrayValues: any[]): this;
+    abstract whereNotIn(column: string, arrayValues: any[]): this;
     abstract whereSubQuery(column: string, subQuery: string): this;
     abstract whereNotSubQuery(column: string, subQuery: string): this;
     abstract orWhereSubQuery(column: string, subQuery: string): this;
-    abstract whereBetween(column: string, arrayValue: Array<any>): this;
-    abstract whereNotBetween(column: string, arrayValue: Array<any>): this;
+    abstract whereBetween(column: string, arrayValue: any[]): this;
+    abstract whereNotBetween(column: string, arrayValue: any[]): this;
     abstract having(condition: string): this;
     abstract havingRaw(condition: string): this;
     abstract join(pk: string, fk: string): this;
@@ -52,32 +57,32 @@ declare abstract class AbstractBuilder {
     abstract crossJoin(pk: string, fk: string): this;
     abstract orderBy(column: string, order: string): this;
     abstract orderByRaw(column: string, order: string): this;
-    abstract latest(...columns: Array<string>): this;
-    abstract latestRaw(...columns: Array<string>): this;
-    abstract oldest(...columns: Array<string>): this;
-    abstract oldestRaw(...columns: Array<string>): this;
+    abstract latest(...columns: string[]): this;
+    abstract latestRaw(...columns: string[]): this;
+    abstract oldest(...columns: string[]): this;
+    abstract oldestRaw(...columns: string[]): this;
     abstract groupBy(...columns: string[]): this;
     abstract groupByRaw(...columns: string[]): this;
     abstract random(): this;
     abstract inRandom(): this;
     abstract limit(number: number): this;
     abstract hidden(...columns: string[]): this;
-    abstract insert(objects: object): this;
-    abstract create(objects: object): this;
-    abstract update(objects: object): this;
-    abstract insertNotExists(objects: object): this;
-    abstract createNotExists(objects: object): this;
-    abstract insertOrUpdate(objects: object): this;
-    abstract createOrUpdate(objects: object): this;
-    abstract updateOrInsert(objects: object): this;
-    abstract updateOrCreate(objects: object): this;
-    abstract createMultiple(objects: object): this;
-    abstract insertMultiple(objects: object): this;
+    abstract insert(data: Record<string, any>): this;
+    abstract create(data: Record<string, any>): this;
+    abstract update(data: Record<string, any>, updateNotExists?: string[]): this;
+    abstract insertNotExists(data: Record<string, any>): this;
+    abstract createNotExists(data: Record<string, any>): this;
+    abstract insertOrUpdate(data: Record<string, any>): this;
+    abstract createOrUpdate(data: Record<string, any>): this;
+    abstract updateOrInsert(data: Record<string, any>): this;
+    abstract updateOrCreate(data: Record<string, any>): this;
+    abstract createMultiple(data: Record<string, any>): this;
+    abstract insertMultiple(data: Record<string, any>): this;
     abstract except(...columns: string[]): this;
     abstract only(...columns: string[]): this;
     abstract drop(): Promise<any>;
     abstract truncate(): Promise<any>;
-    abstract all(): Promise<Array<any>>;
+    abstract all(): Promise<any[]>;
     abstract find(id: number): Promise<any>;
     abstract pagination({ limit, page }: {
         limit: number;
@@ -87,20 +92,16 @@ declare abstract class AbstractBuilder {
         limit: number;
         page: number;
     }): Promise<Pagination>;
-    abstract first(): Promise<any>;
-    abstract firstOrError(message: string, options?: {
-        [key: string]: any;
-    }): Promise<any>;
-    abstract findOneOrError(message: string, options?: {
-        [key: string]: any;
-    }): Promise<any>;
-    abstract get(): Promise<any>;
-    abstract findOne(): Promise<any>;
-    abstract findMany(): Promise<any>;
-    abstract getGroupBy(column: string): Promise<any>;
-    abstract findManyGroupBy(column: string): Promise<any>;
-    abstract toArray(column: string): Promise<any>;
-    abstract toJSON(): Promise<any>;
+    abstract first(): Promise<Record<string, any> | null>;
+    abstract firstOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
+    abstract findOneOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
+    abstract get(): Promise<any[]>;
+    abstract findOne(): Promise<Record<string, any> | null>;
+    abstract findMany(): Promise<any[]>;
+    abstract getGroupBy(column: string): Promise<any[]>;
+    abstract findManyGroupBy(column: string): Promise<any[]>;
+    abstract toArray(column: string): Promise<any[]>;
+    abstract toJSON(): Promise<string>;
     abstract toSQL(): string;
     abstract toString(): string;
     abstract count(column: string): Promise<number>;
@@ -108,15 +109,13 @@ declare abstract class AbstractBuilder {
     abstract avg(column: string): Promise<number>;
     abstract max(column: string): Promise<number>;
     abstract min(column: string): Promise<number>;
-    abstract rawQuery(sql: string): Promise<Array<any>>;
+    abstract rawQuery(sql: string): Promise<any[]>;
     abstract delete(): Promise<boolean>;
     abstract exists(): Promise<boolean>;
-    abstract save(): Promise<{
-        [key: string]: any;
-    } | Array<any> | null | undefined>;
-    abstract increment(column: string, value: number): Promise<any>;
-    abstract decrement(column: string, value: number): Promise<any>;
-    abstract faker(round: number): Promise<any>;
+    abstract save(): Promise<Record<string, any> | any[] | null | undefined>;
+    abstract increment(column: string, value: number): Promise<number>;
+    abstract decrement(column: string, value: number): Promise<number>;
+    abstract faker(round: number): Promise<void>;
 }
 export { AbstractBuilder };
 export default AbstractBuilder;

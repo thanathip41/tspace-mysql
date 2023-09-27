@@ -24,7 +24,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DB = void 0;
-const AbstractDB_1 = require("./AbstractDB");
+const AbstractDB_1 = require("./Abstract/AbstractDB");
 const ProxyHandler_1 = require("./ProxyHandler");
 const connection_1 = require("../connection");
 const StateHandler_1 = __importDefault(require("./StateHandler"));
@@ -161,13 +161,34 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {Connection}
      */
     getConnection(options) {
-        const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
-        const pool = new connection_1.PoolConnection(Object.assign({ host,
-            port,
-            database,
-            user,
-            password }, others));
-        return pool.connection();
+        return __awaiter(this, void 0, void 0, function* () {
+            if (options == null) {
+                const pool = yield this.$pool.get();
+                return yield pool.connection();
+            }
+            const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
+            const pool = new connection_1.PoolConnection(Object.assign({ host,
+                port,
+                database,
+                user,
+                password }, others));
+            return yield pool.connection();
+        });
+    }
+    /**
+     * Get a connection
+     * @return {ConnectionTransaction} object - Connection for the transaction
+     * @type     {object} connection
+     * @property {function} connection.query - execute query sql then release connection to pool
+     * @property {function} connection.startTransaction - start transaction of query
+     * @property {function} connection.commit - commit transaction of query
+     * @property {function} connection.rollback - rollback transaction of query
+     */
+    beginTransaction() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const pool = yield this.$pool.get();
+            return yield pool.connection();
+        });
     }
     /**
      * Covert result to array
@@ -216,21 +237,6 @@ class DB extends AbstractDB_1.AbstractDB {
                 "0": result
             };
         }
-    }
-    /**
-     * Get a connection
-     * @return {ConnectionTransaction} object - Connection for the transaction
-     * @type     {object} connection
-     * @property {function} connection.query - execute query sql then release connection to pool
-     * @property {function} connection.startTransaction - start transaction of query
-     * @property {function} connection.commit - commit transaction of query
-     * @property {function} connection.rollback - rollback transaction of query
-     */
-    beginTransaction() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const pool = yield this.$pool.get();
-            return yield pool.connection();
-        });
     }
     /**
      * Assign table name
@@ -329,13 +335,20 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {Connection}
      */
     static getConnection(options) {
-        const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
-        const pool = new connection_1.PoolConnection(Object.assign({ host,
-            port,
-            database,
-            user,
-            password }, others));
-        return pool.connection();
+        return __awaiter(this, void 0, void 0, function* () {
+            if (options == null) {
+                const self = new this();
+                const pool = yield self.$pool.get();
+                return yield pool.connection();
+            }
+            const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
+            const pool = new connection_1.PoolConnection(Object.assign({ host,
+                port,
+                database,
+                user,
+                password }, others));
+            return pool.connection();
+        });
     }
     _typeOf(data) {
         return Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
