@@ -21,15 +21,17 @@ npm install tspace-mysql --save
 - [Backup](#backup)
 - [Generating Model Classes](#generating-model-classes)
 - [Model Conventions](#model-conventions)
-- [Relationships](#relationships)
-  - [One To One](#one-to-one)
-  - [One To Many](#one-to-many)
-  - [Belongs To](#belongs-to)
-  - [Many To Many](#many-to-many)
-  - [Deeply Nested Relations](#deeply-nested-relations)
-  - [Relation Exists](#relation-exists)
-  - [Built in Relation Functions](#built-in-relation-functions)
-- [Schema Sync](#schema-sync)
+  - [Relationships](#relationships)
+    - [One To One](#one-to-one)
+    - [One To Many](#one-to-many)
+    - [Belongs To](#belongs-to)
+    - [Many To Many](#many-to-many)
+    - [Deeply Nested Relations](#deeply-nested-relations)
+    - [Relation Exists](#relation-exists)
+    - [Built in Relation Functions](#built-in-relation-functions)
+  - [Schema Model](#schema-model)
+    - [Validation](#validation)
+    - [Sync](#sync)
 - [Query Builder](#query-builder)
 - [Cli](#cli)
   - [Make Model](#make-model)
@@ -101,15 +103,24 @@ import { DB } from 'tspace-mysql'
     await new DB('users').findMany() //  SELECT * FROM users => Array
     await new DB('users').findOne()  //  SELECT * FROM users LIMIT 1 => Object
 })()
+
+```
+Running A Raw Query
+```js
+const rawQuery = await new DB().query('SELECT * FROM users') 
+
 ```
 Running A Select Query
 ```js
-const selectQuery = await new DB('users').select('id','username').findOne() 
-    // selectQuery => { id : 1, username : 'tspace'}
-const selectQueries = await new DB('users').select('id','username').findMany() 
-    // selectQueries => [{ id : 1, username : 'tspace' } , { id : 2, username : 'tspace2'}]
+const select = await new DB('users').select('id','username').findOne() 
 
-const selectQueryRaw = await new DB('users').selectRaw('COUNT(id)').findMany() 
+const selectRaw = await new DB('users').selectRaw('COUNT(id)').findMany()
+
+const selectObject = await new DB('posts')
+.join('posts.user_id', 'users.id')
+.select('posts.*')
+.selectObject({ id : 'users.id', name : 'users.name' , email : 'users.email'},'user')
+.findOne()
 
 /**
  * @example except
@@ -137,10 +148,10 @@ await new DB('posts').rightJoin('posts.user_id' , 'users.id').findMany()
 
 Running A Where Query
 ```js
-const user = await new DB('users').where('id',1).findOne()
+const whereEqual = await new DB('users').where('id',1).findOne()
 // SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
 
-const users = await new DB('users').where('id','!=',1).findMany()
+const whereNotEqual = await new DB('users').where('id','!=',1).findMany()
 // SELECT * FROM `users` WHERE `users`.`id` != '1';
 
 const whereIn = await new DB('users').whereIn('id',[1,2]).findMany()
@@ -165,8 +176,14 @@ const whereQuery = await new DB('users').whereQuery(query => query.where('id',1)
 const whereExists = await new DB('users').whereExists(new DB('users').select('id').where('id',1).toString()).findOne()
 // SELECT * FROM `users` WHERE EXISTS (SELECT `id` FROM `users` WHERE id = 1) LIMIT 1;
 
-const whereJson= await  new DB('users').whereJSON('json', { targetKey : 'id', value : '1234' }).findOne()
+const whereJSON = await  new DB('users').whereJSON('json', { key : 'id', value : '1234' }).findOne()
 // SELECT * FROM `users` WHERE `users`.`json`->>'$.id' = '1234' LIMIT 1;
+
+const whereWhenIsTrue = await new DB('users').where('id',1).when(true, (query) => query.where('username','when is actived')).findOne()
+// SELECT * FROM `users` WHERE `users`.`id` = '1' AND `users`.`username` = 'when is actived' LIMIT 1;
+
+const whereWhenIsFalse = await new DB('users').where('id',1).when(false, (query) => query.where('username','when is actived')).findOne()
+// SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
 ```
 
 Running A Hook Query
@@ -239,10 +256,21 @@ Running A Update Query
 const user = await new DB('users')
 .where('id',1)
 .update({
-        name : 'tspace1**',
-        email : 'tspace1@gmail.com'
-}).save()
-// user =>  { id : 1 , username : 'tspace1**', email : 'tspace1@gmail.com'} 
+    name : 'tspace1**',
+    email : 'tspace1@gmail.com'
+})
+.save()
+// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
+
+const user = await new DB('users')
+.where('id',1)
+.update({
+    name : 'tspace1**',
+    email : 'tspace1@gmail.com'
+},['name'])
+.save()
+// UPDATE `users` SET `name` = CASE WHEN (`name` = "" OR `name` IS NULL) THEN "tspace1**" ELSE `name` END,`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
+
 
 +--------------------------------------------------------------------------+
 
@@ -251,26 +279,28 @@ reposity.name = 'tspace1++'
 reposity.email = 'tspace1++@gmail.com'
 
 await reposity.save()
-
+// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
 const { result } = reposity
 // result =>  { id : 1 , username : 'tspace1++', email : 'tspace1++@gmail.com'} 
 
 ```
-Running A  Update Or Created Query
+Running A Update Or Created Query
 ```js
 const user = await new DB('users')
 .where('id',1)
 .updateOrCreate({
-        name : 'tspace1**',
-        email : 'tspace1@gmail.com'
+    name : 'tspace1**',
+    email : 'tspace1@gmail.com'
 }).save()
-// user =>  { username : 'tspace1**', email : 'tspace1@gmail.com' } 
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace1**','tspace1@gmail.com');
+
+// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1; 
 ```  
 
 Running A Delete Query
 ```js
 const deleted = await new DB('users').where('id',1).delete()
-// deleted => Boolean
+// DELETE FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
 ``` 
 ## Database Transactions 
 
@@ -420,7 +450,7 @@ class User extends Model {
      * 
      * Assign setting global in your model
      * @useMethod
-     *
+     * this.usePattern('camelCase') // => default 'snake_case' 
      * this.useDebug() 
      * this.usePrimaryKey('id')
      * this.useTimestamp({
@@ -430,8 +460,7 @@ class User extends Model {
      * this.useSoftDelete('deletedAt') // => default target to colmun deleted_at 
      * this.useTable('users')
      * this.useTableSingular() // => 'user'
-     * this.useTablePlural() // => 'users'
-     * this.usePattern('camelCase') // => default 'snake_case'   
+     * this.useTablePlural() // => 'users'  
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
      * this.useRegistry() // => build-in functions registry
      * this.useLoadRelationsInRegistry() // => auto generated result from relationship to results
@@ -440,14 +469,34 @@ class User extends Model {
      * this.useSchema ({ 
      *     id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *     uuid        : new Blueprint().varchar(50).null(),
-     *     user_id     : new Blueprint().int().notNull(),
-     *     title       : new Blueprint().varchar(255).null(),
+     *     name        : new Blueprint().varchar(191).notNull(),
+     *     email       : new Blueprint().varchar(191).notNull(),
      *     created_at  : new Blueprint().timestamp().null(),
      *     updated_at  : new Blueprint().timestamp().null(),
      *     deleted_at  : new Blueprint().timestamp().null()
      *  }) // auto-generated table when table is not exists and auto-create column when column not exists
      * 
-     * this.useValidateSchema() // => validate type of value when return results reference to the schema in 'this.useSchema'
+     *  // validate input when create or update reference to the schema in 'this.useSchema'
+     *  this.useValidateSchema({
+     *   id : Number,
+     *   uuid :  Number,
+     *   name : {
+     *       type : String,
+     *       length : 191
+     *       require : true
+     *   },
+     *   email : {
+     *       type : String,
+     *       require : true,
+     *       length : 191,
+     *       match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+     *       unique : true,
+     *       fn : (email : string) => !/^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+     *   },
+     *   created_at : Date,
+     *   updated_at : Date,
+     *   deleted_at : Date
+     *   })
      */
 
 
@@ -686,7 +735,7 @@ await new User()
 
 ```
 ## Relation Exists
-Relationships can return only result is not empty in relations. 
+Relationships can return only result is not empty in relations (soft delete). 
 let's example a exists in relations :
 ```js
 +-------------+--------------+----------------------------+--------------------+
@@ -823,10 +872,59 @@ for (const post of posts) {
 }
 
 ```
+## Schema Model
+Define the schema of Model 
+let's example a validator model:
 
-## Schema Sync
-Sync schema to Models in your directory, 
-Sync will check for create or update table or columns with useSchema in your models. 
+## Validation
+Validate the schema of Model 
+let's example a validator model:
+```js
+
+class User extends Model {
+  constructor(){
+    super()
+    this.useCamelCase()
+    this.useSchema ({ 
+        id          : new Blueprint().int().notNull().primary().autoIncrement(),
+        uuid        : new Blueprint().varchar(50).null(),
+        name        : new Blueprint().varchar(191).notNull(),
+        email       : new Blueprint().varchar(191).notNull(),
+        createdAt   : new Blueprint().timestamp().null(),
+        updatedAt   : new Blueprint().timestamp().null(),
+        deletedAt   : new Blueprint().timestamp().null()
+     })
+     // validate input when create or update reference to the schema in 'this.useSchema'
+     this.useValidateSchema({
+      id : Number,
+      uuid :  Number,
+      name : {
+          type : String,
+          length : 191
+          require : true,
+          json : true
+      },
+      email : {
+          type : String,
+          require : true,
+          length : 191,
+          match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+          unique : true,
+          fn : (email : string) => !/^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+      },
+      createdAt : Date,
+      updatedAt : Date,
+      deletedAt : Date
+    })
+  }
+}
+
+```
+
+## Sync
+Sync schema with Models setting in your directory, 
+Sync will check for create or update table columns and foreign keys, 
+Related by method 'useSchema' in your models. 
 Let's examine a basic model sync class:
 
 ```js
@@ -840,43 +938,44 @@ Let's examine a basic model sync class:
 *   - Models
 *    - User.ts
 *    - Post.ts
-*
-*  // file User.ts
-*  class User extends Model {
-*      constructor(){
-*          super()
-*          this.hasMany({ name : 'posts' , model : Post })
-*          this.useSchema ({ 
-*               id          : new Blueprint().int().notNull().primary().autoIncrement(),
-*               uuid        : new Blueprint().varchar(50).null(),
-*               email       : new Blueprint().int().notNull().unique(),
-*               name        : new Blueprint().varchar(255).null(),
-*               created_at  : new Blueprint().timestamp().null(),
-*               updated_at  : new Blueprint().timestamp().null(),
-*               deleted_at  : new Blueprint().timestamp().null()
-*           })
-*       }
-*   }
-* 
-*   // file Post.ts
-*   class Post extends Model {
-*      constructor(){
-*          super()
-*          this.hasMany({ name : 'comments' , model : Comment })
-*          this.belongsTo({ name : 'user' , model : User })
-*          this.useSchema ({ 
-*               id          : new Blueprint().int().notNull().primary().autoIncrement(),
-*               uuid        : new Blueprint().varchar(50).null(),
-*               user_id     : new Blueprint().int().notNull(),
-*               title       : new Blueprint().varchar(255).null(),
-*               created_at  : new Blueprint().timestamp().null(),
-*               updated_at  : new Blueprint().timestamp().null(),
-*               deleted_at  : new Blueprint().timestamp().null()
-*           })
-*       }
-*   }
-*  
 */
+
+// file User
+class User extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'posts' , model : Post })
+        this.useSchema ({ 
+            id          : new Blueprint().int().notNull().primary().autoIncrement(),
+            uuid        : new Blueprint().varchar(50).null(),
+            email       : new Blueprint().int().notNull().unique(),
+            name        : new Blueprint().varchar(255).null(),
+            created_at  : new Blueprint().timestamp().null(),
+            updated_at  : new Blueprint().timestamp().null(),
+            deleted_at  : new Blueprint().timestamp().null()
+        })
+    }
+}
+ 
+// file Post
+import User from './User'
+class Post extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'comments' , model : Comment })
+        this.belongsTo({ name : 'user' , model : User })
+        this.useSchema ({ 
+            id          : new Blueprint().int().notNull().primary().autoIncrement(),
+            uuid        : new Blueprint().varchar(50).null(),
+            user_id     : new Blueprint().int().notNull()
+            .foreign({ references : 'id' , on : User ,onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
+            title       : new Blueprint().varchar(255).null(),
+            created_at  : new Blueprint().timestamp().null(),
+            updated_at  : new Blueprint().timestamp().null(),
+            deleted_at  : new Blueprint().timestamp().null()
+        })
+    }
+}
 await Schema.sync(`src/Models` , { force : true })
 
 ```
@@ -903,6 +1002,8 @@ orWhere(column , operator , value)
 orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
+when(contition , callback)
+if(contition , callback)
 select(column1 ,column2 ,...N)
 distinct()
 selectRaw(column1 ,column2 ,...N)
@@ -926,8 +1027,10 @@ groupByRaw (column)
 create(objects)
 createMultiple(array objects)
 update (objects)
+updateMany (objects)
 createNotExists(objects)
 updateOrCreate (objects)
+onlyTrashed()
 connection(options)
 backup({ database , connection })
 backupToFile({ filePath, database , connection })
@@ -971,8 +1074,8 @@ findMany()
 findOne()
 find(id)
 delelte()
-exists ()
-onlyTrashed()
+delelteMany()
+exists()
 toString()
 toJSON()
 toArray(column)
@@ -982,7 +1085,12 @@ avg(column)
 max(column)
 min(column)
 pagination({ limit , page })
-save() /*for action statements insert update or delete */
+save() /* for actions statements insert or update */
+makeSelectStatement()
+makeInsertStatement()
+makeUpdateStatement()
+makeDeleteStatement()
+makeCreateStatement()
 ```
 
 ## Cli
@@ -1152,4 +1260,5 @@ primary()
 default(string) 
 defaultTimestamp() 
 autoIncrement() 
+foreign({ references : <column> , on : <table or model>}),
 ```

@@ -1,0 +1,32 @@
+import { Relation, RelationQuery } from "../../Interface";
+import { Model } from "../Model";
+declare class RelationHandler {
+    private MODEL;
+    private $constants;
+    private $logger;
+    constructor(model: Model);
+    load(parents: Record<string, any>[], relation: Relation): Promise<any[]>;
+    loadExists(): string;
+    apply(nameRelations: string[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): Relation[];
+    callback(nameRelation: string, cb: Function): void;
+    hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;
+    hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;
+    belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;
+    belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: Relation): void;
+    hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable, }: RelationQuery, callback?: Function): this | undefined;
+    hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, }: RelationQuery, callback?: Function): this | undefined;
+    belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable, }: RelationQuery, callback?: Function): this | undefined;
+    belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }: RelationQuery, callback?: Function): this | undefined;
+    private _handleRelationsExists;
+    private _relationBuilder;
+    private _functionRelationName;
+    private _relationMapData;
+    private _belongsToMany;
+    private _valueInRelation;
+    protected _valuePattern(value: string): string;
+    private _assertError;
+    protected _getState(key: string): any;
+    protected _setState(key: string, value: any): void;
+}
+export { RelationHandler };
+export default RelationHandler;

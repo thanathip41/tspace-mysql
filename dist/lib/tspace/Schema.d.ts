@@ -4,9 +4,11 @@ declare class Schema extends Builder {
     createTable: (table: string, schemas: Record<string, any>) => string;
     /**
      *
-     * Sync will check for create or update table or columns with useSchema in your model.
+     * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+     *
+     * The schema can define with method 'useSchema'
      * @param {string} pathFolders directory to models
-     * @property {boolean} options.force - forec to always check columns is exists
+     * @property {boolean} options.force - forec always check all columns if not exists will be created
      * @property {boolean} options.log   - show log execution with sql statements
      * @property {boolean} options.delay - wait for execution
      * @example
@@ -43,7 +45,7 @@ declare class Schema extends Builder {
      *          this.useSchema ({
      *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *               uuid        : new Blueprint().varchar(50).null(),
-     *               user_id     : new Blueprint().int().notNull(),
+     *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),,
      *               title       : new Blueprint().varchar(255).null(),
      *               created_at  : new Blueprint().timestamp().null(),
      *               updated_at  : new Blueprint().timestamp().null(),
@@ -54,12 +56,15 @@ declare class Schema extends Builder {
      *
      *  await Schema.sync(`app/Models` , { force : true })
      */
-    static sync(pathFolders: string, { force, log, delay }?: {
+    static sync(pathFolders: string, { force, log, foreign, delay }?: {
         force?: boolean | undefined;
         log?: boolean | undefined;
+        foreign?: boolean | undefined;
         delay?: number | undefined;
     }): Promise<void>;
+    private static _import;
     private static _syncExecute;
+    private static _syncForeignKey;
 }
 export { Schema };
 export default Schema;

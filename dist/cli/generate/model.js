@@ -14,7 +14,7 @@ class ${model} extends Model {
      *    createdAt : 'created_at',
      *    updatedAt : 'updated_at'
      * }) // runing a timestamp when insert or update
-     * this.useSoftDelete('deletedAt') // => default target to colmun deleted_at 
+     * this.useSoftDelete('deletedAt') // => default target to column deleted_at 
      * this.usePattern('snake_case') // => default 'snake_case'   
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
      * this.useRegistry() // => build-in functions registry

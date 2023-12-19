@@ -1,6 +1,8 @@
-import { Relation, RelationQuery } from '../Interface';
-import Builder from '../Builder';
+import { Relation, RelationQuery } from '../../Interface';
+import { Builder } from '../Builder';
+import { RelationHandler } from '../Handlers/Relation';
 declare abstract class AbstractModel extends Builder {
+    protected $relation: RelationHandler | undefined;
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;
@@ -12,6 +14,8 @@ declare abstract class AbstractModel extends Builder {
     protected abstract useSoftDelete(): this;
     protected abstract useHooks(functions: Function[]): this;
     protected abstract usePattern(pattern: string): this;
+    protected abstract useCamelCase(pattern: string): this;
+    protected abstract useSnakeCase(pattern: string): this;
     protected abstract useLoadRelationsInRegistry(): this;
     protected abstract useBuiltInRelationFunctions(): this;
     protected abstract define(): void;
@@ -23,12 +27,12 @@ declare abstract class AbstractModel extends Builder {
     protected abstract hasOneBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
     protected abstract hasManyBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
     protected abstract belongsToBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
-    protected abstract belongsToManyBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
+    protected abstract belongsToManyBuilder({ name, model, localKey, foreignKey, freezeTable, as, pivot }: RelationQuery, callback: Function): this;
     abstract ignoreSoftDelete(): this;
     abstract disableSoftDelete(): this;
     abstract registry(func: Record<string, Function>): this;
-    abstract onlyTrashed(): Promise<any[]>;
-    abstract trashed(): Promise<any[]>;
+    abstract onlyTrashed(): this;
+    abstract trashed(): this;
     abstract restore(): Promise<any[]>;
     abstract with(...nameRelations: string[]): this;
     abstract withQuery(nameRelations: string, callback: Function): this;

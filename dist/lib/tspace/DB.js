@@ -24,13 +24,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DB = void 0;
-const AbstractDB_1 = require("./Abstract/AbstractDB");
-const ProxyHandler_1 = require("./ProxyHandler");
+const AbstractDB_1 = require("./Abstracts/AbstractDB");
+const Proxy_1 = require("./Handlers/Proxy");
 const connection_1 = require("../connection");
-const StateHandler_1 = __importDefault(require("./StateHandler"));
+const State_1 = __importDefault(require("./Handlers/State"));
 /**
- * Assign table name
+ * 'DB' class is a component of the database system
  * @param {string?} table table name
+ * @example
+ * new DB('users').findMany().then(results => console.log(results))
  */
 class DB extends AbstractDB_1.AbstractDB {
     constructor(table) {
@@ -38,74 +40,90 @@ class DB extends AbstractDB_1.AbstractDB {
         this._initialDB();
         if (table)
             this.table(table);
-        return new Proxy(this, ProxyHandler_1.proxyHandler);
+        return new Proxy(this, Proxy_1.proxyHandler);
     }
     /**
-     * Covert result to array
-     * @param {any} result table name
-     * @return {Array} array
-     */
-    makeArray(result) {
-        switch (this._typeOf(result)) {
-            case 'object': {
-                if (Object.keys(result).length)
-                    return [result];
-                return [];
-            }
-            case 'array': {
-                return result;
-            }
-            case 'undefined':
-            case 'null': {
-                return [];
-            }
-            default: return [].concat(result);
-        }
-    }
-    /**
-     * Covert result to object or null
-     * @param {any} result table name
-     * @return {Record | null} object or null
-     */
-    makeObject(result) {
-        switch (this._typeOf(result)) {
-            case 'object': {
-                if (Object.keys(result).length)
-                    return result;
-                return null;
-            }
-            case 'array': {
-                if (result[0] == null)
-                    return null;
-                return result[0];
-            }
-            case 'undefined':
-            case 'null': {
-                return null;
-            }
-            default: return {
-                "0": result
-            };
-        }
-    }
-    /**
-     * Assign table name
+     * The 'table' method is used to define the table name.
      * @param {string} table table name
      * @return {this} this
      */
     table(table) {
-        this.$state.set('SELECT', `${this.$constants('SELECT')} *`);
-        this.$state.set('TABLE_NAME', `\`${table}\``);
-        this.$state.set('FROM', `${this.$constants('FROM')}`);
+        this._setState('TABLE_NAME', `\`${table}\``);
         return this;
     }
     /**
-     * Get constant
-     * @param {string} constant
+     * The 'table' method is used to define the table name.
+     * @param {string} table table name
+     * @return {DB} DB
+     */
+    static table(table) {
+        return new this().table(table);
+    }
+    /**
+     * The 'jsonObject' method is used to specify select data to JSON objects.
+     * @param {string} object table name
+     * @param {string} alias
+     * @return {string} string
+     */
+    jsonObject(object, alias) {
+        if (!Object.keys(object).length)
+            throw new Error("The method 'jsonObject' is not supported for empty object");
+        let maping = [];
+        for (const [key, value] of Object.entries(object)) {
+            if (/\./.test(value)) {
+                const [table, c] = value.split('.');
+                maping = [...maping, `'${key}'`, `\`${table}\`.\`${c}\``];
+                continue;
+            }
+            maping = [...maping, `'${key}'`, `\`${this.getTableName()}\`.\`${value}\``];
+        }
+        return `${this.$constants('JSON_OBJECT')}(${maping.join(' , ')}) ${this.$constants('AS')} \`${alias}\``;
+    }
+    /**
+     * The 'jsonObject' method is used to specify select data to JSON objects.
+     * @static
+     * @param {string} object table name
+     * @param {string} alias
+     * @return {string} string
+     */
+    static jsonObject(object, alias) {
+        return new this().jsonObject(object, alias);
+    }
+    /**
+     * The 'JSONObject' method is used to specify select data to JSON objects.
+     * @param {string} object table name
+     * @param {string} alias
+     * @return {string} string
+     */
+    JSONObject(object, alias) {
+        return this.jsonObject(object, alias);
+    }
+    /**
+     * The 'JSONObject' method is used to specify select data to JSON objects.
+     * @static
+     * @param {string} object table name
+     * @param {string} alias
+     * @return {string} string
+     */
+    static JSONObject(object, alias) {
+        return new this().jsonObject(object, alias);
+    }
+    /**
+     * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
+     * @param {string} key
      * @return {string | object} string || object
      */
-    constants(constant) {
-        return this.$constants(constant);
+    constants(key) {
+        return this.$constants(key);
+    }
+    /**
+     * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
+     * @static
+     * @param {string} key
+     * @return {string | object} string || object
+     */
+    static constants(key) {
+        return new this().constants(key);
     }
     /**
      * cases query
@@ -136,14 +154,88 @@ class DB extends AbstractDB_1.AbstractDB {
         ].join(' ');
     }
     /**
-     * generate UUID
+     * select by cases
+     * @static
+     * @param {arrayObject} cases array object {when , then }
+     * @param {string?} final else condition
+     * @return {this}
+     */
+    static caseUpdate(cases, final) {
+        return new this().caseUpdate(cases, final);
+    }
+    /**
+     * The 'generateUUID' methid is used to generate a universal unique identifier.
      * @return {string} string
      */
     generateUUID() {
         return this.$utils.generateUUID();
     }
     /**
-     * Assign raw query for schema validation
+     * The 'generateUUID' methid is used to generate a universal unique identifier.
+     * @static
+     * @return {string} string
+     */
+    static generateUUID() {
+        return new this().generateUUID();
+    }
+    /**
+     * The 'snakeCase' methid is used to covert value to snakeCase pattern.
+     * @return {string} string
+     */
+    snakeCase(value) {
+        return this.$utils.snakeCase(value);
+    }
+    /**
+     * The 'snakeCase' methid is used to covert value to snake_case pattern.
+     * @return {string} string
+     */
+    static snakeCase(value) {
+        return new this().$utils.snakeCase(value);
+    }
+    /**
+     * The 'camelCase' methid is used to covert value to camelCase pattern.
+     * @return {string} string
+     */
+    camelCase(value) {
+        return this.$utils.camelCase(value);
+    }
+    /**
+     * The 'camelCase' methid is used to covert value to camelCase pattern.
+     * @return {string} string
+     */
+    static camelCase(value) {
+        return new this().$utils.camelCase(value);
+    }
+    /**
+    * The 'escape' methid is used to escaping SQL injections.
+    * @return {string} string
+    */
+    escape(value) {
+        return this.$utils.escape(value);
+    }
+    /**
+     * The 'escape' methid is used to escaping SQL injections.
+     * @return {string} string
+     */
+    static escape(value) {
+        return new this().$utils.escape(value);
+    }
+    /**
+     * The 'escapeXSS' methid is used to escaping XSS characters.
+     * @return {string} string
+     */
+    escapeXSS(value) {
+        return this.$utils.escapeXSS(value);
+    }
+    /**
+     * The 'escapeXSS' methid is used to escaping XSS characters.
+     * @return {string} string
+     */
+    static escapeXSS(value) {
+        return new this().$utils.escapeXSS(value);
+    }
+    /**
+     * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
      * @param {string} sql
      * @return {string} string
      */
@@ -151,13 +243,22 @@ class DB extends AbstractDB_1.AbstractDB {
         return `${this.$constants('RAW')} ${sql}`;
     }
     /**
-     * Get a pool connection
+     * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
+     * @static
+     * @param {string} sql
+     * @return {string} string
+     */
+    static raw(sql) {
+        return `${new this().raw(sql)}`;
+    }
+    /**
+     * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials
-     * @param {string} option.host
-     * @param {number} option.port
-     * @param {string} option.database
-     * @param {string} option.username
-     * @param {string} option.password
+     * @property {string} option.host
+     * @property {number} option.port
+     * @property {string} option.database
+     * @property {string} option.username
+     * @property {string} option.password
      * @return {Connection}
      */
     getConnection(options) {
@@ -176,7 +277,27 @@ class DB extends AbstractDB_1.AbstractDB {
         });
     }
     /**
-     * Get a connection
+   * The 'getConnection' method is used to get a pool connection.
+   * @param {Object} options options for connection database with credentials
+   * @property {string} option.host
+   * @property {number} option.port
+   * @property {string} option.database
+   * @property {string} option.username
+   * @property {string} option.password
+   * @return {Connection}
+   */
+    static getConnection(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new this().getConnection(options);
+        });
+    }
+    /**
+     * The 'beginTransaction' is a method used to initiate a database transaction within your application's code.
+     *
+     * A database transaction is a way to group multiple database operations (such as inserts, updates, or deletes) into a single unit of work.
+     *
+     * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
+     * ensuring data integrity.
      * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
@@ -191,124 +312,12 @@ class DB extends AbstractDB_1.AbstractDB {
         });
     }
     /**
-     * Covert result to array
-     * @param {any} result table name
-     * @return {Array} array
-     */
-    static makeArray(result) {
-        switch (new this()._typeOf(result)) {
-            case 'object': {
-                if (Object.keys(result).length)
-                    return [result];
-                return [];
-            }
-            case 'array': {
-                return result;
-            }
-            case 'undefined':
-            case 'null': {
-                return [];
-            }
-            default: return [].concat(result);
-        }
-    }
-    /**
-     * Covert result to object | null
-     * @param {any} result table name
-     * @return {Record | null} object | null
-     */
-    static makeObject(result) {
-        switch (new this()._typeOf(result)) {
-            case 'object': {
-                if (Object.keys(result).length)
-                    return result;
-                return null;
-            }
-            case 'array': {
-                if (result[0] == null)
-                    return null;
-                return result[0];
-            }
-            case 'undefined':
-            case 'null': {
-                return null;
-            }
-            default: return {
-                "0": result
-            };
-        }
-    }
-    /**
-     * Assign table name
-     * @static
-     * @param {string} table table name
-     * @return {DB} DB
-     */
-    static table(table) {
-        const self = new this();
-        self.$state.set('SELECT', `${self.$constants('SELECT')} *`);
-        self.$state.set('TABLE_NAME', `\`${table}\``);
-        self.$state.set('FROM', `${self.$constants('FROM')}`);
-        return self;
-    }
-    /**
-     * select by cases
-     * @static
-     * @param {arrayObject} cases array object {when , then }
-     * @param {string?} final else condition
-     * @return {this}
-     */
-    static caseUpdate(cases, final) {
-        if (!cases.length)
-            return [];
-        const self = new this();
-        let query = [];
-        for (const c of cases) {
-            if (c.when == null)
-                throw new Error(`can't find when condition`);
-            if (c.then == null)
-                throw new Error(`can't find then condition`);
-            query = [
-                ...query,
-                `${self.$constants('WHEN')} ${c.when} ${self.$constants('THEN')} ${c.then}`
-            ];
-        }
-        return [
-            self.$constants('RAW'),
-            self.$constants('CASE'),
-            query.join(' '),
-            final == null ? '' : `ELSE ${final}`,
-            self.$constants('END'),
-        ].join(' ');
-    }
-    /**
-     * Assign raw query for schema validation
-     * @static
-     * @param {string} sql
-     * @return {string} string
-     */
-    static raw(sql) {
-        return `${new this().$constants('RAW')} ${sql}`;
-    }
-    /**
-     * generate UUID
-     * @static
-     * @return {string} string
-     */
-    static generateUUID() {
-        return new this().$utils.generateUUID();
-    }
-    /**
-     * Get constant
-     * @static
-     * @param {string} constant
-     * @return {string | object} string || object
-     */
-    static constants(constant) {
-        return new this().$constants(constant);
-    }
-    /**
-     * Get a connection
+     * The 'beginTransaction' is a method used to initiate a database transaction within your application's code.
+     *
+     * A database transaction is a way to group multiple database operations (such as inserts, updates, or deletes) into a single unit of work.
+     *
+     * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
+     * ensuring data integrity.
      * @static
      * @return {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
@@ -319,42 +328,11 @@ class DB extends AbstractDB_1.AbstractDB {
      */
     static beginTransaction() {
         return __awaiter(this, void 0, void 0, function* () {
-            const self = new this();
-            const pool = yield self.$pool.get();
-            return yield pool.connection();
+            return yield new this().beginTransaction();
         });
-    }
-    /**
-     * Get a pool connection
-     * @param {Object} options options for connection database with credentials
-     * @param {string} option.host
-     * @param {number} option.port
-     * @param {string} option.database
-     * @param {string} option.username
-     * @param {string} option.password
-     * @return {Connection}
-     */
-    static getConnection(options) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (options == null) {
-                const self = new this();
-                const pool = yield self.$pool.get();
-                return yield pool.connection();
-            }
-            const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
-            const pool = new connection_1.PoolConnection(Object.assign({ host,
-                port,
-                database,
-                user,
-                password }, others));
-            return pool.connection();
-        });
-    }
-    _typeOf(data) {
-        return Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
     }
     _initialDB() {
-        this.$state = new StateHandler_1.default(this.$constants('DB'));
+        this.$state = new State_1.default(this.$constants('DB'));
         return this;
     }
 }

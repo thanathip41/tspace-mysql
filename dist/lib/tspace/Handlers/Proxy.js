@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.proxyHandler = void 0;
-const Logger_1 = require("./Logger");
+const Logger_1 = require("../Logger");
 const proxyHandler = {
     set: (self, name, value) => {
         var _a;

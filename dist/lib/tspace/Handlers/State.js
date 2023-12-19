@@ -39,6 +39,10 @@ class StateHandler {
         this.STATE.currentState.set('WHERE', '');
         this.STATE.currentState.set('LIMIT', '');
         this.STATE.currentState.set('OFFSET', '');
+        this.STATE.currentState.set('SELECT', []);
+        this.STATE.currentState.set('GROUP_BY', '');
+        this.STATE.currentState.set('HAVING', '');
+        this.STATE.currentState.set('JOIN', '');
         this.STATE.currentState.set('SAVE', '');
         return;
     }

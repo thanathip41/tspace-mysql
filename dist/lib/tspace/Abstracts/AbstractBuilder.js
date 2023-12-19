@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AbstractBuilder = void 0;
-const StateHandler_1 = require("../StateHandler");
+const State_1 = require("../Handlers/State");
 class AbstractBuilder {
     constructor() {
         this.$setters = [
@@ -11,10 +11,14 @@ class AbstractBuilder {
             '$constants',
             '$pool',
             '$state',
+            '$relation'
         ];
         this.$utils = {};
         this.$constants = (name) => { };
-        this.$state = new StateHandler_1.StateHandler({});
+        this.$state = new State_1.StateHandler({
+            state: {},
+            constants: {}
+        });
         this.$pool = {
             query: (sql) => { },
             set: (pool) => { },

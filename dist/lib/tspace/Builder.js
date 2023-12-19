@@ -26,65 +26,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Builder = void 0;
 const fs_1 = __importDefault(require("fs"));
 const sql_formatter_1 = require("sql-formatter");
-const AbstractBuilder_1 = require("./Abstract/AbstractBuilder");
+const AbstractBuilder_1 = require("./Abstracts/AbstractBuilder");
 const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const DB_1 = require("./DB");
 const connection_1 = require("../connection");
-const StateHandler_1 = require("./StateHandler");
+const State_1 = require("./Handlers/State");
 class Builder extends AbstractBuilder_1.AbstractBuilder {
     constructor() {
         super();
         this._initialConnection();
     }
     /**
+     * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
      *
-     * @param {string} column
-     * @return {this}
-     */
-    pluck(column) {
-        this.$state.set('PLUCK', column);
-        return this;
-    }
-    /**
-     *
-     * @param {...string} columns
-     * @return {this} this
-     */
-    except(...columns) {
-        this.$state.set('EXCEPTS', columns.length ? columns : []);
-        return this;
-    }
-    /**
-     * data alaways will return void
-     * @return {this} this
-     */
-    void() {
-        this.$state.set('VOID', true);
-        return this;
-    }
-    /**
-     *
-     * @param {...string} columns show only colums selected
-     * @return {this} this
-     */
-    only(...columns) {
-        this.$state.set('ONLY', columns);
-        return this;
-    }
-    /**
-     *
+     * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
      * @return {this} this
      */
     distinct() {
-        this.$state.set('DISTINCT', true);
-        const select = this.$state.get('SELECT');
-        if (select.includes('*'))
-            this.$state.set('SELECT', `${this.$constants('SELECT')} ${this.$constants('DISTINCT')} *`);
+        this._setState('DISTINCT', true);
         return this;
     }
     /**
-     * select data form table
+     * The 'select' method is used to specify which columns you want to retrieve from a database table.
+     *
+     * It allows you to choose the specific columns that should be included in the result set of a database query.
      * @param {string[]} ...columns
      * @return {this} this
      */
@@ -92,47 +58,133 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!columns.length)
             return this;
         let select = columns.map((column) => {
-            if (column === '*')
+            if (column === '*' || (column.includes('*') && /\./.test(column)))
                 return column;
             if (/\./.test(column))
-                return column;
+                return this.bindColumn(column);
             if (column.includes(this.$constants('RAW')))
                 return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
             return `\`${column}\``;
-        }).join(', ');
-        select = this.$state.get('DISTINCT') && !select.includes(this.$constants('DISTINCT'))
-            ? `${this.$constants('DISTINCT')} ${select}`
-            : `${select}`;
-        this.$state.set('SELECT', `${this.$constants('SELECT')} ${select}`);
+        });
+        select = [...this._getState('SELECT'), ...select];
+        if (this._getState('DISTINCT') && select.length) {
+            select[0] = String(select[0]).includes(this.$constants('DISTINCT'))
+                ? select[0]
+                : `${this.$constants('DISTINCT')} ${select[0]}`;
+        }
+        this._setState('SELECT', select);
         return this;
     }
+    /**
+     * The 'selectRaw' method is used to specify which columns you want to retrieve from a database table.
+     *
+     * It allows you to choose the specific columns that should be included in the result set of a database query.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
+     * @param {string[]} ...columns
+     * @return {this} this
+     */
     selectRaw(...columns) {
         if (!columns.length)
             return this;
         let select = columns.map((column) => {
             if (column === '*')
                 return column;
+            if (column.includes('`*`'))
+                return column.replace('`*`', '*');
             if (column.includes(this.$constants('RAW')))
                 return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
             return column;
-        }).join(', ');
-        select = this.$state.get('DISTINCT') && !select.includes(this.$constants('DISTINCT'))
-            ? `${this.$constants('DISTINCT')} ${select}`
-            : `${select}`;
-        this.$state.set('SELECT', `${this.$constants('SELECT')} ${select}`);
+        });
+        if (this._getState('DISTINCT') && select.length) {
+            this._setState('SELECT', select);
+            return this;
+        }
+        this._setState('SELECT', [...this._getState('SELECT'), ...select]);
         return this;
     }
     /**
-     * chunks data from array
+     * The 'selectObject' method is used to specify which columns you want to retrieve from a database table.
+     *
+     * It allows you to choose the specific columns that should be included in the result set to 'Object' of a database query.
+     * @param {string} object table name
+     * @param {string} alias as name of the column
+     * @return {this} this
+     */
+    selectObject(object, alias) {
+        if (!Object.keys(object).length)
+            throw new Error("The method 'selectObject' is not supported for empty object");
+        let maping = [];
+        for (const [key, value] of Object.entries(object)) {
+            if (/\./.test(value)) {
+                const [table, c] = value.split('.');
+                maping = [...maping, `'${key}'`, `\`${table}\`.\`${c}\``];
+                continue;
+            }
+            maping = [...maping, `'${key}'`, `\`${this.getTableName()}\`.\`${value}\``];
+        }
+        const json = `${this.$constants('JSON_OBJECT')}(${maping.join(' , ')}) ${this.$constants('AS')} \`${alias}\``;
+        this._setState('SELECT', [...this._getState('SELECT'), json]);
+        return this;
+    }
+    /**
+     * The 'pluck' method is used to retrieve the value of a single column from the first result of a query.
+     *
+     * It is often used when you need to retrieve a single value,
+     * such as an ID or a specific attribute, from a query result.
+     * @param {string} column
+     * @return {this}
+     */
+    pluck(column) {
+        this._setState('PLUCK', column);
+        return this;
+    }
+    /**
+     * The 'except' method is used to specify which columns you don't want to retrieve from a database table.
+     *
+     * It allows you to choose the specific columns that should be not included in the result set of a database query.
+     * @param {...string} columns
+     * @return {this} this
+     */
+    except(...columns) {
+        this._setState('EXCEPTS', columns.length ? columns : []);
+        return this;
+    }
+    /**
+     * The 'void' method is used to specify which you don't want to return a result from database table.
+     *
+     * @return {this} this
+     */
+    void() {
+        this._setState('VOID', true);
+        return this;
+    }
+    /**
+     * The 'only' method is used to specify which columns you don't want to retrieve from a result.
+     *
+     * It allows you to choose the specific columns that should be not included in the result.
+     * @param {...string} columns show only colums selected
+     * @return {this} this
+     */
+    only(...columns) {
+        this._setState('ONLY', columns);
+        return this;
+    }
+    /**
+     * The 'chunk' method is used to process a large result set from a database query in smaller, manageable "chunks" or segments.
+     *
+     * It's particularly useful when you need to iterate over a large number of database records without loading all of them into memory at once.
+     *
+     * This helps prevent memory exhaustion and improves the performance of your application when dealing with large datasets.
      * @param {number} chunk
      * @return {this} this
      */
     chunk(chunk) {
-        this.$state.set('CHUNK', chunk);
+        this._setState('CHUNK', chunk);
         return this;
     }
     /**
-     *
+     * The 'when' method is used to specify if condition should be true will be next to the actions
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @return {this} this
      */
@@ -145,7 +197,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
-     * if has 2 arguments  default operator '='
+     * The 'where' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * If has only 2 arguments default operator '='
      * @param {string} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
@@ -158,61 +214,23 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${operator}`,
-            `${this._checkValueHasRaw(value)}`
-        ].join(' '));
-        return this;
-    }
-    /**
-     * where using object operator only '='
-     * @param {Object} columns
-     * @return {this}
-     */
-    whereObject(columns) {
-        for (const column in columns) {
-            const operator = '=';
-            const value = this.$utils.escape(columns[column]);
-            this.$state.set('WHERE', [
-                this._queryWhereIsExists()
-                    ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                    : `${this.$constants('WHERE')}`,
-                `${this._bindTableAndColumnInQueryWhere(column)}`,
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(value)}`
-            ].join(' '));
-        }
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where json target to key in json values default operator '='
-     * @param    {string} column
-     * @param    {object}  property
-     * @property {string}  property.targetKey
-     * @property {string}  property.value
-     * @property {string?} property.operator
-     * @example
-     * @return   {this}
-     */
-    whereJSON(column, { targetKey, value, operator }) {
-        value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}->>'$.${targetKey}'`,
-            `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-            `${this._checkValueHasRaw(value)}`
-        ].join(' '));
-        return this;
-    }
-    /**
-     * if has 2 arguments  default operator '='
+     * The 'orWhere' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * If has only 2 arguments default operator '='
      * @param {string} column
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
@@ -222,58 +240,134 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${operator}`,
-            `${this._checkValueHasRaw(value)}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(String(column))}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(value)}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'whereRaw' method is used to add a raw SQL condition to a database query.
      *
+     * It allows you to include custom SQL expressions as conditions in your query,
+     * which can be useful for situations where you need to perform complex or custom filtering that cannot be achieved using Laravel's standard query builder methods.
      * @param {string} sql where column with raw sql
      * @return {this} this
      */
     whereRaw(sql) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${sql}`,
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${sql}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'orWhereRaw' method is used to add a raw SQL condition to a database query.
      *
-     * @param {string} query where column with raw sql
+     * It allows you to include custom SQL expressions as conditions in your query,
+     * which can be useful for situations where you need to perform complex or custom filtering that cannot be achieved using Laravel's standard query builder methods.
+     * @param {string} sql where column with raw sql
      * @return {this} this
      */
     orWhereRaw(sql) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${sql}`,
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${sql}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'whereObject' method is used to add conditions to a database query.
      *
-     * where exists
+     * It allows you to specify conditions in object that records in the database must meet in order to be included in the result set.
+     *
+     * This method is defalut operator '=' only
+     * @param {Object} columns
+     * @return {this}
+     */
+    whereObject(columns) {
+        for (const column in columns) {
+            const operator = '=';
+            const value = this.$utils.escape(columns[column]);
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(String(column))}`,
+                    `${operator}`,
+                    `${this._checkValueHasRaw(value)}`
+                ].join(' ')
+            ]);
+        }
+        return this;
+    }
+    /**
+     * The 'whereJSON' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions in that records json in the database must meet in order to be included in the result set.
+     * @param    {string} column
+     * @param    {object}  property object { key , value , operator }
+     * @property {string}  property.key
+     * @property {string}  property.value
+     * @property {string?} property.operator
+     * @return   {this}
+     */
+    whereJSON(column, { key, value, operator }) {
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}->>'$.${key}'`,
+                `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
+                `${this._checkValueHasRaw(value)}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * The 'whereJSON' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions in that records json in the database must meet in order to be included in the result set.
+     * @param    {string} column
+     * @param    {object}  property object { key , value , operator }
+     * @property {string}  property.key
+     * @property {string}  property.value
+     * @property {string?} property.operator
+     * @return   {this}
+     */
+    whereJson(column, { key, value, operator }) {
+        return this.whereJSON(column, { key, value, operator });
+    }
+    /**
+     *
+     * The 'whereExists' method is used to add a conditional clause to a database query that checks for the existence of related records in a subquery or another table.
+     *
+     * It allows you to filter records based on whether a specified condition is true for related records.
      * @param {string} sql
      * @return {this}
      */
     whereExists(sql) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this.$constants('EXISTS')}`,
-            `(${sql})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.$constants('EXISTS')}`,
+                `(${sql})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
@@ -282,12 +376,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     whereId(id, column = 'id') {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} = ${this.$utils.escape(id)}`,
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)} = ${this.$utils.escape(id)}`,
+            ].join(' ')
+        ]);
         return this;
     }
     /**
@@ -297,12 +392,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     whereEmail(email) {
         const column = 'email';
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} = ${this.$utils.escape(email)}`,
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)} = ${this.$utils.escape(email)}`,
+            ].join(' ')
+        ]);
         return this;
     }
     /**
@@ -312,105 +408,121 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     whereUser(userId, column = 'user_id') {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} = ${this.$utils.escape(userId)}`,
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * using array value where in value in array
+     * The 'whereIn' method is used to add a conditional clause to a database query that checks if a specified column's value is included in a given array of values.
+     *
+     * This method is useful when you want to filter records based on a column matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
     whereIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`[${array}] is't array`);
+            throw new Error(`This 'whereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IN')}`,
-            `(${values})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * or where in data using array values
+     * The 'orWhereIn' method is used to add a conditional clause to a database query that checks if a specified column's value is included in a given array of values.
+     *
+     * This method is useful when you want to filter records based on a column matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
     orWhereIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`[${array}] is't array`);
+            throw new Error(`This 'whereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IN')}`,
-            `(${values})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not in data using array values
+     * The 'whereNotIn' method is used to add a conditional clause to a database query that checks if a specified column's value is not included in a given array of values.
+     *
+     * This method is the opposite of whereIn and is useful when you want to filter records based on a column not matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
     whereNotIn(column, array) {
-        const sql = this.$state.get('WHERE');
         if (!Array.isArray(array))
-            throw new Error(`[${array}] is't array`);
+            throw new Error(`This 'whereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('NOT_IN')}`,
-            `(${values})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not in data using array values
+     * The 'orWhereNotIn' method is used to add a conditional clause to a database query that checks if a specified column's value is not included in a given array of values.
+     *
+     * This method is the opposite of whereIn and is useful when you want to filter records based on a column not matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
     orWhereNotIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`[${array}] is't array`);
+            throw new Error(`This 'whereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('NOT_IN')}`,
-            `(${values})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where sub query using sub query sql
+     * The 'whereSubQuery' method is used to add a conditional clause to a database query that involves a subquery.
+     *
+     * Subqueries also known as nested queries, are queries that are embedded within the main query.
+     *
+     * They are often used when you need to perform a query to retrieve some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
@@ -418,18 +530,23 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IN')}`,
-            `(${subQuery})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not sub query using sub query sql
+     * The 'whereNotSubQuery' method is used to add a conditional clause to a database query that involves a subquery.
+     *
+     * Subqueries also known as nested queries, are queries that are embedded within the main query.
+     *
+     * They are often used when you need to perform a query to retrieve not some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
@@ -437,18 +554,23 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('NOT_IN')}`,
-            `(${subQuery})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * or where not sub query using query sql
+     * The 'orWhereSubQuery' method is used to add a conditional clause to a database query that involves a subquery.
+     *
+     * Subqueries also known as nested queries, are queries that are embedded within the main query.
+     *
+     * They are often used when you need to perform a query to retrieve some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
@@ -456,18 +578,23 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IN')}`,
-            `(${subQuery})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * or where not sub query using query sql
+     * The 'orWhereNotSubQuery' method is used to add a conditional clause to a database query that involves a subquery.
+     *
+     * Subqueries also known as nested queries, are queries that are embedded within the main query.
+     *
+     * They are often used when you need to perform a query to retrieve not some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
@@ -475,18 +602,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid sub query (Sub query Operand should contain 1 column(s) not select * )`);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('NOT_IN')}`,
-            `(${subQuery})`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where between using [value1, value2]
+     * The 'whereBetween' method is used to add a conditional clause to a database query that checks if a specified column's value falls within a specified range of values.
+     *
+     * This method is useful when you want to filter records based on a column's value being within a certain numeric or date range.
      * @param {string} column
      * @param {array} array
      * @return {this}
@@ -495,27 +625,37 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this.$state.set('WHERE', [
-                this._queryWhereIsExists()
-                    ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                    : `${this.$constants('WHERE')}`,
-                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
-                `${this.$constants('NULL')} ${this.$constants('AND')} ${this.$constants('NULL')}`
-            ].join(' '));
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
             return this;
         }
         const [value1, value2] = array;
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where between using [value1, value2]
+     * The 'orWhereBetween' method is used to add a conditional clause to a database query that checks if a specified column's value falls within a specified range of values.
+     *
+     * This method is useful when you want to filter records based on a column's value being within a certain numeric or date range.
      * @param {string} column
      * @param {array} array
      * @return {this}
@@ -524,27 +664,37 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this.$state.set('WHERE', [
-                this._queryWhereIsExists()
-                    ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                    : `${this.$constants('WHERE')}`,
-                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
-                `${this.$constants('NULL')} ${this.$constants('AND')} ${this.$constants('NULL')}`
-            ].join(' '));
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
             return this;
         }
         const [value1, value2] = array;
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('BETWEEN')}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not between using [value1, value2]
+     * The 'whereNotBetween' method is used to add a conditional clause to a database query that checks if a specified column's value falls within a specified range of values.
+     *
+     * This method is useful when you want to filter records based on a column's value does not fall within a specified range of values.
      * @param {string} column
      * @param {array} array
      * @return {this}
@@ -553,27 +703,37 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this.$state.set('WHERE', [
-                this._queryWhereIsExists()
-                    ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                    : `${this.$constants('WHERE')}`,
-                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_BETWEEN')}`,
-                `${this.$constants('NULL')} ${this.$constants('AND')} ${this.$constants('NULL')}`
-            ].join(' '));
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('NOT_BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
             return this;
         }
         const [value1, value2] = array;
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_BETWEEN')}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not between using [value1, value2]
+     * The 'orWhereNotBetween' method is used to add a conditional clause to a database query that checks if a specified column's value falls within a specified range of values.
+     *
+     * This method is useful when you want to filter records based on a column's value does not fall within a specified range of values.
      * @param {string} column
      * @param {array} array
      * @return {this}
@@ -582,87 +742,111 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this.$state.set('WHERE', [
-                this._queryWhereIsExists()
-                    ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                    : `${this.$constants('WHERE')}`,
-                `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_BETWEEN')}`,
-                `${this.$constants('NULL')} ${this.$constants('AND')} ${this.$constants('NULL')}`
-            ].join(' '));
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('NOT_BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
             return this;
         }
         const [value1, value2] = array;
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)} ${this.$constants('NOT_BETWEEN')}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value1))} ${this.$constants('AND')} ${this._checkValueHasRaw(this.$utils.escape(value2))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where null using NULL
+     * The 'whereNull' method is used to add a conditional clause to a database query that checks if a specified column's value is NULL.
+     *
+     * This method is helpful when you want to filter records based on whether a particular column has a NULL value.
      * @param {string} column
      * @return {this}
      */
     whereNull(column) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IS_NULL')}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NULL')}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-   * where null using NULL
-   * @param {string} column
-   * @return {this}
-   */
+     * The 'orWhereNull' method is used to add a conditional clause to a database query that checks if a specified column's value is NULL.
+     *
+     * This method is helpful when you want to filter records based on whether a particular column has a NULL value.
+     * @param {string} column
+     * @return {this}
+     */
     orWhereNull(column) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IS_NULL')}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NULL')}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not null using NULL
+     * The 'whereNotNull' method is used to add a conditional clause to a database query that checks if a specified column's value is not NULL.
+     *
+     * This method is useful when you want to filter records based on whether a particular column has a non-null value.
      * @param {string} column
      * @return {this}
      */
     whereNotNull(column) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IS_NOT_NULL')}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NOT_NULL')}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where not null using NULL
+     * The 'orWhereNotNull' method is used to add a conditional clause to a database query that checks if a specified column's value is not NULL.
+     *
+     * This method is useful when you want to filter records based on whether a particular column has a non-null value.
      * @param {string} column
      * @return {this}
      */
     orWhereNotNull(column) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${this.$constants('IS_NOT_NULL')}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NOT_NULL')}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where sensitive (uppercase, lowercase)
+     * The 'whereSensitive' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * The where method is need to perform a case-sensitive comparison in a query.
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
@@ -672,18 +856,24 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${this.$constants('BINARY')} ${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${operator}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.$constants('BINARY')}`,
+                `${this.bindColumn(column)}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where Strict (uppercase, lowercase)
+     * The 'whereStrict' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * The where method is need to perform a case-sensitive comparison in a query.
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
@@ -693,7 +883,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.whereSensitive(column, operator, value);
     }
     /**
-     * or where sensitive (uppercase, lowercase)
+     * The 'orWhereSensitive' method is used to add conditions to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * The where method is need to perform a case-sensitive comparison in a query.
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
@@ -703,43 +897,50 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `${this.$constants('BINARY')} ${this._bindTableAndColumnInQueryWhere(column)}`,
-            `${operator}`,
-            `${this._checkValueHasRaw(this.$utils.escape(value))}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.$constants('BINARY')}`,
+                `${this.bindColumn(column)}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value))}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where group query
-     * @param {function} callback callback query
+     * The 'whereQuery' method is used to add conditions to a database query to create a grouped condition.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     * @param {Function} callback callback query
      * @return {this}
      */
     whereQuery(callback) {
         var _a;
-        const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
+        const db = new DB_1.DB((_a = this._getState('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
         if (repository instanceof Promise)
             throw new Error('"whereQuery" is not supported a Promise');
         if (!(repository instanceof DB_1.DB))
-            throw new Error(`Unknown callback query: '[${repository}]'`);
-        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || '';
-        if (where === '')
+            throw new Error(`Unknown callback query: '${repository}'`);
+        const where = (repository === null || repository === void 0 ? void 0 : repository._getState('WHERE')) || [];
+        if (!where.length)
             return this;
-        const query = where.replace('WHERE', '');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `(${query})`
-        ].join(' '));
+        const query = where.join(' ');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `(${query})`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * where group query
+     * The 'whereGroup' method is used to add conditions to a database query to create a grouped condition.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {function} callback callback query
      * @return {this}
      */
@@ -747,28 +948,119 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.whereQuery(callback);
     }
     /**
-     * where group query
+     * The 'orWhereQuery' method is used to add conditions to a database query to create a grouped condition.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {function} callback callback query
      * @return {this}
      */
     orWhereQuery(callback) {
         var _a;
-        const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
+        const db = new DB_1.DB((_a = this._getState('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
         if (repository instanceof Promise)
             throw new Error('"whereQuery" is not supported a Promise');
         if (!(repository instanceof DB_1.DB))
             throw new Error(`Unknown callback query: '[${repository}]'`);
-        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || '';
-        if (where === '')
+        const where = (repository === null || repository === void 0 ? void 0 : repository._getState('WHERE')) || [];
+        if (!where.length)
             return this;
-        const query = where.replace('WHERE', '');
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('OR')}`
-                : `${this.$constants('WHERE')}`,
-            `(${query})`
-        ].join(' '));
+        const query = where.join(' ');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `(${query})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * The 'orWhereGroup' method is used to add conditions to a database query to create a grouped condition.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     * @param {function} callback callback query
+     * @return {this}
+     */
+    orWhereGroup(callback) {
+        return this.orWhereQuery(callback);
+    }
+    /**
+     * The 'whereCases' method is used to add conditions with cases to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * @param {Array<{when , then}>} cases used to add conditions when and then
+     * @param {string?} elseCase else when end of conditions
+     * @return {this}
+     */
+    whereCases(cases, elseCase) {
+        if (!cases.length)
+            return this;
+        let query = [];
+        for (const c of cases) {
+            if (c.when == null)
+                throw new Error(`can't find when condition`);
+            if (c.then == null)
+                throw new Error(`can't find then condition`);
+            query = [
+                ...query,
+                `${this.$constants('WHEN')} ${c.when} ${this.$constants('THEN')} ${c.then}`
+            ];
+        }
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    '(',
+                    this.$constants('CASE'),
+                    query.join(' '),
+                    elseCase == null ? '' : `ELSE ${elseCase}`,
+                    this.$constants('END'),
+                    ')'
+                ].join(' ')
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * The 'orWhereCases' method is used to add conditions with cases to a database query.
+     *
+     * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
+     *
+     * @param {Array<{when , then}>} cases used to add conditions when and then
+     * @param {string?} elseCase else when end of conditions
+     * @return {this}
+     */
+    orWhereCases(cases, elseCase) {
+        if (!cases.length)
+            return this;
+        let query = [];
+        for (const c of cases) {
+            if (c.when == null)
+                throw new Error(`can't find when condition`);
+            if (c.then == null)
+                throw new Error(`can't find then condition`);
+            query = [
+                ...query,
+                `${this.$constants('WHEN')} ${c.when} ${this.$constants('THEN')} ${c.then}`
+            ];
+        }
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                [
+                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    '(',
+                    this.$constants('CASE'),
+                    query.join(' '),
+                    elseCase == null ? '' : `ELSE ${elseCase}`,
+                    this.$constants('END'),
+                    ')'
+                ].join(' ')
+            ].join(' ')
+        ]);
         return this;
     }
     /**
@@ -802,11 +1094,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         }
         if (query.length <= 1)
             return this;
-        this.$state.set('SELECT', `${this.$state.get('SELECT')}, ${query.join(' ')} ${this.$constants('AS')} ${as}`);
+        this._setState('SELECT', [...this._getState('SELECT'), `${query.join(' ')} ${this.$constants('AS')} ${as}`]);
         return this;
     }
     /**
+     * The 'join' method is used to perform various types of SQL joins between two or more database tables.
      *
+     * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
      * @example
@@ -822,22 +1116,22 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     join(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        if (this.$state.get('JOIN')) {
-            this.$state.set('JOIN', [
-                `${this.$state.get('JOIN')}`,
+        this._setState('JOIN', [
+            ...this._getState('JOIN'),
+            [
                 `${this.$constants('INNER_JOIN')}`,
-                `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-            ].join(' '));
-            return this;
-        }
-        this.$state.set('JOIN', [
-            `${this.$constants('INNER_JOIN')}`,
-            `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-        ].join(' '));
+                `\`${table}\` ${this.$constants('ON')}`,
+                `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'rightJoin' method is used to perform a right join operation between two database tables.
      *
+     * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table.
+     *
+     * If there is no match in the left table, NULL values are returned for columns from the left table
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
      * @return {this}
@@ -845,22 +1139,22 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     rightJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        if (this.$state.get('JOIN')) {
-            this.$state.set('JOIN', [
-                `${this.$state.get('JOIN')}`,
+        this._setState('JOIN', [
+            ...this._getState('JOIN'),
+            [
                 `${this.$constants('RIGHT_JOIN')}`,
-                `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-            ].join(' '));
-            return this;
-        }
-        this.$state.set('JOIN', [
-            `${this.$constants('RIGHT_JOIN')}`,
-            `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-        ].join(' '));
+                `\`${table}\` ${this.$constants('ON')}`,
+                `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'leftJoin' method is used to perform a left join operation between two database tables.
      *
+     * A left join retrieves all rows from the left table and the matching rows from the right table.
+     *
+     * If there is no match in the right table, NULL values are returned for columns from the right table.
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
      * @return {this}
@@ -868,22 +1162,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     leftJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        if (this.$state.get('JOIN')) {
-            this.$state.set('JOIN', [
-                `${this.$state.get('JOIN')}`,
+        this._setState('JOIN', [
+            ...this._getState('JOIN'),
+            [
                 `${this.$constants('LEFT_JOIN')}`,
-                `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-            ].join(' '));
-            return this;
-        }
-        this.$state.set('JOIN', [
-            `${this.$constants('LEFT_JOIN')}`,
-            `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-        ].join(' '));
+                `\`${table}\` ${this.$constants('ON')}`,
+                `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
+     * The 'crossJoin' method performs a cross join operation between two or more tables.
      *
+     * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
      * @return {this}
@@ -891,45 +1183,49 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     crossJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        if (this.$state.get('JOIN')) {
-            this.$state.set('JOIN', [
-                `${this.$state.get('JOIN')}`,
+        this._setState('JOIN', [
+            ...this._getState('JOIN'),
+            [
                 `${this.$constants('CROSS_JOIN')}`,
-                `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-            ].join(' '));
-            return this;
-        }
-        this.$state.set('JOIN', [
-            `${this.$constants('CROSS_JOIN')}`,
-            `\`${table}\` ${this.$constants('ON')} ${localKey} = ${referenceKey}`
-        ].join(' '));
+                `\`${table}\` ${this.$constants('ON')}`,
+                `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+            ].join(' ')
+        ]);
         return this;
     }
     /**
-     * sort the result in ASC or DESC order.
+     * The 'orderBy' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction (ascending or descending) for each column.
      * @param {string} column
-     * @param {string?} order [order=asc] asc, desc
+     * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @return {this}
      */
     orderBy(column, order = this.$constants('ASC')) {
         if (typeof column !== 'string')
             return this;
-        if (column.includes(this.$constants('RAW'))) {
+        if (column.includes(this.$constants('RAW')) || /\./.test(column)) {
             column = column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-            this.$state.set('ORDER_BY', [
+            if (/\./.test(column))
+                column = this.bindColumn(column);
+            this._setState('ORDER_BY', [
                 `${this.$constants('ORDER_BY')}`,
                 `${column} ${order.toUpperCase()}`
             ].join(' '));
             return this;
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `\`${column}\` ${order.toUpperCase()}`
         ].join(' '));
         return this;
     }
     /**
-     * sort the result in ASC or DESC order. can using with raw query
+     * The 'orderByRaw' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction (ascending or descending) for each column.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
      * @param {string} column
      * @param {string?} order [order=asc] asc, desc
      * @return {this}
@@ -938,14 +1234,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (column.includes(this.$constants('RAW'))) {
             column = column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${column} ${order.toUpperCase()}`
         ].join(' '));
         return this;
     }
     /**
-     * sort the result in using DESC for order by.
+     * The 'latest' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction descending for each column.
      * @param {string?} columns [column=id]
      * @return {this}
      */
@@ -953,19 +1251,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         let orderByDefault = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
             orderByDefault = columns.map(column => {
+                if (/\./.test(column))
+                    return this.bindColumn(column);
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return `\`${column}\``;
             }).join(', ');
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${orderByDefault} ${this.$constants('DESC')}`
         ].join(' '));
         return this;
     }
     /**
-     * sort the result in using DESC for order by. can using with raw query
+     * The 'latestRaw' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction descending for each column.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
      * @param {string?} columns [column=id]
      * @return {this}
      */
@@ -978,14 +1282,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column;
             }).join(', ');
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${orderByDefault} ${this.$constants('DESC')}`
         ].join(' '));
         return this;
     }
     /**
-     * sort the result in using ASC for order by.
+     * The 'oldest' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction ascending for each column.
      * @param {string?} columns [column=id]
      * @return {this}
      */
@@ -993,19 +1299,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         let orderByDefault = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
             orderByDefault = columns.map(column => {
+                if (/\./.test(column))
+                    return this.bindColumn(column);
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return `\`${column}\``;
             }).join(', ');
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${orderByDefault} ${this.$constants('ASC')}`
         ].join(' '));
         return this;
     }
     /**
-     * sort the result in using ASC for order by. can using with raw query
+     * The 'oldestRaw' method is used to specify the order in which the results of a database query should be sorted.
+     *
+     * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction ascending for each column.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
      * @param {string?} columns [column=id]
      * @return {this}
      */
@@ -1018,14 +1330,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column;
             }).join(', ');
         }
-        this.$state.set('ORDER_BY', [
+        this._setState('ORDER_BY', [
             `${this.$constants('ORDER_BY')}`,
             `${orderByDefault} ${this.$constants('ASC')}`
         ].join(' '));
         return this;
     }
     /**
+     * The groupBy method is used to group the results of a database query by one or more columns.
      *
+     * It allows you to aggregate data based on the values in specified columns, often in conjunction with aggregate functions like COUNT, SUM, AVG, and MAX.
+     *
+     * Grouping is commonly used for generating summary reports, calculating totals, and performing other aggregate operations on data.
      * @param {string?} columns [column=id]
      * @return {this}
      */
@@ -1038,14 +1354,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return `\`${column}\``;
             }).join(', ');
         }
-        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this._setState('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
         return this;
     }
     /**
-    *
-    * @param {string?} columns [column=id]
-    * @return {this}
-    */
+     * The groupBy method is used to group the results of a database query by one or more columns.
+     *
+     * It allows you to aggregate data based on the values in specified columns, often in conjunction with aggregate functions like COUNT, SUM, AVG, and MAX.
+     *
+     * Grouping is commonly used for generating summary reports, calculating totals, and performing other aggregate operations on data.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
     groupByRaw(...columns) {
         let groupBy = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
@@ -1055,25 +1377,35 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column;
             }).join(', ');
         }
-        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this._setState('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
         return this;
     }
     /**
+     * The 'having' method is used to add a conditional clause to a database query that filters the result set after the GROUP BY operation has been applied.
      *
+     * It is typically used in conjunction with the GROUP BY clause to filter aggregated data based on some condition.
+     *
+     * The having clause allows you to apply conditions to aggregated values, such as the result of COUNT, SUM, AVG, or other aggregate functions.
      * @param {string} condition
      * @return {this}
      */
     having(condition) {
         if (condition.includes(this.$constants('RAW'))) {
             condition = condition === null || condition === void 0 ? void 0 : condition.replace(this.$constants('RAW'), '');
-            this.$state.set('HAVING', `${this.$constants('HAVING')} ${condition}`);
+            this._setState('HAVING', `${this.$constants('HAVING')} ${condition}`);
             return this;
         }
-        this.$state.set('HAVING', `${this.$constants('HAVING')} \`${condition}\``);
+        this._setState('HAVING', `${this.$constants('HAVING')} \`${condition}\``);
         return this;
     }
     /**
+     * The 'havingRaw' method is used to add a conditional clause to a database query that filters the result set after the GROUP BY operation has been applied.
      *
+     * It is typically used in conjunction with the GROUP BY clause to filter aggregated data based on some condition.
+     *
+     * The having clause allows you to apply conditions to aggregated values, such as the result of COUNT, SUM, AVG, or other aggregate functions.
+     *
+     * This method allows you to specify raw-sql parameters for the query.
      * @param {string} condition
      * @return {this}
      */
@@ -1081,35 +1413,43 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (condition.includes(this.$constants('RAW'))) {
             condition = condition === null || condition === void 0 ? void 0 : condition.replace(this.$constants('RAW'), '');
         }
-        this.$state.set('HAVING', `${this.$constants('HAVING')} ${condition}`);
+        this._setState('HAVING', `${this.$constants('HAVING')} ${condition}`);
         return this;
     }
     /**
-     *  sort the result in random order.
+     * The 'random' method is used to add a random ordering to a database query.
+     *
+     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
      * @return {this}
      */
     random() {
-        this.$state.set('ORDER_BY', `${this.$constants('ORDER_BY')} ${this.$constants('RAND')}`);
+        this._setState('ORDER_BY', `${this.$constants('ORDER_BY')} ${this.$constants('RAND')}`);
         return this;
     }
     /**
-     *  sort the result in random order.
+     * The 'inRandom' method is used to add a random ordering to a database query.
+     *
+     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
      * @return {this}
      */
     inRandom() {
         return this.random();
     }
     /**
-     * limit data
+     * The 'limit' method is used to limit the number of records returned by a database query.
+     *
+     * It allows you to specify the maximum number of rows to retrieve from the database table.
      * @param {number=} number [number=1]
      * @return {this}
      */
     limit(number = 1) {
-        this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
+        this._setState('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
     }
     /**
-     * limit data
+     * The 'limit' method is used to limit the number of records returned by a database query.
+     *
+     * It allows you to specify the maximum number of rows to retrieve from the database table.
      * @param {number=} number [number=1]
      * @return {this}
      */
@@ -1117,18 +1457,22 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.limit(number);
     }
     /**
+     * The offset method is used to specify the number of records to skip from the beginning of a result set.
      *
+     * It is often used in combination with the limit method for pagination or to skip a certain number of records when retrieving data from a database table.
      * @param {number=} number [number=1]
      * @return {this}
      */
     offset(number = 1) {
-        this.$state.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
-        if (!this.$state.get('LIMIT'))
-            this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
+        this._setState('OFFSET', `${this.$constants('OFFSET')} ${number}`);
+        if (!this._getState('LIMIT'))
+            this._setState('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
     }
     /**
+     * The offset method is used to specify the number of records to skip from the beginning of a result set.
      *
+     * It is often used in combination with the limit method for pagination or to skip a certain number of records when retrieving data from a database table.
      * @param {number=} number [number=1]
      * @return {this}
      */
@@ -1136,22 +1480,27 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.offset(number);
     }
     /**
-     *
+     * The 'hidden' method is used to specify which columns you want to hidden result.
+     * It allows you to choose the specific columns that should be hidden in the result.
      * @param {...string} columns
      * @return {this} this
      */
     hidden(...columns) {
-        this.$state.set('HIDDEN', columns);
+        this._setState('HIDDEN', columns);
         return this;
     }
     /**
+     * The 'update' method is used to update existing records in a database table that are associated.
      *
-     * update data in the database
+     * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+     *
+     * It allows you to remove one record that match certain criteria.
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
      * @return {this} this
      */
     update(data, updateNotExists = []) {
+        this.limit(1);
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         if (updateNotExists.length) {
@@ -1166,21 +1515,58 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
         }
         const query = this._queryUpdate(data);
-        this.$state.set('UPDATE', [
+        this._setState('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'UPDATE');
+        this._setState('SAVE', 'UPDATE');
         return this;
     }
     /**
+     * The 'updateMany' method is used to update existing records in a database table that are associated.
      *
-     * update record if data is empty in the database
+     * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+     *
+     * It allows you to remove more records that match certain criteria.
+     * @param {object} data
+     * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
+     * @return {this} this
+     */
+    updateMany(data, updateNotExists = []) {
+        if (!Object.keys(data).length)
+            throw new Error('This method must be required');
+        if (updateNotExists.length) {
+            for (const c of updateNotExists) {
+                for (const column in data) {
+                    if (c !== column)
+                        continue;
+                    const value = data[column];
+                    data[column] = this._updateHandler(column, value);
+                    break;
+                }
+            }
+        }
+        const query = this._queryUpdate(data);
+        this._setState('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this._getState('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this._setState('SAVE', 'UPDATE');
+        return this;
+    }
+    /**
+     * The 'updateNotExists' method is used to update existing records in a database table that are associated.
+     *
+     * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+     *
+     * It method will be update record if data is empty or null in the column values
      * @param {object} data
      * @return {this} this
      */
     updateNotExists(data) {
+        this.limit(1);
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         for (const column in data) {
@@ -1188,17 +1574,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             data[column] = this._updateHandler(column, value);
         }
         const query = this._queryUpdate(data);
-        this.$state.set('UPDATE', [
+        this._setState('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'UPDATE');
+        this._setState('SAVE', 'UPDATE');
         return this;
     }
     /**
+     * The 'insert' method is used to insert a new record into a database table associated.
      *
-     * insert data into the database
+     * It simplifies the process of creating and inserting records.
      * @param {object} data
      * @return {this} this
      */
@@ -1206,17 +1593,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsert(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'INSERT');
+        this._setState('SAVE', 'INSERT');
         return this;
     }
     /**
+     * The 'create' method is used to insert a new record into a database table associated.
      *
-     * insert data into the database
+     * It simplifies the process of creating and inserting records.
      * @param {object} data
      * @return {this} this
      */
@@ -1224,17 +1612,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsert(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'INSERT');
+        this._setState('SAVE', 'INSERT');
         return this;
     }
     /**
+     * The 'createMultiple' method is used to insert a new records into a database table associated.
      *
-     * insert muliple data into the database
+     * It simplifies the process of creating and inserting records with an array.
      * @param {array} data create multiple data
      * @return {this} this this
      */
@@ -1242,113 +1631,67 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsertMultiple(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'INSERT_MULTIPLE');
+        this._setState('SAVE', 'INSERT_MULTIPLE');
         return this;
     }
     /**
+     * The 'createMany' method is used to insert a new records into a database table associated.
      *
-     * insert muliple data into the database
+     * It simplifies the process of creating and inserting records with an array.
+     * @param {array} data create multiple data
+     * @return {this} this this
+     */
+    createMany(data) {
+        return this.createMultiple(data);
+    }
+    /**
+     * The 'insertMultiple' method is used to insert a new records into a database table associated.
+     *
+     * It simplifies the process of creating and inserting records with an array.
      * @param {array} data create multiple data
      * @return {this} this this
      */
     insertMultiple(data) {
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
-        const query = this._queryInsertMultiple(data);
-        this.$state.set('INSERT', [
-            `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        this.$state.set('SAVE', 'INSERT_MULTIPLE');
-        return this;
+        return this.createMultiple(data);
     }
     /**
+     * The 'insertMany' method is used to insert a new records into a database table associated.
      *
-     * @return {string} return sql query
-     */
-    toString() {
-        const sql = this._buildQueryStatement();
-        if (this.$state.get('DEBUG'))
-            this.$utils.consoleDebug(sql);
-        return this.resultHandler(sql);
-    }
-    /**
-     *
-     * @return {string} return sql query
-     */
-    toSQL() {
-        return this.toString();
-    }
-    /**
-     *
-     * @return {string}
-    */
-    toRawSQL() {
-        return this.toString();
-    }
-    /**
-     *
-     * @param {boolean} debug debug sql statements
+     * It simplifies the process of creating and inserting records with an array.
+     * @param {array} data create multiple data
      * @return {this} this this
      */
-    debug(debug = true) {
-        this.$state.set('DEBUG', debug);
-        return this;
+    insertMany(data) {
+        return this.createMultiple(data);
     }
     /**
+     * The 'createNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
      *
-     * @param {boolean} debug debug sql statements
-     * @return {this} this this
-     */
-    dd(debug = true) {
-        this.$state.set('DEBUG', debug);
-        return this;
-    }
-    /**
-     * hook function when execute returned result to callback function
-     * @param {Function} func function for callback result
-     * @return {this}
-    */
-    hook(func) {
-        if (typeof func !== "function")
-            throw new Error(`this '${func}' is not a function`);
-        this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
-        return this;
-    }
-    /**
-     * hook function when execute returned result to callback function
-     * @param {Function} func function for callback result
-     * @return {this}
-    */
-    before(func) {
-        if (typeof func !== "function")
-            throw new Error(`this '${func}' is not a function`);
-        this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
-        return this;
-    }
-    /**
-     *
+     * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+     * but without raising an error or exception if duplicates are encountered.
      * @param {object} data create not exists data
      * @return {this} this this
      */
     createNotExists(data) {
         const query = this._queryInsert(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
+        this._setState('SAVE', 'INSERT_NOT_EXISTS');
         return this;
     }
     /**
+     * The 'insertNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
      *
+     * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+     * but without raising an error or exception if duplicates are encountered.
      * @param {object} data insert not exists data
      * @return {this} this this
      */
@@ -1357,24 +1700,28 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+     * The 'createOrSelect' method to insert data into a database table while select any duplicate key constraint violations.
      *
-     * check data if exists if exists then return result. if not exists insert data
+     * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+     * but if exists should be returns a result.
      * @param {object} data insert data
      * @return {this} this this
      */
     createOrSelect(data) {
         const queryInsert = this._queryInsert(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${queryInsert}`
         ].join(' '));
-        this.$state.set('SAVE', 'INSERT_OR_SELECT');
+        this._setState('SAVE', 'INSERT_OR_SELECT');
         return this;
     }
     /**
+     * The 'insertOrSelect' method to insert data into a database table while select any duplicate key constraint violations.
      *
-     * check data if exists if exists then update. if not exists insert
+     * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+     * but if exists should be returns a result.
      * @param {object} data insert or update data
      * @return {this} this this
      */
@@ -1383,30 +1730,35 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+     * The 'updateOrCreate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
      *
-     * check data if exists if exists then update. if not exists insert
+     * This method is particularly useful when you want to update a record based on certain conditions and,
+     * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
      * @return {this} this this
      */
     updateOrCreate(data) {
+        this.limit(1);
         const queryUpdate = this._queryUpdate(data);
         const queryInsert = this._queryInsert(data);
-        this.$state.set('INSERT', [
+        this._setState('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${queryInsert}`
         ].join(' '));
-        this.$state.set('UPDATE', [
+        this._setState('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this.$state.get('TABLE_NAME')}`,
+            `${this._getState('TABLE_NAME')}`,
             `${queryUpdate}`
         ].join(' '));
-        this.$state.set('SAVE', 'UPDATE_OR_INSERT');
+        this._setState('SAVE', 'UPDATE_OR_INSERT');
         return this;
     }
     /**
+     * The 'updateOrInsert' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
      *
-     * check data if exists if exists then update. if not exists insert
+     * This method is particularly useful when you want to update a record based on certain conditions and,
+     * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
      * @return {this} this this
      */
@@ -1415,8 +1767,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+     * The 'insertOrUpdate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
      *
-     * check data if exists if exists then update. if not exists insert
+     * This method is particularly useful when you want to update a record based on certain conditions and,
+     * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
      * @return {this} this this
      */
@@ -1426,12 +1780,116 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     /**
      *
-     * check data if exists if exists then update. if not exists insert
+     * The 'createOrUpdate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
+     *
+     * This method is particularly useful when you want to update a record based on certain conditions and,
+     * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data create or update data
      * @return {this} this this
      */
     createOrUpdate(data) {
         this.updateOrCreate(data);
+        return this;
+    }
+    /**
+     * The 'toString' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
+     *
+     * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
+     * @return {string} return sql query
+     */
+    toString() {
+        const sql = this._queryBuilder().any();
+        return this._resultHandler(sql);
+    }
+    /**
+     * The 'toSQL' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
+     *
+     * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
+     * @return {string} return sql query
+     */
+    toSQL() {
+        return this.toString();
+    }
+    /**
+     * The 'toRawSQL' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
+     *
+     * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
+     * @return {string}
+    */
+    toRawSQL() {
+        return this.toString();
+    }
+    /**
+     * The 'getTableName' method is used to get table name
+     * @return {string} return table name
+     */
+    getTableName() {
+        return this._getState('TABLE_NAME').replace(/\`/g, '');
+    }
+    /**
+     * The 'getSchema' method is used to get schema information
+     * @return {this} this this
+     */
+    getSchema() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `\`${this._getState('TABLE_NAME').replace(/\`/g, '')}\``
+            ].join(' ');
+            return yield this._queryStatement(sql);
+        });
+    }
+    /**
+     * The 'bindColumn' method is used to concat table and column -> `users`.`id`
+     * @param {string} column
+     * @return {string} return table.column
+     */
+    bindColumn(column) {
+        if (!/\./.test(column))
+            return `${this._getState('TABLE_NAME')}.\`${column}\``;
+        const [table, c] = column.split('.');
+        return `\`${table}\`.\`${c}\``;
+    }
+    /**
+     * The 'debug' method is used to console.log raw SQL query that would be executed by a query builder
+     * @param {boolean} debug debug sql statements
+     * @return {this} this this
+     */
+    debug(debug = true) {
+        this._setState('DEBUG', debug);
+        return this;
+    }
+    /**
+     * The 'dd' method is used to console.log raw SQL query that would be executed by a query builder
+     * @param {boolean} debug debug sql statements
+     * @return {this} this this
+     */
+    dd(debug = true) {
+        this._setState('DEBUG', debug);
+        return this;
+    }
+    /**
+     * The 'hook' method is used function when execute returns a result to callback function
+     * @param {Function} func function for callback result
+     * @return {this}
+    */
+    hook(func) {
+        if (typeof func !== "function")
+            throw new Error(`this '${func}' is not a function`);
+        this._setState('HOOKS', [...this._getState('HOOKS'), func]);
+        return this;
+    }
+    /**
+     * The 'before' method is used function when execute returns a result to callback function
+     * @param {Function} func function for callback result
+     * @return {this}
+    */
+    before(func) {
+        if (typeof func !== "function")
+            throw new Error(`this '${func}' is not a function`);
+        this._setState('HOOKS', [...this._getState('HOOKS'), func]);
         return this;
     }
     /**
@@ -1501,111 +1959,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
-     * exceptColumns for method except
-     * @return {promise<string>} string
-     */
-    exceptColumns() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const excepts = this.$state.get('EXCEPTS');
-            const hasDot = excepts.some((except) => /\./.test(except));
-            const names = excepts.map((except) => {
-                if (/\./.test(except))
-                    return except.split('.')[0];
-                return null;
-            }).filter((d) => d != null);
-            const tableNames = names.length ? [...new Set(names)] : [this.$state.get('TABLE_NAME')];
-            const removeExcepts = [];
-            for (const tableName of tableNames) {
-                const sql = [
-                    `${this.$constants('SHOW')}`,
-                    `${this.$constants('COLUMNS')}`,
-                    `${this.$constants('FROM')}`,
-                    `${tableName}`
-                ].join(' ');
-                const rawColumns = yield this.queryStatement(sql);
-                const columns = rawColumns.map((column) => column.Field);
-                const removeExcept = columns.filter((column) => {
-                    return excepts.every((except) => {
-                        if (/\./.test(except)) {
-                            const [table, _] = except.split('.');
-                            return except !== `${table}.${column}`;
-                        }
-                        return except !== column;
-                    });
-                });
-                removeExcepts.push(hasDot ? removeExcept.map(r => `\`${tableName}\`.${r}`) : removeExcept);
-            }
-            return removeExcepts.flat();
-        });
-    }
-    /**
-     * handler query update for except some columns
-     * @param  {string} column
-     * @param {string} value
-     * @return {string} string
-     */
-    _updateHandler(column, value) {
-        return DB_1.DB.raw([
-            this.$constants('CASE'),
-            this.$constants('WHEN'),
-            `(\`${column}\` = "" ${this.$constants('OR')} \`${column}\` ${this.$constants('IS_NULL')})`,
-            this.$constants('THEN'),
-            `"${value !== null && value !== void 0 ? value : ""}" ${this.$constants('ELSE')} \`${column}\``,
-            this.$constants('END')
-        ].join(' '));
-    }
-    /**
+     * This 'rawQuery' method is used to execute sql statement
      *
-     * generate sql statements
-     * @return {string} string generated query string
-     */
-    _buildQueryStatement() {
-        let sql = [];
-        while (true) {
-            if (this.$state.get('INSERT')) {
-                sql = [
-                    this.$state.get('INSERT')
-                ];
-                break;
-            }
-            if (this.$state.get('UPDATE')) {
-                sql = [
-                    this.$state.get('UPDATE'),
-                    this.$state.get('WHERE')
-                ];
-                break;
-            }
-            if (this.$state.get('DELETE')) {
-                sql = [
-                    this.$state.get('DELETE'),
-                    this.$state.get('WHERE')
-                ];
-                break;
-            }
-            sql = [
-                this.$state.get('SELECT'),
-                this.$state.get('FROM'),
-                this.$state.get('TABLE_NAME'),
-                this.$state.get('JOIN'),
-                this.$state.get('WHERE'),
-                this.$state.get('GROUP_BY'),
-                this.$state.get('HAVING'),
-                this.$state.get('ORDER_BY'),
-                this.$state.get('LIMIT'),
-                this.$state.get('OFFSET')
-            ];
-            break;
-        }
-        return sql.filter(s => s !== '' || s == null).join(' ');
-    }
-    /**
-     * execute sql statements with raw sql query
-     * @param {string} sql sql execute return data
+     * @param {string} sql
      * @return {promise<any>}
      */
     rawQuery(sql) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.queryStatement(sql);
+            return yield this._queryStatement(sql);
+        });
+    }
+    /**
+     * This 'query' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @return {promise<any>}
+     */
+    query(sql) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this._queryStatement(sql);
         });
     }
     /**
@@ -1618,9 +1990,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     increment(column = 'id', value = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
-            this.$state.set('UPDATE', [
+            this._setState('UPDATE', [
                 `${this.$constants('UPDATE')}`,
-                `${this.$state.get('TABLE_NAME')}`,
+                `${this._getState('TABLE_NAME')}`,
                 `${query}`
             ].join(' '));
             return yield this._update(true);
@@ -1636,49 +2008,60 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     decrement(column = 'id', value = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
-            this.$state.set('UPDATE', [
+            this._setState('UPDATE', [
                 `${this.$constants('UPDATE')}`,
-                `${this.$state.get('TABLE_NAME')}`,
+                `${this._getState('TABLE_NAME')}`,
                 `${query}`
             ].join(' '));
             return yield this._update(true);
         });
     }
+    version() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield this._queryStatement(`${this.$constants('SELECT')} VERSION() as version`);
+            return result[0].version;
+        });
+    }
     /**
-     * execute data without condition
+     * The 'all' method is used to retrieve all records from a database table associated.
+     *
+     * It returns an array instances, ignore all condition.
      * @return {promise<any>}
      */
     all() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.queryStatement([
+            return yield this._queryStatement([
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`
+                `${this._getState('TABLE_NAME')}`
             ].join(' '));
         });
     }
     /**
+     * The 'find' method is used to retrieve a single record from a database table by its primary key.
      *
-     * execute data with where by primary key default = id
+     * This method allows you to quickly fetch a specific record by specifying the primary key value, which is typically an integer id.
      * @param {number} id
      * @return {promise<any>}
      */
     find(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this.queryStatement([
+            const result = yield this._queryStatement([
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
+                `${this._getState('TABLE_NAME')}`,
                 `${this.$constants('WHERE')} id = ${id}`
             ].join(' '));
             return (result === null || result === void 0 ? void 0 : result.shift()) || null;
         });
     }
     /**
+     * The 'pagination' method is used to perform pagination on a set of database query results obtained through the Query Builder.
      *
-     * execute data page & limit
+     * It allows you to split a large set of query results into smaller, more manageable pages,
+     * making it easier to display data in a web application and improve user experience
      * @param {?object} paginationOptions
      * @param {number} paginationOptions.limit default 15
      * @param {number} paginationOptions.page default 1
@@ -1697,7 +2080,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const nextPage = currentPage + 1;
             const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
             const offset = (page - 1) * limit;
-            let sql = this._buildQueryStatement();
+            let sql = this._queryBuilder().select();
             if (!sql.includes(this.$constants('LIMIT'))) {
                 sql = [
                     `${sql}`,
@@ -1707,10 +2090,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 ].join(' ');
             }
             else {
-                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} ${limit} ${this.$constants('OFFSET')} ${offset}`);
+                sql = sql.replace(this._getState('LIMIT'), `${this.$constants('LIMIT')} ${limit} ${this.$constants('OFFSET')} ${offset}`);
             }
-            const result = yield this.queryStatement(sql);
-            if ((_a = this.$state.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
+            const result = yield this._queryStatement(sql);
+            if ((_a = this._getState('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
                 this._hiddenColumn(result);
             if (!result.length)
                 return {
@@ -1725,18 +2108,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     },
                     data: []
                 };
-            this.$state.set('SELECT', [
+            const sqlCount = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('COUNT')}(*)`,
                 `${this.$constants('AS')} total`
-            ].join(' '));
-            const sqlTotal = [
-                this.$state.get('SELECT'),
-                this.$state.get('FROM'),
-                this.$state.get('TABLE_NAME'),
-                this.$state.get('WHERE'),
             ].join(' ');
-            const count = yield this.queryStatement(sqlTotal);
+            const sqlTotal = [
+                sqlCount,
+                this._getState('FROM'),
+                this._getState('TABLE_NAME'),
+                this._queryBuilder().where()
+            ].join(' ');
+            const count = yield this._queryStatement(sqlTotal);
             const total = ((_b = count === null || count === void 0 ? void 0 : count.shift()) === null || _b === void 0 ? void 0 : _b.total) || 0;
             let lastPage = Math.ceil(total / limit) || 0;
             lastPage = lastPage > 1 ? lastPage : 1;
@@ -1756,8 +2139,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
+     * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
      *
-     * execute data useing page & limit
+     * It allows you to split a large set of query results into smaller, more manageable pages,
+     * making it easier to display data in a web application and improve user experience
      * @param {?object} paginationOptions
      * @param {number} paginationOptions.limit
      * @param {number} paginationOptions.page
@@ -1776,37 +2161,41 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     /**
      *
-     * execute data return object | null
+     * The 'first' method is used to retrieve the first record that matches the query conditions.
+     *
+     * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @return {promise<object | null>}
      */
     first() {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
-            let sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this.$state.get('PLUCK')) {
-                const pluck = this.$state.get('PLUCK');
+            if (this._getState('PLUCK')) {
+                const pluck = this._getState('PLUCK');
                 const newData = result === null || result === void 0 ? void 0 : result.shift();
                 const checkProperty = newData.hasOwnProperty(pluck);
                 if (!checkProperty)
                     throw new Error(`can't find property '${pluck}' of result`);
                 const r = newData[pluck] || null;
-                yield this.$utils.hookHandle(this.$state.get('HOOKS'), r);
+                yield this.$utils.hookHandle(this._getState('HOOKS'), r);
                 return r;
             }
             const r = (result === null || result === void 0 ? void 0 : result.shift()) || null;
-            yield this.$utils.hookHandle(this.$state.get('HOOKS'), r);
-            return this.resultHandler(r);
+            yield this.$utils.hookHandle(this._getState('HOOKS'), r);
+            return this._resultHandler(r);
         });
     }
     /**
      *
-     * execute data return object | null
+     * The 'findOne' method is used to retrieve the first record that matches the query conditions.
+     *
+     * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @return {promise<object | null>}
      */
     findOne() {
@@ -1815,25 +2204,28 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
+     * The 'firstOrError' method is used to retrieve the first record that matches the query conditions.
      *
-     * execute data return object | throw Error
+     * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     *
+     * If record is null, this method will throw an error
      * @return {promise<object | Error>}
      */
     firstOrError(message, options) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
-            let sql = this._buildQueryStatement();
+            let sql = this._queryBuilder().select();
             if (!sql.includes(this.$constants('LIMIT')))
                 sql = `${sql} ${this.$constants('LIMIT')} 1`;
             else
-                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
-            const result = yield this.queryStatement(sql);
-            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+                sql = sql.replace(this._getState('LIMIT'), `${this.$constants('LIMIT')} 1`);
+            const result = yield this._queryStatement(sql);
+            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this.$state.get('PLUCK')) {
-                const pluck = this.$state.get('PLUCK');
+            if (this._getState('PLUCK')) {
+                const pluck = this._getState('PLUCK');
                 const newData = result === null || result === void 0 ? void 0 : result.shift();
                 const checkProperty = newData.hasOwnProperty(pluck);
                 if (!checkProperty)
@@ -1844,8 +2236,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         throw { message, code: 400 };
                     throw Object.assign({ message }, options);
                 }
-                yield this.$utils.hookHandle(this.$state.get('HOOKS'), data);
-                return this.resultHandler(data);
+                yield this.$utils.hookHandle(this._getState('HOOKS'), data);
+                return this._resultHandler(data);
             }
             const data = (result === null || result === void 0 ? void 0 : result.shift()) || null;
             if (data == null) {
@@ -1854,12 +2246,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 throw Object.assign({ message }, options);
             }
-            yield this.$utils.hookHandle(this.$state.get('HOOKS'), data);
-            return this.resultHandler(data);
+            yield this.$utils.hookHandle(this._getState('HOOKS'), data);
+            return this._resultHandler(data);
         });
     }
     /**
+     * The 'findOneOrError' method is used to retrieve the first record that matches the query conditions.
      *
+     * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     *
+     * If record is null, this method will throw an error
      * execute data return object | null
      * @return {promise<object | null>}
      */
@@ -1869,46 +2265,48 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
+     * The 'get' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
-     * execute data return Array
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
      * @return {promise<any[]>}
      */
     get() {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this.$state.get('CHUNK')) {
+            if (this._getState('CHUNK')) {
                 const data = result.reduce((resultArray, item, index) => {
-                    const chunkIndex = Math.floor(index / this.$state.get('CHUNK'));
+                    const chunkIndex = Math.floor(index / this._getState('CHUNK'));
                     if (!resultArray[chunkIndex])
                         resultArray[chunkIndex] = [];
                     resultArray[chunkIndex].push(item);
                     return resultArray;
                 }, []);
-                yield this.$utils.hookHandle(this.$state.get('HOOKS'), data || []);
-                return this.resultHandler(data || []);
+                yield this.$utils.hookHandle(this._getState('HOOKS'), data || []);
+                return this._resultHandler(data || []);
             }
-            if (this.$state.get('PLUCK')) {
-                const pluck = this.$state.get('PLUCK');
+            if (this._getState('PLUCK')) {
+                const pluck = this._getState('PLUCK');
                 const newData = result.map((d) => d[pluck]);
                 if (newData.every((d) => d == null)) {
                     throw new Error(`can't find property '${pluck}' of result`);
                 }
-                yield this.$utils.hookHandle(this.$state.get('HOOKS'), newData || []);
-                return this.resultHandler(newData || []);
+                yield this.$utils.hookHandle(this._getState('HOOKS'), newData || []);
+                return this._resultHandler(newData || []);
             }
-            yield this.$utils.hookHandle(this.$state.get('HOOKS'), result || []);
-            return this.resultHandler(result || []);
+            yield this.$utils.hookHandle(this._getState('HOOKS'), result || []);
+            return this._resultHandler(result || []);
         });
     }
     /**
+     * The 'findMany' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
-     * execute data return Array
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
      * @return {promise<any[]>}
      */
     findMany() {
@@ -1918,196 +2316,239 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     /**
      *
-     * execute data return json of result
+     * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
+     *
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
+     *
+     * It returns a JSON formatted
      * @return {promise<string>}
      */
     toJSON() {
         return __awaiter(this, void 0, void 0, function* () {
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            if (this.$state.get('HIDDEN').length)
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            if (this._getState('HIDDEN').length)
                 this._hiddenColumn(result);
-            return this.resultHandler(JSON.stringify(result));
+            return this._resultHandler(JSON.stringify(result));
         });
     }
     /**
+     * The 'toArray' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
-     * execute data return array of results
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
+     *
+     * It returns an array formatted
      * @param {string=} column [column=id]
      * @return {promise<Array>}
      */
     toArray(column = 'id') {
         return __awaiter(this, void 0, void 0, function* () {
             this.selectRaw(column);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
             const toArray = result.map((data) => data[column]);
-            return this.resultHandler(toArray);
+            return this._resultHandler(toArray);
         });
     }
     /**
+     * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
      *
-     * execute data return result is exists
+     * It returns a boolean value indicating whether there are any matching records.
      * @return {promise<boolean>}
      */
     exists() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             this.limit(1);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement([
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement([
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}`,
                 `(${sql})`,
                 `${this.$constants('AS')} \`aggregate\``
             ].join(' '));
-            return Boolean(this.resultHandler(!!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || false));
+            return Boolean(this._resultHandler(!!((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || false));
         });
     }
     /**
+     * The 'count' method is used to retrieve the total number of records that match the specified query conditions.
      *
-     * execute data return number of results
+     * It returns an integer representing the count of records.
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
     count(column = 'id') {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this.$state.get('DISTINCT');
-            column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
+            const distinct = this._getState('DISTINCT');
+            column = distinct
+                ? `${this.$constants('DISTINCT')} \`${column}\``
+                : `\`${column}\``;
             this.selectRaw(`${this.$constants('COUNT')}(${column}) ${this.$constants('AS')} \`aggregate\``);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            return Number(this._resultHandler(result.reduce((prev, cur) => { var _a; return prev + Number((_a = cur === null || cur === void 0 ? void 0 : cur.aggregate) !== null && _a !== void 0 ? _a : 0); }, 0) || 0));
         });
     }
     /**
+     * The 'avg' method is used to calculate the average value of a numeric column in a database table.
      *
-     * execute data return average of results
+     * It calculates the mean value of the specified column for all records that match the query conditions and returns the result as a floating-point number.
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
     avg(column = 'id') {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this.$state.get('DISTINCT');
+            const distinct = this._getState('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
             this.selectRaw(`${this.$constants('AVG')}(${column}) ${this.$constants('AS')} \`aggregate\``);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            return Number(this._resultHandler((result.reduce((prev, cur) => { var _a; return prev + Number((_a = cur === null || cur === void 0 ? void 0 : cur.aggregate) !== null && _a !== void 0 ? _a : 0); }, 0) || 0) / result.length));
         });
     }
     /**
+     * The 'sum' method is used to calculate the sum of values in a numeric column of a database table.
      *
-     * execute data return summary of results
+     * It computes the total of the specified column's values for all records that match the query conditions and returns the result as a numeric value.
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
     sum(column = 'id') {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this.$state.get('DISTINCT');
+            const distinct = this._getState('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
             this.selectRaw(`${this.$constants('SUM')}(${column}) ${this.$constants('AS')} \`aggregate\``);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            return Number(this._resultHandler(result.reduce((prev, cur) => { var _a; return prev + Number((_a = cur === null || cur === void 0 ? void 0 : cur.aggregate) !== null && _a !== void 0 ? _a : 0); }, 0) || 0));
         });
     }
     /**
+     * The 'max' method is used to retrieve the maximum value of a numeric column in a database table.
      *
-     * execute data return maximum of results
+     * It finds the highest value in the specified column among all records that match the query conditions and returns that value.
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
     max(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this.$state.get('DISTINCT');
+            const distinct = this._getState('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
             this.selectRaw(`${this.$constants('MAX')}(${column}) ${this.$constants('AS')} \`aggregate\``);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            return Number(this._resultHandler(((_a = result.sort((a, b) => (b === null || b === void 0 ? void 0 : b.aggregate) - (a === null || a === void 0 ? void 0 : a.aggregate))[0]) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
         });
     }
     /**
+     * The 'min' method is used to retrieve the minimum (lowest) value of a numeric column in a database table.
      *
-     * execute data return minimum of results
+     * It finds the smallest value in the specified column among all records that match the query conditions and returns that value.
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
     min(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this.$state.get('DISTINCT');
+            const distinct = this._getState('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
             this.selectRaw(`${this.$constants('MIN')}(${column}) ${this.$constants('AS')} \`aggregate\``);
-            const sql = this._buildQueryStatement();
-            const result = yield this.queryStatement(sql);
-            return Number(this.resultHandler(((_a = result === null || result === void 0 ? void 0 : result.shift()) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            return Number(this._resultHandler(((_a = result.sort((a, b) => (a === null || a === void 0 ? void 0 : a.aggregate) - (b === null || b === void 0 ? void 0 : b.aggregate))[0]) === null || _a === void 0 ? void 0 : _a.aggregate) || 0));
         });
     }
     /**
+     * The 'delete' method is used to delete records from a database table based on the specified query conditions.
      *
-     * delete data from database
+     * It allows you to remove one record that match certain criteria.
      * @return {promise<boolean>}
      */
     delete() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE')) {
+            if (!this._getState('where').length) {
                 throw new Error("can't delete without where condition");
             }
-            this.$state.set('DELETE', [
+            this.limit(1);
+            this._setState('DELETE', [
                 `${this.$constants('DELETE')}`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
             ].join(' '));
-            const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
+            const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
             if (result)
-                return Boolean(this.resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
-            return Boolean(this.resultHandler(false));
+                return Boolean(this._resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
+            return Boolean(this._resultHandler(false));
+        });
+    }
+    /**
+     * The 'deleteMany' method is used to delete records from a database table based on the specified query conditions.
+     *
+     * It allows you to remove more records that match certain criteria.
+     * @return {promise<boolean>}
+     */
+    deleteMany() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this._getState('where').length) {
+                throw new Error("can't delete without where condition");
+            }
+            this._setState('DELETE', [
+                `${this.$constants('DELETE')}`,
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
+            ].join(' '));
+            const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
+            if (result)
+                return Boolean(this._resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
+            return Boolean(this._resultHandler(false));
         });
     }
     /**
      *
-     * delete data from database ignore where condition
+     * The 'delete' method is used to delete records from a database table based on the specified query conditions.
+     *
+     * It allows you to remove one or more records that match certain criteria.
+     *
+     * This method should be ignore the soft delete
      * @return {promise<boolean>}
      */
     forceDelete() {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            this.$state.set('DELETE', [
+            this._setState('DELETE', [
                 `${this.$constants('DELETE')}`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
+                `${this._queryBuilder().where()}`
             ].join(' '));
-            const result = yield this.actionStatement({ sql: this.$state.get('DELETE') });
+            const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
             if (result)
-                return Boolean(this.resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
-            return Boolean(this.resultHandler((_b = !!result) !== null && _b !== void 0 ? _b : false));
+                return Boolean(this._resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
+            return Boolean(this._resultHandler((_b = !!result) !== null && _b !== void 0 ? _b : false));
         });
     }
     /**
+     * The 'getGroupBy' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
-     * execute data return Array *grouping results in column
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
+     *
+     * It returns record an Array-Object key by column *grouping results in column
      * @param {string} column
      * @return {promise<Array>}
      */
     getGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${column}`);
-            this.$state.set('SELECT', [
-                `${this.$state.get('SELECT')}`,
-                `, ${this.$constants('GROUP_CONCAT')}(id)`,
-                `${this.$constants('AS')} data`
+            this.selectRaw([
+                `\`${column}\`,`,
+                `${this.$constants('GROUP_CONCAT')}(id)`,
+                `${this.$constants('AS')} \`data\``
             ].join(' '));
-            const sql = this._buildQueryStatement();
-            const results = yield this.queryStatement(sql);
+            this.groupBy(column);
+            const sql = this._queryBuilder().select();
+            const results = yield this._queryStatement(sql);
             let data = [];
             results.forEach((result) => {
                 var _a, _b;
@@ -2118,12 +2559,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
+                `${this._getState('TABLE_NAME')}`,
                 `${this.$constants('WHERE')} id`,
                 `${this.$constants('IN')}`,
                 `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
             ].join(' ');
-            const groups = yield this.queryStatement(sqlGroups);
+            const groups = yield this._queryStatement(sqlGroups);
             const resultData = results.map((result) => {
                 const id = result[column];
                 const newData = groups.filter((data) => data[column] === id);
@@ -2132,12 +2573,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     data: newData
                 });
             });
-            return this.resultHandler(!resultData);
+            return this._resultHandler(resultData);
         });
     }
     /**
      *
-     * execute data return grouping results by index
+     * The 'getGroupBy' method is used to execute a database query and retrieve the result set that matches the query conditions.
+     *
+     * It retrieves multiple records from a database table based on the criteria specified in the query.
+     *
+     * It returns record an Array-Object key by column *grouping results in column
      * @param {string} column
      * @return {promise<Array>}
      */
@@ -2147,7 +2592,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
-     * execute data when save *action [insert , update]
+     * The 'save' method is used to persist a new 'Model' or new 'DB' instance or update an existing model instance in the database.
+     *
+     * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
      * @return {Promise<any>} promise
      */
     save() {
@@ -2155,44 +2602,62 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const attributes = this.$attributes;
             if (attributes != null) {
                 while (true) {
-                    if (this.$state.get('WHERE')) {
-                        const query = this._queryUpdate(attributes);
-                        this.$state.set('UPDATE', [
-                            `${this.$constants('UPDATE')}`,
-                            `${this.$state.get('TABLE_NAME')}`,
+                    if (!this._getState('where').length) {
+                        const query = this._queryInsert(attributes);
+                        this._setState('INSERT', [
+                            `${this.$constants('INSERT')}`,
+                            `${this._getState('TABLE_NAME')}`,
                             `${query}`
                         ].join(' '));
-                        this.$state.set('SAVE', 'UPDATE');
+                        this._setState('SAVE', 'INSERT');
                         break;
                     }
-                    const query = this._queryInsert(attributes);
-                    this.$state.set('INSERT', [
-                        `${this.$constants('INSERT')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
+                    const query = this._queryUpdate(attributes);
+                    this._setState('UPDATE', [
+                        `${this.$constants('UPDATE')}`,
+                        `${this._getState('TABLE_NAME')}`,
                         `${query}`
                     ].join(' '));
-                    this.$state.set('SAVE', 'INSERT');
+                    this._setState('SAVE', 'UPDATE');
                     break;
                 }
             }
-            switch (this.$state.get('SAVE')) {
+            switch (this._getState('SAVE')) {
                 case 'INSERT_MULTIPLE': return yield this._insertMultiple();
                 case 'INSERT': return yield this._insert();
                 case 'UPDATE': return yield this._update();
                 case 'INSERT_NOT_EXISTS': return yield this._insertNotExists();
                 case 'UPDATE_OR_INSERT': return yield this._updateOrInsert();
                 case 'INSERT_OR_SELECT': return yield this._insertOrSelect();
-                default: throw new Error(`unknown this [${this.$state.get('SAVE')}]`);
+                default: throw new Error(`unknown this [${this._getState('SAVE')}]`);
             }
         });
     }
     /**
+    * The 'showTables' method is used to show schema table.
+    *
+    * @return {Promise<Array>}
+    */
+    showTables() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('TABLES')}`
+            ].join(' ');
+            const results = yield this._queryStatement(sql);
+            return results
+                .map(table => String(Object.values(table)[0]))
+                .filter(d => d != null || d !== '');
+        });
+    }
+    /**
      *
-     * show columns in table
+     * The 'showColumns' method is used to show columns table.
+     *
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showColumns(table = this.$state.get('TABLE_NAME')) {
+    showColumns(table = this._getState('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SHOW')}`,
@@ -2200,18 +2665,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('FROM')}`,
                 `\`${table.replace(/\`/g, '')}\``
             ].join(' ');
-            const rawColumns = yield this.queryStatement(sql);
+            const rawColumns = yield this._queryStatement(sql);
             const columns = rawColumns.map((column) => column.Field);
             return columns;
         });
     }
     /**
+     * The 'showSchema' method is used to show schema table.
      *
-     * show schemas in table
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    showSchemas(table = this.$state.get('TABLE_NAME')) {
+    showSchema(table = this._getState('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SHOW')}`,
@@ -2219,7 +2684,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('FROM')}`,
                 `\`${table.replace(/\`/g, '')}\``
             ].join(' ');
-            const raws = yield this.queryStatement(sql);
+            const raws = yield this._queryStatement(sql);
             return raws.map((r) => {
                 const schema = [];
                 schema.push(`${r.Field}`);
@@ -2247,28 +2712,24 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
+     * The 'showSchemas' method is used to show schema table.
      *
-     * get schema from table
-     * @return {this} this this
+     * @param {string=} table [table= current table name]
+     * @return {Promise<Array>}
      */
-    getSchema() {
+    showSchemas(table = this._getState('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
-            const sql = [
-                `${this.$constants('SHOW')}`,
-                `${this.$constants('COLUMNS')}`,
-                `${this.$constants('FROM')}`,
-                `\`${this.$state.get('TABLE_NAME').replace(/\`/g, '')}\``
-            ].join(' ');
-            return yield this.queryStatement(sql);
+            return this.showSchema(table);
         });
     }
     /**
      *
-     * show values in table
+     * The 'showValues' method is used to show values table.
+     *
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showValues(table = this.$state.get('TABLE_NAME')) {
+    showValues(table = this._getState('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SELECT')}`,
@@ -2276,39 +2737,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('FROM')}`,
                 `\`${table.replace(/\`/g, '')}\``
             ].join(' ');
-            const raw = yield this.queryStatement(sql);
+            const raw = yield this._queryStatement(sql);
             const values = raw.map((value) => {
                 return `(${Object.values(value).map((v) => {
+                    if (typeof v === 'object' && v != null && !Array.isArray(v))
+                        return `'${JSON.stringify(v)}'`;
                     return v == null ? 'NULL' : `'${v}'`;
-                }).join(',')})`;
+                }).join(', ')})`;
             });
             return values;
         });
     }
-    /**
-     *
-     * backup this database intro new database same server or to another server
-     * @param {Object} backupOptions
-     * @param {string} backup.database
-     * @param {object?} backup.to
-     * @param {string} backup.to.host
-     * @param {number} backup.to.port
-     * @param {string} backup.to.database
-     * @param {string} backup.to.username
-     * @param {string} backup.to.password
-
-     * @return {Promise<boolean>}
-     */
-    backup({ database, to }) {
+    _backup({ tables, database }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const tables = yield this.queryStatement('SHOW TABLES');
-            let backup = [];
-            for (const t of tables) {
-                const table = String(Object.values(t).shift());
-                const schemas = yield this.showSchemas(table);
+            const backup = [];
+            for (const table of tables) {
+                const schemas = yield this.showSchema(table);
                 const createTableSQL = [
                     `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                    `\`${database}.${table}\``,
+                    `\`${database}\`.\`${table}\``,
                     `(${schemas.join(',')})`,
                     `${this.$constants('ENGINE')}`,
                 ];
@@ -2318,27 +2765,42 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     const columns = yield this.showColumns(table);
                     valueSQL = [
                         `${this.$constants('INSERT')}`,
-                        `\`${database}.${table}\``,
+                        `\`${database}\`.\`${table}\``,
                         `(${columns.map((column) => `\`${column}\``).join(',')})`,
                         `${this.$constants('VALUES')} ${values.join(',')}`
                     ];
                 }
-                backup = [
-                    ...backup,
-                    {
-                        table: createTableSQL.join(' '),
-                        values: valueSQL.join(' '),
-                    }
-                ];
+                backup.push({
+                    table: createTableSQL.join(' '),
+                    values: valueSQL.join(' '),
+                });
             }
+            return backup;
+        });
+    }
+    /**
+     *
+     * backup this database intro new database same server or to another server
+     * @param {Object} backupOptions
+     * @param {string} backup.database clone current 'db' in connection to this database
+     * @param {object?} backup.to
+     * @param {string} backup.to.host
+     * @param {number} backup.to.port
+     * @param {string} backup.to.username
+     * @param {string} backup.to.password
+     * @return {Promise<boolean>}
+     */
+    backup({ database, to }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const tables = yield this.showTables();
+            const backup = yield this._backup({ tables, database });
             if (to != null && Object.keys(to).length)
-                this.connection(to);
-            yield this.queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
+                this.connection(Object.assign(Object.assign({}, to), { database }));
+            yield this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
             for (const b of backup) {
-                yield this.queryStatement(b.table);
-                if (b.values) {
-                    yield this.queryStatement(b.values);
-                }
+                yield this._queryStatement(b.table);
+                if (b.values)
+                    yield this._queryStatement(b.values);
             }
             return true;
         });
@@ -2358,39 +2820,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {Promise<boolean>}
      */
     backupToFile({ filePath, database, connection }) {
-        var _a, _b;
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const tables = yield this.queryStatement(this.$constants('SHOW_TABLES'));
-            let backup = [];
-            for (const t of tables) {
-                const table = String((_a = Object.values(t)) === null || _a === void 0 ? void 0 : _a.shift());
-                const schemas = yield this.showSchemas(table);
-                const createTableSQL = [
-                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                    `\`${table}\``,
-                    `(${schemas.join(',')})`,
-                    `${this.$constants('ENGINE')};`,
-                ];
-                const values = yield this.showValues(table);
-                let valueSQL = [];
-                if (values.length) {
-                    const columns = yield this.showColumns(table);
-                    valueSQL = [
-                        `${this.$constants('INSERT')}`,
-                        `\`${table}\``,
-                        `(${columns.map((column) => `\`${column}\``).join(',')})`,
-                        `${this.$constants('VALUES')} ${values.join(',')};`
-                    ];
-                }
-                backup = [
-                    ...backup,
-                    {
-                        table: createTableSQL.join(' '),
-                        values: valueSQL.join(' ')
-                    }
-                ];
-            }
-            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
+            const tables = yield this.showTables();
+            const backup = (yield this._backup({ tables, database }))
+                .map(b => {
+                return {
+                    table: (0, sql_formatter_1.format)(b.table, {
+                        language: 'spark',
+                        tabWidth: 2,
+                        linesBetweenQueries: 1,
+                    }) + "\n",
+                    values: b.values !== '' ? b.values + "\n" : ""
+                };
+            });
+            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
                 this.connection(connection);
             let sql = [
                 `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
@@ -2405,11 +2849,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     sql = [...sql, b.values];
                 }
             }
-            fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)([...sql, 'COMMIT;'].join('\n'), {
-                language: 'spark',
-                tabWidth: 2,
-                linesBetweenQueries: 1,
-            }));
+            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
             return;
         });
     }
@@ -2428,28 +2868,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {Promise<boolean>}
      */
     backupSchemaToFile({ filePath, database, connection }) {
-        var _a, _b;
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const tables = yield this.queryStatement(this.$constants('SHOW_TABLES'));
-            let backup = [];
-            for (const t of tables) {
-                const table = String((_a = Object.values(t)) === null || _a === void 0 ? void 0 : _a.shift());
-                const schemas = yield this.showSchemas(table);
-                const createTableSQL = [
-                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                    `\`${table}\``,
-                    `(${schemas.join(',')})`,
-                    `${this.$constants('ENGINE')};`,
-                ];
-                backup = [
-                    ...backup,
-                    {
-                        table: createTableSQL.join(' ')
-                    }
-                ];
-            }
-            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
+            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
                 this.connection(connection);
+            const tables = yield this.showTables();
+            const backup = (yield this._backup({ tables, database }))
+                .map(b => {
+                return {
+                    table: (0, sql_formatter_1.format)(b.table, {
+                        language: 'spark',
+                        tabWidth: 2,
+                        linesBetweenQueries: 1,
+                    }) + "\n"
+                };
+            });
             let sql = [
                 `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
                 `START TRANSACTION;`,
@@ -2457,14 +2890,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
                 `USE \`${database}\`;`
             ];
-            for (const b of backup) {
+            for (const b of backup)
                 sql = [...sql, b.table];
-            }
-            fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)([...sql, 'COMMIT;'].join('\n'), {
-                language: 'spark',
-                tabWidth: 2,
-                linesBetweenQueries: 1,
-            }));
+            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
             return;
         });
     }
@@ -2485,7 +2913,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     backupTableToFile({ filePath, table, connection }) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const schemas = yield this.showSchemas(table);
+            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
+                this.connection(connection);
+            const schemas = yield this.showSchema(table);
             const createTableSQL = [
                 `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                 `\`${table}\``,
@@ -2503,14 +2933,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     `${this.$constants('VALUES')} ${values.join(',')};`
                 ];
             }
-            const sql = [createTableSQL.join(' '), valueSQL.join(' ')];
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
-                this.connection(connection);
-            fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)(sql.join('\n'), {
-                language: 'spark',
-                tabWidth: 2,
-                linesBetweenQueries: 1,
-            }));
+            const sql = [
+                (0, sql_formatter_1.format)(createTableSQL.join(' '), {
+                    language: 'mysql',
+                    tabWidth: 2,
+                    linesBetweenQueries: 1,
+                }) + "\n",
+                valueSQL.join(' ')
+            ];
+            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
             return;
         });
     }
@@ -2531,7 +2962,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     backupTableSchemaToFile({ filePath, table, connection }) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const schemas = yield this.showSchemas(table);
+            const schemas = yield this.showSchema(table);
             const createTableSQL = [
                 `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                 `\`${table}\``,
@@ -2551,23 +2982,24 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     /**
      *
-     * fake data
+     * The 'faker' method is used to insert a new records into a database table associated.
+     *
+     * It simplifies the process of creating and inserting records.
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
     faker(rows = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             let data = [];
-            this.void();
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('FIELDS')}`,
                 `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`
+                `${this._getState('TABLE_NAME')}`
             ].join(' ');
-            const fields = yield this.queryStatement(sql);
+            const fields = yield this._queryStatement(sql);
             for (let row = 0; row < rows; row++) {
-                if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
+                if (this._getState('TABLE_NAME') === '' || this._getState('TABLE_NAME') == null) {
                     throw new Error("Unknow this table name");
                 }
                 let columnAndValue = {};
@@ -2581,14 +3013,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 data = [...data, columnAndValue];
             }
-            const query = this._queryInsertMultiple(data);
-            this.$state.set('INSERT', [
-                `${this.$constants('INSERT')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${query}`
-            ].join(' '));
-            this.$state.set('SAVE', 'INSERT_MULTIPLE');
-            return this.save();
+            return yield this.createMultiple(data).save();
         });
     }
     /**
@@ -2600,9 +3025,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('TRUNCATE_TABLE')}`,
-                `${this.$state.get('TABLE_NAME')}`
+                `${this._getState('TABLE_NAME')}`
             ].join(' ');
-            yield this.queryStatement(sql);
+            yield this._queryStatement(sql);
             return true;
         });
     }
@@ -2615,91 +3040,176 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('DROP_TABLE')}`,
-                `${this.$state.get('TABLE_NAME')}`
+                `${this._getState('TABLE_NAME')}`
             ].join(' ');
-            yield this.queryStatement(sql);
+            yield this._queryStatement(sql);
             return true;
         });
     }
-    resultHandler(data) {
-        this.$state.set('RESULT', data);
+    exceptColumns() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const excepts = this._getState('EXCEPTS');
+            const hasDot = excepts.some((except) => /\./.test(except));
+            const names = excepts.map((except) => {
+                if (/\./.test(except))
+                    return except.split('.')[0];
+                return null;
+            }).filter((d) => d != null);
+            const tableNames = names.length ? [...new Set(names)] : [this._getState('TABLE_NAME')];
+            const removeExcepts = [];
+            for (const tableName of tableNames) {
+                const sql = [
+                    `${this.$constants('SHOW')}`,
+                    `${this.$constants('COLUMNS')}`,
+                    `${this.$constants('FROM')}`,
+                    `${tableName}`
+                ].join(' ');
+                const rawColumns = yield this._queryStatement(sql);
+                const columns = rawColumns.map((column) => column.Field);
+                const removeExcept = columns.filter((column) => {
+                    return excepts.every((except) => {
+                        if (/\./.test(except)) {
+                            const [table, _] = except.split('.');
+                            return except !== `${table}.${column}`;
+                        }
+                        return except !== column;
+                    });
+                });
+                removeExcepts.push(hasDot ? removeExcept.map(r => `${tableName}.${r}`) : removeExcept);
+            }
+            return removeExcepts.flat();
+        });
+    }
+    _updateHandler(column, value) {
+        return DB_1.DB.raw([
+            this.$constants('CASE'),
+            this.$constants('WHEN'),
+            `(\`${column}\` = "" ${this.$constants('OR')} \`${column}\` ${this.$constants('IS_NULL')})`,
+            this.$constants('THEN'),
+            `"${value !== null && value !== void 0 ? value : ""}" ${this.$constants('ELSE')} \`${column}\``,
+            this.$constants('END')
+        ].join(' '));
+    }
+    copyBuilder(instance, options) {
+        if (!(instance instanceof Builder))
+            throw new Error('Value is not a instanceof Builder');
+        const copy = Object.fromEntries(instance.$state.get());
+        const newInstance = new Builder();
+        newInstance.$state.clone(copy);
+        newInstance.$state.set('SAVE', '');
+        if ((options === null || options === void 0 ? void 0 : options.insert) == null)
+            newInstance.$state.set('INSERT', '');
+        if ((options === null || options === void 0 ? void 0 : options.update) == null)
+            newInstance.$state.set('UPDATE', '');
+        if ((options === null || options === void 0 ? void 0 : options.delete) == null)
+            newInstance.$state.set('DELETE', '');
+        if ((options === null || options === void 0 ? void 0 : options.where) == null)
+            newInstance.$state.set('WHERE', '');
+        if ((options === null || options === void 0 ? void 0 : options.limit) == null)
+            newInstance.$state.set('LIMIT', '');
+        if ((options === null || options === void 0 ? void 0 : options.offset) == null)
+            newInstance.$state.set('OFFSET', '');
+        if ((options === null || options === void 0 ? void 0 : options.groupBy) == null)
+            newInstance.$state.set('GROUP_BY', '');
+        if ((options === null || options === void 0 ? void 0 : options.select) == null)
+            newInstance.$state.set('SELECT', '');
+        if ((options === null || options === void 0 ? void 0 : options.join) == null)
+            newInstance.$state.set('JOIN', '');
+        return newInstance;
+    }
+    _queryBuilder() {
+        return this._buildQueryStatement();
+    }
+    _buildQueryStatement() {
+        const buildSQL = (sql) => sql.filter(s => s !== '' || s == null).join(' ').replace(/\s+/g, ' ');
+        const bindSelect = (values) => {
+            if (!values.length) {
+                if (!this._getState('DISTINCT'))
+                    return `${this.$constants('SELECT')} *`;
+                return `${this.$constants('SELECT')} ${this.$constants('DISTINCT')} *`;
+            }
+            const findIndex = values.indexOf('*');
+            if (findIndex > -1) {
+                const removed = values.splice(findIndex, 1);
+                values.unshift(removed[0]);
+            }
+            return `${this.$constants('SELECT')} ${values.join(', ')}`;
+        };
+        const bindJoin = (values) => {
+            if (!values.length)
+                return null;
+            return values.join(' ');
+        };
+        const bindWhere = (values) => {
+            if (!values.length)
+                return null;
+            return `${this.$constants('WHERE')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(' ')}`;
+        };
+        const select = () => buildSQL([
+            bindSelect(this.$state.get('SELECT')),
+            this.$state.get('FROM'),
+            this.$state.get('TABLE_NAME'),
+            bindJoin(this.$state.get('JOIN')),
+            bindWhere(this.$state.get('WHERE')),
+            this.$state.get('GROUP_BY'),
+            this.$state.get('HAVING'),
+            this.$state.get('ORDER_BY'),
+            this.$state.get('LIMIT'),
+            this.$state.get('OFFSET')
+        ]);
+        const insert = () => buildSQL([this.$state.get('INSERT')]);
+        const update = () => buildSQL([this.$state.get('UPDATE'), bindWhere(this.$state.get('WHERE')), this.$state.get('ORDER_BY'), this.$state.get('LIMIT')]);
+        const remove = () => buildSQL([this.$state.get('DELETE'), bindWhere(this.$state.get('WHERE')), this.$state.get('ORDER_BY'), this.$state.get('LIMIT')]);
+        return {
+            select,
+            insert,
+            update,
+            delete: remove,
+            where: () => bindWhere(this.$state.get('WHERE')),
+            any: () => {
+                if (this.$state.get('INSERT'))
+                    return insert();
+                if (this.$state.get('UPDATE'))
+                    return update();
+                if (this.$state.get('DELETE'))
+                    return remove();
+                return select();
+            }
+        };
+    }
+    _getState(key) {
+        return this.$state.get(key.toLocaleUpperCase());
+    }
+    _setState(key, value) {
+        return this.$state.set(key, value);
+    }
+    _resultHandler(data) {
+        this._setState('RESULT', data);
         this.$state.resetState();
         this.$logger.reset();
         return data;
     }
-    /**
-     *
-     * @param {string} tableAndLocalKey
-     * @param {string?} tableAndForeignKey
-     * @return {this}
-     */
     whereReference(tableAndLocalKey, tableAndForeignKey) {
-        this.$state.set('WHERE', [
-            this._queryWhereIsExists()
-                ? `${this.$state.get('WHERE')} ${this.$constants('AND')}`
-                : `${this.$constants('WHERE')}`,
-            `${tableAndLocalKey} = ${tableAndForeignKey}`
-        ].join(' '));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${tableAndLocalKey} = ${tableAndForeignKey}`
+            ].join(' ')
+        ]);
         return this;
     }
-    _queryWhereIsExists() {
-        var _a;
-        return ((_a = String(this.$state.get('WHERE'))) === null || _a === void 0 ? void 0 : _a.includes(this.$constants('WHERE'))) || false;
-    }
-    _bindTableAndColumnInQueryWhere(column) {
-        if (!/\./.test(column))
-            return `${this.$state.get('TABLE_NAME')}.\`${column}\``;
-        const [table, c] = column.split('.');
-        return `\`${table}\`.\`${c}\``;
-    }
-    _insertNotExists() {
+    _queryStatement(sql) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE'))
-                throw new Error("Can't insert not exists without where condition");
-            let sql = [
-                `${this.$constants('SELECT')}`,
-                `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-                `*`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`,
-                `${this.$constants('LIMIT')} 1)`,
-                `${this.$constants('AS')} 'exists'`
-            ].join(' ');
-            const [{ exists: result }] = yield this.queryStatement(sql);
-            const check = !!Number.parseInt(result);
-            switch (check) {
-                case false: {
-                    const [result, id] = yield this.actionStatement({
-                        sql: this.$state.get('INSERT'),
-                        returnId: true
-                    });
-                    if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(undefined);
-                    const sql = [
-                        `${this.$state.get('SELECT')}`,
-                        `${this.$state.get('FROM')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
-                        `${this.$constants('WHERE')} id = ${id}`
-                    ].join(' ');
-                    const data = yield this.queryStatement(sql);
-                    return this.resultHandler((data === null || data === void 0 ? void 0 : data.shift()) || null);
-                }
-                default: return this.resultHandler(null);
-            }
-        });
-    }
-    queryStatement(sql) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.$state.get('DEBUG'))
+            if (this._getState('DEBUG'))
                 this.$utils.consoleDebug(sql);
             const result = yield this.$pool.query(sql);
             return result;
         });
     }
-    actionStatement({ sql, returnId = false }) {
+    _actionStatement({ sql, returnId = false }) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.$state.get('DEBUG'))
+            if (this._getState('DEBUG'))
                 this.$utils.consoleDebug(sql);
             if (returnId) {
                 const result = yield this.$pool.query(sql);
@@ -2709,24 +3219,57 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return result;
         });
     }
+    _insertNotExists() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this._getState('where').length)
+                throw new Error("Can't insert not exists without where condition");
+            let sql = [
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
+                `*`,
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
+                `${this._queryBuilder().where()}`,
+                `${this.$constants('LIMIT')} 1)`,
+                `${this.$constants('AS')} 'exists'`
+            ].join(' ');
+            const [{ exists: result }] = yield this._queryStatement(sql);
+            const check = !!Number.parseInt(result);
+            switch (check) {
+                case false: {
+                    const [result, id] = yield this._actionStatement({
+                        sql: this._getState('INSERT'),
+                        returnId: true
+                    });
+                    if (this._getState('VOID') || !result)
+                        return this._resultHandler(undefined);
+                    const sql = new Builder()
+                        .copyBuilder(this, { select: true })
+                        .where('id', id)
+                        .toString();
+                    const data = yield this._queryStatement(sql);
+                    return this._resultHandler((data === null || data === void 0 ? void 0 : data.shift()) || null);
+                }
+                default: return this._resultHandler(null);
+            }
+        });
+    }
     _insert() {
         return __awaiter(this, void 0, void 0, function* () {
-            const [result, id] = yield this.actionStatement({
-                sql: this.$state.get('INSERT'),
+            const [result, id] = yield this._actionStatement({
+                sql: this._getState('INSERT'),
                 returnId: true
             });
-            if (this.$state.get('VOID') || !result)
-                return this.resultHandler(undefined);
-            const sql = [
-                `${this.$state.get('SELECT')}`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$constants('WHERE')} ${this.$state.get('TABLE_NAME')}.\`id\` = ${id}`
-            ].join(' ');
-            const data = yield this.queryStatement(sql);
+            if (this._getState('VOID') || !result)
+                return this._resultHandler(undefined);
+            const sql = new Builder()
+                .copyBuilder(this, { select: true })
+                .where('id', id)
+                .toString();
+            const data = yield this._queryStatement(sql);
             const resultData = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-            this.$state.set('RESULT', resultData);
-            return this.resultHandler(resultData);
+            this._setState('RESULT', resultData);
+            return this._resultHandler(resultData);
         });
     }
     _checkValueHasRaw(value) {
@@ -2736,176 +3279,157 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _insertMultiple() {
         return __awaiter(this, void 0, void 0, function* () {
-            const [result, id] = yield this.actionStatement({
-                sql: this.$state.get('INSERT'),
+            const [result, id] = yield this._actionStatement({
+                sql: this._queryBuilder().insert(),
                 returnId: true
             });
-            if (this.$state.get('VOID') || !result)
-                return this.resultHandler(undefined);
+            console.log({
+                result,
+                id
+            });
+            if (this._getState('VOID') || !result)
+                return this._resultHandler(undefined);
+            console.log('hi');
             const arrayId = [...Array(result)].map((_, i) => i + id);
-            const sql = [
-                `${this.$state.get('SELECT')}`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$constants('WHERE')} id`,
-                `${this.$constants('IN')} (${arrayId})`
-            ].join(' ');
-            const data = yield this.queryStatement(sql);
+            const sql = new Builder()
+                .copyBuilder(this, { select: true })
+                .whereIn('id', arrayId)
+                .toString();
+            const data = yield this._queryStatement(sql);
             const resultData = data || null;
-            return this.resultHandler(resultData);
+            return this._resultHandler(resultData);
         });
     }
     _insertOrSelect() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE')) {
+            if (!this._getState('where').length) {
                 throw new Error("Can't create or select without where condition");
             }
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
                 `*`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`,
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
+                `${this._queryBuilder().where()}`,
                 `${this.$constants('LIMIT')} 1)`,
                 `${this.$constants('AS')} 'exists'`
             ].join(' ');
             let check = false;
-            const [{ exists: result }] = yield this.queryStatement(sql);
+            const [{ exists: result }] = yield this._queryStatement(sql);
             check = !!parseInt(result);
             switch (check) {
                 case false: {
-                    const [result, id] = yield this.actionStatement({
-                        sql: this.$state.get('INSERT'),
+                    const [result, id] = yield this._actionStatement({
+                        sql: this._queryBuilder().insert(),
                         returnId: true
                     });
-                    if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(undefined);
-                    const sql = [
-                        `${this.$state.get('SELECT')}`,
-                        `${this.$state.get('FROM')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
-                        `${this.$constants('WHERE')} id = ${id}`
-                    ].join(' ');
-                    const data = yield this.queryStatement(sql);
+                    if (this._getState('VOID') || !result)
+                        return this._resultHandler(undefined);
+                    const sql = new Builder()
+                        .copyBuilder(this, { select: true })
+                        .where('id', id)
+                        .toString();
+                    const data = yield this._queryStatement(sql);
                     const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'insert' }) || null;
-                    return this.resultHandler(resultData);
+                    return this._resultHandler(resultData);
                 }
                 case true: {
-                    const data = yield this.queryStatement([
-                        `${this.$state.get('SELECT')}`,
-                        `${this.$state.get('FROM')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
-                        `${this.$state.get('WHERE')}`
-                    ].join(' '));
+                    const sql = new Builder()
+                        .copyBuilder(this, { select: true, where: true })
+                        .toString();
+                    const data = yield this._queryStatement(sql);
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                         for (const val of data) {
                             val.$action = 'select';
                         }
-                        return this.resultHandler(data || []);
+                        return this._resultHandler(data || []);
                     }
                     const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'select' }) || null;
-                    return this.resultHandler(resultData);
+                    return this._resultHandler(resultData);
                 }
                 default: {
-                    return this.resultHandler(null);
+                    return this._resultHandler(null);
                 }
             }
         });
     }
     _updateOrInsert() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE')) {
+            if (!this._getState('where').length) {
                 throw new Error("Can't update or insert without where condition");
             }
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
                 `*`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`,
+                `${this._getState('FROM')}`,
+                `${this._getState('TABLE_NAME')}`,
+                `${this._queryBuilder().where()}`,
                 `${this.$constants('LIMIT')} 1)`,
                 `${this.$constants('AS')} 'exists'`
             ].join(' ');
             let check = false;
-            const [{ exists: result }] = yield this.queryStatement(sql);
+            const [{ exists: result }] = yield this._queryStatement(sql);
             check = !!parseInt(result);
             switch (check) {
                 case false: {
-                    const [result, id] = yield this.actionStatement({
-                        sql: this.$state.get('INSERT'),
+                    const [result, id] = yield this._actionStatement({
+                        sql: this._queryBuilder().insert(),
                         returnId: true
                     });
-                    if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(undefined);
-                    const sql = [
-                        `${this.$state.get('SELECT')}`,
-                        `${this.$state.get('FROM')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
-                        `${this.$constants('WHERE')} id = ${id}`
-                    ].join(' ');
-                    const data = yield this.queryStatement(sql);
+                    if (this._getState('VOID') || !result)
+                        return this._resultHandler(undefined);
+                    const sql = new Builder()
+                        .copyBuilder(this, { select: true })
+                        .where('id', id)
+                        .toString();
+                    const data = yield this._queryStatement(sql);
                     const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'insert' }) || null;
-                    return this.resultHandler(resultData);
+                    return this._resultHandler(resultData);
                 }
                 case true: {
-                    const result = yield this.actionStatement({
-                        sql: [
-                            `${this.$state.get('UPDATE')}`,
-                            `${this.$state.get('WHERE')}`
-                        ].join(' ')
+                    const result = yield this._actionStatement({
+                        sql: this._queryBuilder().update()
                     });
-                    if (this.$state.get('VOID') || !result)
-                        return this.resultHandler(null);
-                    const data = yield this.queryStatement([
-                        `${this.$state.get('SELECT')}`,
-                        `${this.$state.get('FROM')}`,
-                        `${this.$state.get('TABLE_NAME')}`,
-                        `${this.$state.get('WHERE')}`
-                    ].join(' '));
+                    if (this._getState('VOID') || !result)
+                        return this._resultHandler(null);
+                    const data = yield this._queryStatement(new Builder().copyBuilder(this, { select: true, where: true }).toString());
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
                         for (const val of data) {
                             val.$action = 'update';
                         }
-                        return this.resultHandler(data || []);
+                        return this._resultHandler(data || []);
                     }
                     const resultData = Object.assign(Object.assign({}, data === null || data === void 0 ? void 0 : data.shift()), { $action: 'update' }) || null;
-                    return this.resultHandler(resultData);
+                    return this._resultHandler(resultData);
                 }
                 default: {
-                    return this.resultHandler(null);
+                    return this._resultHandler(null);
                 }
             }
         });
     }
     _update(ignoreWhere = false) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE') && !ignoreWhere)
+            if (!this._getState('where').length && !ignoreWhere)
                 throw new Error("can't update without where condition");
-            const result = yield this.actionStatement({
-                sql: [
-                    `${this.$state.get('UPDATE')}`, `${this.$state.get('WHERE')}`
-                ].join(' ')
+            const result = yield this._actionStatement({
+                sql: this._queryBuilder().update()
             });
-            if (this.$state.get('VOID') || !result)
-                return this.resultHandler(undefined);
-            const sql = [
-                `${this.$state.get('SELECT')}`,
-                `${this.$state.get('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`,
-                `${this.$state.get('WHERE')}`
-            ].join(' ');
-            const data = yield this.queryStatement(sql);
+            if (this._getState('VOID') || !result)
+                return this._resultHandler(undefined);
+            const sql = this._queryBuilder().select();
+            const data = yield this._queryStatement(sql);
             if ((data === null || data === void 0 ? void 0 : data.length) > 1)
-                return this.resultHandler(data || []);
+                return this._resultHandler(data || []);
             const res = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-            return this.resultHandler(res);
+            return this._resultHandler(res);
         });
     }
     _hiddenColumn(data) {
         var _a;
-        const hidden = this.$state.get('HIDDEN');
+        const hidden = this._getState('HIDDEN');
         if ((_a = Object.keys(data)) === null || _a === void 0 ? void 0 : _a.length) {
             hidden.forEach((column) => {
                 data.forEach((objColumn) => {
@@ -2916,6 +3440,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return data;
     }
     _queryUpdate(data) {
+        this.$utils.covertDataToDateIfDate(data);
         const values = Object.entries(data).map(([column, value]) => {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW'))))
                 value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
@@ -2928,6 +3453,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return `${this.$constants('SET')} ${values}`;
     }
     _queryInsert(data) {
+        this.$utils.covertDataToDateIfDate(data);
         const columns = Object.keys(data).map((column) => `\`${column}\``);
         const values = Object.values(data).map((value) => {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW'))))
@@ -2948,6 +3474,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a;
         let values = [];
         for (let objects of data) {
+            this.$utils.covertDataToDateIfDate(data);
             const vals = Object.values(objects).map((value) => {
                 if (typeof value === 'string')
                     value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
@@ -3018,7 +3545,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 throw new Error(`Not found constants : ${name}`);
             return constants_1.CONSTANTS[name.toUpperCase()];
         };
-        this.$state = new StateHandler_1.StateHandler(this.$constants('DEFAULT'));
+        this.$state = new State_1.StateHandler(this.$constants('DEFAULT'));
     }
 }
 exports.Builder = Builder;

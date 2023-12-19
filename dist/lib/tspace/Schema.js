@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Schema = void 0;
 const Builder_1 = require("./Builder");
-const Model_1 = require("./Model");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 class Schema extends Builder_1.Builder {
@@ -56,11 +55,11 @@ class Schema extends Builder_1.Builder {
                     ];
                 }
                 const sql = [
-                    `CREATE TABLE IF NOT EXISTS`,
+                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                     `${table} (${columns === null || columns === void 0 ? void 0 : columns.join(',')})`,
-                    `ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8`
+                    `${this.$constants('ENGINE')}`
                 ].join(' ');
-                yield this.rawQuery(sql);
+                yield this.query(sql);
                 console.log(`Migrats : '${table}' created successfully`);
                 return;
             }
@@ -79,18 +78,20 @@ class Schema extends Builder_1.Builder {
                 ];
             }
             const sql = [
-                `CREATE TABLE IF NOT EXISTS`,
+                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                 `${table} (${columns === null || columns === void 0 ? void 0 : columns.join(', ')})`,
-                `ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8`
+                `${this.$constants('ENGINE')}`
             ].join(' ');
             return sql;
         };
     }
     /**
      *
-     * Sync will check for create or update table or columns with useSchema in your model.
+     * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+     *
+     * The schema can define with method 'useSchema'
      * @param {string} pathFolders directory to models
-     * @property {boolean} options.force - forec to always check columns is exists
+     * @property {boolean} options.force - forec always check all columns if not exists will be created
      * @property {boolean} options.log   - show log execution with sql statements
      * @property {boolean} options.delay - wait for execution
      * @example
@@ -127,7 +128,7 @@ class Schema extends Builder_1.Builder {
      *          this.useSchema ({
      *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *               uuid        : new Blueprint().varchar(50).null(),
-     *               user_id     : new Blueprint().int().notNull(),
+     *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),,
      *               title       : new Blueprint().varchar(255).null(),
      *               created_at  : new Blueprint().timestamp().null(),
      *               updated_at  : new Blueprint().timestamp().null(),
@@ -138,65 +139,137 @@ class Schema extends Builder_1.Builder {
      *
      *  await Schema.sync(`app/Models` , { force : true })
      */
-    static sync(pathFolders, { force = false, log = false, delay = 3000 } = {}) {
+    static sync(pathFolders, { force = false, log = false, foreign = false, delay = 1500 } = {}) {
         return __awaiter(this, void 0, void 0, function* () {
             const directories = fs_1.default.readdirSync(pathFolders, { withFileTypes: true });
-            const files = yield Promise.all(directories.map((directory) => {
+            const files = (yield Promise.all(directories.map((directory) => {
                 const newDir = path_1.default.resolve(String(pathFolders), directory.name);
                 if (directory.isDirectory() && directory.name.toLocaleLowerCase().includes('migrations'))
                     return null;
                 return directory.isDirectory() ? Schema.sync(newDir, { force, log, delay }) : newDir;
-            }));
+            })));
             const pathModels = [].concat(...files).filter(d => d != null || d === '');
             yield new Promise(r => setTimeout(r, delay));
-            const promises = pathModels.map((pathModel) => Schema._syncExecute({ pathModel, force, log }));
-            yield Promise.all(promises);
+            const models = yield Promise.all(pathModels.map((pathModel) => Schema._import(pathModel)).filter(d => d != null));
+            if (!models.length)
+                return;
+            yield Schema._syncExecute({ models, force, log, foreign });
             return;
         });
     }
-    static _syncExecute({ pathModel, force, log }) {
+    static _import(pathModel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const loadModel = yield Promise.resolve(`${pathModel}`).then(s => __importStar(require(s))).catch(_ => { });
+                const model = new loadModel.default();
+                return model;
+            }
+            catch (err) {
+                console.log(`Check your 'Model' from path : '${pathModel}' is not instance of Model`);
+                return null;
+            }
+        });
+    }
+    static _syncExecute({ models, force, log, foreign }) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
-            const loadModel = yield Promise.resolve(`${pathModel}`).then(s => __importStar(require(s)));
-            if (!loadModel.hasOwnProperty('default') && !(loadModel instanceof Model_1.Model))
-                return;
-            const model = new loadModel.default();
-            const schemaModel = yield model.getSchemaModel();
-            if (!schemaModel)
-                return;
-            const checkTableIsExists = Boolean((yield new Builder_1.Builder().rawQuery(`SHOW TABLES LIKE '${model.getTableName()}';`)).length);
-            if (!checkTableIsExists) {
-                const sql = new Schema().createTable(model.getTableName(), schemaModel);
-                yield new Builder_1.Builder().debug(log).rawQuery(sql);
-                return;
-            }
-            if (!force)
-                return;
-            const schemaTable = yield model.getSchema();
-            const schemaTableKeys = schemaTable.map((k) => k.Field);
-            const schemaModelKeys = Object.keys(schemaModel);
-            const missingColumns = schemaModelKeys.filter(schemaModelKey => !schemaTableKeys.includes(schemaModelKey));
-            if (!missingColumns.length)
-                return;
-            const entries = Object.entries(schemaModel);
-            for (const column of missingColumns) {
-                const indexWithColumn = entries.findIndex(([key]) => key === column);
-                const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
-                const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
-                const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
-                if (findAfterIndex == null || type == null || attributes == null)
+            const checkTables = yield new Builder_1.Builder().query('SHOW TABLES');
+            const existsTables = checkTables.map((c) => Object.values(c)[0]);
+            for (const model of models) {
+                if (model == null)
                     continue;
-                const sql = [
-                    'ALTER TABLE',
-                    `\`${model.getTableName()}\``,
-                    'ADD',
-                    `\`${column}\` ${type} ${attributes.join(' ')}`,
-                    'AFTER',
-                    `\`${findAfterIndex}\``
-                ].join(' ');
-                yield new Builder_1.Builder().debug(log).rawQuery(sql);
+                const schemaModel = model.getSchemaModel();
+                if (!schemaModel)
+                    continue;
+                const checkTableIsExists = existsTables.some((table) => table === model.getTableName());
+                if (!checkTableIsExists) {
+                    const sql = new Schema().createTable(`\`${model.getTableName()}\``, schemaModel);
+                    yield new Builder_1.Builder().debug(log).query(sql);
+                    yield this._syncForeignKey({
+                        schemaModel,
+                        model,
+                        log
+                    });
+                    continue;
+                }
+                if (foreign) {
+                    yield this._syncForeignKey({
+                        schemaModel,
+                        model,
+                        log
+                    });
+                }
+                if (!force)
+                    continue;
+                const schemaTable = yield model.getSchema();
+                const schemaTableKeys = schemaTable.map((k) => k.Field);
+                const schemaModelKeys = Object.keys(schemaModel);
+                const missingColumns = schemaModelKeys.filter(schemaModelKey => !schemaTableKeys.includes(schemaModelKey));
+                if (!missingColumns.length)
+                    continue;
+                const entries = Object.entries(schemaModel);
+                for (const column of missingColumns) {
+                    const indexWithColumn = entries.findIndex(([key]) => key === column);
+                    const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
+                    const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
+                    const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
+                    if (findAfterIndex == null || type == null || attributes == null)
+                        continue;
+                    const sql = [
+                        'ALTER TABLE',
+                        `\`${model.getTableName()}\``,
+                        'ADD',
+                        `\`${column}\` ${type} ${attributes.join(' ')}`,
+                        'AFTER',
+                        `\`${findAfterIndex}\``
+                    ].join(' ');
+                    yield new Builder_1.Builder().debug(log).query(sql);
+                }
+                yield this._syncForeignKey({
+                    schemaModel,
+                    model,
+                    log
+                });
             }
             return;
+        });
+    }
+    static _syncForeignKey({ schemaModel, model, log }) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            for (const key in schemaModel) {
+                if (((_a = schemaModel[key]) === null || _a === void 0 ? void 0 : _a.foreignKey) == null)
+                    continue;
+                const foreign = schemaModel[key].foreignKey;
+                const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName();
+                const sql = [
+                    "ALTER TABLE",
+                    `\`${model.getTableName()}\``,
+                    "ADD CONSTRAINT",
+                    `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``,
+                    `FOREIGN KEY(\`${key}\`)`,
+                    `REFERENCES \`${table}\`(\`${foreign.references}\`)`,
+                    `ON DELETE ${foreign.onDelete} ON UPDATE ${foreign.onUpdate}`
+                ].join(' ');
+                try {
+                    yield new Builder_1.Builder().debug(log).query(sql);
+                }
+                catch (e) {
+                    if (typeof foreign.on === "string") {
+                        console.log(e);
+                        continue;
+                    }
+                    if (String(e.message).includes("Duplicate foreign key constraint"))
+                        continue;
+                    const schemaModelOn = yield foreign.on.getSchemaModel();
+                    if (!schemaModelOn)
+                        continue;
+                    const tableSql = new Schema().createTable(`\`${table}\``, schemaModelOn);
+                    yield new Builder_1.Builder().debug(log).query(tableSql).catch(e => console.log(e));
+                    yield new Builder_1.Builder().debug(log).query(sql).catch(e => console.log(e));
+                    continue;
+                }
+            }
         });
     }
 }

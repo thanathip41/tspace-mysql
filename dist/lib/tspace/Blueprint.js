@@ -5,7 +5,7 @@ exports.Blueprint = void 0;
  * Make schema for table with Blueprint
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
- *   await new Schema().table('persos1',{
+ *   await new Schema().table('users',{
  *      id          : new Blueprint().int().notNull().primary().autoIncrement(),
  *      name        : new Blueprint().varchar(255).default('my name'),
  *      email       : new Blueprint().varchar(255).unique(),
@@ -20,13 +20,14 @@ class Blueprint {
     constructor() {
         this.type = 'INT';
         this.attributes = [];
+        this.foreignKey = null;
         this.valueType = String;
     }
     /**
      * Assign type 'int' in table
      * @return {this} this
      */
-    int(number) {
+    int(_) {
         this._addAssignType('INT');
         this.valueType = Number;
         return this;
@@ -312,6 +313,25 @@ class Blueprint {
      */
     autoincrement() {
         this._addAssignAttribute(`AUTO_INCREMENT`);
+        return this;
+    }
+    /**
+     * Assign attributes 'foreign' in table
+     * Reference bettwen Column Main to Column Child
+     * @param    {object}  property object { key , value , operator }
+     * @property {string?}  property.reference
+     * @property {Model | string}  property.on
+     * @property {string?} property.onDelete
+     * @property {string?}  property.onUpdate
+     * @return {this} this
+     */
+    foreign({ references, on, onDelete, onUpdate }) {
+        this.foreignKey = {
+            references: references == null ? 'id' : references,
+            on: typeof on === 'string' ? on : new on(),
+            onDelete: onDelete == null ? 'CASCADE' : onDelete,
+            onUpdate: onUpdate == null ? 'CASCADE' : onUpdate
+        };
         return this;
     }
     _addAssignType(type) {

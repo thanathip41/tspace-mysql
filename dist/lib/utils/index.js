@@ -10,8 +10,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.utils = void 0;
-const timestamp = () => {
-    const d = new Date();
+const typeOf = (data) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase();
+const isDate = (data) => {
+    if (typeOf(data) === 'date')
+        return true;
+    return false;
+};
+const timestamp = (dateString) => {
+    const d = dateString == null ? new Date() : new Date(dateString);
     const year = d.getFullYear();
     const month = `0${(d.getMonth() + 1)}`.slice(-2);
     const date = `0${(d.getDate())}`.slice(-2);
@@ -42,6 +48,13 @@ const escape = (str) => {
     if (typeof str !== 'string')
         return str;
     return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, '');
+};
+const escapeXSS = (str) => {
+    if (typeof str !== 'string')
+        return str;
+    return str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/on\w+="[^"]+"/g, '');
 };
 const isSubQuery = (subQuery) => {
     const checkIsSubQuery = (/\bSELECT\s+(?!\*)/i.test(subQuery));
@@ -74,6 +87,15 @@ const covertBooleanToNumber = (data) => {
     if (Object.prototype.toString.apply(data).slice(8, -1) === 'Boolean')
         return +data;
     return data;
+};
+const covertDataToDateIfDate = (data) => {
+    for (const key in data) {
+        const d = data[key];
+        if (!isDate(d))
+            continue;
+        data[key] = timestamp(d);
+    }
+    return;
 };
 const snakeCase = (data) => {
     try {
@@ -120,7 +142,9 @@ const camelCase = (data) => {
 const consoleDebug = (debug) => {
     if (debug == null)
         return;
-    console.log(`\n\x1b[33m${debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
+    if (typeof debug !== "string")
+        return;
+    console.log(`\n\x1b[33m${debug === null || debug === void 0 ? void 0 : debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
 };
 const randomString = (length = 100) => {
     let str = '';
@@ -152,6 +176,12 @@ const faker = (value) => {
         return Number((Math.random() * 100).toFixed(2));
     if (!value.search('double'))
         return Number((Math.random() * 100).toFixed(2));
+    if (!value.search('json')) {
+        return JSON.stringify({
+            id: Number(Math.floor(Math.random() * 1000)),
+            name: randomString(50)
+        });
+    }
     if (!value.search('varchar')) {
         const regex = /\d+/g;
         const limit = Number((_b = (_a = value === null || value === void 0 ? void 0 : value.match(regex)) === null || _a === void 0 ? void 0 : _a.pop()) !== null && _b !== void 0 ? _b : 255);
@@ -165,15 +195,19 @@ const hookHandle = (hooks, result) => __awaiter(void 0, void 0, void 0, function
     return;
 });
 const utils = {
+    typeOf,
+    isDate,
     consoleDebug,
     faker,
     columnRelation,
     timestamp,
     date,
     escape,
+    escapeXSS,
     isSubQuery,
     generateUUID,
     covertBooleanToNumber,
+    covertDataToDateIfDate,
     snakeCase,
     camelCase,
     randomString,

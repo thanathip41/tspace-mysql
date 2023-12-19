@@ -1,10 +1,17 @@
-import { AbstractModel } from './Abstract/AbstractModel';
-import { Relation, Pagination, RelationQuery } from './Interface';
+import { AbstractModel } from './Abstracts/AbstractModel';
+import { Blueprint } from './Blueprint';
+import { Relation, Pagination, RelationQuery, ValidateSchema } from '../Interface';
+/**
+ *
+ * 'Model' class is a representation of a database table
+ * @example
+ * class User extends Model {}
+ * new User().findMany().then(users => console.log(users))
+ */
 declare class Model extends AbstractModel {
     constructor();
     /**
-     *
-     * define for initialize of models
+     * The 'define' method is a special method that you can define within a model.
      * @example
      *  class User extends Model {
      *     define() {
@@ -18,8 +25,7 @@ declare class Model extends AbstractModel {
      */
     protected define(): void;
     /**
-     *
-     * boot for initialize of models like constructor()
+     *  The 'boot' method is a special method that you can define within a model.
      *  @example
      *  class User extends Model {
      *     boot() {
@@ -33,8 +39,43 @@ declare class Model extends AbstractModel {
      */
     protected boot(): void;
     /**
+     * The "useObserve" pattern refers to a way of handling model events using observer classes.
+     * Model events are triggered when certain actions occur on models,
+     * such as creating, updating, deleting, or saving a record.
      *
-     * Assign auto create table when not exists table
+     * Observers are used to encapsulate the event-handling logic for these events,
+     * keeping the logic separate from the model itself and promoting cleaner, more maintainable code.
+     * @param {Function} observer
+     * @return this
+     * @example
+     *
+     * class UserObserve {
+     *
+     *    public created(results : unknown) {
+     *       console.log({ results , created : true })
+     *    }
+     *
+     *    public updated(results : unknown) {
+     *       console.log({ results ,updated : true })
+     *    }
+     *
+     *    public deleted(results : unknown) {
+     *       console.log({ results ,deleted : true })
+     *    }
+     *   }
+     *
+     *   class User extends Model {
+     *      constructor() {
+     *          super()
+     *          this.useObserver(UserObserve)
+     *      }
+     *   }
+     */
+    protected useObserver(observer: Function): this;
+    /**
+     * The "useSchema" method is used to define the schema.
+     *
+     * It's automatically create, called when not exists table or columns.
      * @param {object} schema using Blueprint for schema
      * @example
      * import { Blueprint } from 'tspace-mysql'
@@ -52,106 +93,135 @@ declare class Model extends AbstractModel {
      * }
      * @return {this} this
      */
-    protected useSchema(schema: Record<string, any>): this;
+    protected useSchema(schema: Record<string, Blueprint>): this;
     /**
      *
-     * Assign function callback in model like constructor()
+     * The "useRegistry" method is used to define Function to results.
+     *
+     * It's automatically given Function to results.
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useRegistry()
      *     }
      * }
-     * @return {this} this
      */
     protected useRegistry(): this;
     /**
-     *
-     * Assign model calling all relationships in model
+     * The "useLoadRelationsInRegistry" method is used automatically called relations in your registry Model.
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useLoadRelationInRegistry()
      *     }
      * }
-     * @return {this} this
      */
     protected useLoadRelationsInRegistry(): this;
     /**
+     * The "useBuiltInRelationFunctions" method is used to define the function.
      *
-     * Assign model built-in relation functions to a results
+     * It's automatically given built-in relation functions to a results.
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useBuiltInRelationsFunction()
      *     }
      * }
-     * @return {this} this
      */
     protected useBuiltInRelationFunctions(): this;
     /**
+     * The "usePrimaryKey" method is add primary keys for database tables.
      *
-     * Assign primary column in model
      * @param {string} primary
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.usePrimaryKey()
      *     }
      * }
-     * @return {this} this
      */
     protected usePrimaryKey(primary: string): this;
     /**
-     * Assign generate uuid when creating in model
+     * The "useUUID" method is a concept of using UUIDs (Universally Unique Identifiers) as column 'uuid' in table.
+     *
+     * It's automatically genarate when created a result.
      * @param {string?} column [column=uuid] make new name column for custom column replace uuid with this
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useUUID()
      *     }
      * }
-     * @return {this} this
      */
     protected useUUID(column?: string): this;
     /**
-     * Assign in model console.log raw sql when fetching query statement
+     * The "useDebug" method is viewer raw-sql logs when excute the results.
      * @return {this} this
      */
     protected useDebug(): this;
     /**
-     *
-     * Assign in model use pattern [snake_case , camelCase]
+     * The "usePattern" method is used to assign pattern [snake_case , camelCase].
      * @param  {string} pattern
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.usePattern('camelCase')
      *     }
      * }
-     * @return {this} this
      */
     protected usePattern(pattern: "snake_case" | "camelCase"): this;
     /**
+     * The "useCamelCase" method is used to assign pattern camelCase.
+     * @return {this} this
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.useCamelCase()
+     *     }
+     * }
+     */
+    protected useCamelCase(): this;
+    /**
+     * The "SnakeCase" method is used to assign pattern snake_case.
+     * @return {this} this
+     * @example
+     * class User extends Model {
+     *     constructor() {
+     *        this.SnakeCase()
+     *     }
+     * }
+     */
+    protected useSnakeCase(): this;
+    /**
+     * The "useSoftDelete" refer to a feature that allows you to "soft delete" records from a database table instead of permanently deleting them.
      *
-     * Assign in model show data not be deleted
-     * Relations has reference this method
+     * Soft deleting means that the records are not physically removed from the database but are instead marked as deleted by setting a timestamp in a dedicated column.
+     *
+     * This feature is particularly useful when you want to retain a record of deleted data and potentially recover it later,
+     * or when you want to maintain referential integrity in your database
      * @param {string?} column default deleted_at
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useSoftDelete('deletedAt')
      *     }
      * }
-     * @return {this} this
      */
     protected useSoftDelete(column?: string): this;
     /**
-     *
-     * Assign timestamp when insert || updated created_at and update_at in table
+     * The "useTimestamp" method is used to assign a timestamp when creating a new record,
+     * or updating a record.
      * @param {object} timestampFormat
      * @property {string} timestampFormat.createdAt  - change new name column replace by default [created at]
      * @property {string} timestampFormat.updatedAt - change new name column replace by default updated at
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -161,89 +231,124 @@ declare class Model extends AbstractModel {
      *        })
      *     }
      * }
-     * @return {this} this
      */
     protected useTimestamp(timestampFormat?: {
         createdAt: string;
         updatedAt: string;
     }): this;
     /**
-     *
-     * Assign table name in model
+     * This "useTable" method is used to assign the name of the table.
      * @param {string} table table name in database
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useTable('setTableNameIsUser') // => 'setTableNameIsUser'
      *     }
      * }
-     * @return {this} this
      */
     protected useTable(table: string): this;
     /**
-     *
-     * Assign table name in model with signgular pattern
+     * This "useTableSingular" method is used to assign the name of the table with signgular pattern.
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useTableSingular() // => 'user'
      *     }
      * }
-     * @return {this} this
      */
     protected useTableSingular(): this;
     /**
-     *
-     * Assign table name in model with pluarl pattern
+     * This "useTablePlural " method is used to assign the name of the table with pluarl pattern
+     * @return {this} this
      * @example
      * class User extends Model {
      *     constructor() {
      *        this.useTablePlural() // => 'users'
      *     }
      * }
-     * @return {this} this
      */
     protected useTablePlural(): this;
     /**
-     *
-     * Assign schema column in model for validation data types
-     * @param {Object<NumberConstructor | StringConstructor | DateConstructor>} schema types (String Number and Date)
+     * This 'useValidationSchema' method is used to validate the schema when have some action create or update.
+     * @param {Object<ValidateSchema>} schema types (String Number and Date)
+     * @return {this} this
      * @example
      * class User extends Model {
      *   constructor() {
-     *     this.useValidationSchema()
-     *   }
+     *     this.useValidationSchema({
+     *      id : Number,
+     *       uuid :  Number,
+     *       name : {
+     *           type : String,
+     *           require : true
+     *           // json : true,
+     *           // enum : ["1","2","3"]
+     *      },
+     *      email : {
+     *           type : String,
+     *           require : true,
+     *           length : 199,
+     *           match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+     *           unique : true,
+     *           fn : async (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+     *       },
+     *       createdAt : Date,
+     *       updatedAt : Date,
+     *       deletedAt : Date
+     *    })
+     *  }
      * }
-     * @return {this} this
      */
-    protected useValidationSchema(schema?: null | Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
+    protected useValidationSchema(schema?: ValidateSchema): this;
     /**
-    *
-    * Assign schema column in model for validation data types
-    * @param {Object<NumberConstructor | StringConstructor | DateConstructor>} schema types (String Number and Date)
-    * @example
-    * class User extends Model {
-    *   constructor() {
-    *     this.useValidationSchema()
-    *   }
-    * }
-    * @return {this} this
-    */
-    protected useValidateSchema(schema?: null | Record<string, NumberConstructor | StringConstructor | DateConstructor>): this;
+     * This 'useValidateSchema' method is used to validate the schema when have some action create or update.
+     * @param {Object<ValidateSchema>} schema types (String Number and Date)
+     * @return {this} this
+     * @example
+     * class User extends Model {
+     *   constructor() {
+     *     this.useValidationSchema({
+     *       id : Number,
+     *       uuid :  string,
+     *       name : {
+     *           type : String,
+     *           require : true
+     *      },
+     *      email : {
+     *           type : String,
+     *           require : true,
+     *           length : 199,
+     *           // json : true,
+     *           // enum : ["1","2","3"]
+     *           match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+     *           unique : true,
+     *           fn : async (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+     *       },
+     *       createdAt : Date,
+     *       updatedAt : Date,
+     *       deletedAt : Date
+     *    })
+     *  }
+     * }
+     */
+    protected useValidateSchema(schema?: ValidateSchema): this;
     /**
-     * Assign hook function when execute returned results to callback function
-     * @param {Array<Function>} arrayFunctions functions for callback result
+     * The "useHooks" method is used to assign hook function when execute returned results to callback function.
+     * @param {Function[]} arrayFunctions functions for callback result
+     * @return {this} this
      * @example
      * class User extends Model {
      *   constructor() {
      *     this.useHook([(results) => console.log(results)])
      *   }
      * }
-     * @return {this}
     */
-    protected useHooks(arrayFunctions: Array<Function>): this;
+    protected useHooks(arrayFunctions: Function[]): this;
     /**
      * exceptColumns for method except
+     * @override
      * @return {promise<string>} string
      */
     protected exceptColumns(): Promise<string[]>;
@@ -256,11 +361,41 @@ declare class Model extends AbstractModel {
     protected buildMethodRelation(name: string, callback?: Function): this;
     /**
      *
+     * The 'makeSelectStatement' method is used to make select statement.
+     * @return {Promise<string>} string
+     */
+    makeSelectStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeInsertStatement' method is used to make insert table statement.
+     * @return {Promise<string>} string
+     */
+    makeInsertStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeUpdateStatement' method is used to make update table statement.
+     * @return {Promise<string>} string
+     */
+    makeUpdateStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeDeleteStatement' method is used to make delete statement.
+     * @return {Promise<string>} string
+     */
+    makeDeleteStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeCreateStatement' method is used to make create table statement.
+     * @return {Promise<string>} string
+     */
+    makeCreateStatement(): Promise<string>;
+    /**
+     *
      * Clone instance of model
      * @param {Model} instance instance of model
      * @return {this} this
      */
-    protected clone(instance: Model): this;
+    clone(instance: Model): this;
     /**
      *
      * Copy an instance of model
@@ -268,13 +403,17 @@ declare class Model extends AbstractModel {
      * @param {Object} options keep data
      * @return {Model} Model
      */
-    protected copyModel(instance: Model, options?: {
+    copyModel(instance: Model, options?: {
         update?: boolean;
         insert?: boolean;
         delete?: boolean;
         where?: boolean;
         limit?: boolean;
+        orderBy?: boolean;
+        join?: boolean;
         offset?: boolean;
+        groupBy?: boolean;
+        select?: boolean;
     }): Model;
     /**
      *
@@ -283,17 +422,17 @@ declare class Model extends AbstractModel {
      * @param {string} sql
      * @return {this} this
      */
-    protected queryStatement(sql: string): Promise<any[]>;
+    protected _queryStatement(sql: string): Promise<any[]>;
     /**
      *
      * execute the query using raw sql syntax actions for insert update and delete
      * @override method
      * @param {Object} actions
-     * @property {Function} actions.sql
+     * @property {Function} actions.sqlresult
      * @property {Function} actions.returnId
      * @return {this} this
      */
-    protected actionStatement({ sql, returnId }: {
+    protected _actionStatement({ sql, returnId }: {
         sql: string;
         returnId?: boolean;
     }): Promise<any>;
@@ -302,7 +441,7 @@ declare class Model extends AbstractModel {
      * @param {string} table table name
      * @return {this} this
      */
-    tableName(table: string): this;
+    table(table: string): this;
     /**
      * Assign ignore delete_at in model
      *  @param {boolean} condition
@@ -322,9 +461,11 @@ declare class Model extends AbstractModel {
      */
     registry(func: Record<string, Function>): this;
     /**
+     * The 'with' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Use relations in registry of model return result of relation query
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
+     * @return {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
      *   class User extends Model {
@@ -341,29 +482,45 @@ declare class Model extends AbstractModel {
      *           this.belongsTo({ name : 'user' , model : User })
      *       }
      *   }
-     *  // use with for results of relationship
-     *  await new User().with('posts').findMany()
-     * @return {this} this
-     */
-    with(...nameRelations: Array<string>): this;
-    /**
+     *  // use 'with' for results of relationship
+     *  await new User().relations('posts').findMany()
      *
-     * Use relations in registry of model return ignore soft delete
+     */
+    with(...nameRelations: string[]): this;
+    /**
+     * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
+     *
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * It's method ignore soft delete
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withAll(...nameRelations: Array<string>): this;
+    withAll(...nameRelations: string[]): this;
     /**
+    * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
+    *
+    * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+    * It's method ignore soft delete
+    * @param {...string} nameRelations if data exists return blank
+    * @return {this} this
+    */
+    withCount(...nameRelations: string[]): this;
+    /**
+     * The 'withTrashed' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Use relations in registry of model return only in trash (soft delete)
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * It's method return results only in trash (soft deleted)
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withTrashed(...nameRelations: Array<string>): this;
+    withTrashed(...nameRelations: string[]): this;
     /**
+     * The 'withExists' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Use relations in registry of model return only exists result of relation query
-     * @param {...string} nameRelations if data exists return blank
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * It's method return only exists result of relation query
+     * @param {...string} nameRelations
+     * @return {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
      *   class User extends Model {
@@ -381,10 +538,9 @@ declare class Model extends AbstractModel {
      *       }
      *   }
      *  // use with for results of relationship if relations is exists
-     *  await new User().withExists('posts').findMany()
-     * @return {this} this
+     *  await new User().relationsExists('posts').findMany()
      */
-    withExists(...nameRelations: Array<string>): this;
+    withExists(...nameRelations: string[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -409,10 +565,12 @@ declare class Model extends AbstractModel {
      *  await new User().has('posts').findMany()
      * @return {this} this
      */
-    has(...nameRelations: Array<string>): this;
+    has(...nameRelations: string[]): this;
     /**
      *
-     * Use relation '${name}' registry of model return callback this query model
+     * The 'withQuery' method is particularly useful when you want to filter or add conditions records based on related data.
+     *
+     * Use relation '${name}' registry models then return callback queries
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
      * @example
@@ -440,15 +598,15 @@ declare class Model extends AbstractModel {
      *       }
      *   }
      *
-     *   await new User().with('posts')
-     *   .withQuery('posts', (query : Post) => {
-     *       return query.with('comments','user')
-     *       .withQuery('comments', (query : Comment) => {
-     *           return query.with('user','post')
+     *   await new User().relations('posts')
+     *   .relationsQuery('posts', (query : Post) => {
+     *       return query.relations('comments','user')
+     *       .relationsQuery('comments', (query : Comment) => {
+     *           return query.relations('user','post')
      *       })
-     *       .withQuery('user', (query : User) => {
-     *           return query.with('posts').withQuery('posts',(query : Post)=> {
-     *               return query.with('comments','user')
+     *       .relationsQuery('user', (query : User) => {
+     *           return query.relations('posts').relationsQuery('posts',(query : Post)=> {
+     *               return query.relations('comments','user')
      *               // relation n, n, ...n
      *           })
      *       })
@@ -481,7 +639,7 @@ declare class Model extends AbstractModel {
      *  await new User().relations('posts').findMany()
      * @return {this} this
      */
-    relations(...nameRelations: Array<string>): this;
+    relations(...nameRelations: string[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -506,7 +664,7 @@ declare class Model extends AbstractModel {
      *  await new User().relationsExists('posts').findMany()
      * @return {this} this
      */
-    relationsExists(...nameRelations: Array<string>): this;
+    relationsExists(...nameRelations: string[]): this;
     /**
      *
      * Use relation '${name}' registry of model return callback this query model
@@ -537,15 +695,15 @@ declare class Model extends AbstractModel {
      *       }
      *   }
      *
-     *   await new User().with('posts')
+     *   await new User().relations('posts')
      *   .relationQuery('posts', (query : Post) => {
-     *       return query.with('comments','user')
+     *       return query.relations('comments','user')
      *       .relationQuery('comments', (query : Comment) => {
-     *           return query.with('user','post')
+     *           return query.relations('user','post')
      *       })
      *       .relationQuery('user', (query : User) => {
-     *           return query.with('posts').relationQuery('posts',(query : Post)=> {
-     *               return query.with('comments','user')
+     *           return query.relations('posts').relationQuery('posts',(query : Post)=> {
+     *               return query.relations('comments','user')
      *               // relation n, n, ...n
      *           })
      *       })
@@ -560,16 +718,21 @@ declare class Model extends AbstractModel {
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsAll(...nameRelations: Array<string>): this;
+    relationsAll(...nameRelations: string[]): this;
     /**
      *
      * Use relations in registry of model return only in trash (soft delete)
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsTrashed(...nameRelations: Array<string>): this;
+    relationsTrashed(...nameRelations: string[]): this;
     /**
-     * Assign the relation in model Objects
+     * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
+     *
+     * It indicates that a particular record in the primary table is associated with one and only one record in the related table.
+     *
+     * This is typically used when you have a foreign key in the related table that references the primary table.
+     *
      * @param    {object} relations registry relation in your model
      * @property {string} relation.name
      * @property {string} relation.as
@@ -581,7 +744,12 @@ declare class Model extends AbstractModel {
      */
     protected hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
-     * Assign the relation in model Objects
+     * The 'hasMany' relationship defines a one-to-many relationship between two database tables.
+     *
+     * It indicates that a record in the primary table can be associated with multiple records in the related table.
+     *
+     * This is typically used when you have a foreign key in the related table that references the primary table.
+     *
      * @param    {object} relations registry relation in your model
      * @property {string} relation.name
      * @property {string} relation.as
@@ -593,7 +761,12 @@ declare class Model extends AbstractModel {
      */
     protected hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
-     * Assign the relation in model Objects
+     * The 'belongsTo' relationship defines a one-to-one or many-to-one relationship between two database tables.
+     *
+     * It indicates that a record in the related table belongs to a single record in the primary table.
+     *
+     * This is typically used when you have a foreign key in the primary table that references the related table.
+     *
      * @param    {object} relations registry relation in your model
      * @property {string} relation.name
      * @property {string} relation.as
@@ -605,7 +778,12 @@ declare class Model extends AbstractModel {
      */
     protected belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
     /**
-     * Assign the relation in model Objects
+     * The 'belongsToMany' relationship defines a many-to-many relationship between two database tables.
+     *
+     * It indicates that records in both the primary table and the related table can be associated
+     * with multiple records in each other's table through an intermediate table.
+     *
+     * This is commonly used when you have a many-to-many relationship between entities, such as users and roles or products and categories.
      * @param    {object} relations registry relation in your model
      * @property {string} relation.name
      * @property {string} relation.as
@@ -615,25 +793,28 @@ declare class Model extends AbstractModel {
      * @property {string} relation.freezeTable freeae table name
      * @property {string} relation.pivot table name of pivot
      * @property {string} relation.oldVersion return value of old version
+     * @property {class?} relation.modelPivot model for pivot
      * @return   {this}   this
      */
-    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion }: Relation): this;
+    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: Relation): this;
     /**
-     * Assign the relation in model Objects
+     * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
+     *
      * @param    {object}  relation registry relation in your model
      * @type     {object}  relation
-     * @property {class}  model
+     * @property {class}   model
      * @property {string?} name
-     * @property {string?}  as
+     * @property {string?} as
      * @property {string?} localKey
      * @property {string?} foreignKey
      * @property {string?} freezeTable
-     * @param    {function?} callback callback of query
+     * @param    {Function?} callback callback of query
      * @return   {this} this
      */
     protected hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
-     * Assign the relation in model Objects
+     * The 'hasManyBuilder' method is useful for creating 'hasMany' relationship to function
+     *
      * @param    {object}  relation registry relation in your model
      * @type     {object}  relation
      * @property {class}  model
@@ -647,7 +828,7 @@ declare class Model extends AbstractModel {
      */
     protected hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
-     * Assign the relation in model Objects
+     * The 'belongsToBuilder' method is useful for creating 'belongsTo' relationship to function
      * @param    {object}  relation registry relation in your model
      * @type     {object}  relation
      * @property {class}  model
@@ -661,7 +842,7 @@ declare class Model extends AbstractModel {
      */
     protected belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
     /**
-     * Assign the relation in model Objects
+     * The 'belongsToManyBuilder' method is useful for creating 'belongsToMany' relationship to function
      * @param    {object}  relation registry relation in your model
      * @type     {object}  relation
      * @property {class}  model
@@ -673,23 +854,23 @@ declare class Model extends AbstractModel {
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }: RelationQuery, callback?: Function): this;
+    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: RelationQuery, callback?: Function): this;
     /**
-     * where not null using NULL
-     * @override
-     * @return {this}
+     * The 'trashed' method is used to specify that you want to retrieve only the soft-deleted records from a database table.
+     *
+     * Soft deleting is a feature that allows you to mark records as deleted without physically removing them from the database. Instead,
+     * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
+     * @return {this} this
      */
-    whereTrashed(): this;
+    onlyTrashed(): this;
     /**
-     * return only in trashed (data has been remove)
-     * @return {promise}
+     * The 'trashed' method is used to specify that you want to retrieve only the soft-deleted records from a database table.
+     *
+     * Soft deleting is a feature that allows you to mark records as deleted without physically removing them from the database. Instead,
+     * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
+     * @return {this} this
      */
-    trashed(): Promise<any>;
-    /**
-     * return all only in trashed (data has been remove)
-     * @return {promise}
-     */
-    onlyTrashed(): Promise<any>;
+    trashed(): this;
     /**
      * restore data in trashed
      * @return {promise}
@@ -698,54 +879,54 @@ declare class Model extends AbstractModel {
     toTableName(): string;
     toTableNameAndColumn(column: string): string;
     /**
-     * delete data from the database
      * @override Method
-     * @return {promise<boolean>}
+     * @return {promise<boolean>} promise boolean
      */
     delete(): Promise<boolean>;
     /**
-     *
      * @override Method
-     * @return {promise<Record<string,any> | null>}
+     * @return {promise<boolean>} promise boolean
+     */
+    deleteMany(): Promise<boolean>;
+    /**
+     * @override Method
+     * @return {promise<Record<string,any> | null>} Record | null
     */
     first(): Promise<Record<string, any> | null>;
     /**
-     *
      * @override Method
-     * @return {promise<Record<string,any> | null>}
+     * @return {promise<Record<string,any> | null>} Record | null
     */
     findOne(): Promise<Record<string, any> | null>;
     /**
-     *
      * @override Method
-     * @return {promise<object | Error>}
+     * @return {promise<object | Error>} Record | throw error
     */
     firstOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
     /**
      *
      * @override Method
-     * @return {promise<any>}
+     * @return {promise<any>} Record | throw error
     */
     findOneOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
     /**
      *
      * @override Method
-     * @return {promise<array>}
+     * @return {promise<array>} Array
     */
     get(): Promise<any[]>;
     /**
      *
      * @override Method
-     * @return {promise<array>}
+     * @return {promise<array>} Array
     */
     findMany(): Promise<any[]>;
     /**
-     *
      * @override Method
      * @param {object?} paginationOptions by default page = 1 , limit = 15
      * @property {number} paginationOptions.limit
      * @property {number} paginationOptions.page
-     * @return {promise<Pagination>}
+     * @return {promise<Pagination>} Pagination
      */
     pagination(paginationOptions?: {
         limit?: number;
@@ -757,139 +938,128 @@ declare class Model extends AbstractModel {
     * @param    {?object} paginationOptions by default page = 1 , limit = 15
     * @property {number}  paginationOptions.limit
     * @property {number}  paginationOptions.page
-    * @return   {promise<Pagination>}
+    * @return   {promise<Pagination>} Pagination
     */
     paginate(paginationOptions?: {
         limit?: number;
         page?: number;
     }): Promise<Pagination>;
     /**
-     *
      * @override Method
      * @param {string} column
-     * @return {Promise<array>}
+     * @return {Promise<array>} Array
      */
     getGroupBy(column: string): Promise<any[]>;
     /**
-     *
-     * update data in the database
+     * @override Method
+     * @param {object} data for insert
+     * @return {this} this
+     */
+    insert(data: Record<string, string | number | boolean | null | undefined>): this;
+    /**
+     * @override Method
+     * @param {object} data for insert
+     * @return {this} this
+     */
+    create(data: Record<string, string | number | boolean | null | undefined>): this;
+    /**
+     * @override Method
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data}
      * @return {this} this
      */
-    update(data: Record<string, any>, updateNotExists?: string[]): this;
+    update(data: Record<string, string | number | boolean | null | undefined>, updateNotExists?: string[]): this;
     /**
-     *
+     * @override Method
+     * @param {object} data
+     * @param {array?} updateNotExists options for except update some records in your ${data}
+     * @return {this} this
+     */
+    updateMany(data: Record<string, string | number | boolean | null | undefined>, updateNotExists?: string[]): this;
+    /**
      * @override Method
      * @param {object} data
      * @return {this} this
      */
-    updateNotExists(data: Record<string, any> & {
+    updateNotExists(data: Record<string, string | number | boolean | null | undefined> & {
         length?: unknown;
     }): this;
     /**
-     *
-     * @override Method
-     * @param {object} data for insert
-     * @return {this} this
-     */
-    insert(data: Record<string, any>): this;
-    /**
-     *
-     * @override Method
-     * @param {object} data for insert
-     * @return {this} this
-     */
-    create(data: Record<string, any>): this;
-    /**
-     *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrCreate(data: Record<string, any>): this;
+    updateOrCreate(data: Record<string, string | number | boolean | null | undefined>): this;
     /**
-     *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrInsert(data: Record<string, any>): this;
+    updateOrInsert(data: Record<string, string | number | boolean | null | undefined>): this;
     /**
-    *
-    * @override Method
-    * @param {object} data for update or create
-    * @return {this} this
-    */
-    insertOrUpdate(data: Record<string, any>): this;
-    /**
-     *
      * @override Method
      * @param {object} data for update or create
      * @return {this} this
      */
-    createOrUpdate(data: Record<string, any>): this;
+    insertOrUpdate(data: Record<string, string | number | boolean | null | undefined>): this;
     /**
-     *
+     * @override Method
+     * @param {object} data for update or create
+     * @return {this} this
+     */
+    createOrUpdate(data: Record<string, string | number | boolean | null | undefined>): this;
+    /**
      * @override Method
      * @param {object} data for create
      * @return {this} this
      */
-    createOrSelect(data: Record<string, any>): this;
+    createOrSelect(data: Record<string, string | number | boolean | null | undefined>): this;
     /**
-    *
-    * @override Method
-    * @param {object} data for update or create
-    * @return {this} this
-    */
-    insertOrSelect(data: Record<string, any>): this;
-    /**
-     *
-     * insert multiple data into the database
      * @override Method
-     * @param {array<object>} data create multiple data
+     * @param {object} data for update or create
+     * @return {this} this
+     */
+    insertOrSelect(data: Record<string, string | number | boolean | null | undefined>): this;
+    /**
+     * @override Method
+     * @param {Record<string,any>[]} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Record<string, any>[]): this;
+    createMultiple(data: Record<string, string | number | boolean | null | undefined>[]): this;
     /**
      *
-     * insert muliple data into the database
      * @override Method
-     * @param {array<object>} data create multiple data
-     * @return {this} this this
+     * @param {Record<string,any>[]} data create multiple data
+     * @return {this} this
      */
-    insertMultiple(data: Record<string, any>[]): this;
+    insertMultiple(data: Record<string, string | number | boolean | null | undefined>[]): this;
     /**
-     *
+     * @override Method
      * @param {object} data create not exists data
-     * @override Method
-     * @return {this} this this
+     * @return {this} this
      */
-    createNotExists(data: Record<string, any>): this;
+    createNotExists(data: Record<string, string | number | boolean | null | undefined>): this;
     /**
-     *
+     * @override Method
      * @param {object} data create not exists data
-     * @override Method
      * @return {this} this this
      */
-    insertNotExists(data: Record<string, any>): this;
+    insertNotExists(data: Record<string, string | number | boolean | null | undefined>): this;
+    getSchemaModel(): Record<string, any> | null;
+    validation(schema?: ValidateSchema): this;
     /**
-     *
-     * get schema from table
-     * @return {this} this this
+     * The 'bindPattern' method is used to covert column relate with pattern
+     * @param {string} column
+     * @return {string} return table.column
      */
-    getSchema(): Promise<any>;
-    getSchemaModel(): Promise<any>;
-    getTableName(): any;
+    bindPattern(column: string): string;
     /**
-     *
      * @override Method
      * @return {Promise<Record<string,any> | any[] | null | undefined>}
      */
     save(): Promise<Record<string, any> | any[] | null | undefined>;
     /**
      *
-     * fake data into to this table
      * @override Method
      * @param {number} rows number of rows
      * @return {promise<any>}
@@ -899,25 +1069,24 @@ declare class Model extends AbstractModel {
     private _isPatternSnakeCase;
     private _classToTableName;
     private _makeTableName;
-    private _tableName;
-    private _valueInRelation;
     private _handleSoftDelete;
     /**
      *
      * generate sql statements
      * @override
-     * @return {string} string generated query string
      */
-    protected _buildQueryStatement(): string;
+    protected _queryBuilder(): {
+        select: () => string;
+        insert: () => string;
+        update: () => string;
+        delete: () => string;
+        where: () => string | null;
+        any: () => string;
+    };
     private _showOnly;
     private _validateSchema;
     private _execute;
     private _executeGroup;
-    private _relationMapData;
-    private _handleRelationsExists;
-    private _queryRelationsExists;
-    private _relation;
-    private _belongsToMany;
     private _pagination;
     private _returnEmpty;
     private _returnResult;
@@ -934,11 +1103,10 @@ declare class Model extends AbstractModel {
     private _insertOrSelectModel;
     private _updateModel;
     private _assertError;
-    private _functionRelationName;
-    private _handleRelations;
-    private _handleRelationsQuery;
     private _validateMethod;
     private _checkSchemaOrNextError;
+    private _stoppedRetry;
+    private _observer;
     private _initialModel;
 }
 export { Model };

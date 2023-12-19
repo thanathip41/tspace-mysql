@@ -1,6 +1,24 @@
+import Model from "./tspace/Model";
 export interface Relation {
     name: string;
-    model: any;
+    model: new () => Model;
+    as?: string | undefined;
+    localKey?: string | undefined;
+    foreignKey?: string | undefined;
+    freezeTable?: string | undefined;
+    pivot?: string | undefined;
+    query?: any | undefined;
+    relation?: Object | undefined;
+    exists?: boolean | undefined;
+    all?: boolean | undefined;
+    trashed?: boolean | undefined;
+    count?: boolean | undefined;
+    oldVersion?: boolean | undefined;
+    modelPivot?: new () => Model | undefined;
+}
+export interface RelationQuery {
+    name?: string;
+    model: new () => Model;
     as?: string;
     localKey?: string | undefined;
     foreignKey?: string | undefined;
@@ -12,17 +30,7 @@ export interface Relation {
     all?: boolean | undefined;
     trashed?: boolean | undefined;
     oldVersion?: boolean | undefined;
-}
-export interface RelationQuery {
-    name?: string;
-    model: any;
-    as?: string;
-    localKey?: string | undefined;
-    foreignKey?: string | undefined;
-    freezeTable?: string | undefined;
-    pivot?: string | undefined;
-    query?: any | undefined;
-    relation?: Object | undefined;
+    modelPivot?: new () => Model | undefined;
 }
 export interface RelationShip {
     hasOne: string;
@@ -47,7 +55,6 @@ export interface Backup {
     to?: {
         host: string;
         port: number;
-        database: string;
         username: string;
         password: string;
     };
@@ -121,3 +128,17 @@ export interface Execute {
     };
 }
 export type Pattern = 'snake_case' | 'camelCase';
+export type ValidateSchema = null | Record<string, NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor | {
+    type: NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor;
+    require?: boolean;
+    match?: RegExp;
+    length?: number;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    enum?: string[] | number[] | boolean[];
+    unique?: boolean;
+    json?: boolean;
+    fn?: Function;
+}>;

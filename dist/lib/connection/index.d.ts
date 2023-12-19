@@ -1,5 +1,5 @@
 import { loadOptionsEnvironment } from './options';
-import { Connection, Options } from '../tspace/Interface';
+import { Connection, Options } from '../Interface';
 export declare class PoolConnection {
     private OPTIONS;
     /**
@@ -29,6 +29,6 @@ export declare class PoolConnection {
  * @property {Function} Connection.connection
  */
 declare const pool: Connection;
-export { pool as Pool };
 export { loadOptionsEnvironment };
+export { pool as Pool };
 export default pool;

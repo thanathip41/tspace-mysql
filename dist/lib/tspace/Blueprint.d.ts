@@ -1,8 +1,9 @@
+import { Model } from "./Model";
 /**
  * Make schema for table with Blueprint
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
- *   await new Schema().table('persos1',{
+ *   await new Schema().table('users',{
  *      id          : new Blueprint().int().notNull().primary().autoIncrement(),
  *      name        : new Blueprint().varchar(255).default('my name'),
  *      email       : new Blueprint().varchar(255).unique(),
@@ -15,13 +16,14 @@
  */
 declare class Blueprint {
     protected type: string;
-    protected attributes: Array<string>;
+    protected attributes: string[];
+    protected foreignKey: Record<string, any> | null;
     protected valueType: NumberConstructor | StringConstructor | DateConstructor;
     /**
      * Assign type 'int' in table
      * @return {this} this
      */
-    int(number?: number): this;
+    int(_?: number): this;
     /**
      * Assign type 'TINYINT' in table
      * @param {number} number
@@ -192,6 +194,22 @@ declare class Blueprint {
      * @return {this} this
      */
     autoincrement(): this;
+    /**
+     * Assign attributes 'foreign' in table
+     * Reference bettwen Column Main to Column Child
+     * @param    {object}  property object { key , value , operator }
+     * @property {string?}  property.reference
+     * @property {Model | string}  property.on
+     * @property {string?} property.onDelete
+     * @property {string?}  property.onUpdate
+     * @return {this} this
+     */
+    foreign({ references, on, onDelete, onUpdate }: {
+        references?: string;
+        on: (new () => Model) | string;
+        onDelete?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
+        onUpdate?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
+    }): this;
     private _addAssignType;
     private _addAssignAttribute;
 }

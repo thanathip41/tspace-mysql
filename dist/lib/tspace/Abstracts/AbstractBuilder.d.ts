@@ -1,5 +1,5 @@
-import { Pagination } from '../Interface';
-import { StateHandler } from '../StateHandler';
+import { Pagination } from '../../Interface';
+import { StateHandler } from '../Handlers/State';
 declare abstract class AbstractBuilder {
     protected $setters: string[];
     protected $utils: {
@@ -35,8 +35,8 @@ declare abstract class AbstractBuilder {
     abstract whereUser(id: number): this;
     abstract whereEmail(value: string): this;
     abstract whereQuery(callback: Function): this;
-    abstract whereJSON(column: string, { targetKey, value, operator }: {
-        targetKey: string;
+    abstract whereJSON(column: string, { key, value, operator }: {
+        key: string;
         value: string;
         operator: string;
     }): this;
@@ -70,6 +70,7 @@ declare abstract class AbstractBuilder {
     abstract insert(data: Record<string, any>): this;
     abstract create(data: Record<string, any>): this;
     abstract update(data: Record<string, any>, updateNotExists?: string[]): this;
+    abstract updateMany(data: Record<string, any>, updateNotExists?: string[]): this;
     abstract insertNotExists(data: Record<string, any>): this;
     abstract createNotExists(data: Record<string, any>): this;
     abstract insertOrUpdate(data: Record<string, any>): this;
@@ -111,6 +112,7 @@ declare abstract class AbstractBuilder {
     abstract min(column: string): Promise<number>;
     abstract rawQuery(sql: string): Promise<any[]>;
     abstract delete(): Promise<boolean>;
+    abstract deleteMany(): Promise<boolean>;
     abstract exists(): Promise<boolean>;
     abstract save(): Promise<Record<string, any> | any[] | null | undefined>;
     abstract increment(column: string, value: number): Promise<number>;
