@@ -19,7 +19,7 @@ export interface Relation {
 export interface RelationQuery {
     name?: string;
     model: new () => Model;
-    as?: string;
+    as?: string | undefined;
     localKey?: string | undefined;
     foreignKey?: string | undefined;
     freezeTable?: string | undefined;
@@ -29,6 +29,7 @@ export interface RelationQuery {
     exists?: boolean | undefined;
     all?: boolean | undefined;
     trashed?: boolean | undefined;
+    count?: boolean | undefined;
     oldVersion?: boolean | undefined;
     modelPivot?: new () => Model | undefined;
 }
@@ -142,3 +143,17 @@ export type ValidateSchema = null | Record<string, NumberConstructor | StringCon
     json?: boolean;
     fn?: Function;
 }>;
+export type ValidateSchemaDecorator = NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor | {
+    type: NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor;
+    require?: boolean;
+    match?: RegExp;
+    length?: number;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    enum?: string[] | number[] | boolean[];
+    unique?: boolean;
+    json?: boolean;
+    fn?: Function;
+};

@@ -36,7 +36,7 @@ class RelationHandler {
                 const data = parent[localKey];
                 if (parent.hasOwnProperty(localKey))
                     return data;
-                this.MODEL['_assertError'](data == null, `Unknown relationship without primary or foreign key in Relation : [${relation === null || relation === void 0 ? void 0 : relation.name}]`);
+                this.MODEL['_assertError'](data == null, `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
             })
                 .filter(d => d != null);
             const parentIds = Array.from(new Set(localKeyId)) || [];
@@ -123,7 +123,7 @@ class RelationHandler {
         const relations = nameRelations.map((name) => {
             var _a, _b, _c;
             const relation = (_a = this._getState('RELATION')) === null || _a === void 0 ? void 0 : _a.find((data) => data.name === name);
-            this._assertError(relation == null, `This Relation "${name}" not be register in Model "${(_b = this.constructor) === null || _b === void 0 ? void 0 : _b.name}"`);
+            this._assertError(relation == null, `The relation '${name}' is not registered in the model '${(_b = this.MODEL.constructor) === null || _b === void 0 ? void 0 : _b.name}'.`);
             const relationHasExists = (_c = Object.values(this.$constants('RELATIONSHIP'))) === null || _c === void 0 ? void 0 : _c.includes(relation.relation);
             this._assertError(!relationHasExists, `Unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
             if (relation.query == null)
@@ -148,7 +148,7 @@ class RelationHandler {
     callback(nameRelation, cb) {
         var _a, _b;
         const relation = this._getState('RELATIONS').find((data) => data.name === nameRelation);
-        this._assertError(relation == null, `This Relation "${nameRelation}" not be register in Model "${(_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
+        this._assertError(relation == null, `This Relation "${nameRelation}" not be register in Model "${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
         const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
         this._assertError(!relationHasExists, `unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
         relation.query = cb(new relation.model());
@@ -356,8 +356,7 @@ class RelationHandler {
         this._setState('RELATION', [...this._getState('RELATION'), relation]);
         this.MODEL['with'](nameRelation);
         const r = this._getState('RELATIONS').find((data) => data.name === nameRelation);
-        this._assertError(relation == null, `This Relation "${nameRelation}" not be register in Model "${(_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
-        this._assertError(!Object.values(this.$constants('RELATIONSHIP')).includes(r.relation), `unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
+        this._assertError(relation == null, `The relation '${nameRelation}' is not registered in the model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'.`);
         return r;
     }
     _functionRelationName() {
@@ -408,7 +407,7 @@ class RelationHandler {
                 const data = parent[foreignKey];
                 if (parent.hasOwnProperty(foreignKey))
                     return data;
-                this._assertError(data == null, `Unknown relationship without primary or foreign key in Relation : [${relation === null || relation === void 0 ? void 0 : relation.name}]`);
+                this._assertError(data == null, `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
             }).filter((d) => d != null);
             const mainResultIds = Array.from(new Set(localKeyId));
             if (!mainResultIds.length && this._getState('RELATIONS_EXISTS'))
@@ -511,8 +510,8 @@ class RelationHandler {
     }
     _valueInRelation(relationModel) {
         var _a, _b, _c;
-        this._assertError((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Promise, 'Nested Relation isn\'t supported Promise method');
-        this._assertError(!((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Model_1.Model), 'Callback function supported instance of Model only');
+        this._assertError((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Promise, 'The Promise method does not support nested relations.');
+        this._assertError(!((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Model_1.Model), 'The callback function only supports instances of the Model class.');
         const relation = relationModel.relation;
         const model = (_a = relationModel.model) === null || _a === void 0 ? void 0 : _a.name;
         const modelPivot = relationModel.modelPivot;
@@ -523,7 +522,7 @@ class RelationHandler {
         let pivot = null;
         const name = relationModel.name;
         const as = relationModel.as;
-        this._assertError(!model || model == null, 'Not found model');
+        this._assertError(!model || model == null, 'Model not found.');
         let localKey = this._valuePattern(relationModel.localKey
             ? relationModel.localKey
             : this._getState('PRIMARY_KEY'));

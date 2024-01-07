@@ -15,10 +15,10 @@ import { Model } from "./Model";
  *   })
  */
 declare class Blueprint {
-    protected type: string;
-    protected attributes: string[];
-    protected foreignKey: Record<string, any> | null;
-    protected valueType: NumberConstructor | StringConstructor | DateConstructor;
+    private _type;
+    private _attributes;
+    private _foreignKey;
+    private _valueType;
     /**
      * Assign type 'int' in table
      * @return {this} this
@@ -210,6 +210,10 @@ declare class Blueprint {
         onDelete?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
         onUpdate?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
     }): this;
+    get type(): string;
+    get attributes(): string[];
+    get foreignKey(): Record<string, any> | null;
+    get valueType(): NumberConstructor | StringConstructor | DateConstructor;
     private _addAssignType;
     private _addAssignAttribute;
 }

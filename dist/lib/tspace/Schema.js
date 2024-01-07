@@ -255,10 +255,8 @@ class Schema extends Builder_1.Builder {
                     yield new Builder_1.Builder().debug(log).query(sql);
                 }
                 catch (e) {
-                    if (typeof foreign.on === "string") {
-                        console.log(e);
+                    if (typeof foreign.on === "string")
                         continue;
-                    }
                     if (String(e.message).includes("Duplicate foreign key constraint"))
                         continue;
                     const schemaModelOn = yield foreign.on.getSchemaModel();

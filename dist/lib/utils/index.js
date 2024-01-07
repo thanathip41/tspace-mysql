@@ -156,6 +156,7 @@ const randomString = (length = 100) => {
 };
 const faker = (value) => {
     var _a, _b;
+    value = value.toLocaleLowerCase();
     if (!value.search('timestamp'))
         return timestamp();
     if (!value.search('datetime'))

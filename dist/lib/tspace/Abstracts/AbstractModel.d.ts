@@ -1,8 +1,26 @@
-import { Relation, RelationQuery } from '../../Interface';
+import { Pattern, Relation, RelationQuery, ValidateSchema } from '../../Interface';
+import { Blueprint } from '../Blueprint';
 import { Builder } from '../Builder';
 import { RelationHandler } from '../Handlers/Relation';
 declare abstract class AbstractModel extends Builder {
     protected $relation: RelationHandler | undefined;
+    protected $schema: Record<string, Blueprint> | undefined;
+    protected $validateSchema: ValidateSchema | undefined;
+    protected $table: string | undefined;
+    protected $pattern: Pattern | undefined;
+    protected $hasMany: RelationQuery[] | undefined;
+    protected $hasOne: RelationQuery[] | undefined;
+    protected $belongsTo: RelationQuery[] | undefined;
+    protected $belongsToMany: RelationQuery[] | undefined;
+    protected $uuid: boolean | undefined;
+    protected $timestamp: boolean | undefined;
+    protected $softDelete: boolean | undefined;
+    protected $uuidColumn: string | undefined;
+    protected $timestampColumns: {
+        createdAt: string;
+        updatedAt: string;
+    } | undefined;
+    protected $softDeleteColumn: string | undefined;
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;

@@ -36,14 +36,15 @@ class StateHandler {
         this.STATE.currentState.set('INSERT', '');
         this.STATE.currentState.set('UPDATE', '');
         this.STATE.currentState.set('DELETE', '');
-        this.STATE.currentState.set('WHERE', '');
+        this.STATE.currentState.set('WHERE', []);
         this.STATE.currentState.set('LIMIT', '');
         this.STATE.currentState.set('OFFSET', '');
         this.STATE.currentState.set('SELECT', []);
         this.STATE.currentState.set('GROUP_BY', '');
         this.STATE.currentState.set('HAVING', '');
-        this.STATE.currentState.set('JOIN', '');
+        this.STATE.currentState.set('JOIN', []);
         this.STATE.currentState.set('SAVE', '');
+        this.STATE.currentState.set('RELATIONS', []);
         return;
     }
     _assertError(condition = true, message = 'error') {

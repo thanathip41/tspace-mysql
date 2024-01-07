@@ -18,10 +18,10 @@ exports.Blueprint = void 0;
  */
 class Blueprint {
     constructor() {
-        this.type = 'INT';
-        this.attributes = [];
-        this.foreignKey = null;
-        this.valueType = String;
+        this._type = 'INT';
+        this._attributes = [];
+        this._foreignKey = null;
+        this._valueType = String;
     }
     /**
      * Assign type 'int' in table
@@ -29,7 +29,7 @@ class Blueprint {
      */
     int(_) {
         this._addAssignType('INT');
-        this.valueType = Number;
+        this._valueType = Number;
         return this;
     }
     /**
@@ -39,7 +39,7 @@ class Blueprint {
      */
     tinyInt(number = 1) {
         this._addAssignType(`TINYINT(${number})`);
-        this.valueType = Number;
+        this._valueType = Number;
         return this;
     }
     /**
@@ -49,7 +49,7 @@ class Blueprint {
      */
     tinyint(number = 1) {
         this._addAssignType(`TINYINT(${number})`);
-        this.valueType = Number;
+        this._valueType = Number;
         return this;
     }
     /**
@@ -59,7 +59,7 @@ class Blueprint {
      */
     bigInt(number = 10) {
         this._addAssignType(`BIGINT(${number})`);
-        this.valueType = Number;
+        this._valueType = Number;
         return this;
     }
     /**
@@ -69,7 +69,7 @@ class Blueprint {
      */
     bigint(number = 10) {
         this._addAssignType(`BIGINT(${number})`);
-        this.valueType = Number;
+        this._valueType = Number;
         return this;
     }
     /**
@@ -79,7 +79,7 @@ class Blueprint {
      * @return {this} this
      */
     double(length = 0, decimal = 0) {
-        this.valueType = Number;
+        this._valueType = Number;
         if (!length || !decimal) {
             this._addAssignType(`DOUBLE`);
             return this;
@@ -94,7 +94,7 @@ class Blueprint {
      * @return {this} this
      */
     float(length = 0, decimal = 0) {
-        this.valueType = Number;
+        this._valueType = Number;
         if (!length || !decimal) {
             this._addAssignType(`FLOAT`);
             return this;
@@ -204,7 +204,7 @@ class Blueprint {
      */
     date() {
         this._addAssignType(`DATE`);
-        this.valueType = Date;
+        this._valueType = Date;
         return this;
     }
     /**
@@ -213,7 +213,7 @@ class Blueprint {
      */
     dateTime() {
         this._addAssignType(`DATETIME`);
-        this.valueType = Date;
+        this._valueType = Date;
         return this;
     }
     /**
@@ -222,7 +222,7 @@ class Blueprint {
      */
     datetime() {
         this._addAssignType(`DATETIME`);
-        this.valueType = Date;
+        this._valueType = Date;
         return this;
     }
     /**
@@ -231,7 +231,7 @@ class Blueprint {
      */
     timestamp() {
         this._addAssignType(`TIMESTAMP`);
-        this.valueType = Date;
+        this._valueType = Date;
         return this;
     }
     /**
@@ -326,7 +326,7 @@ class Blueprint {
      * @return {this} this
      */
     foreign({ references, on, onDelete, onUpdate }) {
-        this.foreignKey = {
+        this._foreignKey = {
             references: references == null ? 'id' : references,
             on: typeof on === 'string' ? on : new on(),
             onDelete: onDelete == null ? 'CASCADE' : onDelete,
@@ -334,12 +334,24 @@ class Blueprint {
         };
         return this;
     }
+    get type() {
+        return this._type;
+    }
+    get attributes() {
+        return this._attributes;
+    }
+    get foreignKey() {
+        return this._foreignKey;
+    }
+    get valueType() {
+        return this._valueType;
+    }
     _addAssignType(type) {
-        this.type = type;
+        this._type = type;
         return this;
     }
     _addAssignAttribute(attribute) {
-        this.attributes = [...this.attributes, attribute];
+        this._attributes = [...this.attributes, attribute];
         return this;
     }
 }

@@ -1265,7 +1265,7 @@ declare class Builder extends AbstractBuilder {
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows?: number): Promise<any>;
+    faker(rows: number, cb?: Function): Promise<Record<string, any>[]>;
     /**
      *
      * truncate of table
@@ -1318,7 +1318,7 @@ declare class Builder extends AbstractBuilder {
     }): Promise<any>;
     private _insertNotExists;
     private _insert;
-    private _checkValueHasRaw;
+    protected _checkValueHasRaw(value: any): string;
     private _insertMultiple;
     private _insertOrSelect;
     private _updateOrInsert;
@@ -1327,8 +1327,8 @@ declare class Builder extends AbstractBuilder {
     private _queryUpdate;
     private _queryInsert;
     private _queryInsertMultiple;
-    private _valueAndOperator;
-    private _valueTrueFalse;
+    protected _valueAndOperator(value: string, operator: string, useDefault?: boolean): string[];
+    protected _valueTrueFalse(value: any): any;
     private _initialConnection;
 }
 export { Builder };

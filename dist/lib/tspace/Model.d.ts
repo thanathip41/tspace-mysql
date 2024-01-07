@@ -876,8 +876,199 @@ declare class Model extends AbstractModel {
      * @return {promise}
      */
     restore(): Promise<any[]>;
+    /**
+     *
+     * @return {string} string
+     */
     toTableName(): string;
+    /**
+     *
+     * @param {string} column
+     * @return {string} string
+     */
     toTableNameAndColumn(column: string): string;
+    private _columnPattern;
+    /**
+     * @override Method
+     * @param {string} column if arguments is object
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this} this
+     */
+    where(column: string | Record<string, any>, operator?: any, value?: any): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhere(column: string, operator?: any, value?: any): this;
+    /**
+     * @override Method
+     * @param {Object} columns
+     * @return {this}
+     */
+    whereObject(columns: Record<string, any>): this;
+    /**
+    * @override Method
+    * @param    {string} column
+    * @param    {object}  property object { key , value , operator }
+    * @property {string}  property.key
+    * @property {string}  property.value
+    * @property {string?} property.operator
+    * @return   {this}
+    */
+    whereJSON(column: string, { key, value, operator }: {
+        key: string;
+        value: string;
+        operator?: string;
+    }): this;
+    /**
+     * @override Method
+     * @param {number} userId
+     * @param {string?} column custom it *if column is not user_id
+     * @return {this}
+     */
+    whereUser(userId: number, column?: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereIn(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereIn(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotIn(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereNotIn(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    whereSubQuery(column: string, subQuery: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    whereNotSubQuery(column: string, subQuery: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    orWhereSubQuery(column: string, subQuery: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    orWhereNotSubQuery(column: string, subQuery: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereBetween(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereBetween(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotBetween(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereNotBetween(column: string, array: any[]): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    whereNull(column: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNull(column: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    whereNotNull(column: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNotNull(column: string): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    whereSensitive(column: string, operator?: any, value?: any): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    whereStrict(column: string, operator?: any, value?: any): this;
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhereSensitive(column: string, operator?: any, value?: any): this;
+    /**
+     * @override Method
+     * @param {Function} callback callback query
+     * @return {this}
+     */
+    whereQuery(callback: Function): this;
     /**
      * @override Method
      * @return {promise<boolean>} promise boolean
@@ -1045,7 +1236,7 @@ declare class Model extends AbstractModel {
      * @return {this} this this
      */
     insertNotExists(data: Record<string, string | number | boolean | null | undefined>): this;
-    getSchemaModel(): Record<string, any> | null;
+    getSchemaModel(): Record<string, Blueprint> | null;
     validation(schema?: ValidateSchema): this;
     /**
      * The 'bindPattern' method is used to covert column relate with pattern
@@ -1064,7 +1255,18 @@ declare class Model extends AbstractModel {
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows?: number): Promise<Record<string, any>[]>;
+    faker(rows: number, callback?: Function): Promise<Record<string, any>[]>;
+    /**
+     * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+     *
+     * @property {boolean} force - forec always check all columns if not exists will be created
+     * @property {boolean} foreign - foreign key for constraint
+     * @return {promise<void>}
+     */
+    sync({ force, foreign }?: {
+        force?: boolean | undefined;
+        foreign?: boolean | undefined;
+    }): Promise<void>;
     private _valuePattern;
     private _isPatternSnakeCase;
     private _classToTableName;
@@ -1107,6 +1309,7 @@ declare class Model extends AbstractModel {
     private _checkSchemaOrNextError;
     private _stoppedRetry;
     private _observer;
+    private _makeRelations;
     private _initialModel;
 }
 export { Model };

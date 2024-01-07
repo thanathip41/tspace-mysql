@@ -369,7 +369,7 @@ class Model extends AbstractModel_1.AbstractModel {
     useTablePlural() {
         var _a;
         const table = this._classToTableName((_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name);
-        this._setState('TABLE_NAME', `\`${pluralize_1.default.plural(table)}\``);
+        this._setState('TABLE_NAME', `\`${this._valuePattern(table)}\``);
         return this;
     }
     /**
@@ -477,13 +477,14 @@ class Model extends AbstractModel_1.AbstractModel {
             }).filter((d) => d != null);
             const tableNames = names.length ? [...new Set(names)] : [this._getState('TABLE_NAME')];
             const removeExcepts = [];
+            const schemaColumns = this.getSchemaModel();
             for (const tableName of tableNames) {
                 const isHasSchema = [
-                    this._getState('SCHEMA_TABLE') != null,
+                    schemaColumns != null,
                     tableName.replace(/`/g, '') === this._getState('TABLE_NAME').replace(/`/g, '')
                 ].every(d => d);
                 if (isHasSchema) {
-                    const columns = Object.keys(this._getState('SCHEMA_TABLE'));
+                    const columns = Object.keys(schemaColumns);
                     const removeExcept = columns.filter((column) => {
                         return excepts.every((except) => {
                             if (/\./.test(except)) {
@@ -725,11 +726,8 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                if (this._getState('DEBUG')) {
+                if (this._getState('DEBUG'))
                     this.$utils.consoleDebug(sql);
-                    const result = yield this.$pool.query(sql);
-                    return result;
-                }
                 return yield this.$pool.query(sql);
             }
             catch (error) {
@@ -754,15 +752,8 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                if (this._getState('DEBUG')) {
+                if (this._getState('DEBUG'))
                     this.$utils.consoleDebug(sql);
-                    if (returnId) {
-                        const result = yield this.$pool.query(sql);
-                        return [result.affectedRows, result.insertId];
-                    }
-                    const { affectedRows: result } = yield this.$pool.query(sql);
-                    return result;
-                }
                 if (returnId) {
                     const result = yield this.$pool.query(sql);
                     return [result.affectedRows, result.insertId];
@@ -1388,11 +1379,621 @@ class Model extends AbstractModel_1.AbstractModel {
             return yield this.save();
         });
     }
+    /**
+     *
+     * @return {string} string
+     */
     toTableName() {
         return this.getTableName();
     }
+    /**
+     *
+     * @param {string} column
+     * @return {string} string
+     */
     toTableNameAndColumn(column) {
         return `\`${this.getTableName()}\`.\`${this._valuePattern(column)}\``;
+    }
+    _columnPattern(column) {
+        if (column.startsWith(this.$constants('RAW'))) {
+            return column.replace(`${this.$constants('RAW')} `, '').replace(this.$constants('RAW'), '');
+        }
+        return this._valuePattern(column);
+    }
+    /**
+     * @override Method
+     * @param {string} column if arguments is object
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this} this
+     */
+    where(column, operator, value) {
+        if (typeof column === 'object' && column !== null && !Array.isArray(column)) {
+            return this.whereObject(column);
+        }
+        column = this._columnPattern(String(column));
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(String(column))}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(value)}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhere(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        column = this._columnPattern(String(column));
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(String(column))}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(value)}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {Object} columns
+     * @return {this}
+     */
+    whereObject(columns) {
+        for (let column in columns) {
+            column = this._columnPattern(String(column));
+            const operator = '=';
+            const value = this.$utils.escape(columns[column]);
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(String(column))}`,
+                    `${operator}`,
+                    `${this._checkValueHasRaw(value)}`
+                ].join(' ')
+            ]);
+        }
+        return this;
+    }
+    /**
+    * @override Method
+    * @param    {string} column
+    * @param    {object}  property object { key , value , operator }
+    * @property {string}  property.key
+    * @property {string}  property.value
+    * @property {string?} property.operator
+    * @return   {this}
+    */
+    whereJSON(column, { key, value, operator }) {
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}->>'$.${key}'`,
+                `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
+                `${this._checkValueHasRaw(value)}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {number} userId
+     * @param {string?} column custom it *if column is not user_id
+     * @return {this}
+     */
+    whereUser(userId, column = 'user_id') {
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereIn(column, array) {
+        if (!Array.isArray(array))
+            throw new Error(`This 'whereIn' method is required array only`);
+        column = this._columnPattern(String(column));
+        const values = array.length
+            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
+            : this.$constants('NULL');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereIn(column, array) {
+        if (!Array.isArray(array))
+            throw new Error(`This 'whereIn' method is required array only`);
+        column = this._columnPattern(String(column));
+        const values = array.length
+            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
+            : this.$constants('NULL');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotIn(column, array) {
+        if (!Array.isArray(array))
+            throw new Error(`This 'whereIn' method is required array only`);
+        column = this._columnPattern(String(column));
+        const values = array.length
+            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
+            : this.$constants('NULL');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereNotIn(column, array) {
+        if (!Array.isArray(array))
+            throw new Error(`This 'whereIn' method is required array only`);
+        column = this._columnPattern(String(column));
+        const values = array.length
+            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
+            : this.$constants('NULL');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${values})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    whereSubQuery(column, subQuery) {
+        if (!this.$utils.isSubQuery(subQuery))
+            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    whereNotSubQuery(column, subQuery) {
+        if (!this.$utils.isSubQuery(subQuery))
+            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    orWhereSubQuery(column, subQuery) {
+        if (!this.$utils.isSubQuery(subQuery))
+            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string} subQuery
+     * @return {this}
+     */
+    orWhereNotSubQuery(column, subQuery) {
+        if (!this.$utils.isSubQuery(subQuery))
+            throw new Error(`This "${subQuery}" is invalid sub query (Sub query Operand should contain 1 column(s) not select * )`);
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_IN')}`,
+                `(${subQuery})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        column = this._columnPattern(String(column));
+        if (!array.length) {
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
+            return this;
+        }
+        const [value1, value2] = array;
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        column = this._columnPattern(String(column));
+        if (!array.length) {
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
+            return this;
+        }
+        const [value1, value2] = array;
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    whereNotBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        column = this._columnPattern(String(column));
+        if (!array.length) {
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('NOT_BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
+            return this;
+        }
+        const [value1, value2] = array;
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {array} array
+     * @return {this}
+     */
+    orWhereNotBetween(column, array) {
+        if (!Array.isArray(array))
+            throw new Error("Value is't array");
+        column = this._columnPattern(String(column));
+        if (!array.length) {
+            this._setState('WHERE', [
+                ...this._getState('WHERE'),
+                [
+                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    `${this.bindColumn(column)}`,
+                    `${this.$constants('NOT_BETWEEN')}`,
+                    `${this.$constants('NULL')}`,
+                    `${this.$constants('AND')}`,
+                    `${this.$constants('NULL')}`
+                ].join(' ')
+            ]);
+            return this;
+        }
+        const [value1, value2] = array;
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('NOT_BETWEEN')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+                `${this.$constants('AND')}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value2))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    whereNull(column) {
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NULL')}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNull(column) {
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NULL')}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    whereNotNull(column) {
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NOT_NULL')}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @return {this}
+     */
+    orWhereNotNull(column) {
+        column = this._columnPattern(String(column));
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.bindColumn(column)}`,
+                `${this.$constants('IS_NOT_NULL')}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    whereSensitive(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        column = this._columnPattern(String(column));
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.$constants('BINARY')}`,
+                `${this.bindColumn(column)}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    whereStrict(column, operator, value) {
+        return this.whereSensitive(column, operator, value);
+    }
+    /**
+     * @override Method
+     * @param {string} column
+     * @param {string?} operator = < > != !< !>
+     * @param {any?} value
+     * @return {this}
+     */
+    orWhereSensitive(column, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        column = this._columnPattern(String(column));
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                `${this.$constants('BINARY')}`,
+                `${this.bindColumn(column)}`,
+                `${operator}`,
+                `${this._checkValueHasRaw(this.$utils.escape(value))}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * @override Method
+     * @param {Function} callback callback query
+     * @return {this}
+     */
+    whereQuery(callback) {
+        const db = new Model().copyModel(this);
+        const repository = callback(db);
+        if (repository instanceof Promise)
+            throw new Error('"whereQuery" is not supported a Promise');
+        if (!(repository instanceof Model))
+            throw new Error(`Unknown callback query: '${repository}'`);
+        const where = (repository === null || repository === void 0 ? void 0 : repository._getState('WHERE')) || [];
+        if (!where.length)
+            return this;
+        const query = where.join(' ');
+        this._setState('WHERE', [
+            ...this._getState('WHERE'),
+            [
+                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                `(${query})`
+            ].join(' ')
+        ]);
+        return this;
     }
     /**
      * @override Method
@@ -1886,7 +2487,9 @@ class Model extends AbstractModel_1.AbstractModel {
         return this.createNotExists(data);
     }
     getSchemaModel() {
-        return this._getState('SCHEMA_TABLE');
+        if (this.$schema == null)
+            return this._getState('SCHEMA_TABLE');
+        return this.$schema;
     }
     validation(schema) {
         this._setState('VALIDATE_SCHEMA', true);
@@ -1907,17 +2510,6 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
-            const attributes = this.$attributes;
-            if (attributes != null) {
-                while (true) {
-                    if (!this._getState('where').length) {
-                        this.create(attributes);
-                        break;
-                    }
-                    this.update(attributes);
-                    break;
-                }
-            }
             this._validateMethod('save');
             switch (String(this._getState('SAVE'))) {
                 case 'INSERT': return yield this._insertModel();
@@ -1936,7 +2528,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows = 1) {
+    faker(rows, callback) {
         return __awaiter(this, void 0, void 0, function* () {
             let data = [];
             const sql = [
@@ -1945,7 +2537,15 @@ class Model extends AbstractModel_1.AbstractModel {
                 `${this.$constants('FROM')}`,
                 `${this._getState('TABLE_NAME')}`
             ].join(' ');
-            const fields = yield this._queryStatement(sql);
+            const schemaModel = this.getSchemaModel();
+            const fields = schemaModel == null
+                ? yield this._queryStatement(sql)
+                : Object.entries(schemaModel).map(([key, value]) => {
+                    return {
+                        Field: key,
+                        Type: value.type
+                    };
+                });
             for (let row = 0; row < rows; row++) {
                 this._assertError(this._getState('TABLE_NAME') === '' || this._getState('TABLE_NAME') == null, "Unknow this table");
                 let columnAndValue = {};
@@ -1956,9 +2556,101 @@ class Model extends AbstractModel_1.AbstractModel {
                         continue;
                     columnAndValue = Object.assign(Object.assign({}, columnAndValue), { [field]: this.$utils.faker(type) });
                 }
+                if (callback) {
+                    data = [...data, callback(columnAndValue, row)];
+                    continue;
+                }
                 data = [...data, columnAndValue];
             }
             return yield this.createMultiple(data).save();
+        });
+    }
+    /**
+     * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+     *
+     * @property {boolean} force - forec always check all columns if not exists will be created
+     * @property {boolean} foreign - foreign key for constraint
+     * @return {promise<void>}
+     */
+    sync({ force = false, foreign = false } = {}) {
+        var _a, _b, _c, _d;
+        return __awaiter(this, void 0, void 0, function* () {
+            const checkTables = yield this._queryStatement(`SHOW TABLES LIKE '${this.getTableName()}'`);
+            const existsTables = checkTables.map((c) => Object.values(c)[0]);
+            const schemaModel = this.getSchemaModel();
+            if (schemaModel == null)
+                return this._assertError(schemaModel == null, 'Schema model not found');
+            const checkTableIsExists = existsTables.some((table) => table === this.getTableName());
+            const syncForeignKey = ({ schemaModel, model }) => __awaiter(this, void 0, void 0, function* () {
+                var _e;
+                for (const key in schemaModel) {
+                    if (((_e = schemaModel[key]) === null || _e === void 0 ? void 0 : _e.foreignKey) == null)
+                        continue;
+                    const foreign = schemaModel[key].foreignKey;
+                    const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName();
+                    const sql = [
+                        "ALTER TABLE",
+                        `\`${model.getTableName()}\``,
+                        "ADD CONSTRAINT",
+                        `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``,
+                        `FOREIGN KEY(\`${key}\`)`,
+                        `REFERENCES \`${table}\`(\`${foreign.references}\`)`,
+                        `ON DELETE ${foreign.onDelete} ON UPDATE ${foreign.onUpdate}`
+                    ].join(' ');
+                    try {
+                        yield model._queryStatement(sql);
+                    }
+                    catch (e) {
+                        if (typeof foreign.on === "string")
+                            continue;
+                        if (String(e.message).includes("Duplicate foreign key constraint"))
+                            continue;
+                        const schemaModelOn = yield foreign.on.getSchemaModel();
+                        if (!schemaModelOn)
+                            continue;
+                        const tableSql = new Schema_1.Schema().createTable(`\`${table}\``, schemaModelOn);
+                        yield model._queryStatement(tableSql).catch(e => console.log(e));
+                        yield model._queryStatement(sql).catch(e => console.log(e));
+                        continue;
+                    }
+                }
+            });
+            if (!checkTableIsExists) {
+                const sql = new Schema_1.Schema().createTable(`\`${this.getTableName()}\``, schemaModel);
+                yield this._queryStatement(sql);
+                yield syncForeignKey({ schemaModel, model: this });
+            }
+            if (foreign) {
+                yield syncForeignKey({ schemaModel, model: this });
+                return;
+            }
+            if (!force)
+                return;
+            const schemaTable = yield this.getSchema();
+            const schemaTableKeys = schemaTable.map((k) => k.Field);
+            const schemaModelKeys = Object.keys(schemaModel);
+            const missingColumns = schemaModelKeys.filter(schemaModelKey => !schemaTableKeys.includes(schemaModelKey));
+            if (!missingColumns.length)
+                return;
+            const entries = Object.entries(schemaModel);
+            for (const column of missingColumns) {
+                const indexWithColumn = entries.findIndex(([key]) => key === column);
+                const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
+                const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
+                const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
+                if (findAfterIndex == null || type == null || attributes == null)
+                    continue;
+                const sql = [
+                    'ALTER TABLE',
+                    `\`${this.getTableName()}\``,
+                    'ADD',
+                    `\`${column}\` ${type} ${attributes.join(' ')}`,
+                    'AFTER',
+                    `\`${findAfterIndex}\``
+                ].join(' ');
+                yield this._queryStatement(sql);
+            }
+            return;
         });
     }
     _valuePattern(value) {
@@ -1984,8 +2676,12 @@ class Model extends AbstractModel_1.AbstractModel {
         return pluralize_1.default.plural(this._valuePattern(tb));
     }
     _makeTableName() {
-        const tableName = this._classToTableName();
-        this._setState('TABLE_NAME', `\`${tableName}\``);
+        if (this.$table == null || this.$table === '') {
+            const tableName = this._classToTableName();
+            this._setState('TABLE_NAME', `\`${this._valuePattern(tableName)}\``);
+            return this;
+        }
+        this._setState('TABLE_NAME', `\`${this._valuePattern(this.$table)}\``);
         return this;
     }
     _handleSoftDelete() {
@@ -2035,7 +2731,7 @@ class Model extends AbstractModel_1.AbstractModel {
             const validateSchema = this._getState('VALIDATE_SCHEMA');
             if (!validateSchema)
                 return;
-            const schemaTable = this._getState('SCHEMA_TABLE');
+            const schemaTable = this.getSchemaModel();
             if (schemaTable == null) {
                 return this._assertError(schemaTable == null, `This method "validateSchema" isn't validation without schema. Please use the method "useSchema" for define your schema`);
             }
@@ -2048,10 +2744,6 @@ class Model extends AbstractModel_1.AbstractModel {
                 return;
             const regexDate = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/;
             const regexDateTime = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]/;
-            Object.entries(data).some(([column]) => {
-                if (schema[column] == null)
-                    this._assertError(`This column "${column}" is not in schema`);
-            });
             for (const column in schema) {
                 const s = schema[column];
                 const r = data[column];
@@ -2764,9 +3456,9 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                if (retry > 3 || this._getState('RETRY') > 3)
+                if (retry > 2 || this._getState('RETRY') > 2)
                     throw e;
-                const schemaTable = this._getState('SCHEMA_TABLE');
+                const schemaTable = this.getSchemaModel();
                 if (schemaTable == null)
                     return this._stoppedRetry(e);
                 if (!(e instanceof Error))
@@ -2807,14 +3499,14 @@ class Model extends AbstractModel_1.AbstractModel {
                 yield this._queryStatement(sql);
             }
             catch (e) {
-                if (retry > 3)
+                if (retry >= 2)
                     throw e;
                 yield this._checkSchemaOrNextError(e, retry + 1);
             }
         });
     }
     _stoppedRetry(e) {
-        this._setState('RETRY', 3);
+        this._setState('RETRY', 2);
         throw e;
     }
     _observer(result, type) {
@@ -2828,10 +3520,44 @@ class Model extends AbstractModel_1.AbstractModel {
         }
         return;
     }
+    _makeRelations() {
+        if (this.$hasOne != null) {
+            for (const hasOne of this.$hasOne) {
+                this.hasOne(Object.assign(Object.assign({}, hasOne), { name: String(hasOne.name) }));
+            }
+        }
+        if (this.$hasMany != null) {
+            for (const hasMany of this.$hasMany) {
+                this.hasMany(Object.assign(Object.assign({}, hasMany), { name: String(hasMany.name) }));
+            }
+        }
+        if (this.$belongsTo != null) {
+            for (const belongsTo of this.$belongsTo) {
+                this.belongsTo(Object.assign(Object.assign({}, belongsTo), { name: String(belongsTo.name) }));
+            }
+        }
+        if (this.$belongsToMany != null) {
+            for (const belongsToMany of this.$belongsToMany) {
+                this.belongsToMany(Object.assign(Object.assign({}, belongsToMany), { name: String(belongsToMany.name) }));
+            }
+        }
+        return this;
+    }
     _initialModel() {
         this.$state = new State_1.StateHandler(this.$constants('MODEL'));
+        if (this.$pattern != null)
+            this.usePattern(this.$pattern);
         this._makeTableName();
         this.$relation = new Relation_1.RelationHandler(this);
+        this._makeRelations();
+        if (this.$uuid != null)
+            this.useUUID(this.$uuidColumn);
+        if (this.$timestamp != null)
+            this.useTimestamp(this.$timestampColumns);
+        if (this.$softDelete != null)
+            this.useSoftDelete(this.$softDeleteColumn);
+        if (this.$validateSchema != null)
+            this.useValidateSchema(this.$validateSchema);
         return this;
     }
 }

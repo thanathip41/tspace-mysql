@@ -117,7 +117,7 @@ declare abstract class AbstractBuilder {
     abstract save(): Promise<Record<string, any> | any[] | null | undefined>;
     abstract increment(column: string, value: number): Promise<number>;
     abstract decrement(column: string, value: number): Promise<number>;
-    abstract faker(round: number): Promise<void>;
+    abstract faker(round: number, cb?: Function): Promise<Record<string, any>[]>;
 }
 export { AbstractBuilder };
 export default AbstractBuilder;

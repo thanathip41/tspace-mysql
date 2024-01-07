@@ -60,11 +60,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         let select = columns.map((column) => {
             if (column === '*' || (column.includes('*') && /\./.test(column)))
                 return column;
-            if (/\./.test(column))
-                return this.bindColumn(column);
             if (column.includes(this.$constants('RAW')))
                 return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
-            return `\`${column}\``;
+            return this.bindColumn(column);
         });
         select = [...this._getState('SELECT'), ...select];
         if (this._getState('DISTINCT') && select.length) {
@@ -1848,9 +1846,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     bindColumn(column) {
         if (!/\./.test(column))
-            return `${this._getState('TABLE_NAME')}.\`${column}\``;
+            return `\`${this.getTableName().replace(/`/g, '')}\`.\`${column.replace(/`/g, '')}\``;
         const [table, c] = column.split('.');
-        return `\`${table}\`.\`${c}\``;
+        return `\`${table.replace(/`/g, '')}\`.\`${c.replace(/`/g, '')}\``;
     }
     /**
      * The 'debug' method is used to console.log raw SQL query that would be executed by a query builder
@@ -2599,29 +2597,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
-            const attributes = this.$attributes;
-            if (attributes != null) {
-                while (true) {
-                    if (!this._getState('where').length) {
-                        const query = this._queryInsert(attributes);
-                        this._setState('INSERT', [
-                            `${this.$constants('INSERT')}`,
-                            `${this._getState('TABLE_NAME')}`,
-                            `${query}`
-                        ].join(' '));
-                        this._setState('SAVE', 'INSERT');
-                        break;
-                    }
-                    const query = this._queryUpdate(attributes);
-                    this._setState('UPDATE', [
-                        `${this.$constants('UPDATE')}`,
-                        `${this._getState('TABLE_NAME')}`,
-                        `${query}`
-                    ].join(' '));
-                    this._setState('SAVE', 'UPDATE');
-                    break;
-                }
-            }
             switch (this._getState('SAVE')) {
                 case 'INSERT_MULTIPLE': return yield this._insertMultiple();
                 case 'INSERT': return yield this._insert();
@@ -2988,7 +2963,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows = 1) {
+    faker(rows, cb) {
         return __awaiter(this, void 0, void 0, function* () {
             let data = [];
             const sql = [
@@ -3010,6 +2985,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     if (passed)
                         continue;
                     columnAndValue = Object.assign(Object.assign({}, columnAndValue), { [field]: this.$utils.faker(type) });
+                }
+                if (cb) {
+                    data = [...data, cb(columnAndValue, row)];
+                    continue;
                 }
                 data = [...data, columnAndValue];
             }
@@ -3283,13 +3262,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 sql: this._queryBuilder().insert(),
                 returnId: true
             });
-            console.log({
-                result,
-                id
-            });
             if (this._getState('VOID') || !result)
                 return this._resultHandler(undefined);
-            console.log('hi');
             const arrayId = [...Array(result)].map((_, i) => i + id);
             const sql = new Builder()
                 .copyBuilder(this, { select: true })

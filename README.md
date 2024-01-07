@@ -3,8 +3,7 @@
 [![NPM version](https://img.shields.io/npm/v/tspace-mysql.svg)](https://www.npmjs.com)
 [![NPM downloads](https://img.shields.io/npm/dm/tspace-mysql.svg)](https://www.npmjs.com)
 
-tspace-mysql is an ORM that can run in NodeJs and can be used with TypeScript. 
-Its always support the latest TypeScript and JavaScript features and provide additional features that help you to develop.
+tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamlessly in Node.js and is fully compatible with TypeScript. It consistently supports the latest features in both TypeScript and JavaScript, providing additional functionalities to enhance your development experience.
 
 ## Install
 
@@ -29,6 +28,7 @@ npm install tspace-mysql --save
     - [Deeply Nested Relations](#deeply-nested-relations)
     - [Relation Exists](#relation-exists)
     - [Built in Relation Functions](#built-in-relation-functions)
+    - [Decorator](#decorator)
   - [Schema Model](#schema-model)
     - [Validation](#validation)
     - [Sync](#sync)
@@ -43,7 +43,7 @@ npm install tspace-mysql --save
 - [Blueprint](#blueprint)
 
 ## Configuration
-Created your environment variables is to use a '.env' file, you may establish a connection is this:
+To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
 ```js
 DB_HOST     = localhost
 DB_PORT     = 3306
@@ -59,7 +59,7 @@ DB_DATABASE = database
  *  DB_DATE_STRINGS     = true
 */
 ```
-Or you can created file name 'db.tspace' to use a connection  this:
+You can also create a file named 'db.tspace' to configure the connection. using the following:
 ```js
 source db {
     host               = localhost
@@ -77,7 +77,7 @@ source db {
 
 ```
 ## Running Queries
-Once you have configured your database connection, you may run queries is this :
+Once you have configured your database connection, you can execute queries using the following:
 ```js
 +-------------+--------------+----------------------------+
 |                     table users                         |
@@ -192,6 +192,19 @@ const hookResult = (result) => console.log('hook!! result => ',result)
 const user = await new DB('users').where('id',1).hook(hookResult).findOne()
 ```
 
+Running A Faker
+```js
+
+await new DB('users').faker(5)
+// custom some columns
+await new DB('users').faker(5 , (row , index) => {
+    return {
+        ...row,
+        custom : 'custom' + index
+    }
+})
+```
+
 Running A Insert Query
 ```js
 const user = await new DB('users')
@@ -203,16 +216,6 @@ const user = await new DB('users')
 // user =>  { id : 3 , username : 'tspace3', email : 'tspace3@gmail.com'}
 
 +--------------------------------------------------------------------------+
-
-const reposity = new DB('users')
-reposity.name = 'tspace4'
-reposity.email = 'tspace4@gmail.com'
-
-await reposity.save()
-
-const { result } = reposity
-// result =>  { id : 4 , username : 'tspace4', email : 'tspace4@gmail.com'}
-
 const users = await new DB('users')
 .createMultiple([
     {
@@ -271,18 +274,6 @@ const user = await new DB('users')
 .save()
 // UPDATE `users` SET `name` = CASE WHEN (`name` = "" OR `name` IS NULL) THEN "tspace1**" ELSE `name` END,`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
 
-
-+--------------------------------------------------------------------------+
-
-const reposity = new DB('users').where('id',1)
-reposity.name = 'tspace1++'
-reposity.email = 'tspace1++@gmail.com'
-
-await reposity.save()
-// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
-const { result } = reposity
-// result =>  { id : 1 , username : 'tspace1++', email : 'tspace1++@gmail.com'} 
-
 ```
 Running A Update Or Created Query
 ```js
@@ -304,7 +295,7 @@ const deleted = await new DB('users').where('id',1).delete()
 ``` 
 ## Database Transactions 
 
-Within a Database Transaction, you may use the:
+Within a database transaction, you can utilize the following:
 
 ```js
 const connection = await new DB().beginTransaction()
@@ -364,7 +355,7 @@ try {
 
 ```
 ## Connection
-When establishing a connection, you may establish options is this:
+When establishing a connection, you can specify options as follows:
 ```js
 const connection = await new DB().getConnection({
     host: 'localhost',
@@ -381,7 +372,7 @@ const users = await new DB('users')
 ```
 
 ## Backup
-Backup database, you may backup is this:
+To backup a database, you can perform the following steps:
 ```js
 /**
  * 
@@ -418,8 +409,7 @@ const backupToFile = await new DB().backupToFile({
 ```
 
 ## Generating Model Classes
-To get started, let's install npm install tspace-mysql -g  
-you may use the make:model command to generate a new model:
+To get started, install the 'tspace-mysql' package globally using the following npm command:
 
 ```js
 /**
@@ -512,8 +502,8 @@ export { User }
 export default User
 ```
 ## Relationships
-Relationships are defined as methods on your Model classes
-Let's examine a basic relations :
+Relationships are defined as methods on your Model classes. 
+Let's example a basic relationship:
 
 ## One To One
 A one-to-one relationship is used to define relationships where a single model is the parent to one child models
@@ -659,8 +649,8 @@ const userUsingFunction = await new User().roles().findOne()
 ```
 
 ## Deeply Nested Relations
-Relationships can deeply relations. 
-let's example a deep in relations :
+Relationships can involve deep connections. 
+Let's example of a deep relationship:
 ```js
 import { Model } from 'tspace-mysql'
 
@@ -735,8 +725,8 @@ await new User()
 
 ```
 ## Relation Exists
-Relationships can return only result is not empty in relations (soft delete). 
-let's example a exists in relations :
+Relationships can return results only if they are not empty in relations, considering soft deletes. 
+Let's illustrate this with an example of an existence check in relations:
 ```js
 +-------------+--------------+----------------------------+--------------------+
 |                     table users                         |                    |
@@ -832,8 +822,7 @@ await new User().relationsExists('posts').findMany()
 
 ```
 ## Built in Relation Functions
-Relationships can using built in function in results 
-let's example a built in function :
+Certainly, let's illustrate the use of a built-in function in the results of relationships:
 ```js
 import { Model } from 'tspace-mysql'
 
@@ -872,15 +861,88 @@ for (const post of posts) {
 }
 
 ```
+
+## Decorator
+Decorators can be used in a Model.
+Let's illustrate this with an example of a decorator:
+```js
+
+import { 
+    Blueprint, 
+    Model , 
+    Table ,TableSingular, TablePlural, 
+    UUID, SoftDelete, Timestamp,
+    Column, Pattern, Validate,
+    HasMany, HasOne, BelongsTo, BelongsToMany
+    
+} from 'tspace-mysql'
+import { Post } from './Post'
+import { PostUser } from './PostUser'
+
+@Pattern('camelCase')
+@UUID()
+@SoftDelete()
+@Timestamp()
+@Table('users')
+class User extends Model {
+
+    @Column(() => new Blueprint().int().notNull().primary().autoIncrement())
+    public id!: number
+
+    @Column(() => new Blueprint().varchar(50).null())
+    public uuid!: string
+
+    @Column(() => new Blueprint().varchar(50).null())
+    @Validate({
+        type : String,
+        require : true,
+        length : 50,
+        match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        unique : true,
+        fn : (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+    })
+    public email!: string
+
+    @Column(() => new Blueprint().varchar(50).null())
+    public name !: string
+
+    @Column(() => new Blueprint().varchar(50).null())
+    public username !: string
+
+    @Column(() => new Blueprint().varchar(50).null())
+    public password !: string
+
+    @Column(() => new Blueprint().timestamp().null())
+    public createdAt!: Date
+
+    @Column(() => new Blueprint().timestamp().null())
+    public updatedAt!: Date
+
+    @Column(() => new Blueprint().timestamp().null())
+    public deletedAt!: Date
+ 
+    @HasMany({ model : Post })
+    public posts!: Post[]
+
+    @HasOne({ model : Post })
+    public post!: Post
+
+    @BelongsToMany({ model : Post , modelPivot : PostUser })
+    public users!: PostUser[]
+}
+
+export { User }
+export default User
+
+```
 ## Schema Model
-Define the schema of Model 
-let's example a validator model:
+Define the schema of a Model
 
 ## Validation
 Validate the schema of Model 
 let's example a validator model:
 ```js
-
+import { Model , Blueprint , Column } from 'tspace-mysql'
 class User extends Model {
   constructor(){
     super()
@@ -900,7 +962,7 @@ class User extends Model {
       uuid :  Number,
       name : {
           type : String,
-          length : 191
+          length : 191,
           require : true,
           json : true
       },
@@ -910,7 +972,7 @@ class User extends Model {
           length : 191,
           match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
           unique : true,
-          fn : (email : string) => !/^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+          fn : (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
       },
       createdAt : Date,
       updatedAt : Date,
