@@ -1,14 +1,14 @@
 {
   "name": "tspace-mysql",
-  "version": "1.4.9",
+  "version": "1.5.0",
   "description": "mysql query builder object relational mapping",
-  "main": "dist/lib/index.js",
-  "types": "dist/lib/index.d.ts",
+  "main": "build/lib/index.js",
+  "types": "build/lib/index.d.ts",
   "files": [
-    "dist"
+    "build"
   ],
   "bin": {
-    "tspace-mysql": "./dist/cli/index.js"
+    "tspace-mysql": "./build/cli/index.js"
   },
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test:build": "mocha './dist/tests/**/*.test.js' --reporter spec --no-timeouts --recursive   --exit",
+    "test:build": "mocha './build/tests/**/*.test.js' --reporter spec --no-timeouts --recursive   --exit",
     "test": "ts-mocha './src/tests/**/*.test.ts' --reporter spec --no-timeouts --recursive   --exit"
   },
   "devDependencies": {

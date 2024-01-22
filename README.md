@@ -18,6 +18,7 @@ npm install tspace-mysql --save
 - [Database Transactions](#database-transactions)
 - [Connection](#connection)
 - [Backup](#backup)
+- [Injection](#injection)
 - [Generating Model Classes](#generating-model-classes)
 - [Model Conventions](#model-conventions)
   - [Relationships](#relationships)
@@ -100,50 +101,78 @@ Once you have configured your database connection, you can execute queries using
 
 import { DB } from 'tspace-mysql'
 (async () => {
-    await new DB('users').findMany() //  SELECT * FROM users => Array
-    await new DB('users').findOne()  //  SELECT * FROM users LIMIT 1 => Object
+    await new DB('users').findMany() 
+    //  SELECT * FROM users => Array
+    await new DB('users').findOne()  
+    //  SELECT * FROM users LIMIT 1 => Object
 })()
 
 ```
 Running A Raw Query
 ```js
-const rawQuery = await new DB().query('SELECT * FROM users') 
+const rawQuery = await new DB().query('SELECT * FROM users')  
+// SELECT * FROM users;
 
 ```
 Running A Select Query
 ```js
 const select = await new DB('users').select('id','username').findOne() 
+// SELECT `users`.`id`, `users`.`username` FROM `users` LIMIT 1;
 
 const selectRaw = await new DB('users').selectRaw('COUNT(id)').findMany()
+// SELECT COUNT(id) FROM `users`;
 
 const selectObject = await new DB('posts')
 .join('posts.user_id', 'users.id')
 .select('posts.*')
-.selectObject({ id : 'users.id', name : 'users.name' , email : 'users.email'},'user')
+.selectObject({ id : 'users.id', name : 'users.name' , email : 'users.email'} , 'user')
 .findOne()
+
+// SELECT posts.*, JSON_OBJECT('id' , `users`.`id` , 'name' , `users`.`name` , 'email' , `users`.`email`) AS `user` 
+// FROM `posts` INNER JOIN `users` ON `posts`.`user_id` = `users`.`id` LIMIT 1;
 
 /**
  * @example except
  */
-await new DB('users').except('id','username').findOne() 
+await new DB('users').except('id').findOne()
+// SELECT `users`.`email`, `users`.`username` FROM `users` LIMIT 1; 
 ```
 
 Running A OrderBy & GroupBy Query
 ```js
 await new DB('users').orderBy('id','asc').findOne()
+// SELECT * FROM `users` ORDER BY `id` ASC LIMIT 1;
+
 await new DB('users').orderBy('id','desc').findOne()
+// SELECT * FROM `users` ORDER BY `id` DESC LIMIT 1;
+
 await new DB('users').oldest('id').findOne()
+// SELECT * FROM `users` ORDER BY `id` ASC LIMIT 1;
+
 await new DB('users').latest('id').findOne()
+// SELECT * FROM `users` ORDER BY `id` DESC LIMIT 1;
 
 await new DB('users').groupBy('id').findOne()
-await new DB('users').groupBy('id','usernamename').findOne()
+// SELECT * FROM `users` GROUP BY `id` LIMIT 1;
+
+await new DB('users').groupBy('id','username').findOne()
+// SELECT * FROM `users` GROUP BY `id`, `username` LIMIT 1;
+
+await new DB('users').orderBy('id').groupBy('id','username').findOne()
+// SELECT * FROM `users` GROUP BY `id`, `username` ORDER BY `id` ASC LIMIT 1;
+
 ```
 
 Running A Join Query
 ```js
 await new DB('posts').join('posts.user_id' , 'users.id').findMany()
+// SELECT * FROM `posts` INNER JOIN `users` ON `posts`.`user_id` = `users`.`id`;
+
 await new DB('posts').leftJoin('posts.user_id' , 'users.id').findMany()
+// SELECT * FROM `posts` LEFT JOIN `users` ON `posts`.`user_id` = `users`.`id`;
+
 await new DB('posts').rightJoin('posts.user_id' , 'users.id').findMany()
+// SELECT * FROM `posts` RIGHT JOIN `users` ON `posts`.`user_id` = `users`.`id`;
 ```
 
 Running A Where Query
@@ -162,7 +191,7 @@ const whereBetween = await new DB('users').whereBetween('id',[1,2]).findMany()
 
 const whereSubQuery = await new DB('users').whereSubQuery('id','SELECT id FROM users').findMany()
 // SELECT * FROM `users` WHERE `users`.`id` IN (SELECT id FROM users);
-// or use -> await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
+// also you can use -> await new DB('users').whereSubQuery('id',new DB('users').select('id').toString()).findMany()
 
 const whereNull = await new DB('users').whereNull('username').findOne()
 // SELECT * FROM `users` WHERE `users`.`username` IS NULL LIMIT 1;
@@ -189,15 +218,16 @@ const whereWhenIsFalse = await new DB('users').where('id',1).when(false, (query)
 Running A Hook Query
 ```js
 const hookResult = (result) => console.log('hook!! result => ',result)
-const user = await new DB('users').where('id',1).hook(hookResult).findOne()
+const user = await new DB('users').where('id',1).hook(hookResult).findMany()
 ```
 
 Running A Faker
 ```js
 
-await new DB('users').faker(5)
-// custom some columns
-await new DB('users').faker(5 , (row , index) => {
+await new DB('users').faker(10)
+
+// custom faker 
+await new DB('users').faker(10 , (row , index) => {
     return {
         ...row,
         custom : 'custom' + index
@@ -213,7 +243,7 @@ const user = await new DB('users')
     email : 'tspace3@gmail.com'
 })
 .save()
-// user =>  { id : 3 , username : 'tspace3', email : 'tspace3@gmail.com'}
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace3','tspace3@gmail.com');
 
 +--------------------------------------------------------------------------+
 const users = await new DB('users')
@@ -233,6 +263,8 @@ const users = await new DB('users')
 ])
 .save()
 
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace4','tspace4@gmail.com'),('tspace5','tspace5@gmail.com'),('tspace6','tspace6@gmail.com');
+
 const users = await new DB('users')
 .where('name','tspace4')
 .where('email','tspace4@gmail.com')
@@ -241,7 +273,10 @@ const users = await new DB('users')
     email : 'tspace4@gmail.com'
 })
 .save()
-// if has exists return null, if not exists created new data
+// if exists return null, if not exists created new data
+// SELECT EXISTS(SELECT 1 FROM `users` WHERE `users`.`name` = 'tspace4' AND `users`.`email` = 'tspace4@gmail.com' LIMIT 1) AS 'exists';
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace4','tspace4@gmail.com');
+
 
 const users = await new DB('users')
 .where('name','tspace4')
@@ -252,6 +287,9 @@ const users = await new DB('users')
 })
 .save()
 // if has exists return data, if not exists created new data
+// SELECT EXISTS(SELECT 1 FROM `users` WHERE `users`.`name` = 'tspace4' AND `users`.`email` = 'tspace4@gmail.com' LIMIT 1) AS 'exists';
+// SELECT * FROM `users` WHERE `users`.`name` = 'tspace4' AND `users`.`email` = 'tspace4@gmail.com';
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace4','tspace4@gmail.com');
 
 ```
 Running A Update Query
@@ -308,17 +346,17 @@ try {
     await connection.startTransaction()
 
     const user = await new User()
-        .create({
-            name : `tspace`,
-            email : 'tspace@example.com'
-        })
-        /**
-         *
-         * bind method for make sure this connection has same transaction in connection
-         * @params {Function} connection 
-         */
-        .bind(connection)
-        .save()
+    .create({
+        name : `tspace`,
+        email : 'tspace@example.com'
+    })
+    /**
+     *
+     * bind method for make sure this connection has same transaction in connection
+     * @params {Function} connection 
+     */
+    .bind(connection)
+    .save()
 
     const posts = await new Post()
     .createMultiple([
@@ -366,9 +404,8 @@ const connection = await new DB().getConnection({
 })
 
 const users = await new DB('users')
-.bind(connection)
+.bind(connection) // don't forget this
 .findMany()
-// users => [{ .... }]
 ```
 
 ## Backup
@@ -376,14 +413,14 @@ To backup a database, you can perform the following steps:
 ```js
 /**
  * 
- * @param conection defalut current connection
+ * @param {string} database Database selected
+ * @param {object | null} to defalut new current connection
  */
 const backup = await new DB().backup({
-     database: 'try-to-backup',  // clone current database to this database
-     connection ?: {
+    database: 'try-to-backup',  // clone current database to this database
+    to ?: {
         host: 'localhost',
         port : 3306,
-        database: 'database'
         username: 'username',
         password: 'password',
     }
@@ -406,6 +443,28 @@ const backupToFile = await new DB().backupToFile({
     }
 })
 // backupToFile => backup.sql
+
+/**
+ * 
+ * @param {string} database new db name
+ */
+await new DB().cloneDB('try-to-clone')
+
+```
+
+## Injection
+The 'tspace-mysql' library is configured to automatically escape SQL injection by default.
+Let's example a escape SQL injection and XSs injection:
+```js
+const input = "admin' OR '1'='1"
+DB.escape(input)
+// admin OR 1=1
+
+//XSS
+const input = "text hello!<script>alert('XSS attack');</script>"
+DB.escapeXSS(input)
+// text hello!
+
 ```
 
 ## Generating Model Classes
@@ -425,14 +484,41 @@ npm install tspace-mysql -g
 tspace-mysql make:model <model name> --dir=< directory >
 
 # tspace-mysql make:model User --dir=App/Models 
-# => App/Models/User.ts
+# App/Models/User.ts
 ```
 ## Model Conventions
 Models generated by the make:model command will be placed in the specific directory. 
-Let's examine a basic model class:
+Let's example a basic model class:
 
 ```js
 import { Model } from 'tspace-mysql'
+// If you want to specify a global setting for the 'Model'
+Model.global({
+  uuid: true,
+  softDelete: true,
+  timestamp: true
+})
+
+/**
+class Observe {
+
+  public selected(results : unknown) {
+    console.log({ results , selected : true })
+  }
+
+  public created(results : unknown) {
+      console.log({ results , created : true })
+  }
+
+  public updated(results : unknown) {
+    console.log({ results , updated : true })
+  }
+
+  public deleted(results : unknown) {
+    console.log({ results , deleted : true })
+  }
+}
+*/
 class User extends Model {
   constructor(){
     super()
@@ -456,6 +542,7 @@ class User extends Model {
      * this.useLoadRelationsInRegistry() // => auto generated result from relationship to results
      * this.useBuiltInRelationFunctions() // => build-in functions relationships to results
      * this.useHooks([(r) => console.log(r)])
+     * this.useObserver(Observe)
      * this.useSchema ({ 
      *     id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *     uuid        : new Blueprint().varchar(50).null(),
@@ -864,22 +951,42 @@ for (const post of posts) {
 
 ## Decorator
 Decorators can be used in a Model.
-Let's illustrate this with an example of a decorator:
+Let's illustrate this with an example of a decorators:
 ```js
 
 import { 
-    Blueprint, 
-    Model , 
+    Blueprint, Model , 
     Table ,TableSingular, TablePlural, 
     UUID, SoftDelete, Timestamp,
-    Column, Pattern, Validate,
+    Pattern, CamelCase , snakeCase ,
+    Column, Validate, Observer,
     HasMany, HasOne, BelongsTo, BelongsToMany
     
 } from 'tspace-mysql'
 import { Post } from './Post'
 import { PostUser } from './PostUser'
 
+class UserObserve {
+
+    public selected(results : any) {
+      console.log({ results , selected : true })
+    }
+  
+    public created(results : unknown) {
+        console.log({ results , created : true })
+    }
+  
+    public updated(results : unknown) {
+      console.log({ results , updated : true })
+    }
+  
+    public deleted(results : unknown) {
+      console.log({ results , deleted : true })
+    }
+  }
+
 @Pattern('camelCase')
+@Observer(UserObserve)
 @UUID()
 @SoftDelete()
 @Timestamp()
@@ -1040,6 +1147,9 @@ class Post extends Model {
 }
 await Schema.sync(`src/Models` , { force : true })
 
+// also you can sync by Model
+await new User().sync({ force : true })
+
 ```
 ## Query Builder
 Methods builder for queries
@@ -1065,7 +1175,6 @@ orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
 when(contition , callback)
-if(contition , callback)
 select(column1 ,column2 ,...N)
 distinct()
 selectRaw(column1 ,column2 ,...N)
@@ -1261,6 +1370,8 @@ Command will be generate models from table in database
 tspace-mysql generate:models --dir=<folder for creating> 
 or 
 tspace-mysql gen:models --dir=<folder for creating> --env=development
+or
+tspace-mysql generate:models --dir=app/Models --env=development --decorators
 
 ```
 

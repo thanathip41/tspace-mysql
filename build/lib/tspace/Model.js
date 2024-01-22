@@ -20,6 +20,11 @@ const AbstractModel_1 = require("./Abstracts/AbstractModel");
 const Proxy_1 = require("./Handlers/Proxy");
 const State_1 = require("./Handlers/State");
 const Relation_1 = require("./Handlers/Relation");
+let globalSettings = {
+    softDelete: false,
+    uuid: false,
+    timestamp: false,
+};
 /**
  *
  * 'Model' class is a representation of a database table
@@ -42,6 +47,10 @@ class Model extends AbstractModel_1.AbstractModel {
         this.define();
         this.boot();
         return new Proxy(this, Proxy_1.proxyHandler);
+    }
+    static global(settings) {
+        globalSettings = Object.assign({}, globalSettings, settings);
+        return;
     }
     /**
      * The 'define' method is a special method that you can define within a model.
@@ -83,6 +92,9 @@ class Model extends AbstractModel_1.AbstractModel {
      * @example
      *
      * class UserObserve {
+     *    public selected(results : unknown) {
+     *       console.log({ results , selected : true })
+     *    }
      *
      *    public created(results : unknown) {
      *       console.log({ results , created : true })
@@ -1570,9 +1582,9 @@ class Model extends AbstractModel_1.AbstractModel {
         if (!Array.isArray(array))
             throw new Error(`This 'whereIn' method is required array only`);
         column = this._columnPattern(String(column));
-        const values = array.length
-            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+        if (!array.length)
+            return this;
+        const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
         this._setState('WHERE', [
             ...this._getState('WHERE'),
             [
@@ -1594,9 +1606,9 @@ class Model extends AbstractModel_1.AbstractModel {
         if (!Array.isArray(array))
             throw new Error(`This 'whereIn' method is required array only`);
         column = this._columnPattern(String(column));
-        const values = array.length
-            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+        if (!array.length)
+            return this;
+        const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
         this._setState('WHERE', [
             ...this._getState('WHERE'),
             [
@@ -2066,7 +2078,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @override Method
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    first() {
+    first(cb) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             this._validateMethod('first');
@@ -2075,14 +2087,19 @@ class Model extends AbstractModel_1.AbstractModel {
             if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
-            if (this._getState('RELATIONS_EXISTS')) {
+            let sql = this._queryBuilder().select();
+            if (this._getState('RELATIONS_EXISTS'))
+                sql = String((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.loadExists());
+            if (cb) {
+                const callbackSql = cb(sql);
+                this._assertError(callbackSql == null || callbackSql === '', 'Please provide a callback for execution');
                 return yield this._execute({
-                    sql: String((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.loadExists()),
-                    type: 'FIRST'
+                    sql: callbackSql,
+                    type: 'GET'
                 });
             }
             return yield this._execute({
-                sql: this._queryBuilder().select(),
+                sql,
                 type: 'FIRST'
             });
         });
@@ -2107,14 +2124,11 @@ class Model extends AbstractModel_1.AbstractModel {
             if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
-            if (this._getState('RELATIONS_EXISTS')) {
-                return yield this._execute({
-                    sql: String((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.loadExists()),
-                    type: 'FIRST_OR_ERROR', message, options
-                });
-            }
+            let sql = this._queryBuilder().select();
+            if (this._getState('RELATIONS_EXISTS'))
+                sql = String((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.loadExists());
             return yield this._execute({
-                sql: this._queryBuilder().select(),
+                sql,
                 type: 'FIRST_OR_ERROR',
                 message,
                 options
@@ -2136,7 +2150,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @override Method
      * @return {promise<array>} Array
     */
-    get() {
+    get(cb) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             this._validateMethod('get');
@@ -2147,6 +2161,14 @@ class Model extends AbstractModel_1.AbstractModel {
             let sql = this._queryBuilder().select();
             if (this._getState('RELATIONS_EXISTS'))
                 sql = String((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.loadExists());
+            if (cb) {
+                const callbackSql = cb(sql);
+                this._assertError(callbackSql == null || callbackSql === '', 'Please provide a callback for execution');
+                return yield this._execute({
+                    sql: callbackSql,
+                    type: 'GET'
+                });
+            }
             return yield this._execute({
                 sql,
                 type: 'GET'
@@ -2575,7 +2597,7 @@ class Model extends AbstractModel_1.AbstractModel {
     sync({ force = false, foreign = false } = {}) {
         var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
-            const checkTables = yield this._queryStatement(`SHOW TABLES LIKE '${this.getTableName()}'`);
+            const checkTables = yield this._queryStatement(`${this.$constants('SHOW_TABLES')} ${this.$constants('LIKE')} '${this.getTableName()}'`);
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             const schemaModel = this.getSchemaModel();
             if (schemaModel == null)
@@ -2589,16 +2611,17 @@ class Model extends AbstractModel_1.AbstractModel {
                     const foreign = schemaModel[key].foreignKey;
                     const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName();
                     const sql = [
-                        "ALTER TABLE",
+                        this.$constants('ALTER_TABLE'),
                         `\`${model.getTableName()}\``,
-                        "ADD CONSTRAINT",
+                        this.$constants('ADD_CONSTRAINT'),
                         `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``,
-                        `FOREIGN KEY(\`${key}\`)`,
-                        `REFERENCES \`${table}\`(\`${foreign.references}\`)`,
-                        `ON DELETE ${foreign.onDelete} ON UPDATE ${foreign.onUpdate}`
+                        `${this.$constants('FOREIGN_KEY')}(\`${key}\`)`,
+                        `${this.$constants('REFERENCES')} \`${table}\`(\`${foreign.references}\`)`,
+                        `${this.$constants('ON_DELETE')} ${foreign.onDelete} ${this.$constants('ON_UPDATE')} ${foreign.onUpdate}`
                     ].join(' ');
                     try {
                         yield model._queryStatement(sql);
+                        continue;
                     }
                     catch (e) {
                         if (typeof foreign.on === "string")
@@ -2811,8 +2834,6 @@ class Model extends AbstractModel_1.AbstractModel {
             if (!result.length)
                 return this._returnEmpty(type, result, message, options);
             const relations = this._getState('RELATIONS');
-            if (!relations.length)
-                return (yield this._returnResult(type, result)) || this._returnEmpty(type, result, message, options);
             for (const relation of relations) {
                 result = (_b = yield ((_a = this.$relation) === null || _a === void 0 ? void 0 : _a.load(result, relation))) !== null && _b !== void 0 ? _b : [];
             }
@@ -2920,10 +2941,12 @@ class Model extends AbstractModel_1.AbstractModel {
             if (this._isPatternSnakeCase()) {
                 const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
                 yield this.$utils.hookHandle(this._getState('HOOKS'), empty);
+                this._observer(empty, 'selected');
                 return empty;
             }
             const empty = this._resultHandler(emptyData);
             yield this.$utils.hookHandle(this._getState('HOOKS'), empty);
+            this._observer(empty, 'selected');
             return empty;
         });
     }
@@ -3017,6 +3040,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
             }
             yield this.$utils.hookHandle(this._getState('HOOKS'), result);
+            this._observer(result, 'selected');
             return result;
         });
     }
@@ -3510,15 +3534,13 @@ class Model extends AbstractModel_1.AbstractModel {
         throw e;
     }
     _observer(result, type) {
-        if (this._getState('OBSERVER') == null)
-            return;
-        const observer = this._getState('OBSERVER');
-        switch (type.toLocaleLowerCase()) {
-            case 'created': return new observer().created(result);
-            case 'updated': return new observer().updated(result);
-            case 'deleted': return new observer().deleted(result);
-        }
-        return;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._getState('OBSERVER') == null)
+                return;
+            const observer = this._getState('OBSERVER');
+            const ob = new observer();
+            yield ob[type](result);
+        });
     }
     _makeRelations() {
         if (this.$hasOne != null) {
@@ -3550,6 +3572,12 @@ class Model extends AbstractModel_1.AbstractModel {
         this._makeTableName();
         this.$relation = new Relation_1.RelationHandler(this);
         this._makeRelations();
+        if (globalSettings.softDelete)
+            this.useSoftDelete();
+        if (globalSettings.uuid)
+            this.useUUID();
+        if (globalSettings.timestamp)
+            this.useTimestamp();
         if (this.$uuid != null)
             this.useUUID(this.$uuidColumn);
         if (this.$timestamp != null)
@@ -3558,6 +3586,8 @@ class Model extends AbstractModel_1.AbstractModel {
             this.useSoftDelete(this.$softDeleteColumn);
         if (this.$validateSchema != null)
             this.useValidateSchema(this.$validateSchema);
+        if (this.$observer != null)
+            this.useObserver(this.$observer);
         return this;
     }
 }

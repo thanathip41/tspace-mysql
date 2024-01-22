@@ -6,6 +6,12 @@ export declare const TablePlural: () => (constructor: Function) => void;
 export declare const Column: (blueprint: () => Blueprint) => (target: any, key: string) => void;
 export declare const Validate: (validate: ValidateSchemaDecorator) => (target: any, key: string) => void;
 export declare const UUID: (column?: string) => (constructor: Function) => void;
+export declare const Observer: (observer: new () => {
+    selected: Function;
+    created: Function;
+    updated: Function;
+    deleted: Function;
+}) => (constructor: Function) => void;
 export declare const Timestamp: (timestampColumns?: {
     createdAt: string;
     updatedAt: string;

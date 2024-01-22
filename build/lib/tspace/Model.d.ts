@@ -1,6 +1,6 @@
 import { AbstractModel } from './Abstracts/AbstractModel';
 import { Blueprint } from './Blueprint';
-import { Relation, Pagination, RelationQuery, ValidateSchema } from '../Interface';
+import { Relation, Pagination, RelationQuery, ValidateSchema, GlobalSetting } from '../Interface';
 /**
  *
  * 'Model' class is a representation of a database table
@@ -10,6 +10,7 @@ import { Relation, Pagination, RelationQuery, ValidateSchema } from '../Interfac
  */
 declare class Model extends AbstractModel {
     constructor();
+    static global(settings: GlobalSetting): void;
     /**
      * The 'define' method is a special method that you can define within a model.
      * @example
@@ -50,6 +51,9 @@ declare class Model extends AbstractModel {
      * @example
      *
      * class UserObserve {
+     *    public selected(results : unknown) {
+     *       console.log({ results , selected : true })
+     *    }
      *
      *    public created(results : unknown) {
      *       console.log({ results , created : true })
@@ -71,7 +75,12 @@ declare class Model extends AbstractModel {
      *      }
      *   }
      */
-    protected useObserver(observer: Function): this;
+    protected useObserver(observer: new () => {
+        selected: Function;
+        created: Function;
+        updated: Function;
+        deleted: Function;
+    }): this;
     /**
      * The "useSchema" method is used to define the schema.
      *
@@ -1083,7 +1092,7 @@ declare class Model extends AbstractModel {
      * @override Method
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    first(): Promise<Record<string, any> | null>;
+    first(cb?: Function): Promise<Record<string, any> | null>;
     /**
      * @override Method
      * @return {promise<Record<string,any> | null>} Record | null
@@ -1105,7 +1114,7 @@ declare class Model extends AbstractModel {
      * @override Method
      * @return {promise<array>} Array
     */
-    get(): Promise<any[]>;
+    get(cb?: Function): Promise<any[]>;
     /**
      *
      * @override Method

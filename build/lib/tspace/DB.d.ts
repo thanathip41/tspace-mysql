@@ -1,7 +1,7 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
-import { Connection, ConnectionOptions, ConnectionTransaction } from '../Interface';
+import { Backup, BackupTableToFile, BackupToFile, Connection, ConnectionOptions, ConnectionTransaction } from '../Interface';
 /**
- * 'DB' class is a component of the database system
+ * 'DB' Class is a component of the database system
  * @param {string?} table table name
  * @example
  * new DB('users').findMany().then(results => console.log(results))
@@ -201,6 +201,183 @@ declare class DB extends AbstractDB {
      * @property {function} connection.rollback - rollback transaction of query
      */
     static beginTransaction(): Promise<ConnectionTransaction>;
+    /**
+     * The 'removeProperties' method is used to removed some properties.
+     *
+     * @param {Array | Record} data
+     * @param {string[]} propertiesToRemoves
+     * @return {Array | Record} this
+     */
+    removeProperties(data: any[] | Record<string, any>, propertiesToRemoves: string[]): Array<any> | Record<string, any>;
+    /**
+     * The 'removeProperties' method is used to removed some properties.
+     *
+     * @param {Array | Record} data
+     * @param {string[]} propertiesToRemoves
+     * @return {Array | Record} this
+     */
+    static removeProperties(data: any[] | Record<string, any>, propertiesToRemoves: string[]): Array<any> | Record<string, any>;
+    /**
+     *
+     * This 'cloneDB' method is used to clone current database to new database
+     * @param {string} database clone current database to new database name
+     * @return {Promise<boolean>}
+     */
+    cloneDB(database: string): Promise<void>;
+    /**
+    *
+    * This 'cloneDB' method is used to clone current database to new database
+    * @param {string} database clone current database to new database name
+    * @return {Promise<boolean>}
+    */
+    static cloneDB(database: string): Promise<void>;
+    /**
+     *
+     * This 'backup' method is used to backup database intro new database same server or to another server
+     * @type     {Object} backup
+     * @property {string} backup.database clone current 'db' in connection to this database
+     * @type     {object?} backup.to
+     * @property {string} backup.to.host
+     * @property {number} backup.to.port
+     * @property {string} backup.to.username
+     * @property {string} backup.to.password
+     * @return {Promise<void>}
+     */
+    backup({ database, to }: Backup): Promise<void>;
+    /**
+     *
+     * This 'backup' method is used to backup database intro new database same server or to another server
+     * @type     {Object} backup
+     * @property {string} backup.database clone current 'db' in connection to this database
+     * @type     {object?} backup.to
+     * @property {string} backup.to.host
+     * @property {number} backup.to.port
+     * @property {string} backup.to.username
+     * @property {string} backup.to.password
+     * @return {Promise<void>}
+     */
+    static backup({ database, to }: Backup): Promise<void>;
+    /**
+     *
+     * This 'backupToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.database
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    /**
+    *
+    * This 'backupToFile' method is used to backup database intro new ${file}.sql
+    * @type {Object}  backup
+    * @property {string} backup.database
+    * @property {string} backup.filePath
+    * @type     {object?} backup.connection
+    * @property {string} backup.connection.host
+    * @property {number} backup.connection.port
+    * @property {number} backup.connection.database
+    * @property {string} backup.connection.username
+    * @property {string} backup.connection.password
+    * @return {Promise<void>}
+    */
+    static backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    /**
+     *
+     * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.database
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    backupSchemaToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    /**
+     *
+     * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.database
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    static backupSchemaToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    /**
+     *
+     * This 'backupTableToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.database
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    backupTableToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    /**
+     *
+     * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.table
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    static backupTableToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    /**
+     *
+     * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.database
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    backupTableSchemaToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    /**
+     *
+     * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
+     * @type {Object}  backup
+     * @property {string} backup.table
+     * @property {string} backup.filePath
+     * @type     {object?} backup.connection
+     * @property {string} backup.connection.host
+     * @property {number} backup.connection.port
+     * @property {number} backup.connection.database
+     * @property {string} backup.connection.username
+     * @property {string} backup.connection.password
+     * @return {Promise<void>}
+     */
+    static backupTableSchemaToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    private _backup;
     private _initialDB;
 }
 export { DB };

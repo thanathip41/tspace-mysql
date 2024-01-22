@@ -3,7 +3,7 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3;
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const make_1 = __importDefault(require("./models/make"));
@@ -48,6 +48,7 @@ try {
         return data === null || data === void 0 ? void 0 : data.includes('--env=');
     })) === null || _w === void 0 ? void 0 : _w.replace('--env=', '')) !== null && _x !== void 0 ? _x : null;
     const values = (_0 = (((_y = process.argv.slice(2)) === null || _y === void 0 ? void 0 : _y.includes('--values')) || ((_z = process.argv.slice(2)) === null || _z === void 0 ? void 0 : _z.includes('--v')))) !== null && _0 !== void 0 ? _0 : false;
+    const decorator = (_3 = (((_1 = process.argv.slice(2)) === null || _1 === void 0 ? void 0 : _1.includes('--decorator')) || ((_2 = process.argv.slice(2)) === null || _2 === void 0 ? void 0 : _2.includes('--decorators')))) !== null && _3 !== void 0 ? _3 : false;
     if (env != null)
         process.env.NODE_ENV = env;
     const cmd = {
@@ -62,6 +63,7 @@ try {
         db,
         table,
         values,
+        decorator,
         env,
         npm: 'tspace-mysql'
     };
@@ -75,6 +77,7 @@ catch (err) {
             tspace-mysql migrate --dir=App/Models/Migrations --type=js
             tspace-mysql query "SELECT * FROM users" --env=development
             tspace-mysql generate:models --dir=app/Models --env=development
+            tspace-mysql generate:models --dir=app/Models --env=development --decorators
             tspace-mysql dump:db "database" --dir=app/db --v --env=development
             tspace-mysql dump:table "table" --dir=app/table --v --env=development
         \x1b[0m

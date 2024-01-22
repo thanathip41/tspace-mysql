@@ -19,13 +19,8 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Builder = void 0;
-const fs_1 = __importDefault(require("fs"));
-const sql_formatter_1 = require("sql-formatter");
 const AbstractBuilder_1 = require("./Abstracts/AbstractBuilder");
 const utils_1 = require("../utils");
 const constants_1 = require("../constants");
@@ -450,7 +445,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     orWhereIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
+            throw new Error(`This 'orWhereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
@@ -475,10 +470,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     whereNotIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
-        const values = array.length
-            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+            throw new Error(`This 'whereNotIn' method is required array only`);
+        if (!array.length)
+            return this;
+        const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
         this._setState('WHERE', [
             ...this._getState('WHERE'),
             [
@@ -500,10 +495,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     orWhereNotIn(column, array) {
         if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
-        const values = array.length
-            ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+            throw new Error(`This 'orWhereNotIn' method is required array only`);
+        if (!array.length)
+            return this;
+        const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
         this._setState('WHERE', [
             ...this._getState('WHERE'),
             [
@@ -1206,16 +1201,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             column = column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
             if (/\./.test(column))
                 column = this.bindColumn(column);
-            this._setState('ORDER_BY', [
-                `${this.$constants('ORDER_BY')}`,
-                `${column} ${order.toUpperCase()}`
-            ].join(' '));
-            return this;
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
+            ...this._getState('ORDER_BY'),
             `\`${column}\` ${order.toUpperCase()}`
-        ].join(' '));
+        ]);
         return this;
     }
     /**
@@ -1233,9 +1223,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             column = column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
+            ...this._getState('ORDER_BY'),
             `${column} ${order.toUpperCase()}`
-        ].join(' '));
+        ]);
         return this;
     }
     /**
@@ -1246,20 +1236,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     latest(...columns) {
-        let orderByDefault = 'id';
+        let column = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            orderByDefault = columns.map(column => {
+            column = columns.map(column => {
                 if (/\./.test(column))
                     return this.bindColumn(column);
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-                return `\`${column}\``;
+                return column;
             }).join(', ');
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
-            `${orderByDefault} ${this.$constants('DESC')}`
-        ].join(' '));
+            ...this._getState('ORDER_BY'),
+            `\`${column}\` ${this.$constants('DESC')}`
+        ]);
         return this;
     }
     /**
@@ -1272,18 +1262,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     latestRaw(...columns) {
-        let orderByDefault = 'id';
+        let column = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            orderByDefault = columns.map(column => {
+            column = columns.map(column => {
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return column;
             }).join(', ');
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
-            `${orderByDefault} ${this.$constants('DESC')}`
-        ].join(' '));
+            ...this._getState('ORDER_BY'),
+            `${column} ${this.$constants('DESC')}`
+        ]);
         return this;
     }
     /**
@@ -1294,20 +1284,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     oldest(...columns) {
-        let orderByDefault = 'id';
+        let column = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            orderByDefault = columns.map(column => {
+            column = columns.map(column => {
                 if (/\./.test(column))
                     return this.bindColumn(column);
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-                return `\`${column}\``;
+                return column;
             }).join(', ');
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
-            `${orderByDefault} ${this.$constants('ASC')}`
-        ].join(' '));
+            ...this._getState('ORDER_BY'),
+            `\`${column}\` ${this.$constants('ASC')}`
+        ]);
         return this;
     }
     /**
@@ -1320,18 +1310,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     oldestRaw(...columns) {
-        let orderByDefault = 'id';
+        let column = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            orderByDefault = columns.map(column => {
+            column = columns.map(column => {
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return column;
             }).join(', ');
         }
         this._setState('ORDER_BY', [
-            `${this.$constants('ORDER_BY')}`,
-            `${orderByDefault} ${this.$constants('ASC')}`
-        ].join(' '));
+            ...this._getState('ORDER_BY'),
+            `${column} ${this.$constants('ASC')}`
+        ]);
         return this;
     }
     /**
@@ -2358,6 +2348,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             this.limit(1);
+            this.selectRaw('1');
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement([
                 `${this.$constants('SELECT')}`,
@@ -2723,238 +2714,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return values;
         });
     }
-    _backup({ tables, database }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const backup = [];
-            for (const table of tables) {
-                const schemas = yield this.showSchema(table);
-                const createTableSQL = [
-                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                    `\`${database}\`.\`${table}\``,
-                    `(${schemas.join(',')})`,
-                    `${this.$constants('ENGINE')}`,
-                ];
-                const values = yield this.showValues(table);
-                let valueSQL = [];
-                if (values.length) {
-                    const columns = yield this.showColumns(table);
-                    valueSQL = [
-                        `${this.$constants('INSERT')}`,
-                        `\`${database}\`.\`${table}\``,
-                        `(${columns.map((column) => `\`${column}\``).join(',')})`,
-                        `${this.$constants('VALUES')} ${values.join(',')}`
-                    ];
-                }
-                backup.push({
-                    table: createTableSQL.join(' '),
-                    values: valueSQL.join(' '),
-                });
-            }
-            return backup;
-        });
-    }
-    /**
-     *
-     * backup this database intro new database same server or to another server
-     * @param {Object} backupOptions
-     * @param {string} backup.database clone current 'db' in connection to this database
-     * @param {object?} backup.to
-     * @param {string} backup.to.host
-     * @param {number} backup.to.port
-     * @param {string} backup.to.username
-     * @param {string} backup.to.password
-     * @return {Promise<boolean>}
-     */
-    backup({ database, to }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const tables = yield this.showTables();
-            const backup = yield this._backup({ tables, database });
-            if (to != null && Object.keys(to).length)
-                this.connection(Object.assign(Object.assign({}, to), { database }));
-            yield this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
-            for (const b of backup) {
-                yield this._queryStatement(b.table);
-                if (b.values)
-                    yield this._queryStatement(b.values);
-            }
-            return true;
-        });
-    }
-    /**
-     *
-     * backup database intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.database
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupToFile({ filePath, database, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            const tables = yield this.showTables();
-            const backup = (yield this._backup({ tables, database }))
-                .map(b => {
-                return {
-                    table: (0, sql_formatter_1.format)(b.table, {
-                        language: 'spark',
-                        tabWidth: 2,
-                        linesBetweenQueries: 1,
-                    }) + "\n",
-                    values: b.values !== '' ? b.values + "\n" : ""
-                };
-            });
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
-                this.connection(connection);
-            let sql = [
-                `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
-                `START TRANSACTION;`,
-                `SET time_zone = "+00:00";`,
-                `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
-                `USE \`${database}\`;`
-            ];
-            for (const b of backup) {
-                sql = [...sql, b.table];
-                if (b.values) {
-                    sql = [...sql, b.values];
-                }
-            }
-            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
-            return;
-        });
-    }
-    /**
-     *
-     * backup database intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.database
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupSchemaToFile({ filePath, database, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
-                this.connection(connection);
-            const tables = yield this.showTables();
-            const backup = (yield this._backup({ tables, database }))
-                .map(b => {
-                return {
-                    table: (0, sql_formatter_1.format)(b.table, {
-                        language: 'spark',
-                        tabWidth: 2,
-                        linesBetweenQueries: 1,
-                    }) + "\n"
-                };
-            });
-            let sql = [
-                `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
-                `START TRANSACTION;`,
-                `SET time_zone = "+00:00";`,
-                `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
-                `USE \`${database}\`;`
-            ];
-            for (const b of backup)
-                sql = [...sql, b.table];
-            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
-            return;
-        });
-    }
-    /**
-     *
-     * backup table intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.table
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupTableToFile({ filePath, table, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
-                this.connection(connection);
-            const schemas = yield this.showSchema(table);
-            const createTableSQL = [
-                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                `\`${table}\``,
-                `(${schemas.join(',')})`,
-                `${this.$constants('ENGINE')};`,
-            ];
-            const values = yield this.showValues(table);
-            let valueSQL = [];
-            if (values.length) {
-                const columns = yield this.showColumns(table);
-                valueSQL = [
-                    `${this.$constants('INSERT')}`,
-                    `\`${table}\``,
-                    `(${columns.map((column) => `\`${column}\``).join(',')})`,
-                    `${this.$constants('VALUES')} ${values.join(',')};`
-                ];
-            }
-            const sql = [
-                (0, sql_formatter_1.format)(createTableSQL.join(' '), {
-                    language: 'mysql',
-                    tabWidth: 2,
-                    linesBetweenQueries: 1,
-                }) + "\n",
-                valueSQL.join(' ')
-            ];
-            fs_1.default.writeFileSync(filePath, [...sql, 'COMMIT;'].join('\n'));
-            return;
-        });
-    }
-    /**
-     *
-     * backup table only schema intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.table
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupTableSchemaToFile({ filePath, table, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            const schemas = yield this.showSchema(table);
-            const createTableSQL = [
-                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                `\`${table}\``,
-                `(${schemas.join(',')})`,
-                `${this.$constants('ENGINE')};`,
-            ];
-            const sql = [createTableSQL.join(' ')];
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
-                this.connection(connection);
-            fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)(sql.join('\n'), {
-                language: 'spark',
-                tabWidth: 2,
-                linesBetweenQueries: 1,
-            }));
-            return;
-        });
-    }
     /**
      *
      * The 'faker' method is used to insert a new records into a database table associated.
@@ -3124,6 +2883,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return null;
             return `${this.$constants('WHERE')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(' ')}`;
         };
+        const bindOrderBy = (values) => {
+            if (!values.length)
+                return null;
+            return `${this.$constants('ORDER_BY')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(', ')}`;
+        };
         const select = () => buildSQL([
             bindSelect(this.$state.get('SELECT')),
             this.$state.get('FROM'),
@@ -3132,13 +2896,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             bindWhere(this.$state.get('WHERE')),
             this.$state.get('GROUP_BY'),
             this.$state.get('HAVING'),
-            this.$state.get('ORDER_BY'),
+            bindOrderBy(this.$state.get('ORDER_BY')),
             this.$state.get('LIMIT'),
             this.$state.get('OFFSET')
         ]);
         const insert = () => buildSQL([this.$state.get('INSERT')]);
-        const update = () => buildSQL([this.$state.get('UPDATE'), bindWhere(this.$state.get('WHERE')), this.$state.get('ORDER_BY'), this.$state.get('LIMIT')]);
-        const remove = () => buildSQL([this.$state.get('DELETE'), bindWhere(this.$state.get('WHERE')), this.$state.get('ORDER_BY'), this.$state.get('LIMIT')]);
+        const update = () => buildSQL([this.$state.get('UPDATE'), bindWhere(this.$state.get('WHERE')), bindOrderBy(this.$state.get('ORDER_BY')), this.$state.get('LIMIT')]);
+        const remove = () => buildSQL([this.$state.get('DELETE'), bindWhere(this.$state.get('WHERE')), bindOrderBy(this.$state.get('ORDER_BY')), this.$state.get('LIMIT')]);
         return {
             select,
             insert,
@@ -3282,7 +3046,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-                `*`,
+                `1`,
                 `${this._getState('FROM')}`,
                 `${this._getState('TABLE_NAME')}`,
                 `${this._queryBuilder().where()}`,
@@ -3336,7 +3100,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
-                `*`,
+                `1`,
                 `${this._getState('FROM')}`,
                 `${this._getState('TABLE_NAME')}`,
                 `${this._queryBuilder().where()}`,

@@ -12,15 +12,21 @@ declare abstract class AbstractModel extends Builder {
     protected $hasOne: RelationQuery[] | undefined;
     protected $belongsTo: RelationQuery[] | undefined;
     protected $belongsToMany: RelationQuery[] | undefined;
-    protected $uuid: boolean | undefined;
     protected $timestamp: boolean | undefined;
     protected $softDelete: boolean | undefined;
+    protected $uuid: boolean | undefined;
     protected $uuidColumn: string | undefined;
     protected $timestampColumns: {
         createdAt: string;
         updatedAt: string;
     } | undefined;
     protected $softDeleteColumn: string | undefined;
+    protected $observer: (new () => {
+        selected: Function;
+        created: Function;
+        updated: Function;
+        deleted: Function;
+    }) | undefined;
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;

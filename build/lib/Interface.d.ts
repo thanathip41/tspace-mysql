@@ -157,3 +157,8 @@ export type ValidateSchemaDecorator = NumberConstructor | StringConstructor | Da
     json?: boolean;
     fn?: Function;
 };
+export interface GlobalSetting {
+    softDelete?: boolean;
+    uuid?: boolean;
+    timestamp?: boolean;
+}

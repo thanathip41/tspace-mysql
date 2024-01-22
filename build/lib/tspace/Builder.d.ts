@@ -1,5 +1,5 @@
 import { AbstractBuilder } from './Abstracts/AbstractBuilder';
-import { Pagination, Backup, ConnectionOptions, BackupToFile, Connection, ConnectionTransaction, BackupTableToFile } from '../Interface';
+import { Pagination, ConnectionOptions, Connection, ConnectionTransaction } from '../Interface';
 declare class Builder extends AbstractBuilder {
     constructor();
     /**
@@ -1183,80 +1183,6 @@ declare class Builder extends AbstractBuilder {
      * @return {Promise<Array>}
      */
     showValues(table?: string): Promise<string[]>;
-    private _backup;
-    /**
-     *
-     * backup this database intro new database same server or to another server
-     * @param {Object} backupOptions
-     * @param {string} backup.database clone current 'db' in connection to this database
-     * @param {object?} backup.to
-     * @param {string} backup.to.host
-     * @param {number} backup.to.port
-     * @param {string} backup.to.username
-     * @param {string} backup.to.password
-     * @return {Promise<boolean>}
-     */
-    backup({ database, to }: Backup): Promise<boolean>;
-    /**
-     *
-     * backup database intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.database
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
-    /**
-     *
-     * backup database intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.database
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupSchemaToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
-    /**
-     *
-     * backup table intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.table
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupTableToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
-    /**
-     *
-     * backup table only schema intro file
-     * @param {Object}  backupOptions
-     * @param {string}  backup.table
-     * @param {object?} backup.filePath
-     * @param {object?} backup.connection
-     * @param {string}  backup.connection.host
-     * @param {number}  backup.connection.port
-     * @param {string}  backup.connection.database
-     * @param {string}  backup.connection.username
-     * @param {string}  backup.connection.password
-     * @return {Promise<boolean>}
-     */
-    backupTableSchemaToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
     /**
      *
      * The 'faker' method is used to insert a new records into a database table associated.
