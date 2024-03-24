@@ -29,15 +29,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Pool = exports.loadOptionsEnvironment = exports.PoolConnection = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const mysql2_1 = require("mysql2");
+const events_1 = require("events");
 const options_1 = __importStar(require("./options"));
 Object.defineProperty(exports, "loadOptionsEnvironment", { enumerable: true, get: function () { return options_1.loadOptionsEnvironment; } });
-const mysql2_1 = require("mysql2");
-class PoolConnection {
+class PoolConnection extends events_1.EventEmitter {
     /**
      *
      * @Init a options connection pool
      */
     constructor(options) {
+        super();
         this.OPTIONS = this._loadOptions();
         if (options) {
             this.OPTIONS = new Map(Object.entries(Object.assign(Object.assign({}, Object.fromEntries(this.OPTIONS)), JSON.parse(JSON.stringify(options)))));
@@ -53,21 +55,35 @@ class PoolConnection {
     connection() {
         const pool = (0, mysql2_1.createPool)(Object.fromEntries(this.OPTIONS));
         pool.getConnection((err, _) => {
-            if (err == null || !err)
+            if (err == null || !err) {
+                this.emit('CONNECTION', pool);
                 return;
+            }
             const message = this._messageError.bind(this);
             process.nextTick(() => {
-                console.log(message(err === null || err === void 0 ? void 0 : err.message));
+                console.log(message(err.message == null || err.message === '' ? err.code : err.message));
                 if (options_1.default.CONNECTION_ERROR)
                     return process.exit();
             });
         });
+        pool.on('release', (connection) => {
+            this.emit('RELEASE', connection);
+        });
         return {
+            on: (event, data) => {
+                return this.on(event, data);
+            },
             query: (sql) => {
                 return new Promise((resolve, reject) => {
+                    const start = Date.now();
                     pool.query(sql, (err, results) => {
                         if (err)
                             return reject(err);
+                        this._detectEventQuery({
+                            start,
+                            sql,
+                            results
+                        });
                         return resolve(results);
                     });
                 });
@@ -78,11 +94,13 @@ class PoolConnection {
                         if (err)
                             return reject(err);
                         const query = (sql) => {
+                            const start = Date.now();
                             return new Promise((resolve, reject) => {
-                                connection.query(sql, (err, result) => {
+                                connection.query(sql, (err, results) => {
                                     if (err)
                                         return reject(err);
-                                    return resolve(result);
+                                    this._detectEventQuery({ start, sql, results });
+                                    return resolve(results);
                                 });
                             });
                         };
@@ -90,6 +108,9 @@ class PoolConnection {
                         const commit = () => query('COMMIT');
                         const rollback = () => query('ROLLBACK');
                         return resolve({
+                            on: (event, data) => {
+                                return this.on(event, data);
+                            },
                             query,
                             startTransaction,
                             commit,
@@ -99,6 +120,42 @@ class PoolConnection {
                 });
             }
         };
+    }
+    _detectEventQuery({ start, sql, results }) {
+        const duration = Date.now() - start;
+        if (duration > 1000 * 5) {
+            console.log(`\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[30mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`);
+            this.emit('SLOW_QUERY', {
+                sql,
+                results,
+                execution: duration
+            });
+        }
+        this.emit('QUERY', {
+            sql,
+            results,
+            execution: duration
+        });
+        this.emit(this._detectQueryType(sql), {
+            sql,
+            results,
+            execution: duration
+        });
+    }
+    _detectQueryType(query) {
+        const selectRegex = /^SELECT\b/i;
+        const updateRegex = /^UPDATE\b/i;
+        const insertRegex = /^INSERT\b/i;
+        const deleteRegex = /^DELETE\b/i;
+        if (selectRegex.test(query))
+            return 'SELECT';
+        if (updateRegex.test(query))
+            return 'UPDATE';
+        if (insertRegex.test(query))
+            return 'INSERT';
+        if (deleteRegex.test(query))
+            return 'DELETE';
+        return 'UNKNOWN';
     }
     _defaultOptions() {
         return new Map(Object.entries({
@@ -197,7 +254,7 @@ class PoolConnection {
         }
         return data;
     }
-    _messageError(err) {
+    _messageError(message) {
         return `
             \x1b[1m\x1b[31m
             Connection lost to database ! \x1b[0m
@@ -209,7 +266,7 @@ class PoolConnection {
                 PASSWORD : ${this.OPTIONS.get('password')} \x1b[0m 
             -------------------------------
             \x1b[1m\x1b[31mError Message 
-            : ${err !== null && err !== void 0 ? err : ''} \x1b[0m
+            : ${message !== null && message !== void 0 ? message : ''} \x1b[0m
         `;
     }
 }

@@ -17,18 +17,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Pool = exports.Blueprint = exports.Schema = exports.Model = exports.DB = void 0;
+exports.Pool = exports.Blueprint = exports.Model = exports.DB = void 0;
 const DB_1 = __importDefault(require("./DB"));
 exports.DB = DB_1.default;
 const Model_1 = __importDefault(require("./Model"));
 exports.Model = Model_1.default;
 const Schema_1 = __importDefault(require("./Schema"));
-exports.Schema = Schema_1.default;
 const Blueprint_1 = __importDefault(require("./Blueprint"));
 exports.Blueprint = Blueprint_1.default;
 const connection_1 = __importDefault(require("../connection"));
 exports.Pool = connection_1.default;
 __exportStar(require("./Decorator"), exports);
+__exportStar(require("./Schema"), exports);
 exports.default = {
     DB: DB_1.default,
     Model: Model_1.default,

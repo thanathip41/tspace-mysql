@@ -21,18 +21,18 @@ class StateHandler {
         if (key == null)
             return this.STATE.currentState;
         this._assertError(!this.STATE.currentState.has(key) && key !== 'DEBUG', `Can't get this [ ${key} ]`);
-        return this.STATE.currentState.get(key);
+        return this.STATE.currentState.get(key.toUpperCase());
     }
     set(key, value) {
         this._assertError(!this.STATE.currentState.has(key), `Can't set this [ ${key} ]`);
-        this.STATE.currentState.set(key, value);
+        this.STATE.currentState.set(key.toUpperCase(), value);
         return;
     }
     clone(data) {
         this.STATE.currentState = new Map(Object.entries(Object.assign({}, data)));
         return;
     }
-    resetState() {
+    reset() {
         this.STATE.currentState.set('INSERT', '');
         this.STATE.currentState.set('UPDATE', '');
         this.STATE.currentState.set('DELETE', '');

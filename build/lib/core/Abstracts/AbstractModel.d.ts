@@ -2,7 +2,7 @@ import { Pattern, Relation, RelationQuery, ValidateSchema } from '../../Interfac
 import { Blueprint } from '../Blueprint';
 import { Builder } from '../Builder';
 import { RelationHandler } from '../Handlers/Relation';
-declare abstract class AbstractModel extends Builder {
+declare abstract class AbstractModel<T> extends Builder {
     protected $relation: RelationHandler | undefined;
     protected $schema: Record<string, Blueprint> | undefined;
     protected $validateSchema: ValidateSchema | undefined;
@@ -27,6 +27,7 @@ declare abstract class AbstractModel extends Builder {
         updated: Function;
         deleted: Function;
     }) | undefined;
+    protected abstract column<K extends keyof T>(key: K): K;
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;

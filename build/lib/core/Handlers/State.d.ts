@@ -5,7 +5,7 @@ declare class StateHandler {
     get(key?: string | null): any;
     set(key: string, value: any): void;
     clone(data: any): void;
-    resetState(): void;
+    reset(): void;
     private _assertError;
 }
 export { StateHandler };

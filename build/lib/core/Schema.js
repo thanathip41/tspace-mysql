@@ -77,23 +77,100 @@ class Schema extends Builder_1.Builder {
                     `${key} ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
                 ];
             }
-            const sql = [
+            return [
                 `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
-                `${table} (${columns === null || columns === void 0 ? void 0 : columns.join(', ')})`,
+                `${table} (${columns.join(', ')})`,
                 `${this.$constants('ENGINE')}`
             ].join(' ');
-            return sql;
         };
+    }
+    /**
+    *
+    * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+    *
+    * The schema can define with method 'useSchema'
+    * @param    {string} pathFolders directory to models
+    * @property {boolean} options.force - forec always check all columns if not exists will be created
+    * @property {boolean} options.log   - show log execution with sql statements
+    * @property {boolean} options.foreign - check when has a foreign keys will be created
+    * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+    * @return {Promise<void>}
+    * @example
+    *
+    * - node_modules
+    * - app
+    *   - Models
+    *     - User.ts
+    *     - Post.ts
+    *
+    *  // file User.ts
+    *  class User extends Model {
+    *      constructor(){
+    *          super()
+    *          this.hasMany({ name : 'posts' , model : Post })
+    *          this.useSchema ({
+    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+    *               uuid        : new Blueprint().varchar(50).null(),
+    *               email       : new Blueprint().int().notNull().unique(),
+    *               name        : new Blueprint().varchar(255).null(),
+    *               created_at  : new Blueprint().timestamp().null(),
+    *               updated_at  : new Blueprint().timestamp().null(),
+    *               deleted_at  : new Blueprint().timestamp().null()
+    *           })
+    *       }
+    *   }
+    *
+    *   // file Post.ts
+    *   class Post extends Model {
+    *      constructor(){
+    *          super()
+    *          this.hasMany({ name : 'comments' , model : Comment })
+    *          this.belongsTo({ name : 'user' , model : User })
+    *          this.useSchema ({
+    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+    *               uuid        : new Blueprint().varchar(50).null(),
+    *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
+    *               title       : new Blueprint().varchar(255).null(),
+    *               created_at  : new Blueprint().timestamp().null(),
+    *               updated_at  : new Blueprint().timestamp().null(),
+    *               deleted_at  : new Blueprint().timestamp().null()
+    *           })
+    *       }
+    *   }
+    *
+    *
+    *  await new Schema().sync(`app/Models` , { force : true , log = true, foreign = true , changed = true })
+    */
+    sync(pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const directories = fs_1.default.readdirSync(pathFolders, { withFileTypes: true });
+            const files = (yield Promise.all(directories.map((directory) => {
+                const newDir = path_1.default.resolve(String(pathFolders), directory.name);
+                if (directory.isDirectory() && directory.name.toLocaleLowerCase().includes('migrations'))
+                    return null;
+                return directory.isDirectory() ? Schema.sync(newDir, { force, log, changed }) : newDir;
+            })));
+            const pathModels = [].concat(...files).filter(d => d != null || d === '');
+            yield new Promise(r => setTimeout(r, 1200));
+            const models = yield Promise.all(pathModels.map((pathModel) => this._import(pathModel)).filter(d => d != null));
+            if (!models.length)
+                return;
+            yield this._syncExecute({ models, force, log, foreign, changed });
+            return;
+        });
     }
     /**
      *
      * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
      *
      * The schema can define with method 'useSchema'
-     * @param {string} pathFolders directory to models
+     * @param    {string} pathFolders directory to models
+     * @type     {object}  options
      * @property {boolean} options.force - forec always check all columns if not exists will be created
      * @property {boolean} options.log   - show log execution with sql statements
-     * @property {boolean} options.delay - wait for execution
+     * @property {boolean} options.foreign - check when has a foreign keys will be created
+     * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+     * @return {Promise<void>}
      * @example
      *
      * - node_modules
@@ -128,7 +205,7 @@ class Schema extends Builder_1.Builder {
      *          this.useSchema ({
      *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *               uuid        : new Blueprint().varchar(50).null(),
-     *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),,
+     *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
      *               title       : new Blueprint().varchar(255).null(),
      *               created_at  : new Blueprint().timestamp().null(),
      *               updated_at  : new Blueprint().timestamp().null(),
@@ -137,27 +214,15 @@ class Schema extends Builder_1.Builder {
      *       }
      *   }
      *
+     *
      *  await Schema.sync(`app/Models` , { force : true })
      */
-    static sync(pathFolders, { force = false, log = false, foreign = false, delay = 1500 } = {}) {
+    static sync(pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
         return __awaiter(this, void 0, void 0, function* () {
-            const directories = fs_1.default.readdirSync(pathFolders, { withFileTypes: true });
-            const files = (yield Promise.all(directories.map((directory) => {
-                const newDir = path_1.default.resolve(String(pathFolders), directory.name);
-                if (directory.isDirectory() && directory.name.toLocaleLowerCase().includes('migrations'))
-                    return null;
-                return directory.isDirectory() ? Schema.sync(newDir, { force, log, delay }) : newDir;
-            })));
-            const pathModels = [].concat(...files).filter(d => d != null || d === '');
-            yield new Promise(r => setTimeout(r, delay));
-            const models = yield Promise.all(pathModels.map((pathModel) => Schema._import(pathModel)).filter(d => d != null));
-            if (!models.length)
-                return;
-            yield Schema._syncExecute({ models, force, log, foreign });
-            return;
+            return new this().sync(pathFolders, { force, log, foreign, changed });
         });
     }
-    static _import(pathModel) {
+    _import(pathModel) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const loadModel = yield Promise.resolve(`${pathModel}`).then(s => __importStar(require(s))).catch(_ => { });
@@ -170,10 +235,10 @@ class Schema extends Builder_1.Builder {
             }
         });
     }
-    static _syncExecute({ models, force, log, foreign }) {
-        var _a, _b, _c, _d;
+    _syncExecute({ models, force, log, foreign, changed }) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         return __awaiter(this, void 0, void 0, function* () {
-            const checkTables = yield new Builder_1.Builder().query('SHOW TABLES');
+            const checkTables = yield this.query(this.$constants('SHOW_TABLES'));
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             for (const model of models) {
                 if (model == null)
@@ -183,8 +248,11 @@ class Schema extends Builder_1.Builder {
                     continue;
                 const checkTableIsExists = existsTables.some((table) => table === model.getTableName());
                 if (!checkTableIsExists) {
-                    const sql = new Schema().createTable(`\`${model.getTableName()}\``, schemaModel);
-                    yield new Builder_1.Builder().debug(log).query(sql);
+                    const sql = this.createTable(`\`${model.getTableName()}\``, schemaModel);
+                    yield model.debug(log).query(sql);
+                    const beforeCreatingTheTable = model['$state'].get('BEFORE_CREATING_TABLE');
+                    if (beforeCreatingTheTable != null)
+                        yield beforeCreatingTheTable();
                     yield this._syncForeignKey({
                         schemaModel,
                         model,
@@ -204,6 +272,29 @@ class Schema extends Builder_1.Builder {
                 const schemaTable = yield model.getSchema();
                 const schemaTableKeys = schemaTable.map((k) => k.Field);
                 const schemaModelKeys = Object.keys(schemaModel);
+                const wasChangedColumns = changed ? Object.entries(schemaModel).map(([key, value]) => {
+                    const find = schemaTable.find(t => t.Field === key);
+                    if (find == null)
+                        return null;
+                    const compare = String(find.Type).toLocaleLowerCase() !== String(value.type).toLocaleLowerCase();
+                    return compare ? key : null;
+                }).filter(d => d != null) : [];
+                if (wasChangedColumns.length) {
+                    for (const column of wasChangedColumns) {
+                        if (column == null)
+                            continue;
+                        const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
+                        const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
+                        const sql = [
+                            this.$constants('ALTER_TABLE'),
+                            `\`${model.getTableName()}\``,
+                            this.$constants('CHANGE'),
+                            `\`${column}\``,
+                            `\`${column}\` ${type} ${attributes.join(' ')}`,
+                        ].join(' ');
+                        yield this.debug(log).query(sql);
+                    }
+                }
                 const missingColumns = schemaModelKeys.filter(schemaModelKey => !schemaTableKeys.includes(schemaModelKey));
                 if (!missingColumns.length)
                     continue;
@@ -211,19 +302,19 @@ class Schema extends Builder_1.Builder {
                 for (const column of missingColumns) {
                     const indexWithColumn = entries.findIndex(([key]) => key === column);
                     const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
-                    const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
-                    const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
+                    const type = (_f = (_e = schemaModel[column]) === null || _e === void 0 ? void 0 : _e.type) !== null && _f !== void 0 ? _f : null;
+                    const attributes = (_h = (_g = schemaModel[column]) === null || _g === void 0 ? void 0 : _g.attributes) !== null && _h !== void 0 ? _h : null;
                     if (findAfterIndex == null || type == null || attributes == null)
                         continue;
                     const sql = [
-                        'ALTER TABLE',
+                        this.$constants('ALTER_TABLE'),
                         `\`${model.getTableName()}\``,
-                        'ADD',
+                        this.$constants('ADD'),
                         `\`${column}\` ${type} ${attributes.join(' ')}`,
-                        'AFTER',
+                        this.$constants('AFTER'),
                         `\`${findAfterIndex}\``
                     ].join(' ');
-                    yield new Builder_1.Builder().debug(log).query(sql);
+                    yield this.debug(log).query(sql);
                 }
                 yield this._syncForeignKey({
                     schemaModel,
@@ -234,37 +325,41 @@ class Schema extends Builder_1.Builder {
             return;
         });
     }
-    static _syncForeignKey({ schemaModel, model, log }) {
+    _syncForeignKey({ schemaModel, model, log }) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             for (const key in schemaModel) {
                 if (((_a = schemaModel[key]) === null || _a === void 0 ? void 0 : _a.foreignKey) == null)
                     continue;
                 const foreign = schemaModel[key].foreignKey;
-                const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName();
+                if (foreign.on == null)
+                    continue;
+                const onReference = typeof foreign.on === "string" ? foreign.on : new foreign.on;
+                const table = typeof onReference === "string" ? onReference : onReference.getTableName();
+                const constraintName = `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``;
                 const sql = [
-                    "ALTER TABLE",
+                    this.$constants("ALTER_TABLE"),
                     `\`${model.getTableName()}\``,
-                    "ADD CONSTRAINT",
-                    `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``,
-                    `FOREIGN KEY(\`${key}\`)`,
-                    `REFERENCES \`${table}\`(\`${foreign.references}\`)`,
-                    `ON DELETE ${foreign.onDelete} ON UPDATE ${foreign.onUpdate}`
+                    this.$constants('ADD_CONSTRAINT'),
+                    `${constraintName}`,
+                    `${this.$constants('FOREIGN_KEY')}(\`${key}\`)`,
+                    `${this.$constants('REFERENCES')} \`${table}\`(\`${foreign.references}\`)`,
+                    `${this.$constants('ON_DELETE')} ${foreign.onDelete} ${this.$constants('ON_UPDATE')} ${foreign.onUpdate}`
                 ].join(' ');
                 try {
-                    yield new Builder_1.Builder().debug(log).query(sql);
+                    yield this.debug(log).query(sql);
                 }
                 catch (e) {
-                    if (typeof foreign.on === "string")
+                    if (typeof onReference === "string")
                         continue;
                     if (String(e.message).includes("Duplicate foreign key constraint"))
                         continue;
-                    const schemaModelOn = yield foreign.on.getSchemaModel();
+                    const schemaModelOn = yield onReference.getSchemaModel();
                     if (!schemaModelOn)
                         continue;
-                    const tableSql = new Schema().createTable(`\`${table}\``, schemaModelOn);
-                    yield new Builder_1.Builder().debug(log).query(tableSql).catch(e => console.log(e));
-                    yield new Builder_1.Builder().debug(log).query(sql).catch(e => console.log(e));
+                    const tableSql = this.createTable(`\`${table}\``, schemaModelOn);
+                    yield this.debug(log).query(tableSql).catch(e => console.log(e));
+                    yield this.debug(log).query(sql).catch(e => console.log(e));
                     continue;
                 }
             }

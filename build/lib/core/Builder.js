@@ -39,7 +39,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     distinct() {
-        this._setState('DISTINCT', true);
+        this.$state.set('DISTINCT', true);
         return this;
     }
     /**
@@ -50,8 +50,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     select(...columns) {
-        if (!columns.length)
+        if (!columns.length) {
+            this.$state.set('SELECT', ['*']);
             return this;
+        }
         let select = columns.map((column) => {
             if (column === '*' || (column.includes('*') && /\./.test(column)))
                 return column;
@@ -59,13 +61,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
             return this.bindColumn(column);
         });
-        select = [...this._getState('SELECT'), ...select];
-        if (this._getState('DISTINCT') && select.length) {
+        select = [...this.$state.get('SELECT'), ...select];
+        if (this.$state.get('DISTINCT') && select.length) {
             select[0] = String(select[0]).includes(this.$constants('DISTINCT'))
                 ? select[0]
                 : `${this.$constants('DISTINCT')} ${select[0]}`;
         }
-        this._setState('SELECT', select);
+        this.$state.set('SELECT', select);
         return this;
     }
     /**
@@ -89,11 +91,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '').replace(/'/g, '');
             return column;
         });
-        if (this._getState('DISTINCT') && select.length) {
-            this._setState('SELECT', select);
+        if (this.$state.get('DISTINCT') && select.length) {
+            this.$state.set('SELECT', select);
             return this;
         }
-        this._setState('SELECT', [...this._getState('SELECT'), ...select]);
+        this.$state.set('SELECT', [...this.$state.get('SELECT'), ...select]);
         return this;
     }
     /**
@@ -117,7 +119,36 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             maping = [...maping, `'${key}'`, `\`${this.getTableName()}\`.\`${value}\``];
         }
         const json = `${this.$constants('JSON_OBJECT')}(${maping.join(' , ')}) ${this.$constants('AS')} \`${alias}\``;
-        this._setState('SELECT', [...this._getState('SELECT'), json]);
+        this.$state.set('SELECT', [...this.$state.get('SELECT'), json]);
+        return this;
+    }
+    /**
+     * The 'sleep' method is used to delay the query.
+     *
+     * @param {number} second - The number of seconds to sleep
+     * @return {this} this
+     */
+    sleep(second) {
+        const sql = `SELECT SLEEP(${second}) as delay`;
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
+            [
+                `${this.$constants('INNER_JOIN')}`,
+                `(${sql}) ${this.$constants('AS')} temp`,
+                `${this.$constants('ON')}`,
+                `1=1`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     * The 'returnType' method is used covert the results to type 'object' or 'array'.
+     *
+     * @param {string} type - The types 'object' | 'array'
+     * @return {this} this
+     */
+    returnType(type) {
+        this.$state.set('RETURN_TYPE', type);
         return this;
     }
     /**
@@ -129,7 +160,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     pluck(column) {
-        this._setState('PLUCK', column);
+        this.$state.set('PLUCK', column);
         return this;
     }
     /**
@@ -140,7 +171,22 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     except(...columns) {
-        this._setState('EXCEPTS', columns.length ? columns : []);
+        if (!columns.length)
+            return this;
+        const exceptColumns = this.$state.get('EXCEPTS');
+        this.$state.set('EXCEPTS', [
+            ...columns,
+            ...exceptColumns
+        ]);
+        return this;
+    }
+    /**
+     * The 'exceptTimestamp' method is used to timestamp columns (created_at , updated_at) you don't want to retrieve from a database table.
+     *
+     * @return {this} this
+     */
+    exceptTimestamp() {
+        this.$state.set('EXCEPTS', ['created_at', 'updated_at']);
         return this;
     }
     /**
@@ -149,7 +195,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     void() {
-        this._setState('VOID', true);
+        this.$state.set('VOID', true);
         return this;
     }
     /**
@@ -160,7 +206,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     only(...columns) {
-        this._setState('ONLY', columns);
+        this.$state.set('ONLY', columns);
         return this;
     }
     /**
@@ -173,7 +219,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     chunk(chunk) {
-        this._setState('CHUNK', chunk);
+        this.$state.set('CHUNK', chunk);
         return this;
     }
     /**
@@ -207,10 +253,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(value)}`
@@ -233,10 +279,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(value)}`
@@ -253,10 +299,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     whereRaw(sql) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${sql}`
             ].join(' ')
         ]);
@@ -271,10 +317,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     orWhereRaw(sql) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${sql}`
             ].join(' ')
         ]);
@@ -293,10 +339,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         for (const column in columns) {
             const operator = '=';
             const value = this.$utils.escape(columns[column]);
-            this._setState('WHERE', [
-                ...this._getState('WHERE'),
+            this.$state.set('WHERE', [
+                ...this.$state.get('WHERE'),
                 [
-                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     `${this.bindColumn(String(column))}`,
                     `${operator}`,
                     `${this._checkValueHasRaw(value)}`
@@ -319,10 +365,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereJSON(column, { key, value, operator }) {
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}->>'$.${key}'`,
                 `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
                 `${this._checkValueHasRaw(value)}`
@@ -353,11 +399,30 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     whereExists(sql) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.$constants('EXISTS')}`,
+                `(${sql})`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+     *
+     * The 'whereExists' method is used to add a conditional clause to a database query that checks for the existence of related records in a subquery or another table.
+     *
+     * It allows you to filter records based on whether a specified condition is true for related records.
+     * @param {string} sql
+     * @return {this}
+     */
+    whereNotExists(sql) {
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
+            [
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
+                `${this.$constants('NOT')} ${this.$constants('EXISTS')}`,
                 `(${sql})`
             ].join(' ')
         ]);
@@ -369,10 +434,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     whereId(id, column = 'id') {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)} = ${this.$utils.escape(id)}`,
             ].join(' ')
         ]);
@@ -385,10 +450,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     whereEmail(email) {
         const column = 'email';
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)} = ${this.$utils.escape(email)}`,
             ].join(' ')
         ]);
@@ -401,10 +466,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     whereUser(userId, column = 'user_id') {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
             ].join(' ')
         ]);
@@ -424,10 +489,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IN')}`,
                 `(${values})`
@@ -449,10 +514,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
             : this.$constants('NULL');
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IN')}`,
                 `(${values})`
@@ -474,10 +539,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!array.length)
             return this;
         const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${values})`
@@ -499,10 +564,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!array.length)
             return this;
         const values = `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${values})`
@@ -523,10 +588,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IN')}`,
                 `(${subQuery})`
@@ -547,10 +612,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${subQuery})`
@@ -571,10 +636,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IN')}`,
                 `(${subQuery})`
@@ -595,10 +660,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
             throw new Error(`This "${subQuery}" is invalid sub query (Sub query Operand should contain 1 column(s) not select * )`);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${subQuery})`
@@ -618,10 +683,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this._setState('WHERE', [
-                ...this._getState('WHERE'),
+            this.$state.set('WHERE', [
+                ...this.$state.get('WHERE'),
                 [
-                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('BETWEEN')}`,
                     `${this.$constants('NULL')}`,
@@ -632,10 +697,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return this;
         }
         const [value1, value2] = array;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('BETWEEN')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
@@ -657,10 +722,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this._setState('WHERE', [
-                ...this._getState('WHERE'),
+            this.$state.set('WHERE', [
+                ...this.$state.get('WHERE'),
                 [
-                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('BETWEEN')}`,
                     `${this.$constants('NULL')}`,
@@ -671,10 +736,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return this;
         }
         const [value1, value2] = array;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('BETWEEN')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
@@ -696,10 +761,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this._setState('WHERE', [
-                ...this._getState('WHERE'),
+            this.$state.set('WHERE', [
+                ...this.$state.get('WHERE'),
                 [
-                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('NOT_BETWEEN')}`,
                     `${this.$constants('NULL')}`,
@@ -710,10 +775,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return this;
         }
         const [value1, value2] = array;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_BETWEEN')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
@@ -735,10 +800,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Array.isArray(array))
             throw new Error("Value is't array");
         if (!array.length) {
-            this._setState('WHERE', [
-                ...this._getState('WHERE'),
+            this.$state.set('WHERE', [
+                ...this.$state.get('WHERE'),
                 [
-                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('NOT_BETWEEN')}`,
                     `${this.$constants('NULL')}`,
@@ -749,10 +814,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return this;
         }
         const [value1, value2] = array;
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('NOT_BETWEEN')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
@@ -770,10 +835,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     whereNull(column) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IS_NULL')}`
             ].join(' ')
@@ -788,10 +853,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     orWhereNull(column) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IS_NULL')}`
             ].join(' ')
@@ -806,10 +871,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     whereNotNull(column) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IS_NOT_NULL')}`
             ].join(' ')
@@ -824,10 +889,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     orWhereNotNull(column) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(column)}`,
                 `${this.$constants('IS_NOT_NULL')}`
             ].join(' ')
@@ -849,10 +914,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.$constants('BINARY')}`,
                 `${this.bindColumn(column)}`,
                 `${operator}`,
@@ -890,10 +955,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.$constants('BINARY')}`,
                 `${this.bindColumn(column)}`,
                 `${operator}`,
@@ -911,20 +976,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     whereQuery(callback) {
         var _a;
-        const db = new DB_1.DB((_a = this._getState('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
+        const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
         if (repository instanceof Promise)
             throw new Error('"whereQuery" is not supported a Promise');
         if (!(repository instanceof DB_1.DB))
             throw new Error(`Unknown callback query: '${repository}'`);
-        const where = (repository === null || repository === void 0 ? void 0 : repository._getState('WHERE')) || [];
+        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || [];
         if (!where.length)
             return this;
         const query = where.join(' ');
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `(${query})`
             ].join(' ')
         ]);
@@ -949,20 +1014,20 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     orWhereQuery(callback) {
         var _a;
-        const db = new DB_1.DB((_a = this._getState('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
+        const db = new DB_1.DB((_a = this.$state.get('TABLE_NAME')) === null || _a === void 0 ? void 0 : _a.replace(/`/g, ''));
         const repository = callback(db);
         if (repository instanceof Promise)
             throw new Error('"whereQuery" is not supported a Promise');
         if (!(repository instanceof DB_1.DB))
             throw new Error(`Unknown callback query: '[${repository}]'`);
-        const where = (repository === null || repository === void 0 ? void 0 : repository._getState('WHERE')) || [];
+        const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || [];
         if (!where.length)
             return this;
         const query = where.join(' ');
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `(${query})`
             ].join(' ')
         ]);
@@ -977,6 +1042,55 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     orWhereGroup(callback) {
         return this.orWhereQuery(callback);
+    }
+    /**
+     * The 'whereAny' method is used to add conditions to a database query,
+     * where either the original condition or the new condition must be true.
+     *
+     * If has only 2 arguments default operator '='
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAny(columns, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this.whereQuery((query) => {
+            for (const index in columns) {
+                const column = columns[index];
+                if (+index === 0) {
+                    query.where(column, operator, value);
+                    continue;
+                }
+                query.orWhere(column, operator, value);
+            }
+            return query;
+        });
+        return this;
+    }
+    /**
+     * The 'whereAll' method is used to clause to a database query.
+     *
+     * This method allows you to specify conditions that the retrieved records must meet.
+     *
+     * If has only 2 arguments default operator '='
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAll(columns, operator, value) {
+        [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
+        value = this.$utils.escape(value);
+        value = this._valueTrueFalse(value);
+        this.whereQuery((query) => {
+            for (const column of columns)
+                query.where(column, operator, value);
+            return query;
+        });
+        return this;
     }
     /**
      * The 'whereCases' method is used to add conditions with cases to a database query.
@@ -1001,11 +1115,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('WHEN')} ${c.when} ${this.$constants('THEN')} ${c.then}`
             ];
         }
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
                 [
-                    this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     '(',
                     this.$constants('CASE'),
                     query.join(' '),
@@ -1040,11 +1154,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('WHEN')} ${c.when} ${this.$constants('THEN')} ${c.then}`
             ];
         }
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
                 [
-                    this._getState('WHERE').length ? `${this.$constants('OR')}` : '',
+                    this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                     '(',
                     this.$constants('CASE'),
                     query.join(' '),
@@ -1087,7 +1201,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         }
         if (query.length <= 1)
             return this;
-        this._setState('SELECT', [...this._getState('SELECT'), `${query.join(' ')} ${this.$constants('AS')} ${as}`]);
+        this.$state.set('SELECT', [...this.$state.get('SELECT'), `${query.join(' ')} ${this.$constants('AS')} ${as}`]);
         return this;
     }
     /**
@@ -1109,12 +1223,38 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     join(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        this._setState('JOIN', [
-            ...this._getState('JOIN'),
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
             [
                 `${this.$constants('INNER_JOIN')}`,
                 `\`${table}\` ${this.$constants('ON')}`,
                 `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+            ].join(' ')
+        ]);
+        return this;
+    }
+    /**
+    * The 'join' method is used to perform various types of SQL joins between two or more database tables.
+    *
+    * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
+    * @param    {object}  property object { localKey , foreignKey , sqlr }
+    * @property {string} property.localKey local key in current table
+    * @property {string} property.foreignKey reference key in next table
+    * @property {string} property.sql sql string
+    * @example
+    * await new DB('users')
+    * .joinSubQuery({ localKey : 'id' , foreignKey : 'userId' , sql : '....sql'})
+    * .get()
+    * @return {this}
+    */
+    joinSubQuery({ localKey, foreignKey, sql }) {
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
+            [
+                `${this.$constants('INNER_JOIN')}`,
+                `(${sql}) as subquery`,
+                `${this.$constants('ON')}`,
+                `${this.bindColumn(localKey)} = subquery.\`${foreignKey}\``
             ].join(' ')
         ]);
         return this;
@@ -1132,8 +1272,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     rightJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        this._setState('JOIN', [
-            ...this._getState('JOIN'),
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
             [
                 `${this.$constants('RIGHT_JOIN')}`,
                 `\`${table}\` ${this.$constants('ON')}`,
@@ -1155,8 +1295,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     leftJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        this._setState('JOIN', [
-            ...this._getState('JOIN'),
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
             [
                 `${this.$constants('LEFT_JOIN')}`,
                 `\`${table}\` ${this.$constants('ON')}`,
@@ -1176,8 +1316,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     crossJoin(localKey, referenceKey) {
         var _a;
         const table = (_a = referenceKey.split('.')) === null || _a === void 0 ? void 0 : _a.shift();
-        this._setState('JOIN', [
-            ...this._getState('JOIN'),
+        this.$state.set('JOIN', [
+            ...this.$state.get('JOIN'),
             [
                 `${this.$constants('CROSS_JOIN')}`,
                 `\`${table}\` ${this.$constants('ON')}`,
@@ -1194,7 +1334,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @return {this}
      */
-    orderBy(column, order = this.$constants('ASC')) {
+    orderBy(column, order = 'ASC') {
         if (typeof column !== 'string')
             return this;
         if (column.includes(this.$constants('RAW')) || /\./.test(column)) {
@@ -1202,8 +1342,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (/\./.test(column))
                 column = this.bindColumn(column);
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
             `\`${column}\` ${order.toUpperCase()}`
         ]);
         return this;
@@ -1222,11 +1362,31 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (column.includes(this.$constants('RAW'))) {
             column = column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
             `${column} ${order.toUpperCase()}`
         ]);
         return this;
+    }
+    /**
+     * The 'random' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
+     *
+     * @return {this}
+     */
+    random() {
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
+            `${this.$constants('RAND')}`
+        ]);
+        return this;
+    }
+    /**
+     * The 'inRandom' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
+     *
+     * @return {this}
+     */
+    inRandom() {
+        return this.random();
     }
     /**
      * The 'latest' method is used to specify the order in which the results of a database query should be sorted.
@@ -1236,19 +1396,19 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     latest(...columns) {
-        let column = 'id';
+        let orderBy = '`id`';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            column = columns.map(column => {
-                if (/\./.test(column))
-                    return this.bindColumn(column);
-                if (column.includes(this.$constants('RAW')))
-                    return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-                return column;
+            orderBy = columns.map(c => {
+                if (/\./.test(c))
+                    return this.bindColumn(c);
+                if (c.includes(this.$constants('RAW')))
+                    return c === null || c === void 0 ? void 0 : c.replace(this.$constants('RAW'), '');
+                return `\`${c}\``;
             }).join(', ');
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
-            `\`${column}\` ${this.$constants('DESC')}`
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
+            `${orderBy} ${this.$constants('DESC')}`
         ]);
         return this;
     }
@@ -1262,17 +1422,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     latestRaw(...columns) {
-        let column = 'id';
+        let orderBy = '`id`';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            column = columns.map(column => {
+            orderBy = columns.map(column => {
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return column;
             }).join(', ');
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
-            `${column} ${this.$constants('DESC')}`
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
+            `${orderBy} ${this.$constants('DESC')}`
         ]);
         return this;
     }
@@ -1284,19 +1444,19 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     oldest(...columns) {
-        let column = 'id';
+        let orderBy = '`id`';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            column = columns.map(column => {
-                if (/\./.test(column))
-                    return this.bindColumn(column);
-                if (column.includes(this.$constants('RAW')))
-                    return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-                return column;
+            orderBy = columns.map(c => {
+                if (/\./.test(c))
+                    return this.bindColumn(c);
+                if (c.includes(this.$constants('RAW')))
+                    return c === null || c === void 0 ? void 0 : c.replace(this.$constants('RAW'), '');
+                return `\`${c}\``;
             }).join(', ');
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
-            `\`${column}\` ${this.$constants('ASC')}`
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
+            `${orderBy} ${this.$constants('ASC')}`
         ]);
         return this;
     }
@@ -1310,17 +1470,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     oldestRaw(...columns) {
-        let column = 'id';
+        let orderBy = '`id`';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            column = columns.map(column => {
+            orderBy = columns.map(column => {
                 if (column.includes(this.$constants('RAW')))
                     return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
                 return column;
             }).join(', ');
         }
-        this._setState('ORDER_BY', [
-            ...this._getState('ORDER_BY'),
-            `${column} ${this.$constants('ASC')}`
+        this.$state.set('ORDER_BY', [
+            ...this.$state.get('ORDER_BY'),
+            `${orderBy} ${this.$constants('ASC')}`
         ]);
         return this;
     }
@@ -1342,7 +1502,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return `\`${column}\``;
             }).join(', ');
         }
-        this._setState('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
         return this;
     }
     /**
@@ -1365,7 +1525,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column;
             }).join(', ');
         }
-        this._setState('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
         return this;
     }
     /**
@@ -1380,10 +1540,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     having(condition) {
         if (condition.includes(this.$constants('RAW'))) {
             condition = condition === null || condition === void 0 ? void 0 : condition.replace(this.$constants('RAW'), '');
-            this._setState('HAVING', `${this.$constants('HAVING')} ${condition}`);
-            return this;
         }
-        this._setState('HAVING', `${this.$constants('HAVING')} \`${condition}\``);
+        this.$state.set('HAVING', `${this.$constants('HAVING')} ${condition}`);
         return this;
     }
     /**
@@ -1398,30 +1556,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     havingRaw(condition) {
-        if (condition.includes(this.$constants('RAW'))) {
-            condition = condition === null || condition === void 0 ? void 0 : condition.replace(this.$constants('RAW'), '');
-        }
-        this._setState('HAVING', `${this.$constants('HAVING')} ${condition}`);
-        return this;
-    }
-    /**
-     * The 'random' method is used to add a random ordering to a database query.
-     *
-     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
-     * @return {this}
-     */
-    random() {
-        this._setState('ORDER_BY', `${this.$constants('ORDER_BY')} ${this.$constants('RAND')}`);
-        return this;
-    }
-    /**
-     * The 'inRandom' method is used to add a random ordering to a database query.
-     *
-     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
-     * @return {this}
-     */
-    inRandom() {
-        return this.random();
+        return this.having(condition);
     }
     /**
      * The 'limit' method is used to limit the number of records returned by a database query.
@@ -1431,7 +1566,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     limit(number = 1) {
-        this._setState('LIMIT', `${this.$constants('LIMIT')} ${number}`);
+        this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
     }
     /**
@@ -1452,9 +1587,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     offset(number = 1) {
-        this._setState('OFFSET', `${this.$constants('OFFSET')} ${number}`);
-        if (!this._getState('LIMIT'))
-            this._setState('LIMIT', `${this.$constants('LIMIT')} ${number}`);
+        this.$state.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
+        if (!this.$state.get('LIMIT'))
+            this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
         return this;
     }
     /**
@@ -1474,7 +1609,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     hidden(...columns) {
-        this._setState('HIDDEN', columns);
+        this.$state.set('HIDDEN', columns);
         return this;
     }
     /**
@@ -1503,12 +1638,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
         }
         const query = this._queryUpdate(data);
-        this._setState('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'UPDATE');
+        this.$state.set('SAVE', 'UPDATE');
         return this;
     }
     /**
@@ -1536,12 +1671,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
         }
         const query = this._queryUpdate(data);
-        this._setState('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'UPDATE');
+        this.$state.set('SAVE', 'UPDATE');
         return this;
     }
     /**
@@ -1562,12 +1697,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             data[column] = this._updateHandler(column, value);
         }
         const query = this._queryUpdate(data);
-        this._setState('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'UPDATE');
+        this.$state.set('SAVE', 'UPDATE');
         return this;
     }
     /**
@@ -1581,12 +1716,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsert(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'INSERT');
+        this.$state.set('SAVE', 'INSERT');
         return this;
     }
     /**
@@ -1600,12 +1735,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsert(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'INSERT');
+        this.$state.set('SAVE', 'INSERT');
         return this;
     }
     /**
@@ -1619,23 +1754,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (!Object.keys(data).length)
             throw new Error('This method must be required');
         const query = this._queryInsertMultiple(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'INSERT_MULTIPLE');
+        this.$state.set('SAVE', 'INSERT_MULTIPLE');
         return this;
-    }
-    /**
-     * The 'createMany' method is used to insert a new records into a database table associated.
-     *
-     * It simplifies the process of creating and inserting records with an array.
-     * @param {array} data create multiple data
-     * @return {this} this this
-     */
-    createMany(data) {
-        return this.createMultiple(data);
     }
     /**
      * The 'insertMultiple' method is used to insert a new records into a database table associated.
@@ -1648,16 +1773,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this.createMultiple(data);
     }
     /**
-     * The 'insertMany' method is used to insert a new records into a database table associated.
-     *
-     * It simplifies the process of creating and inserting records with an array.
-     * @param {array} data create multiple data
-     * @return {this} this this
-     */
-    insertMany(data) {
-        return this.createMultiple(data);
-    }
-    /**
      * The 'createNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
      *
      * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
@@ -1667,12 +1782,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     createNotExists(data) {
         const query = this._queryInsert(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
-        this._setState('SAVE', 'INSERT_NOT_EXISTS');
+        this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
         return this;
     }
     /**
@@ -1697,12 +1812,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     createOrSelect(data) {
         const queryInsert = this._queryInsert(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${queryInsert}`
         ].join(' '));
-        this._setState('SAVE', 'INSERT_OR_SELECT');
+        this.$state.set('SAVE', 'INSERT_OR_SELECT');
         return this;
     }
     /**
@@ -1729,17 +1844,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         this.limit(1);
         const queryUpdate = this._queryUpdate(data);
         const queryInsert = this._queryInsert(data);
-        this._setState('INSERT', [
+        this.$state.set('INSERT', [
             `${this.$constants('INSERT')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${queryInsert}`
         ].join(' '));
-        this._setState('UPDATE', [
+        this.$state.set('UPDATE', [
             `${this.$constants('UPDATE')}`,
-            `${this._getState('TABLE_NAME')}`,
+            `${this.$state.get('TABLE_NAME')}`,
             `${queryUpdate}`
         ].join(' '));
-        this._setState('SAVE', 'UPDATE_OR_INSERT');
+        this.$state.set('SAVE', 'UPDATE_OR_INSERT');
         return this;
     }
     /**
@@ -1780,6 +1895,71 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+     *
+     * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
+     * @return {this} this
+     */
+    updateMultiple(cases) {
+        if (!cases.length)
+            throw new Error(`The method 'updateMultiple' must not be empty.`);
+        this.limit(cases.length);
+        const updateColumns = cases.reduce((columns, item) => {
+            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = [
+                this.$constants('RAW'),
+                this.$constants('CASE'),
+                `${this.$constants('ELSE')} ${this.bindColumn(key)}`,
+                this.$constants('END')
+            ]), columns);
+        }, {});
+        const columns = cases.reduce((columns, item) => {
+            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = ''), columns);
+        }, {});
+        for (let i = cases.length - 1; i >= 0; i--) {
+            const c = cases[i];
+            if (c.when == null || !Object.keys(c.when).length)
+                throw new Error(`This 'when' property is missing some properties`);
+            if (c.columns == null || !Object.keys(c.columns).length)
+                throw new Error(`This 'columns' property is missing some properties`);
+            const when = Object.entries(c.when).map(([key, value]) => {
+                value = this.$utils.escape(value);
+                value = this._valueTrueFalse(value);
+                return `${this.bindColumn(key)} = '${value}'`;
+            });
+            for (const [key, value] of Object.entries(c.columns)) {
+                if (updateColumns[key] == null)
+                    continue;
+                const startIndex = updateColumns[key].indexOf(this.$constants('CASE'));
+                const str = `${this.$constants('WHEN')} ${when.join(` ${this.$constants('AND')} `)} ${this.$constants('THEN')} '${value}'`;
+                updateColumns[key].splice(startIndex + 1, 0, str);
+            }
+        }
+        for (const key in columns) {
+            if (updateColumns[key] == null)
+                continue;
+            columns[key] = `( ${updateColumns[key].join(' ')} )`;
+        }
+        const keyValue = Object.entries(columns).map(([column, value]) => {
+            if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
+                value = this.$utils.escapeActions(value);
+            }
+            return `${this.bindColumn(column)} = ${value == null || value === 'NULL'
+                ? 'NULL'
+                : typeof value === 'string' && value.includes(this.$constants('RAW'))
+                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
+                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+        });
+        const query = `${this.$constants('SET')} ${keyValue.join(', ')}`;
+        this.$state.set('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this.$state.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this.$state.set('SAVE', 'UPDATE');
+        return this;
+    }
+    /**
      * The 'toString' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
      *
      * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
@@ -1812,7 +1992,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {string} return table name
      */
     getTableName() {
-        return this._getState('TABLE_NAME').replace(/\`/g, '');
+        return this.$state.get('TABLE_NAME').replace(/\`/g, '');
     }
     /**
      * The 'getSchema' method is used to get schema information
@@ -1824,7 +2004,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('COLUMNS')}`,
                 `${this.$constants('FROM')}`,
-                `\`${this._getState('TABLE_NAME').replace(/\`/g, '')}\``
+                `\`${this.$state.get('TABLE_NAME').replace(/\`/g, '')}\``
             ].join(' ');
             return yield this._queryStatement(sql);
         });
@@ -1835,8 +2015,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {string} return table.column
      */
     bindColumn(column) {
-        if (!/\./.test(column))
+        if (!/\./.test(column)) {
             return `\`${this.getTableName().replace(/`/g, '')}\`.\`${column.replace(/`/g, '')}\``;
+        }
         const [table, c] = column.split('.');
         return `\`${table.replace(/`/g, '')}\`.\`${c.replace(/`/g, '')}\``;
     }
@@ -1846,7 +2027,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this this
      */
     debug(debug = true) {
-        this._setState('DEBUG', debug);
+        this.$state.set('DEBUG', debug);
         return this;
     }
     /**
@@ -1855,7 +2036,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this this
      */
     dd(debug = true) {
-        this._setState('DEBUG', debug);
+        this.$state.set('DEBUG', debug);
         return this;
     }
     /**
@@ -1866,7 +2047,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     hook(func) {
         if (typeof func !== "function")
             throw new Error(`this '${func}' is not a function`);
-        this._setState('HOOKS', [...this._getState('HOOKS'), func]);
+        this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
         return this;
     }
     /**
@@ -1877,7 +2058,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     before(func) {
         if (typeof func !== "function")
             throw new Error(`this '${func}' is not a function`);
-        this._setState('HOOKS', [...this._getState('HOOKS'), func]);
+        this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
         return this;
     }
     /**
@@ -1978,9 +2159,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     increment(column = 'id', value = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
-            this._setState('UPDATE', [
+            this.$state.set('UPDATE', [
                 `${this.$constants('UPDATE')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${query}`
             ].join(' '));
             return yield this._update(true);
@@ -1996,9 +2177,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     decrement(column = 'id', value = 1) {
         return __awaiter(this, void 0, void 0, function* () {
             const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
-            this._setState('UPDATE', [
+            this.$state.set('UPDATE', [
                 `${this.$constants('UPDATE')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${query}`
             ].join(' '));
             return yield this._update(true);
@@ -2022,7 +2203,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this._getState('TABLE_NAME')}`
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' '));
         });
     }
@@ -2039,7 +2220,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${this.$constants('WHERE')} id = ${id}`
             ].join(' '));
             return (result === null || result === void 0 ? void 0 : result.shift()) || null;
@@ -2068,20 +2249,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const nextPage = currentPage + 1;
             const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
             const offset = (page - 1) * limit;
+            this.limit(limit);
+            this.offset(offset);
             let sql = this._queryBuilder().select();
-            if (!sql.includes(this.$constants('LIMIT'))) {
-                sql = [
-                    `${sql}`,
-                    `${this.$constants('LIMIT')}`,
-                    `${limit}`,
-                    `${this.$constants('OFFSET')} ${offset}`
-                ].join(' ');
-            }
-            else {
-                sql = sql.replace(this._getState('LIMIT'), `${this.$constants('LIMIT')} ${limit} ${this.$constants('OFFSET')} ${offset}`);
-            }
             const result = yield this._queryStatement(sql);
-            if ((_a = this._getState('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('HIDDEN')) === null || _a === void 0 ? void 0 : _a.length)
                 this._hiddenColumn(result);
             if (!result.length)
                 return {
@@ -2103,8 +2275,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' ');
             const sqlTotal = [
                 sqlCount,
-                this._getState('FROM'),
-                this._getState('TABLE_NAME'),
+                this.$state.get('FROM'),
+                this.$state.get('TABLE_NAME'),
                 this._queryBuilder().where()
             ].join(' ');
             const count = yield this._queryStatement(sqlTotal);
@@ -2152,30 +2324,45 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'first' method is used to retrieve the first record that matches the query conditions.
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<object | null>}
      */
-    first() {
+    first(cb) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
-            const sql = this._queryBuilder().select();
+            let sql = this._queryBuilder().select();
+            if (cb) {
+                const callbackSql = cb(sql);
+                if (callbackSql == null || callbackSql === '')
+                    throw new Error('Please provide a callback for execution');
+                sql = callbackSql;
+            }
             const result = yield this._queryStatement(sql);
-            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+            if (this.$state.get('VOID'))
+                return null;
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this._getState('PLUCK')) {
-                const pluck = this._getState('PLUCK');
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
                 const newData = result === null || result === void 0 ? void 0 : result.shift();
                 const checkProperty = newData.hasOwnProperty(pluck);
                 if (!checkProperty)
                     throw new Error(`can't find property '${pluck}' of result`);
                 const r = newData[pluck] || null;
-                yield this.$utils.hookHandle(this._getState('HOOKS'), r);
+                yield this.$utils.hookHandle(this.$state.get('HOOKS'), r);
                 return r;
             }
-            const r = (result === null || result === void 0 ? void 0 : result.shift()) || null;
-            yield this.$utils.hookHandle(this._getState('HOOKS'), r);
+            if (this.$state.get('RETURN_TYPE') != null) {
+                const returnType = this.$state.get('RETURN_TYPE');
+                return this._resultHandler(returnType === 'object'
+                    ? result[0]
+                    : returnType === 'array' ? result : [result]);
+            }
+            const r = result[0] || null;
+            yield this.$utils.hookHandle(this.$state.get('HOOKS'), r);
             return this._resultHandler(r);
         });
     }
@@ -2184,11 +2371,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'findOne' method is used to retrieve the first record that matches the query conditions.
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<object | null>}
      */
-    findOne() {
+    findOne(cb) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.first();
+            return yield this.first(cb);
         });
     }
     /**
@@ -2202,18 +2390,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     firstOrError(message, options) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             let sql = this._queryBuilder().select();
             if (!sql.includes(this.$constants('LIMIT')))
                 sql = `${sql} ${this.$constants('LIMIT')} 1`;
             else
-                sql = sql.replace(this._getState('LIMIT'), `${this.$constants('LIMIT')} 1`);
+                sql = sql.replace(this.$state.get('LIMIT'), `${this.$constants('LIMIT')} 1`);
             const result = yield this._queryStatement(sql);
-            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this._getState('PLUCK')) {
-                const pluck = this._getState('PLUCK');
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
                 const newData = result === null || result === void 0 ? void 0 : result.shift();
                 const checkProperty = newData.hasOwnProperty(pluck);
                 if (!checkProperty)
@@ -2224,7 +2412,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         throw { message, code: 400 };
                     throw Object.assign({ message }, options);
                 }
-                yield this.$utils.hookHandle(this._getState('HOOKS'), data);
+                yield this.$utils.hookHandle(this.$state.get('HOOKS'), data);
                 return this._resultHandler(data);
             }
             const data = (result === null || result === void 0 ? void 0 : result.shift()) || null;
@@ -2234,7 +2422,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 throw Object.assign({ message }, options);
             }
-            yield this.$utils.hookHandle(this._getState('HOOKS'), data);
+            yield this.$utils.hookHandle(this.$state.get('HOOKS'), data);
             return this._resultHandler(data);
         });
     }
@@ -2256,38 +2444,53 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'get' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<any[]>}
      */
-    get() {
+    get(cb) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            if ((_a = this._getState('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
+            if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
-            const sql = this._queryBuilder().select();
+            let sql = this._queryBuilder().select();
+            if (cb) {
+                const callbackSql = cb(sql);
+                if (callbackSql == null || callbackSql === '')
+                    throw new Error('Please provide a callback for execution');
+                sql = callbackSql;
+            }
             const result = yield this._queryStatement(sql);
-            if ((_b = this._getState('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
+            if (this.$state.get('VOID'))
+                return [];
+            if ((_b = this.$state.get('HIDDEN')) === null || _b === void 0 ? void 0 : _b.length)
                 this._hiddenColumn(result);
-            if (this._getState('CHUNK')) {
+            if (this.$state.get('CHUNK')) {
                 const data = result.reduce((resultArray, item, index) => {
-                    const chunkIndex = Math.floor(index / this._getState('CHUNK'));
+                    const chunkIndex = Math.floor(index / this.$state.get('CHUNK'));
                     if (!resultArray[chunkIndex])
                         resultArray[chunkIndex] = [];
                     resultArray[chunkIndex].push(item);
                     return resultArray;
                 }, []);
-                yield this.$utils.hookHandle(this._getState('HOOKS'), data || []);
+                yield this.$utils.hookHandle(this.$state.get('HOOKS'), data || []);
                 return this._resultHandler(data || []);
             }
-            if (this._getState('PLUCK')) {
-                const pluck = this._getState('PLUCK');
+            if (this.$state.get('PLUCK')) {
+                const pluck = this.$state.get('PLUCK');
                 const newData = result.map((d) => d[pluck]);
                 if (newData.every((d) => d == null)) {
                     throw new Error(`can't find property '${pluck}' of result`);
                 }
-                yield this.$utils.hookHandle(this._getState('HOOKS'), newData || []);
+                yield this.$utils.hookHandle(this.$state.get('HOOKS'), newData || []);
                 return this._resultHandler(newData || []);
             }
-            yield this.$utils.hookHandle(this._getState('HOOKS'), result || []);
+            yield this.$utils.hookHandle(this.$state.get('HOOKS'), result || []);
+            if (this.$state.get('RETURN_TYPE') != null) {
+                const returnType = this.$state.get('RETURN_TYPE');
+                return this._resultHandler(returnType === 'object'
+                    ? result[0]
+                    : returnType === 'array' ? result : [result]);
+            }
             return this._resultHandler(result || []);
         });
     }
@@ -2295,11 +2498,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'findMany' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<any[]>}
      */
-    findMany() {
+    findMany(cb) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.get();
+            return yield this.get(cb);
         });
     }
     /**
@@ -2315,7 +2519,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
-            if (this._getState('HIDDEN').length)
+            if (this.$state.get('HIDDEN').length)
                 this._hiddenColumn(result);
             return this._resultHandler(JSON.stringify(result));
         });
@@ -2331,7 +2535,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     toArray(column = 'id') {
         return __awaiter(this, void 0, void 0, function* () {
-            this.selectRaw(column);
+            this.selectRaw(`${this.bindColumn(column)}`);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
             const toArray = result.map((data) => data[column]);
@@ -2368,10 +2572,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     count(column = 'id') {
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this._getState('DISTINCT');
+            const distinct = this.$state.get('DISTINCT');
             column = distinct
-                ? `${this.$constants('DISTINCT')} \`${column}\``
-                : `\`${column}\``;
+                ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}`
+                : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('COUNT')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2387,8 +2591,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     avg(column = 'id') {
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this._getState('DISTINCT');
-            column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
+            const distinct = this.$state.get('DISTINCT');
+            column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('AVG')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2404,8 +2608,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     sum(column = 'id') {
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this._getState('DISTINCT');
-            column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
+            const distinct = this.$state.get('DISTINCT');
+            column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('SUM')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2422,8 +2626,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     max(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this._getState('DISTINCT');
-            column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
+            const distinct = this.$state.get('DISTINCT');
+            column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('MAX')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2440,8 +2644,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     min(column = 'id') {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const distinct = this._getState('DISTINCT');
-            column = distinct ? `${this.$constants('DISTINCT')} \`${column}\`` : `\`${column}\``;
+            const distinct = this.$state.get('DISTINCT');
+            column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('MIN')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2457,14 +2661,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     delete() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length) {
+            if (!this.$state.get('where').length) {
                 throw new Error("can't delete without where condition");
             }
             this.limit(1);
-            this._setState('DELETE', [
+            this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
             ].join(' '));
             const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
             if (result)
@@ -2481,13 +2685,13 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     deleteMany() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length) {
+            if (!this.$state.get('where').length) {
                 throw new Error("can't delete without where condition");
             }
-            this._setState('DELETE', [
+            this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
             ].join(' '));
             const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
             if (result)
@@ -2507,11 +2711,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     forceDelete() {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            this._setState('DELETE', [
+            this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
-                `${this._queryBuilder().where()}`
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' '));
             const result = yield this._actionStatement({ sql: this._queryBuilder().delete() });
             if (result)
@@ -2548,7 +2751,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SELECT')}`,
                 `*`,
                 `${this.$constants('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${this.$constants('WHERE')} id`,
                 `${this.$constants('IN')}`,
                 `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
@@ -2588,22 +2791,125 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
-            switch (this._getState('SAVE')) {
+            switch (this.$state.get('SAVE')) {
                 case 'INSERT_MULTIPLE': return yield this._insertMultiple();
                 case 'INSERT': return yield this._insert();
                 case 'UPDATE': return yield this._update();
                 case 'INSERT_NOT_EXISTS': return yield this._insertNotExists();
                 case 'UPDATE_OR_INSERT': return yield this._updateOrInsert();
                 case 'INSERT_OR_SELECT': return yield this._insertOrSelect();
-                default: throw new Error(`unknown this [${this._getState('SAVE')}]`);
+                default: throw new Error(`unknown this [${this.$state.get('SAVE')}]`);
             }
         });
     }
     /**
-    * The 'showTables' method is used to show schema table.
-    *
-    * @return {Promise<Array>}
-    */
+     *
+     * The 'makeSelectStatement' method is used to make select statement.
+     * @return {Promise<string>} string
+     */
+    makeSelectStatement() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const makeStatement = (columns) => {
+                return [
+                    `${this.$constants('SELECT')}`,
+                    `${columns.join(', ')}`,
+                    `${this.$constants('FROM')}`,
+                    `\`${this.getTableName()}\``,
+                ].join(' ');
+            };
+            const schemaTable = yield this.getSchema();
+            const columns = schemaTable.map(column => this.bindColumn(column.Field));
+            return makeStatement(columns);
+        });
+    }
+    /**
+     *
+     * The 'makeInsertStatement' method is used to make insert table statement.
+     * @return {Promise<string>} string
+     */
+    makeInsertStatement() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const makeStatement = (columns) => {
+                return [
+                    `${this.$constants('INSERT')}`,
+                    `\`${this.getTableName()}\``,
+                    `(${columns.join(', ')})`,
+                    `${this.$constants('VALUES')}`,
+                    `(${Array(columns.length).fill('`?`').join(' , ')})`
+                ].join(' ');
+            };
+            const schemaTable = yield this.getSchema();
+            const columns = schemaTable.map(column => `\`${column.Field}\``);
+            return makeStatement(columns);
+        });
+    }
+    /**
+     *
+     * The 'makeUpdateStatement' method is used to make update table statement.
+     * @return {Promise<string>} string
+     */
+    makeUpdateStatement() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const makeStatement = (columns) => {
+                return [
+                    `${this.$constants('UPDATE')}`,
+                    `\`${this.getTableName()}\``,
+                    `${this.$constants('SET')}`,
+                    `(${columns.join(', ')})`,
+                    `${this.$constants('WHERE')}`,
+                    `${this.bindColumn('id')} = '?'`
+                ].join(' ');
+            };
+            const schemaTable = yield this.getSchema();
+            const columns = schemaTable.map(column => `${this.bindColumn(column.Field)} = '?'`);
+            return makeStatement(columns);
+        });
+    }
+    /**
+     *
+     * The 'makeDeleteStatement' method is used to make delete statement.
+     * @return {Promise<string>} string
+     */
+    makeDeleteStatement() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const makeStatement = () => {
+                return [
+                    `${this.$constants('DELETE')}`,
+                    `${this.$constants('FROM')}`,
+                    `\`${this.getTableName()}\``,
+                    `${this.$constants('WHERE')}`,
+                    `${this.bindColumn('id')} = \`?\``
+                ].join(' ');
+            };
+            return makeStatement();
+        });
+    }
+    /**
+     *
+     * The 'makeCreateTableStatement' method is used to make create table statement.
+     * @return {Promise<string>} string
+     */
+    makeCreateTableStatement() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const makeStatement = (columns) => {
+                return [
+                    `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
+                    `\`${this.getTableName()}\``,
+                    `(`,
+                    `\n${columns === null || columns === void 0 ? void 0 : columns.join(',\n')}`,
+                    `\n)`,
+                    `${this.$constants('ENGINE')}`
+                ].join(' ');
+            };
+            const columns = yield this.showSchema();
+            return makeStatement(columns);
+        });
+    }
+    /**
+     * The 'showTables' method is used to show schema table.
+     *
+     * @return {Promise<Array>}
+     */
     showTables() {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
@@ -2623,7 +2929,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showColumns(table = this._getState('TABLE_NAME')) {
+    showColumns(table = this.$state.get('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SHOW')}`,
@@ -2642,7 +2948,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    showSchema(table = this._getState('TABLE_NAME')) {
+    showSchema(table = this.$state.get('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SHOW')}`,
@@ -2683,7 +2989,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    showSchemas(table = this._getState('TABLE_NAME')) {
+    showSchemas(table = this.$state.get('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             return this.showSchema(table);
         });
@@ -2695,7 +3001,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showValues(table = this._getState('TABLE_NAME')) {
+    showValues(table = this.$state.get('TABLE_NAME')) {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('SELECT')}`,
@@ -2729,11 +3035,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('FIELDS')}`,
                 `${this.$constants('FROM')}`,
-                `${this._getState('TABLE_NAME')}`
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' ');
             const fields = yield this._queryStatement(sql);
             for (let row = 0; row < rows; row++) {
-                if (this._getState('TABLE_NAME') === '' || this._getState('TABLE_NAME') == null) {
+                if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
                     throw new Error("Unknow this table name");
                 }
                 let columnAndValue = {};
@@ -2763,7 +3069,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('TRUNCATE_TABLE')}`,
-                `${this._getState('TABLE_NAME')}`
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' ');
             yield this._queryStatement(sql);
             return true;
@@ -2778,7 +3084,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return __awaiter(this, void 0, void 0, function* () {
             const sql = [
                 `${this.$constants('DROP_TABLE')}`,
-                `${this._getState('TABLE_NAME')}`
+                `${this.$state.get('TABLE_NAME')}`
             ].join(' ');
             yield this._queryStatement(sql);
             return true;
@@ -2786,14 +3092,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     exceptColumns() {
         return __awaiter(this, void 0, void 0, function* () {
-            const excepts = this._getState('EXCEPTS');
+            const excepts = this.$state.get('EXCEPTS');
             const hasDot = excepts.some((except) => /\./.test(except));
             const names = excepts.map((except) => {
                 if (/\./.test(except))
                     return except.split('.')[0];
                 return null;
             }).filter((d) => d != null);
-            const tableNames = names.length ? [...new Set(names)] : [this._getState('TABLE_NAME')];
+            const tableNames = names.length ? [...new Set(names)] : [this.$state.get('TABLE_NAME')];
             const removeExcepts = [];
             for (const tableName of tableNames) {
                 const sql = [
@@ -2862,7 +3168,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         const buildSQL = (sql) => sql.filter(s => s !== '' || s == null).join(' ').replace(/\s+/g, ' ');
         const bindSelect = (values) => {
             if (!values.length) {
-                if (!this._getState('DISTINCT'))
+                if (!this.$state.get('DISTINCT'))
                     return `${this.$constants('SELECT')} *`;
                 return `${this.$constants('SELECT')} ${this.$constants('DISTINCT')} *`;
             }
@@ -2874,35 +3180,51 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return `${this.$constants('SELECT')} ${values.join(', ')}`;
         };
         const bindJoin = (values) => {
-            if (!values.length)
+            if (!Array.isArray(values) || !values.length)
                 return null;
             return values.join(' ');
         };
         const bindWhere = (values) => {
-            if (!values.length)
+            if (!Array.isArray(values) || !values.length)
                 return null;
             return `${this.$constants('WHERE')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(' ')}`;
         };
         const bindOrderBy = (values) => {
-            if (!values.length)
+            if (!Array.isArray(values) || !values.length)
                 return null;
             return `${this.$constants('ORDER_BY')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(', ')}`;
         };
-        const select = () => buildSQL([
-            bindSelect(this.$state.get('SELECT')),
-            this.$state.get('FROM'),
-            this.$state.get('TABLE_NAME'),
-            bindJoin(this.$state.get('JOIN')),
-            bindWhere(this.$state.get('WHERE')),
-            this.$state.get('GROUP_BY'),
-            this.$state.get('HAVING'),
-            bindOrderBy(this.$state.get('ORDER_BY')),
-            this.$state.get('LIMIT'),
-            this.$state.get('OFFSET')
-        ]);
+        const select = () => {
+            return buildSQL([
+                bindSelect(this.$state.get('SELECT')),
+                this.$state.get('FROM'),
+                this.$state.get('TABLE_NAME'),
+                bindJoin(this.$state.get('JOIN')),
+                bindWhere(this.$state.get('WHERE')),
+                this.$state.get('GROUP_BY'),
+                this.$state.get('HAVING'),
+                bindOrderBy(this.$state.get('ORDER_BY')),
+                this.$state.get('LIMIT'),
+                this.$state.get('OFFSET')
+            ]);
+        };
         const insert = () => buildSQL([this.$state.get('INSERT')]);
-        const update = () => buildSQL([this.$state.get('UPDATE'), bindWhere(this.$state.get('WHERE')), bindOrderBy(this.$state.get('ORDER_BY')), this.$state.get('LIMIT')]);
-        const remove = () => buildSQL([this.$state.get('DELETE'), bindWhere(this.$state.get('WHERE')), bindOrderBy(this.$state.get('ORDER_BY')), this.$state.get('LIMIT')]);
+        const update = () => {
+            return buildSQL([
+                this.$state.get('UPDATE'),
+                bindWhere(this.$state.get('WHERE')),
+                bindOrderBy(this.$state.get('ORDER_BY')),
+                this.$state.get('LIMIT')
+            ]);
+        };
+        const remove = () => {
+            return buildSQL([
+                this.$state.get('DELETE'),
+                bindWhere(this.$state.get('WHERE')),
+                bindOrderBy(this.$state.get('ORDER_BY')),
+                this.$state.get('LIMIT')
+            ]);
+        };
         return {
             select,
             insert,
@@ -2920,23 +3242,17 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
         };
     }
-    _getState(key) {
-        return this.$state.get(key.toLocaleUpperCase());
-    }
-    _setState(key, value) {
-        return this.$state.set(key, value);
-    }
     _resultHandler(data) {
-        this._setState('RESULT', data);
-        this.$state.resetState();
+        this.$state.set('RESULT', data);
+        this.$state.reset();
         this.$logger.reset();
         return data;
     }
     whereReference(tableAndLocalKey, tableAndForeignKey) {
-        this._setState('WHERE', [
-            ...this._getState('WHERE'),
+        this.$state.set('WHERE', [
+            ...this.$state.get('WHERE'),
             [
-                this._getState('WHERE').length ? `${this.$constants('AND')}` : '',
+                this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${tableAndLocalKey} = ${tableAndForeignKey}`
             ].join(' ')
         ]);
@@ -2944,7 +3260,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _queryStatement(sql) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this._getState('DEBUG'))
+            if (this.$state.get('DEBUG'))
                 this.$utils.consoleDebug(sql);
             const result = yield this.$pool.query(sql);
             return result;
@@ -2952,7 +3268,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _actionStatement({ sql, returnId = false }) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this._getState('DEBUG'))
+            if (this.$state.get('DEBUG'))
                 this.$utils.consoleDebug(sql);
             if (returnId) {
                 const result = yield this.$pool.query(sql);
@@ -2964,14 +3280,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _insertNotExists() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length)
+            if (!this.$state.get('where').length)
                 throw new Error("Can't insert not exists without where condition");
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
                 `*`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${this._queryBuilder().where()}`,
                 `${this.$constants('LIMIT')} 1)`,
                 `${this.$constants('AS')} 'exists'`
@@ -2981,10 +3297,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             switch (check) {
                 case false: {
                     const [result, id] = yield this._actionStatement({
-                        sql: this._getState('INSERT'),
+                        sql: this.$state.get('INSERT'),
                         returnId: true
                     });
-                    if (this._getState('VOID') || !result)
+                    if (this.$state.get('VOID') || !result)
                         return this._resultHandler(undefined);
                     const sql = new Builder()
                         .copyBuilder(this, { select: true })
@@ -3000,10 +3316,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     _insert() {
         return __awaiter(this, void 0, void 0, function* () {
             const [result, id] = yield this._actionStatement({
-                sql: this._getState('INSERT'),
+                sql: this.$state.get('INSERT'),
                 returnId: true
             });
-            if (this._getState('VOID') || !result)
+            if (this.$state.get('VOID') || !result)
                 return this._resultHandler(undefined);
             const sql = new Builder()
                 .copyBuilder(this, { select: true })
@@ -3011,14 +3327,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 .toString();
             const data = yield this._queryStatement(sql);
             const resultData = (data === null || data === void 0 ? void 0 : data.shift()) || null;
-            this._setState('RESULT', resultData);
+            this.$state.set('RESULT', resultData);
             return this._resultHandler(resultData);
         });
     }
     _checkValueHasRaw(value) {
         return typeof value === 'string' && value.startsWith(this.$constants('RAW'))
-            ? value.replace(`${this.$constants('RAW')} `, '').replace(this.$constants('RAW'), '')
-            : `'${value}'`;
+            ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
+            : `'${this.$utils.covertBooleanToNumber(value)}'`;
     }
     _insertMultiple() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3026,7 +3342,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 sql: this._queryBuilder().insert(),
                 returnId: true
             });
-            if (this._getState('VOID') || !result)
+            if (this.$state.get('VOID') || !result)
                 return this._resultHandler(undefined);
             const arrayId = [...Array(result)].map((_, i) => i + id);
             const sql = new Builder()
@@ -3040,15 +3356,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _insertOrSelect() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length) {
+            if (!this.$state.get('where').length) {
                 throw new Error("Can't create or select without where condition");
             }
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
                 `1`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${this._queryBuilder().where()}`,
                 `${this.$constants('LIMIT')} 1)`,
                 `${this.$constants('AS')} 'exists'`
@@ -3062,7 +3378,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         sql: this._queryBuilder().insert(),
                         returnId: true
                     });
-                    if (this._getState('VOID') || !result)
+                    if (this.$state.get('VOID') || !result)
                         return this._resultHandler(undefined);
                     const sql = new Builder()
                         .copyBuilder(this, { select: true })
@@ -3094,15 +3410,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _updateOrInsert() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length) {
+            if (!this.$state.get('where').length) {
                 throw new Error("Can't update or insert without where condition");
             }
             let sql = [
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
                 `1`,
-                `${this._getState('FROM')}`,
-                `${this._getState('TABLE_NAME')}`,
+                `${this.$state.get('FROM')}`,
+                `${this.$state.get('TABLE_NAME')}`,
                 `${this._queryBuilder().where()}`,
                 `${this.$constants('LIMIT')} 1)`,
                 `${this.$constants('AS')} 'exists'`
@@ -3116,7 +3432,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                         sql: this._queryBuilder().insert(),
                         returnId: true
                     });
-                    if (this._getState('VOID') || !result)
+                    if (this.$state.get('VOID') || !result)
                         return this._resultHandler(undefined);
                     const sql = new Builder()
                         .copyBuilder(this, { select: true })
@@ -3130,7 +3446,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     const result = yield this._actionStatement({
                         sql: this._queryBuilder().update()
                     });
-                    if (this._getState('VOID') || !result)
+                    if (this.$state.get('VOID') || !result)
                         return this._resultHandler(null);
                     const data = yield this._queryStatement(new Builder().copyBuilder(this, { select: true, where: true }).toString());
                     if ((data === null || data === void 0 ? void 0 : data.length) > 1) {
@@ -3150,12 +3466,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _update(ignoreWhere = false) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this._getState('where').length && !ignoreWhere)
+            if (!this.$state.get('where').length && !ignoreWhere)
                 throw new Error("can't update without where condition");
             const result = yield this._actionStatement({
                 sql: this._queryBuilder().update()
             });
-            if (this._getState('VOID') || !result)
+            if (this.$state.get('VOID') || !result)
                 return this._resultHandler(undefined);
             const sql = this._queryBuilder().select();
             const data = yield this._queryStatement(sql);
@@ -3167,7 +3483,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _hiddenColumn(data) {
         var _a;
-        const hidden = this._getState('HIDDEN');
+        const hidden = this.$state.get('HIDDEN');
         if ((_a = Object.keys(data)) === null || _a === void 0 ? void 0 : _a.length) {
             hidden.forEach((column) => {
                 data.forEach((objColumn) => {
@@ -3180,27 +3496,25 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     _queryUpdate(data) {
         this.$utils.covertDataToDateIfDate(data);
         const values = Object.entries(data).map(([column, value]) => {
-            if (typeof value === 'string' && !(value.includes(this.$constants('RAW'))))
-                value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
-            return `\`${column}\` = ${value == null || value === 'NULL'
+            if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
+                value = this.$utils.escapeActions(value);
+            }
+            return `${this.bindColumn(column)} = ${value == null || value === 'NULL'
                 ? 'NULL'
-                : typeof value === 'string' && value.includes(this.$constants('RAW'))
-                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
-                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+                : this._checkValueHasRaw(value)}`;
         });
         return `${this.$constants('SET')} ${values}`;
     }
     _queryInsert(data) {
         this.$utils.covertDataToDateIfDate(data);
-        const columns = Object.keys(data).map((column) => `\`${column}\``);
+        const columns = Object.keys(data).map((column) => this.bindColumn(column));
         const values = Object.values(data).map((value) => {
-            if (typeof value === 'string' && !(value.includes(this.$constants('RAW'))))
-                value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
+            if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
+                value = this.$utils.escapeActions(value);
+            }
             return `${value == null || value === 'NULL'
                 ? 'NULL'
-                : typeof value === 'string' && value.includes(this.$constants('RAW'))
-                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
-                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+                : this._checkValueHasRaw(value)}`;
         });
         return [
             `(${columns})`,
@@ -3214,17 +3528,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         for (let objects of data) {
             this.$utils.covertDataToDateIfDate(data);
             const vals = Object.values(objects).map((value) => {
-                if (typeof value === 'string')
-                    value = value === null || value === void 0 ? void 0 : value.replace(/'/g, '');
+                if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
+                    value = this.$utils.escapeActions(value);
+                }
                 return `${value == null || value === 'NULL'
                     ? 'NULL'
-                    : typeof value === 'string' && value.includes(this.$constants('RAW'))
-                        ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
-                        : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+                    : this._checkValueHasRaw(value)}`;
             });
             values.push(`(${vals.join(',')})`);
         }
-        const columns = Object.keys((_a = [...data]) === null || _a === void 0 ? void 0 : _a.shift()).map((column) => `\`${column}\``);
+        const columns = Object.keys((_a = [...data]) === null || _a === void 0 ? void 0 : _a.shift()).map((column) => this.bindColumn(column));
         return [
             `(${columns})`,
             `${this.$constants('VALUES')}`,

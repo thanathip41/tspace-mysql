@@ -21,6 +21,7 @@ class Blueprint {
         this._type = 'INT';
         this._attributes = [];
         this._foreignKey = null;
+        this._column = null;
         this._valueType = String;
     }
     /**
@@ -110,6 +111,8 @@ class Blueprint {
     varchar(length = 191) {
         if (length > 255)
             length = 255;
+        if (length <= 0)
+            length = 1;
         this._addAssignType(`VARCHAR(${length})`);
         return this;
     }
@@ -164,7 +167,6 @@ class Blueprint {
     }
     /**
      * Assign type 'TINYTEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     tinyText() {
@@ -173,7 +175,6 @@ class Blueprint {
     }
     /**
     * Assign type 'TINYTEXT' in table
-    * @param {number} length [length = 1] length of string
     * @return {this} this
     */
     tinytext() {
@@ -182,7 +183,6 @@ class Blueprint {
     }
     /**
      * Assign type 'TEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     text() {
@@ -267,6 +267,14 @@ class Blueprint {
         return this;
     }
     /**
+     * Assign attributes 'NOT NULL' in table
+     * @return {this} this
+     */
+    notnull() {
+        this._addAssignAttribute(`NOT NULL`);
+        return this;
+    }
+    /**
      * Assign attributes 'PRIMARY KEY' in table
      * @return {this} this
      */
@@ -280,6 +288,15 @@ class Blueprint {
      * @return {this} this
      */
     default(value) {
+        this._addAssignAttribute(`DEFAULT '${value}'`);
+        return this;
+    }
+    /**
+     * Assign attributes 'defaultValue' in table
+     * @param {string | number} value  default value
+     * @return {this} this
+     */
+    defaultValue(value) {
         this._addAssignAttribute(`DEFAULT '${value}'`);
         return this;
     }
@@ -326,13 +343,22 @@ class Blueprint {
      * @return {this} this
      */
     foreign({ references, on, onDelete, onUpdate }) {
+        if (on == null)
+            return this;
         this._foreignKey = {
             references: references == null ? 'id' : references,
-            on: typeof on === 'string' ? on : new on(),
+            on,
             onDelete: onDelete == null ? 'CASCADE' : onDelete,
             onUpdate: onUpdate == null ? 'CASCADE' : onUpdate
         };
         return this;
+    }
+    bindColumn(column) {
+        this._column = column;
+        return this;
+    }
+    get column() {
+        return this._column;
     }
     get type() {
         return this._type;

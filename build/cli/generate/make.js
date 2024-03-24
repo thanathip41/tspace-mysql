@@ -24,17 +24,17 @@ const formatSchema = (data) => {
 };
 exports.default = (cmd) => {
     const { dir, cwd, type, fs, decorator, env, npm } = cmd;
-    if (dir) {
-        try {
-            fs.accessSync(`${cwd}/${dir}`, fs.F_OK, {
-                recursive: true
-            });
-        }
-        catch (e) {
-            fs.mkdirSync(`${cwd}/${dir}`, {
-                recursive: true
-            });
-        }
+    if (dir == null)
+        throw new Error("Cannot find directory please specify the directory : '--dir=${directory}'");
+    try {
+        fs.accessSync(`${cwd}/${dir}`, fs.F_OK, {
+            recursive: true
+        });
+    }
+    catch (e) {
+        fs.mkdirSync(`${cwd}/${dir}`, {
+            recursive: true
+        });
     }
     if (decorator) {
         new lib_1.DB()
@@ -84,8 +84,8 @@ exports.default = (cmd) => {
                         str += `    ${s.schemaColumn} \n`;
                         str += `    ${s.publicColumn} ${isLast ? '' : '\n\n'}`;
                     }
-                    const data = (0, modelDecorator_1.default)(model, npm, str, table);
-                    fs.writeFile(`mock/${model}${'.ts'}`, data, (err) => {
+                    const data = (0, modelDecorator_1.default)(model, npm, str);
+                    fs.writeFile(`${cwd}/${dir}/${model}${type !== null && type !== void 0 ? type : '.ts'}`, data, (err) => {
                         if (err)
                             throw err;
                     });
@@ -94,7 +94,8 @@ exports.default = (cmd) => {
             }
             console.log('\nGenerate Models has completed');
         })
-            .catch(err => console.log(err));
+            .catch(err => console.log(err))
+            .finally(() => process.exit(0));
         return;
     }
     new lib_1.DB()
@@ -141,5 +142,6 @@ exports.default = (cmd) => {
         }
         console.log('\nGenerate Models has completed');
     })
-        .catch(err => console.log(err));
+        .catch(err => console.log(err))
+        .finally(() => process.exit(0));
 };

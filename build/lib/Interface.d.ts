@@ -1,4 +1,4 @@
-import Model from "./tspace/Model";
+import Model from "./core/Model";
 export interface Relation {
     name: string;
     model: new () => Model;
@@ -99,12 +99,14 @@ export interface PoolCallback {
     release: () => void;
 }
 export interface ConnectionTransaction {
+    on: (event: PoolEvent, data: any) => void;
     query: (sql: string) => Promise<any>;
     startTransaction: () => Promise<any>;
     commit: () => Promise<any>;
     rollback: () => Promise<any>;
 }
 export interface Connection {
+    on: (event: PoolEvent, data: any) => void;
     query: (sql: string) => Promise<any>;
     connection: () => Promise<ConnectionTransaction>;
 }
@@ -157,8 +159,25 @@ export type ValidateSchemaDecorator = NumberConstructor | StringConstructor | Da
     json?: boolean;
     fn?: Function;
 };
+export type NonEmptyArray<T> = [T, ...T[]];
 export interface GlobalSetting {
     softDelete?: boolean;
     uuid?: boolean;
     timestamp?: boolean;
+    logger?: boolean;
 }
+export interface Operator {
+    equals: string;
+    notEquals: string;
+    greaterThan: string;
+    lessThan: string;
+    greaterThanOrEqual: string;
+    lessThanOrEqual: string;
+    like: string;
+    notLike: string;
+    in: string;
+    notIn: string;
+    isNull: string;
+    isNotNull: string;
+}
+export type PoolEvent = 'CONNECTION' | 'RELEASE' | 'QUERY' | 'SLOW_QUERY' | 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';

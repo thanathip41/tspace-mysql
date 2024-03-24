@@ -1,4 +1,4 @@
 declare const _default: (cmd: {
     [x: string]: any;
-}) => void;
+}) => never;
 export default _default;

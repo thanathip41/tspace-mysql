@@ -5,11 +5,27 @@ import { Relation, Pagination, RelationQuery, ValidateSchema, GlobalSetting } fr
  *
  * 'Model' class is a representation of a database table
  * @example
- * class User extends Model {}
- * new User().findMany().then(users => console.log(users))
+ * class User extends Model {
+ *     ...........
+ * }
+ * const users = await new User().findMany()
+ * console.log(users)
  */
-declare class Model extends AbstractModel {
+declare class Model<TSchemaModel extends Record<string, Blueprint | string | number | Date> = any> extends AbstractModel<TSchemaModel> {
     constructor();
+    /**
+     * The 'global' method is used setting global variables in models.
+     * @static
+     * @param {GlobalSetting} settings
+     * @example
+     * Model.global({
+     *   softDelete : true,
+     *   uuid       : true,
+     *   timestamp  : true,
+     *   logger     : true,
+     * })
+     * @return {void} void
+     */
     static global(settings: GlobalSetting): void;
     /**
      * The 'define' method is a special method that you can define within a model.
@@ -40,7 +56,7 @@ declare class Model extends AbstractModel {
      */
     protected boot(): void;
     /**
-     * The "useObserve" pattern refers to a way of handling model events using observer classes.
+     * The "useObserve" method is used to pattern refers to a way of handling model events using observer classes.
      * Model events are triggered when certain actions occur on models,
      * such as creating, updating, deleting, or saving a record.
      *
@@ -82,6 +98,34 @@ declare class Model extends AbstractModel {
         deleted: Function;
     }): this;
     /**
+    * The "useLogger" method is used to keeping query data and changed in models.
+    *
+    * @type     {object}  options
+    * @property {boolean} options.selected - default is false
+    * @property {boolean} options.inserted - default is true
+    * @property {boolean} options.updated  - default is true
+    * @property {boolean} options.deleted  - default is true
+    * @example
+    * class User extends Model {
+    *     constructor() {
+    *        super()
+    *        this.useLogger({
+    *          selected : true,
+    *          inserted : true,
+    *          updated  : true,
+    *          deleted  : true,
+    *       })
+    *   }
+    * }
+    * @return {this} this
+    */
+    protected useLogger({ selected, inserted, updated, deleted }?: {
+        selected?: boolean | undefined;
+        inserted?: boolean | undefined;
+        updated?: boolean | undefined;
+        deleted?: boolean | undefined;
+    }): this;
+    /**
      * The "useSchema" method is used to define the schema.
      *
      * It's automatically create, called when not exists table or columns.
@@ -90,6 +134,7 @@ declare class Model extends AbstractModel {
      * import { Blueprint } from 'tspace-mysql'
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useSchema ({
      *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
      *            uuid        : new Blueprint().varchar(50).null(),
@@ -112,6 +157,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useRegistry()
      *     }
      * }
@@ -123,6 +169,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useLoadRelationInRegistry()
      *     }
      * }
@@ -136,6 +183,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useBuiltInRelationsFunction()
      *     }
      * }
@@ -149,6 +197,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.usePrimaryKey()
      *     }
      * }
@@ -163,6 +212,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useUUID()
      *     }
      * }
@@ -180,6 +230,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.usePattern('camelCase')
      *     }
      * }
@@ -191,6 +242,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.useCamelCase()
      *     }
      * }
@@ -202,6 +254,7 @@ declare class Model extends AbstractModel {
      * @example
      * class User extends Model {
      *     constructor() {
+     *        super()
      *        this.SnakeCase()
      *     }
      * }
@@ -356,6 +409,30 @@ declare class Model extends AbstractModel {
     */
     protected useHooks(arrayFunctions: Function[]): this;
     /**
+     * The "column" method is used get column from your schema.
+     * @param {string} column
+     * @return {string}
+    */
+    column<K extends keyof TSchemaModel>(column: K): K;
+    /**
+     * The "beforeCreatingTable" method is used exection function when creating the table.
+     * @param {Function} fn functions for executing before creating the table
+     * @return {this} this
+     * @example
+     * class User extends Model {
+     *   constructor() {
+     *     this.beforeCreatingTable(async () => {
+     *         await new User()
+     *          .create({
+     *            ...columns
+     *          })
+     *          .save()
+     *      })
+     *   }
+     * }
+    */
+    protected beforeCreatingTable(fn: () => Promise<any>): this;
+    /**
      * exceptColumns for method except
      * @override
      * @return {promise<string>} string
@@ -370,34 +447,94 @@ declare class Model extends AbstractModel {
     protected buildMethodRelation(name: string, callback?: Function): this;
     /**
      *
+     * @override
+     * @param {string[]} ...columns
+     * @return {this} this
+     */
+    select<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}` | '*'>(...columns: K[]): this;
+    /**
+     *
+     * @override
+     * @param {...string} columns
+     * @return {this} this
+     */
+    except<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(...columns: K[]): this;
+    /**
+     *
+     * @override
+     * @return {this} this
+     */
+    exceptTimestamp(): this;
+    /**
+     *
+     * @override
+     * @param {string} column
+     * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
+     * @return {this}
+     */
+    orderBy<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, order?: 'ASC' | 'DESC'): this;
+    /**
+     *
+     * @override
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
+    latest<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(...columns: K[]): this;
+    /**
+     *
+     * @override
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
+    oldest<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(...columns: K[]): this;
+    /**
+     *
+     * @override
+     * @param {string?} columns [column=id]
+     * @return {this}
+     */
+    groupBy<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(...columns: K[]): this;
+    /**
+     * @override
+     * @param {string} column
+     * @return {string} return table.column
+     */
+    bindColumn(column: string, pattern?: boolean): string;
+    /**
+     *
+     * @override
      * The 'makeSelectStatement' method is used to make select statement.
      * @return {Promise<string>} string
      */
     makeSelectStatement(): Promise<string>;
     /**
      *
+     * @override
      * The 'makeInsertStatement' method is used to make insert table statement.
      * @return {Promise<string>} string
      */
     makeInsertStatement(): Promise<string>;
     /**
      *
+     * @override
      * The 'makeUpdateStatement' method is used to make update table statement.
      * @return {Promise<string>} string
      */
     makeUpdateStatement(): Promise<string>;
     /**
      *
+     * @override
      * The 'makeDeleteStatement' method is used to make delete statement.
      * @return {Promise<string>} string
      */
     makeDeleteStatement(): Promise<string>;
     /**
      *
-     * The 'makeCreateStatement' method is used to make create table statement.
+     * @override
+     * The 'makeCreateTableStatement' method is used to make create table statement.
      * @return {Promise<string>} string
      */
-    makeCreateStatement(): Promise<string>;
+    makeCreateTableStatement(): Promise<string>;
     /**
      *
      * Clone instance of model
@@ -423,11 +560,12 @@ declare class Model extends AbstractModel {
         offset?: boolean;
         groupBy?: boolean;
         select?: boolean;
+        having?: boolean;
     }): Model;
     /**
      *
      * execute the query using raw sql syntax
-     * @override method
+     * @override
      * @param {string} sql
      * @return {this} this
      */
@@ -435,7 +573,7 @@ declare class Model extends AbstractModel {
     /**
      *
      * execute the query using raw sql syntax actions for insert update and delete
-     * @override method
+     * @override
      * @param {Object} actions
      * @property {Function} actions.sqlresult
      * @property {Function} actions.returnId
@@ -457,6 +595,12 @@ declare class Model extends AbstractModel {
      * @return {this} this
      */
     disableSoftDelete(condition?: boolean): this;
+    /**
+     * The 'disableVoid' method is used to ignore void.
+     *
+     * @return {this} this
+     */
+    disableVoid(): this;
     /**
      * Assign ignore delete_at in model
      * @param {boolean} condition
@@ -623,7 +767,7 @@ declare class Model extends AbstractModel {
      *  .findMany()
      * @return {this} this
      */
-    withQuery(nameRelation: string, callback: Function): this;
+    withQuery<T extends Model>(nameRelation: string, callback: (query: T) => T): this;
     /**
      *
      * Use relations in registry of model return result of relation query
@@ -720,7 +864,7 @@ declare class Model extends AbstractModel {
      *  .findMany()
      * @return {this} this
      */
-    relationQuery(nameRelation: string, callback: Function): this;
+    relationQuery<T extends Model>(nameRelation: string, callback: (query: T) => T): this;
     /**
      *
      * Use relations in registry of model return ignore soft deleted
@@ -896,31 +1040,30 @@ declare class Model extends AbstractModel {
      * @return {string} string
      */
     toTableNameAndColumn(column: string): string;
-    private _columnPattern;
     /**
-     * @override Method
-     * @param {string} column if arguments is object
+     * @override
+     * @param {string | K} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
      * @return {this} this
      */
-    where(column: string | Record<string, any>, operator?: any, value?: any): this;
+    where<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K | Record<string, any>, operator?: any, value?: any): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
      * @return {this}
      */
-    orWhere(column: string, operator?: any, value?: any): this;
+    orWhere<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
-     * @override Method
+     * @override
      * @param {Object} columns
      * @return {this}
      */
     whereObject(columns: Record<string, any>): this;
     /**
-    * @override Method
+    * @override
     * @param    {string} column
     * @param    {object}  property object { key , value , operator }
     * @property {string}  property.key
@@ -928,201 +1071,236 @@ declare class Model extends AbstractModel {
     * @property {string?} property.operator
     * @return   {this}
     */
-    whereJSON(column: string, { key, value, operator }: {
+    whereJSON<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, { key, value, operator }: {
         key: string;
         value: string;
         operator?: string;
     }): this;
     /**
-     * @override Method
+     * @override
      * @param {number} userId
      * @param {string?} column custom it *if column is not user_id
      * @return {this}
      */
     whereUser(userId: number, column?: string): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereIn(column: string, array: any[]): this;
+    whereIn<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereIn(column: string, array: any[]): this;
+    orWhereIn<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereNotIn(column: string, array: any[]): this;
+    whereNotIn<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereNotIn(column: string, array: any[]): this;
+    orWhereNotIn<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    whereSubQuery(column: string, subQuery: string): this;
+    whereSubQuery<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    whereNotSubQuery(column: string, subQuery: string): this;
+    whereNotSubQuery<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    orWhereSubQuery(column: string, subQuery: string): this;
+    orWhereSubQuery<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    orWhereNotSubQuery(column: string, subQuery: string): this;
+    orWhereNotSubQuery<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereBetween(column: string, array: any[]): this;
+    whereBetween<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereBetween(column: string, array: any[]): this;
+    orWhereBetween<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereNotBetween(column: string, array: any[]): this;
+    whereNotBetween<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereNotBetween(column: string, array: any[]): this;
+    orWhereNotBetween<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, array: any[]): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @return {this}
      */
-    whereNull(column: string): this;
+    whereNull<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @return {this}
      */
-    orWhereNull(column: string): this;
+    orWhereNull<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @return {this}
      */
-    whereNotNull(column: string): this;
+    whereNotNull<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @return {this}
      */
-    orWhereNotNull(column: string): this;
+    orWhereNotNull<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
      * @return {this}
      */
-    whereSensitive(column: string, operator?: any, value?: any): this;
+    whereSensitive<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
      * @return {this}
      */
-    whereStrict(column: string, operator?: any, value?: any): this;
+    whereStrict<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
      * @return {this}
      */
-    orWhereSensitive(column: string, operator?: any, value?: any): this;
+    orWhereSensitive<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
-     * @override Method
+     * @override
      * @param {Function} callback callback query
      * @return {this}
      */
-    whereQuery(callback: Function): this;
+    whereQuery<T extends Model>(callback: (query: T) => T): this;
     /**
-     * @override Method
+     * @override
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAny<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
+    /**
+     * The 'whereAll' method is used to clause to a database query.
+     *
+     * This method allows you to specify conditions that the retrieved records must meet.
+     *
+     * If has only 2 arguments default operator '='
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAll<K extends Extract<keyof TSchemaModel, string> | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
+    /**
+     * @override
      * @return {promise<boolean>} promise boolean
      */
     delete(): Promise<boolean>;
     /**
-     * @override Method
+     * @override
      * @return {promise<boolean>} promise boolean
      */
     deleteMany(): Promise<boolean>;
     /**
-     * @override Method
+     *
+     * The 'delete' method is used to delete records from a database table based on the specified query conditions.
+     *
+     * It allows you to remove one or more records that match certain criteria.
+     *
+     * This method should be ignore the soft delete
+     * @return {promise<boolean>}
+     */
+    forceDelete(): Promise<boolean>;
+    /**
+     *
+     * @override
+     * @param {Function?} cb callback function return query sql
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    first(cb?: Function): Promise<Record<string, any> | null>;
+    first<K>(cb?: Function): Promise<Partial<TSchemaModel> & K | null>;
     /**
-     * @override Method
+     * @override
+     * @param {Function?} cb callback function return query sql
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    findOne(): Promise<Record<string, any> | null>;
+    findOne<K>(cb?: Function): Promise<Partial<TSchemaModel> & K | null>;
     /**
-     * @override Method
+     * @override
      * @return {promise<object | Error>} Record | throw error
     */
-    firstOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
+    firstOrError<K>(message: string, options?: Record<string, any>): Promise<Partial<TSchemaModel> & K>;
     /**
      *
-     * @override Method
+     * @override
      * @return {promise<any>} Record | throw error
     */
-    findOneOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
+    findOneOrError<K>(message: string, options?: Record<string, any>): Promise<Partial<TSchemaModel> & K>;
     /**
      *
-     * @override Method
+     * @override
+     * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    get(cb?: Function): Promise<any[]>;
+    get<K = Partial<TSchemaModel>>(cb?: Function): Promise<Partial<TSchemaModel[]> & K[]>;
     /**
      *
-     * @override Method
+     * @override
+     * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    findMany(): Promise<any[]>;
+    findMany<K = Partial<TSchemaModel>>(cb?: Function): Promise<Partial<TSchemaModel[]> & K[]>;
     /**
-     * @override Method
+     * @override
      * @param {object?} paginationOptions by default page = 1 , limit = 15
      * @property {number} paginationOptions.limit
      * @property {number} paginationOptions.page
@@ -1134,7 +1312,7 @@ declare class Model extends AbstractModel {
     }): Promise<Pagination>;
     /**
     *
-    * @override Method
+    * @override
     * @param    {?object} paginationOptions by default page = 1 , limit = 15
     * @property {number}  paginationOptions.limit
     * @property {number}  paginationOptions.page
@@ -1145,106 +1323,144 @@ declare class Model extends AbstractModel {
         page?: number;
     }): Promise<Pagination>;
     /**
-     * @override Method
+     * @override
      * @param {string} column
      * @return {Promise<array>} Array
      */
     getGroupBy(column: string): Promise<any[]>;
     /**
-     * @override Method
+     * @override
      * @param {object} data for insert
      * @return {this} this
      */
-    insert(data: Record<string, string | number | boolean | null | undefined>): this;
+    insert<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for insert
      * @return {this} this
      */
-    create(data: Record<string, string | number | boolean | null | undefined>): this;
+    create<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data}
      * @return {this} this
      */
-    update(data: Record<string, string | number | boolean | null | undefined>, updateNotExists?: string[]): this;
+    update<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never, updateNotExists?: string[]): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data}
      * @return {this} this
      */
-    updateMany(data: Record<string, string | number | boolean | null | undefined>, updateNotExists?: string[]): this;
+    updateMany<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never, updateNotExists?: string[]): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data
      * @return {this} this
      */
-    updateNotExists(data: Record<string, string | number | boolean | null | undefined> & {
-        length?: unknown;
-    }): this;
+    updateNotExists<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrCreate(data: Record<string, string | number | boolean | null | undefined>): this;
+    updateOrCreate<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for update or create
      * @return {this} this
      */
-    updateOrInsert(data: Record<string, string | number | boolean | null | undefined>): this;
+    updateOrInsert<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for update or create
      * @return {this} this
      */
-    insertOrUpdate(data: Record<string, string | number | boolean | null | undefined>): this;
+    insertOrUpdate<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for update or create
      * @return {this} this
      */
-    createOrUpdate(data: Record<string, string | number | boolean | null | undefined>): this;
+    createOrUpdate<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for create
      * @return {this} this
      */
-    createOrSelect(data: Record<string, string | number | boolean | null | undefined>): this;
+    createOrSelect<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {object} data for update or create
      * @return {this} this
      */
-    insertOrSelect(data: Record<string, string | number | boolean | null | undefined>): this;
+    insertOrSelect<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     * @override
      * @param {Record<string,any>[]} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Record<string, string | number | boolean | null | undefined>[]): this;
+    createMultiple<K extends keyof TSchemaModel>(data: Record<K, string | number | boolean | null | undefined>[]): this;
     /**
      *
-     * @override Method
+     * @override
      * @param {Record<string,any>[]} data create multiple data
      * @return {this} this
      */
-    insertMultiple(data: Record<string, string | number | boolean | null | undefined>[]): this;
+    insertMultiple<K extends keyof TSchemaModel>(data: Record<K, string | number | boolean | null | undefined>[]): this;
     /**
-     * @override Method
+     *
+     * @override
      * @param {object} data create not exists data
      * @return {this} this
      */
-    createNotExists(data: Record<string, string | number | boolean | null | undefined>): this;
+    createNotExists<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
     /**
-     * @override Method
+     *
+     * @override
      * @param {object} data create not exists data
      * @return {this} this this
      */
-    insertNotExists(data: Record<string, string | number | boolean | null | undefined>): this;
+    insertNotExists<K extends keyof TSchemaModel>(data: K extends keyof TSchemaModel ? {
+        [P in K]: string | number | boolean | null | undefined;
+    } : never): this;
+    /**
+     *
+     * @override
+     * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
+     * @return {this} this
+     */
+    updateMultiple(cases: {
+        when: Record<string, any>;
+        columns: Record<string, string | number | boolean | null | undefined>;
+    }[]): this;
     getSchemaModel(): Record<string, Blueprint> | null;
     validation(schema?: ValidateSchema): this;
     /**
@@ -1254,33 +1470,42 @@ declare class Model extends AbstractModel {
      */
     bindPattern(column: string): string;
     /**
-     * @override Method
+     * @override
      * @return {Promise<Record<string,any> | any[] | null | undefined>}
      */
     save(): Promise<Record<string, any> | any[] | null | undefined>;
     /**
      *
-     * @override Method
+     * @override
      * @param {number} rows number of rows
-     * @return {promise<any>}
+     * @param {Function} callback function will be called data and index
+     * @return {promise<any[]>}
      */
     faker(rows: number, callback?: Function): Promise<Record<string, any>[]>;
     /**
      * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
-     *
-     * @property {boolean} force - forec always check all columns if not exists will be created
-     * @property {boolean} foreign - foreign key for constraint
-     * @return {promise<void>}
+     * @type     {object}  options
+     * @property {boolean} options.force - forec always check all columns if not exists will be created
+     * @property {boolean} options.log   - show log execution with sql statements
+     * @property {boolean} options.foreign - check when has a foreign keys will be created
+     * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+     * @return {Promise<void>}
      */
-    sync({ force, foreign }?: {
+    sync({ force, foreign, changed }?: {
         force?: boolean | undefined;
         foreign?: boolean | undefined;
+        changed?: boolean | undefined;
     }): Promise<void>;
+    covertColumnSchemaToFixColumn(column: string): string;
+    covertFixColumnToColumnSchema(column: string): string;
     private _valuePattern;
+    private _checkTableLoggerIsExists;
+    private _columnPattern;
     private _isPatternSnakeCase;
     private _classToTableName;
     private _makeTableName;
     private _handleSoftDelete;
+    private _handleSelect;
     /**
      *
      * generate sql statements

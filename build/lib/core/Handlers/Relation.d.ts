@@ -25,8 +25,6 @@ declare class RelationHandler {
     private _valueInRelation;
     protected _valuePattern(value: string): string;
     private _assertError;
-    protected _getState(key: string): any;
-    protected _setState(key: string, value: any): void;
 }
 export { RelationHandler };
 export default RelationHandler;

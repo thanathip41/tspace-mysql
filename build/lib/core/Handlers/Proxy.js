@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.proxyHandler = void 0;
-const Logger_1 = require("../Logger");
+const Logger_1 = require("./Logger");
 const proxyHandler = {
     set: (self, name, value) => {
         var _a;
@@ -13,7 +13,7 @@ const proxyHandler = {
     get: (self, prop, value) => {
         var _a, _b, _c, _d;
         try {
-            new Logger_1.Logger(self, prop);
+            new Logger_1.LoggerHandler(self, prop);
             switch (prop) {
                 case 'tableName': return (_b = (_a = self.$db) === null || _a === void 0 ? void 0 : _a.get('TABLE_NAME')) === null || _b === void 0 ? void 0 : _b.replace(/`/g, '');
                 case 'attributes': return self[`$${prop}`];

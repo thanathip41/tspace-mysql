@@ -18,6 +18,7 @@ declare class Blueprint {
     private _type;
     private _attributes;
     private _foreignKey;
+    private _column;
     private _valueType;
     /**
      * Assign type 'int' in table
@@ -101,19 +102,16 @@ declare class Blueprint {
     mediumtext(): this;
     /**
      * Assign type 'TINYTEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     tinyText(): this;
     /**
     * Assign type 'TINYTEXT' in table
-    * @param {number} length [length = 1] length of string
     * @return {this} this
     */
     tinytext(): this;
     /**
      * Assign type 'TEXT' in table
-     * @param {number} length [length = 1] length of string
      * @return {this} this
      */
     text(): this;
@@ -164,6 +162,11 @@ declare class Blueprint {
      */
     notNull(): this;
     /**
+     * Assign attributes 'NOT NULL' in table
+     * @return {this} this
+     */
+    notnull(): this;
+    /**
      * Assign attributes 'PRIMARY KEY' in table
      * @return {this} this
      */
@@ -174,6 +177,12 @@ declare class Blueprint {
      * @return {this} this
      */
     default(value: string | number): this;
+    /**
+     * Assign attributes 'defaultValue' in table
+     * @param {string | number} value  default value
+     * @return {this} this
+     */
+    defaultValue(value: string | number): this;
     /**
      * Assign attributes 'default currentTimestamp' in table
      * @return {this} this
@@ -210,6 +219,8 @@ declare class Blueprint {
         onDelete?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
         onUpdate?: 'CASCADE' | 'NO ACTION' | 'RESTRICT' | 'SET NULL';
     }): this;
+    bindColumn(column: string): this;
+    get column(): string | null;
     get type(): string;
     get attributes(): string[];
     get foreignKey(): Record<string, any> | null;

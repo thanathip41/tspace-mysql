@@ -47,7 +47,9 @@ const CONSTANTS = Object.freeze({
     NOT: 'NOT',
     DUPLICATE: 'DUPLICATE',
     KEY: 'KEY',
-    RAW: '$RAW',
+    RAW: '$RAW:',
+    OP: '$OP:',
+    IGNORE: '$IGNORE',
     WHEN: 'WHEN',
     THEN: 'THEN',
     ELSE: 'ELSE',
@@ -74,6 +76,7 @@ const CONSTANTS = Object.freeze({
     ON_DELETE: 'ON DELETE',
     ON_UPDATE: 'ON UPDATE',
     ADD: 'ADD',
+    CHANGE: 'CHANGE',
     ADD_CONSTRAINT: 'ADD CONSTRAINT',
     AFTER: 'AFTER',
     ALTER_TABLE: 'ALTER TABLE',
@@ -121,9 +124,11 @@ const CONSTANTS = Object.freeze({
         UUID: false,
         PAGE: 1,
         PER_PAGE: 1,
-        HOOKS: []
+        HOOKS: [],
+        RETURN_TYPE: null
     },
     MODEL: {
+        MODEL_NAME: 'MODEL',
         PRIMARY_KEY: 'id',
         VOID: false,
         SELECT: [],
@@ -169,13 +174,18 @@ const CONSTANTS = Object.freeze({
             CREATED_AT: 'created_at',
             UPDATED_AT: 'updated_at'
         },
+        LOGGER: false,
+        LOGGER_OPTIONS: null,
+        TABLE_LOGGER: '$loggers',
         VALIDATE_SCHEMA: false,
         VALIDATE_SCHEMA_DEFINED: null,
         FUNCTION_RELATION: false,
         SCHEMA_TABLE: null,
         RETRY: 0,
         OBSERVER: null,
-        DATA: null
+        DATA: null,
+        BEFORE_CREATING_TABLE: null,
+        RETURN_TYPE: null
     }
 });
 exports.CONSTANTS = CONSTANTS;

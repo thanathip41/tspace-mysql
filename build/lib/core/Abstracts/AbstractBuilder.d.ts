@@ -55,7 +55,7 @@ declare abstract class AbstractBuilder {
     abstract rightJoin(pk: string, fk: string): this;
     abstract leftJoin(pk: string, fk: string): this;
     abstract crossJoin(pk: string, fk: string): this;
-    abstract orderBy(column: string, order: string): this;
+    abstract orderBy(column: string, order: 'ASC' | 'DESC'): this;
     abstract orderByRaw(column: string, order: string): this;
     abstract latest(...columns: string[]): this;
     abstract latestRaw(...columns: string[]): this;

@@ -40,8 +40,6 @@ class RelationHandler {
             })
                 .filter(d => d != null);
             const parentIds = Array.from(new Set(localKeyId)) || [];
-            if (!parentIds.length && this._getState('RELATIONS_EXISTS'))
-                return [];
             const query = relation.query;
             this._assertError(query == null, `Unknown callback query in [Relation : ${relation.name}]`);
             if (relation.count) {
@@ -49,7 +47,7 @@ class RelationHandler {
                     .whereIn(foreignKey, parentIds)
                     .select(foreignKey)
                     .selectRaw(`${this.$constants('COUNT')}(${foreignKey}) ${this.$constants('AS')} \`aggregate\``)
-                    .debug(this._getState('DEBUG'))
+                    .debug(this.MODEL['$state'].get('DEBUG'))
                     .when(relation.trashed, (query) => query.onlyTrashed())
                     .when(relation.all, (query) => query.disableSoftDelete())
                     .bind(this.MODEL['$pool'].get())
@@ -59,7 +57,7 @@ class RelationHandler {
             }
             const results = yield query
                 .whereIn(foreignKey, parentIds)
-                .debug(this._getState('DEBUG'))
+                .debug(this.MODEL['$state'].get('DEBUG'))
                 .when(relation.trashed, (query) => query.onlyTrashed())
                 .when(relation.all, (query) => query.disableSoftDelete())
                 .bind(this.MODEL['$pool'].get())
@@ -69,7 +67,7 @@ class RelationHandler {
     }
     loadExists() {
         var _a, _b, _c;
-        const relations = this._getState('RELATIONS');
+        const relations = this.MODEL['$state'].get('RELATIONS');
         for (const index in relations) {
             const relation = relations[index];
             if (!((_a = Object.keys(relation)) === null || _a === void 0 ? void 0 : _a.length))
@@ -80,7 +78,7 @@ class RelationHandler {
             const query = relation.query;
             this._assertError(query == null, `Unknown callback query in [Relation : '${relation.name}']`);
             let clone = new Model_1.Model().clone(query);
-            const cloneRelations = clone['_getState']('RELATIONS');
+            const cloneRelations = clone['$state'].get('RELATIONS');
             if (cloneRelations.length) {
                 for (const r of cloneRelations) {
                     if (!r.exists)
@@ -112,7 +110,7 @@ class RelationHandler {
             const sql = clone
                 .bind(this.MODEL['$pool'].get())
                 .selectRaw("1")
-                .whereReference(`\`${this.MODEL['getTableName']()}\`.\`${localKey}\``, `\`${query.getTableName()}\`.\`${foreignKey}\``)
+                .whereReference(`\`${this.MODEL.getTableName()}\`.\`${localKey}\``, `\`${query.getTableName()}\`.\`${foreignKey}\``)
                 .toString();
             this.MODEL['whereExists'](sql);
         }
@@ -122,10 +120,11 @@ class RelationHandler {
     apply(nameRelations, type) {
         const relations = nameRelations.map((name) => {
             var _a, _b, _c;
-            const relation = (_a = this._getState('RELATION')) === null || _a === void 0 ? void 0 : _a.find((data) => data.name === name);
+            const relation = (_a = this.MODEL['$state'].get('RELATION')) === null || _a === void 0 ? void 0 : _a.find((data) => data.name === name);
             this._assertError(relation == null, `The relation '${name}' is not registered in the model '${(_b = this.MODEL.constructor) === null || _b === void 0 ? void 0 : _b.name}'.`);
             const relationHasExists = (_c = Object.values(this.$constants('RELATIONSHIP'))) === null || _c === void 0 ? void 0 : _c.includes(relation.relation);
             this._assertError(!relationHasExists, `Unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
+            this._assertError(relation.model == null, `The model is not found'.`);
             if (relation.query == null)
                 relation.query = new relation.model();
             return relation;
@@ -135,19 +134,19 @@ class RelationHandler {
                 break;
             relation[type] = true;
         }
-        return this._getState('RELATIONS').length
+        return this.MODEL['$state'].get('RELATIONS').length
             ? [...relations.map((w) => {
-                    const exists = this._getState('RELATIONS').find((r) => r.name === w.name);
+                    const exists = this.MODEL['$state'].get('RELATIONS').find((r) => r.name === w.name);
                     if (exists)
                         return null;
                     return w;
                 }).filter((d) => d != null),
-                ...this._getState('RELATIONS')]
+                ...this.MODEL['$state'].get('RELATIONS')]
             : relations;
     }
     callback(nameRelation, cb) {
         var _a, _b;
-        const relation = this._getState('RELATIONS').find((data) => data.name === nameRelation);
+        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
         this._assertError(relation == null, `This Relation "${nameRelation}" not be register in Model "${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
         const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
         this._assertError(!relationHasExists, `unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
@@ -165,7 +164,7 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        return this._setState('RELATION', [...this._getState('RELATION'), relation]);
+        return this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION'), relation]);
     }
     hasMany({ name, as, model, localKey, foreignKey, freezeTable }) {
         const relation = {
@@ -178,7 +177,7 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        return this._setState('RELATION', [...this._getState('RELATION'), relation]);
+        return this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION'), relation]);
     }
     belongsTo({ name, as, model, localKey, foreignKey, freezeTable }) {
         const relation = {
@@ -191,7 +190,11 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        return this._setState('RELATION', [...this._getState('RELATION'), relation]);
+        return this.MODEL['$state']
+            .set('RELATION', [
+            ...this.MODEL['$state'].get('RELATION'),
+            relation
+        ]);
     }
     belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }) {
         const relation = {
@@ -207,7 +210,11 @@ class RelationHandler {
             query: null,
             modelPivot
         };
-        return this._setState('RELATION', [...this._getState('RELATION'), relation]);
+        return this.MODEL['$state']
+            .set('RELATION', [
+            ...this.MODEL['$state'].get('RELATION'),
+            relation
+        ]);
     }
     hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable, }, callback) {
         const nameRelation = name == null
@@ -305,7 +312,7 @@ class RelationHandler {
         const query = relation.query;
         this._assertError(query == null, `Unknown callback query in [Relation : '${relation.name}']`);
         const clone = new Model_1.Model().clone(query);
-        const cloneRelations = clone['_getState']('RELATIONS');
+        const cloneRelations = clone['$state'].get('RELATIONS');
         if (cloneRelations.length) {
             for (const r of cloneRelations) {
                 if (!r.exists)
@@ -353,9 +360,9 @@ class RelationHandler {
     }
     _relationBuilder(nameRelation, relation) {
         var _a;
-        this._setState('RELATION', [...this._getState('RELATION'), relation]);
+        this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION'), relation]);
         this.MODEL['with'](nameRelation);
-        const r = this._getState('RELATIONS').find((data) => data.name === nameRelation);
+        const r = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
         this._assertError(relation == null, `The relation '${nameRelation}' is not registered in the model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'.`);
         return r;
     }
@@ -365,8 +372,10 @@ class RelationHandler {
     }
     _relationMapData(dataParents, dataChilds, r) {
         var _a;
-        const { name, as, relation, localKey, foreignKey } = this._valueInRelation(r);
+        let { name, as, query, relation, localKey, foreignKey } = this._valueInRelation(r);
         const keyRelation = as !== null && as !== void 0 ? as : name;
+        localKey = query == null ? localKey : query.covertFixColumnToColumnSchema(localKey);
+        foreignKey = query == null ? foreignKey : query.covertFixColumnToColumnSchema(foreignKey);
         for (const dataParent of dataParents) {
             const relationIsHasOneOrBelongsTo = [
                 this.$constants('RELATIONSHIP').hasOne,
@@ -410,9 +419,7 @@ class RelationHandler {
                 this._assertError(data == null, `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
             }).filter((d) => d != null);
             const mainResultIds = Array.from(new Set(localKeyId));
-            if (!mainResultIds.length && this._getState('RELATIONS_EXISTS'))
-                return [];
-            const modelRelation = new relation.model();
+            const modelRelation = relation.query == null ? new relation.model() : relation.query;
             const relationColumn = this.MODEL['_classToTableName'](modelRelation.constructor.name, { singular: true });
             const mainlocalKey = 'id';
             const relationForeignKey = this._valuePattern(`${relationColumn}Id`);
@@ -436,7 +443,7 @@ class RelationHandler {
                     .when(relation.all, (query) => query.disableSoftDelete())
                     .groupBy(localKeyPivotTable)
                     .bind(this.MODEL['$pool'].get())
-                    .debug(this._getState('DEBUG'))
+                    .debug(this.MODEL['$state'].get('DEBUG'))
                     .get();
                 for (const parent of parents) {
                     if (parent[name] == null)
@@ -447,17 +454,18 @@ class RelationHandler {
                         parent[name] = (_b = pivotResult.aggregate) !== null && _b !== void 0 ? _b : 0;
                     }
                 }
-                if (this._getState('HIDDEN').length)
+                if (this.MODEL['$state'].get('HIDDEN').length)
                     this.MODEL['_hiddenColumnModel'](parents);
                 return parents;
             }
             const pivotResults = yield queryPivot
                 .whereIn(localKeyPivotTable, mainResultIds)
+                .when(relation.query != null, (query) => query.select(localKeyPivotTable, localKey))
                 .when(relation.exists, (query) => query.whereExists(sqlPivotExists))
                 .when(relation.trashed, (query) => query.onlyTrashed())
                 .when(relation.all, (query) => query.disableSoftDelete())
                 .bind(this.MODEL['$pool'].get())
-                .debug(this._getState('DEBUG'))
+                .debug(this.MODEL['$state'].get('DEBUG'))
                 .get();
             const relationIds = Array.from(new Set(pivotResults
                 .map((pivotResult) => pivotResult[relationForeignKey])
@@ -483,7 +491,7 @@ class RelationHandler {
                         parent[name].push(pivotResult);
                     }
                 }
-                if (this._getState('HIDDEN').length)
+                if (this.MODEL['$state'].get('HIDDEN').length)
                     this.MODEL['_hiddenColumnModel'](parents);
                 return parents;
             }
@@ -503,34 +511,35 @@ class RelationHandler {
                     parent[name].push(data);
                 }
             }
-            if (this._getState('HIDDEN').length)
+            if (this.MODEL['$state'].get('HIDDEN').length)
                 this.MODEL['_hiddenColumnModel'](parents);
             return parents;
         });
     }
     _valueInRelation(relationModel) {
-        var _a, _b, _c;
+        var _a, _b;
         this._assertError((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Promise, 'The Promise method does not support nested relations.');
         this._assertError(!((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Model_1.Model), 'The callback function only supports instances of the Model class.');
         const relation = relationModel.relation;
-        const model = (_a = relationModel.model) === null || _a === void 0 ? void 0 : _a.name;
+        const model = relationModel.model;
         const modelPivot = relationModel.modelPivot;
         const oldVersion = relationModel.oldVersion;
+        const query = relationModel === null || relationModel === void 0 ? void 0 : relationModel.query;
         const table = relationModel.freezeTable
             ? relationModel.freezeTable
-            : (_b = relationModel.query) === null || _b === void 0 ? void 0 : _b.getTableName();
+            : (_a = relationModel.query) === null || _a === void 0 ? void 0 : _a.getTableName();
         let pivot = null;
         const name = relationModel.name;
         const as = relationModel.as;
         this._assertError(!model || model == null, 'Model not found.');
         let localKey = this._valuePattern(relationModel.localKey
             ? relationModel.localKey
-            : this._getState('PRIMARY_KEY'));
+            : this.MODEL['$state'].get('PRIMARY_KEY'));
         let foreignKey = relationModel.foreignKey
             ? relationModel.foreignKey
             : this._valuePattern([
                 `${pluralize_1.default.singular(this.MODEL['getTableName']())}`,
-                `${this._getState('PRIMARY_KEY')}`
+                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
             ].join('_'));
         const checkRelationIsBelongsTo = [
             relationModel.localKey == null,
@@ -538,10 +547,10 @@ class RelationHandler {
             relation === this.$constants('RELATIONSHIP').belongsTo
         ].every(r => r);
         if (checkRelationIsBelongsTo) {
-            foreignKey = localKey;
+            foreignKey = this._valuePattern(localKey);
             localKey = this._valuePattern([
                 `${pluralize_1.default.singular(table !== null && table !== void 0 ? table : '')}`,
-                `${this._getState('PRIMARY_KEY')}`
+                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
             ].join('_'));
         }
         const checkRelationIsBelongsToMany = [
@@ -552,15 +561,17 @@ class RelationHandler {
         if (checkRelationIsBelongsToMany) {
             localKey = this._valuePattern([
                 `${pluralize_1.default.singular(table !== null && table !== void 0 ? table : '')}`,
-                `${this._getState('PRIMARY_KEY')}`
+                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
             ].join('_'));
             foreignKey = 'id';
             const pivotModel = relationModel.query;
-            pivot = (_c = relationModel.pivot) !== null && _c !== void 0 ? _c : this._valuePattern([
+            pivot = (_b = relationModel.pivot) !== null && _b !== void 0 ? _b : this._valuePattern([
                 pluralize_1.default.singular(this.MODEL['getTableName']()),
                 pluralize_1.default.singular(pivotModel.getTableName())
             ].sort().join('_'));
         }
+        foreignKey = this.MODEL.covertColumnSchemaToFixColumn(foreignKey);
+        localKey = this.MODEL.covertColumnSchemaToFixColumn(localKey);
         return {
             name,
             as,
@@ -569,18 +580,34 @@ class RelationHandler {
             localKey,
             foreignKey,
             model,
+            query,
             pivot,
             oldVersion,
             modelPivot
         };
     }
     _valuePattern(value) {
-        switch (this._getState('PATTERN')) {
+        const schema = this.MODEL['$state'].get('SCHEMA_TABLE');
+        switch (this.MODEL['$state'].get('PATTERN')) {
             case this.$constants('PATTERN').snake_case: {
-                return value.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
+                if (schema == null) {
+                    return value.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
+                }
+                const find = schema[value];
+                if (find == null || find.column == null) {
+                    return value.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
+                }
+                return find.column;
             }
             case this.$constants('PATTERN').camelCase: {
-                return value.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
+                if (schema == null) {
+                    return value.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
+                }
+                const find = schema[value];
+                if (find == null || find.column == null) {
+                    return value.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
+                }
+                return find.column;
             }
             default: return value;
         }
@@ -592,12 +619,6 @@ class RelationHandler {
         if (condition)
             throw new Error(message);
         return;
-    }
-    _getState(key) {
-        return this.MODEL['_getState'](key.toLocaleUpperCase());
-    }
-    _setState(key, value) {
-        return this.MODEL['_setState'](key, value);
     }
 }
 exports.RelationHandler = RelationHandler;

@@ -23,7 +23,7 @@ const ENV = process.env;
 const env = {
     HOST: ENV.DB_HOST || ENV.TSPACE_HOST,
     PORT: ENV.DB_PORT || ENV.TSPACE_PORT || 3306,
-    USERNAME: ENV.DB_USERNAME || ENV.TSPACE_USERNAME,
+    USERNAME: ENV.DB_USERNAME || ENV.TSPACE_USERNAME || ENV.DB_USER,
     PASSWORD: ENV.DB_PASSWORD || ENV.TSPACE_PASSWORD || '',
     DATABASE: ENV.DB_DATABASE || ENV.TSPACE_DATABASE,
     CONNECTION_LIMIT: ENV.DB_CONNECTION_LIMIT || ENV.TSPACE_CONNECTION_LIMIT || 30,
@@ -38,7 +38,7 @@ const env = {
     MULTIPLE_STATEMENTS: ENV.MULTIPLE_STATEMENTS || ENV.TSPACE_MULTIPLE_STATEMENTS || false
 };
 for (const [key, value] of Object.entries(env)) {
-    if (value == null)
+    if (value == null || key == null)
         continue;
     if (typeof value === 'string' && ['true', 'false'].some(v => value.toLowerCase() === v)) {
         env[key] = JSON.parse(value.toLowerCase());

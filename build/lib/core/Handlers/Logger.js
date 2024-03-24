@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Logger = void 0;
-class Logger {
+exports.LoggerHandler = void 0;
+class LoggerHandler {
     constructor(self, prop) {
         this.PROP = '';
         this.SELF = self;
@@ -45,5 +45,5 @@ class Logger {
         return (_a = this.SELF.$logger) === null || _a === void 0 ? void 0 : _a.set(this.PROP);
     }
 }
-exports.Logger = Logger;
-exports.default = Logger;
+exports.LoggerHandler = LoggerHandler;
+exports.default = LoggerHandler;

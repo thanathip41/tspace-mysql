@@ -18,7 +18,7 @@ const TableSingular = () => {
     return (constructor) => {
         if (constructor.prototype == null)
             return;
-        const name = String(constructor.name).replace(/([A-Z])/g, (str) => '_' + str.toLowerCase()).slice(1);
+        const name = String(constructor.name).replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`).slice(1);
         constructor.prototype.$table = pluralize_1.default.singular(name);
     };
 };
@@ -27,7 +27,7 @@ const TablePlural = () => {
     return (constructor) => {
         if (constructor.prototype == null)
             return;
-        const name = constructor.name.replace(/([A-Z])/g, (str) => '_' + str.toLowerCase()).slice(1);
+        const name = constructor.name.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`).slice(1);
         constructor.prototype.$table = pluralize_1.default.plural(name);
     };
 };

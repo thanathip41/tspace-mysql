@@ -16,7 +16,7 @@ exports.default = (cmd) => {
         }
     }
     if (sql == null || sql === '') {
-        console.log(`Example  tspace-mysql dump:db "table" --dir=app/table`);
+        console.log(`Example tspace-mysql dump:db "table" --dir=app/table`);
         process.exit(0);
     }
     if (!values) {
@@ -30,7 +30,8 @@ exports.default = (cmd) => {
             .finally(() => process.exit(0));
     }
     const directory = `${cwd}/${dir}/dump_${+new Date()}.sql`;
-    new lib_1.DB().loadEnv(env).backupToFile({
+    new lib_1.DB().loadEnv(env)
+        .backupToFile({
         filePath: directory,
         database: sql
     })

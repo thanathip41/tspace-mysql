@@ -31,6 +31,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
   *
   * @module tspace-mysql
   */
-const tspace = __importStar(require("./tspace"));
-__exportStar(require("./tspace"), exports);
+const tspace = __importStar(require("./core"));
+__exportStar(require("./core"), exports);
 exports.default = tspace;

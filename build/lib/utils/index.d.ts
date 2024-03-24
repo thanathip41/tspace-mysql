@@ -7,6 +7,7 @@ declare const utils: {
     timestamp: (dateString?: string) => string;
     date: () => string;
     escape: (str: any) => any;
+    escapeActions: (str: any) => any;
     escapeXSS: (str: any) => any;
     isSubQuery: (subQuery: string) => boolean;
     generateUUID: () => string;

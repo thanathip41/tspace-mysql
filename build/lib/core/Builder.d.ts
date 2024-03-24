@@ -1,5 +1,5 @@
 import { AbstractBuilder } from './Abstracts/AbstractBuilder';
-import { Pagination, ConnectionOptions, Connection, ConnectionTransaction } from '../Interface';
+import { Pagination, ConnectionOptions, Connection, ConnectionTransaction, NonEmptyArray } from '../Interface';
 declare class Builder extends AbstractBuilder {
     constructor();
     /**
@@ -37,6 +37,20 @@ declare class Builder extends AbstractBuilder {
      */
     selectObject(object: Record<string, string>, alias: string): this;
     /**
+     * The 'sleep' method is used to delay the query.
+     *
+     * @param {number} second - The number of seconds to sleep
+     * @return {this} this
+     */
+    sleep(second: number): this;
+    /**
+     * The 'returnType' method is used covert the results to type 'object' or 'array'.
+     *
+     * @param {string} type - The types 'object' | 'array'
+     * @return {this} this
+     */
+    returnType(type: 'object' | 'array'): this;
+    /**
      * The 'pluck' method is used to retrieve the value of a single column from the first result of a query.
      *
      * It is often used when you need to retrieve a single value,
@@ -53,6 +67,12 @@ declare class Builder extends AbstractBuilder {
      * @return {this} this
      */
     except(...columns: string[]): this;
+    /**
+     * The 'exceptTimestamp' method is used to timestamp columns (created_at , updated_at) you don't want to retrieve from a database table.
+     *
+     * @return {this} this
+     */
+    exceptTimestamp(): this;
     /**
      * The 'void' method is used to specify which you don't want to return a result from database table.
      *
@@ -176,6 +196,15 @@ declare class Builder extends AbstractBuilder {
      * @return {this}
      */
     whereExists(sql: string): this;
+    /**
+     *
+     * The 'whereExists' method is used to add a conditional clause to a database query that checks for the existence of related records in a subquery or another table.
+     *
+     * It allows you to filter records based on whether a specified condition is true for related records.
+     * @param {string} sql
+     * @return {this}
+     */
+    whereNotExists(sql: string): this;
     /**
      *
      * @param {number} id
@@ -412,6 +441,29 @@ declare class Builder extends AbstractBuilder {
      */
     orWhereGroup(callback: Function): this;
     /**
+     * The 'whereAny' method is used to add conditions to a database query,
+     * where either the original condition or the new condition must be true.
+     *
+     * If has only 2 arguments default operator '='
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAny(columns: string[], operator?: any, value?: any): this;
+    /**
+     * The 'whereAll' method is used to clause to a database query.
+     *
+     * This method allows you to specify conditions that the retrieved records must meet.
+     *
+     * If has only 2 arguments default operator '='
+     * @param {string[]} columns
+     * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+     * @param {any?} value
+     * @return {this}
+     */
+    whereAll(columns: string[], operator?: any, value?: any): this;
+    /**
      * The 'whereCases' method is used to add conditions with cases to a database query.
      *
      * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
@@ -465,6 +517,25 @@ declare class Builder extends AbstractBuilder {
      */
     join(localKey: string, referenceKey: string): this;
     /**
+    * The 'join' method is used to perform various types of SQL joins between two or more database tables.
+    *
+    * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
+    * @param    {object}  property object { localKey , foreignKey , sqlr }
+    * @property {string} property.localKey local key in current table
+    * @property {string} property.foreignKey reference key in next table
+    * @property {string} property.sql sql string
+    * @example
+    * await new DB('users')
+    * .joinSubQuery({ localKey : 'id' , foreignKey : 'userId' , sql : '....sql'})
+    * .get()
+    * @return {this}
+    */
+    joinSubQuery({ localKey, foreignKey, sql }: {
+        localKey: string;
+        foreignKey: string;
+        sql: string;
+    }): this;
+    /**
      * The 'rightJoin' method is used to perform a right join operation between two database tables.
      *
      * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table.
@@ -503,7 +574,7 @@ declare class Builder extends AbstractBuilder {
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @return {this}
      */
-    orderBy(column: string, order?: string): this;
+    orderBy(column: string, order?: 'ASC' | 'DESC'): this;
     /**
      * The 'orderByRaw' method is used to specify the order in which the results of a database query should be sorted.
      *
@@ -515,6 +586,18 @@ declare class Builder extends AbstractBuilder {
      * @return {this}
      */
     orderByRaw(column: string, order?: string): this;
+    /**
+     * The 'random' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
+     *
+     * @return {this}
+     */
+    random(): this;
+    /**
+     * The 'inRandom' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
+     *
+     * @return {this}
+     */
+    inRandom(): this;
     /**
      * The 'latest' method is used to specify the order in which the results of a database query should be sorted.
      *
@@ -595,20 +678,6 @@ declare class Builder extends AbstractBuilder {
      * @return {this}
      */
     havingRaw(condition: string): this;
-    /**
-     * The 'random' method is used to add a random ordering to a database query.
-     *
-     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
-     * @return {this}
-     */
-    random(): this;
-    /**
-     * The 'inRandom' method is used to add a random ordering to a database query.
-     *
-     * This method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
-     * @return {this}
-     */
-    inRandom(): this;
     /**
      * The 'limit' method is used to limit the number of records returned by a database query.
      *
@@ -703,15 +772,7 @@ declare class Builder extends AbstractBuilder {
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    createMultiple(data: Array<Record<string, any>>): this;
-    /**
-     * The 'createMany' method is used to insert a new records into a database table associated.
-     *
-     * It simplifies the process of creating and inserting records with an array.
-     * @param {array} data create multiple data
-     * @return {this} this this
-     */
-    createMany(data: Array<Record<string, any>>): this;
+    createMultiple(data: any[]): this;
     /**
      * The 'insertMultiple' method is used to insert a new records into a database table associated.
      *
@@ -719,15 +780,7 @@ declare class Builder extends AbstractBuilder {
      * @param {array} data create multiple data
      * @return {this} this this
      */
-    insertMultiple(data: Array<Record<string, any>>): this;
-    /**
-     * The 'insertMany' method is used to insert a new records into a database table associated.
-     *
-     * It simplifies the process of creating and inserting records with an array.
-     * @param {array} data create multiple data
-     * @return {this} this this
-     */
-    insertMany(data: Array<Record<string, any>>): this;
+    insertMultiple(data: NonEmptyArray<Record<string, any>>): this;
     /**
      * The 'createNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
      *
@@ -815,6 +868,17 @@ declare class Builder extends AbstractBuilder {
     createOrUpdate(data: Record<string, any> & {
         length?: never;
     }): this;
+    /**
+     *
+     * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
+     * @return {this} this
+     */
+    updateMultiple(cases: {
+        when: Record<string, any>;
+        columns: Record<string, any>;
+    }[]): this;
     /**
      * The 'toString' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
      *
@@ -984,17 +1048,19 @@ declare class Builder extends AbstractBuilder {
      * The 'first' method is used to retrieve the first record that matches the query conditions.
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<object | null>}
      */
-    first(): Promise<Record<string, any> | null>;
+    first(cb?: Function): Promise<Record<string, any> | null>;
     /**
      *
      * The 'findOne' method is used to retrieve the first record that matches the query conditions.
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<object | null>}
      */
-    findOne(): Promise<Record<string, any> | null>;
+    findOne(cb?: Function): Promise<Record<string, any> | null>;
     /**
      * The 'firstOrError' method is used to retrieve the first record that matches the query conditions.
      *
@@ -1018,16 +1084,18 @@ declare class Builder extends AbstractBuilder {
      * The 'get' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<any[]>}
      */
-    get(): Promise<any[]>;
+    get(cb?: Function): Promise<any[]>;
     /**
      * The 'findMany' method is used to execute a database query and retrieve the result set that matches the query conditions.
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
+     * @param {Function?} cb callback function return query sql
      * @return {promise<any[]>}
      */
-    findMany(): Promise<any[]>;
+    findMany(cb?: Function): Promise<any[]>;
     /**
      *
      * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
@@ -1148,10 +1216,40 @@ declare class Builder extends AbstractBuilder {
      */
     save(): Promise<Record<string, any> | any[] | null | undefined>;
     /**
-    * The 'showTables' method is used to show schema table.
-    *
-    * @return {Promise<Array>}
-    */
+     *
+     * The 'makeSelectStatement' method is used to make select statement.
+     * @return {Promise<string>} string
+     */
+    makeSelectStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeInsertStatement' method is used to make insert table statement.
+     * @return {Promise<string>} string
+     */
+    makeInsertStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeUpdateStatement' method is used to make update table statement.
+     * @return {Promise<string>} string
+     */
+    makeUpdateStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeDeleteStatement' method is used to make delete statement.
+     * @return {Promise<string>} string
+     */
+    makeDeleteStatement(): Promise<string>;
+    /**
+     *
+     * The 'makeCreateTableStatement' method is used to make create table statement.
+     * @return {Promise<string>} string
+     */
+    makeCreateTableStatement(): Promise<string>;
+    /**
+     * The 'showTables' method is used to show schema table.
+     *
+     * @return {Promise<Array>}
+     */
     showTables(): Promise<string[]>;
     /**
      *
@@ -1233,8 +1331,6 @@ declare class Builder extends AbstractBuilder {
         where: () => string | null;
         any: () => string;
     };
-    protected _getState(key: string): any;
-    protected _setState(key: string, value: any): void;
     protected _resultHandler(data: any): any;
     whereReference(tableAndLocalKey: string, tableAndForeignKey?: string): this;
     protected _queryStatement(sql: string): Promise<any[]>;

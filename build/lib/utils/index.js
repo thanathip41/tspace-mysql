@@ -47,14 +47,25 @@ const date = () => {
 const escape = (str) => {
     if (typeof str !== 'string')
         return str;
-    return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, '');
+    if (str.includes('$RAW:'))
+        return str;
+    return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, "\\'");
+};
+const escapeActions = (str) => {
+    if (typeof str !== 'string')
+        return str;
+    return str.replace(/[\0\b\r\x1a\'\\]/g, "\\'");
 };
 const escapeXSS = (str) => {
     if (typeof str !== 'string')
         return str;
     return str
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/on\w+="[^"]+"/g, '');
+        .replace(/[;\\]/gi, '')
+        .replace(/on\w+="[^"]+"/gi, '')
+        .replace(/\s+(onerror|onload)\s*=/gi, '')
+        .replace(/\s+alert*/gi, '')
+        .replace(/\([^)]*\) *=>/g, '')
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 };
 const isSubQuery = (subQuery) => {
     const checkIsSubQuery = (/\bSELECT\s+(?!\*)/i.test(subQuery));
@@ -140,11 +151,9 @@ const camelCase = (data) => {
     }
 };
 const consoleDebug = (debug) => {
-    if (debug == null)
+    if (typeof debug !== "string" || debug == null)
         return;
-    if (typeof debug !== "string")
-        return;
-    console.log(`\n\x1b[33m${debug === null || debug === void 0 ? void 0 : debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
+    console.log(`\n\x1b[34mQUERY:\x1b[0m \x1b[33m${debug === null || debug === void 0 ? void 0 : debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
 };
 const randomString = (length = 100) => {
     let str = '';
@@ -204,6 +213,7 @@ const utils = {
     timestamp,
     date,
     escape,
+    escapeActions,
     escapeXSS,
     isSubQuery,
     generateUUID,

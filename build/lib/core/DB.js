@@ -50,7 +50,7 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {this} this
      */
     table(table) {
-        this._setState('TABLE_NAME', `\`${table}\``);
+        this.$state.set('TABLE_NAME', `\`${table}\``);
         return this;
     }
     /**
@@ -209,9 +209,9 @@ class DB extends AbstractDB_1.AbstractDB {
         return new this().$utils.camelCase(value);
     }
     /**
-    * The 'escape' methid is used to escaping SQL injections.
-    * @return {string} string
-    */
+     * The 'escape' methid is used to escaping SQL injections.
+     * @return {string} string
+     */
     escape(value) {
         return this.$utils.escape(value);
     }
@@ -242,7 +242,7 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {string} string
      */
     raw(sql) {
-        return `${this.$constants('RAW')} ${sql}`;
+        return `${this.$constants('RAW')}${sql}`;
     }
     /**
      * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
@@ -252,6 +252,40 @@ class DB extends AbstractDB_1.AbstractDB {
      */
     static raw(sql) {
         return `${new this().raw(sql)}`;
+    }
+    /**
+     * The 'op' methid is used to operator for where conditions.
+     * @static
+     * @param {string} picked
+     * @param {any} value
+     * @return {string} string
+     */
+    op(picked, value) {
+        const operator = {
+            equals: '=',
+            notEquals: '<>',
+            greaterThan: '>',
+            lessThan: '<',
+            greaterThanOrEqual: '>=',
+            lessThanOrEqual: '<=',
+            like: 'LIKE',
+            notLike: 'NOT LIKE',
+            in: 'IN',
+            notIn: 'NOT IN',
+            isNull: 'IS NULL',
+            isNotNull: 'IS NOT NULL',
+        };
+        return `${this.$constants('OP')}${operator[picked]} ${value}`;
+    }
+    /**
+     * The 'op' methid is used to operator for where conditions.
+     * @static
+     * @param {string} operatorPicked
+     * @param {any} value
+     * @return {string} string
+     */
+    static op(operatorPicked, value) {
+        return new this().op(operatorPicked, value);
     }
     /**
      * The 'getConnection' method is used to get a pool connection.
@@ -736,7 +770,7 @@ class DB extends AbstractDB_1.AbstractDB {
                     `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
                     `\`${database}\`.\`${table}\``,
                     `(${schemas.join(', ')})`,
-                    `${this.$constants('ENGINE')}`,
+                    `${this.$constants('ENGINE')};`,
                 ];
                 const values = yield this.showValues(table);
                 let valueSQL = [];
@@ -746,7 +780,7 @@ class DB extends AbstractDB_1.AbstractDB {
                         `${this.$constants('INSERT')}`,
                         `\`${database}\`.\`${table}\``,
                         `(${columns.map((column) => `\`${column}\``).join(', ')})`,
-                        `${this.$constants('VALUES')} ${values.join(', ')}`
+                        `${this.$constants('VALUES')} ${values.join(', ')};`
                     ];
                 }
                 backup.push({

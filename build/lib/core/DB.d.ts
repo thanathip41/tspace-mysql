@@ -1,5 +1,5 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
-import { Backup, BackupTableToFile, BackupToFile, Connection, ConnectionOptions, ConnectionTransaction } from '../Interface';
+import { Backup, BackupTableToFile, BackupToFile, Connection, ConnectionOptions, ConnectionTransaction, Operator } from '../Interface';
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name
@@ -116,9 +116,9 @@ declare class DB extends AbstractDB {
      */
     static camelCase(value: string): string;
     /**
-    * The 'escape' methid is used to escaping SQL injections.
-    * @return {string} string
-    */
+     * The 'escape' methid is used to escaping SQL injections.
+     * @return {string} string
+     */
     escape(value: string): string;
     /**
      * The 'escape' methid is used to escaping SQL injections.
@@ -148,6 +148,22 @@ declare class DB extends AbstractDB {
      * @return {string} string
      */
     static raw(sql: string): string;
+    /**
+     * The 'op' methid is used to operator for where conditions.
+     * @static
+     * @param {string} picked
+     * @param {any} value
+     * @return {string} string
+     */
+    op<T extends keyof Operator>(picked: T, value: any): string;
+    /**
+     * The 'op' methid is used to operator for where conditions.
+     * @static
+     * @param {string} operatorPicked
+     * @param {any} value
+     * @return {string} string
+     */
+    static op<T extends keyof Operator>(operatorPicked: T, value: any): string;
     /**
      * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials
