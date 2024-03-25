@@ -29,6 +29,7 @@ const connection_1 = __importDefault(require("../connection"));
 exports.Pool = connection_1.default;
 __exportStar(require("./Decorator"), exports);
 __exportStar(require("./Schema"), exports);
+__exportStar(require("./Type"), exports);
 exports.default = {
     DB: DB_1.default,
     Model: Model_1.default,

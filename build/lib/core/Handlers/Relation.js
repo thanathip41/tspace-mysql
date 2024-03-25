@@ -22,8 +22,8 @@ class RelationHandler {
         this.$logger = this.MODEL["$logger"];
     }
     load(parents, relation) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const relationIsBelongsToMany = relation.relation === this.$constants('RELATIONSHIP').belongsToMany;
             if (relationIsBelongsToMany) {
                 return yield this._belongsToMany(parents, relation);
@@ -409,8 +409,8 @@ class RelationHandler {
         return dataParents;
     }
     _belongsToMany(parents, relation) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const { name, foreignKey, localKey, pivot, oldVersion, modelPivot } = this._valueInRelation(relation);
             const localKeyId = parents.map((parent) => {
                 const data = parent[foreignKey];

@@ -1,6 +1,6 @@
 import Model from "./core/Model";
-export interface Relation {
-    name: string;
+export interface Relation<K = any> {
+    name: K extends void ? never : K;
     model: new () => Model;
     as?: string | undefined;
     localKey?: string | undefined;
@@ -16,8 +16,8 @@ export interface Relation {
     oldVersion?: boolean | undefined;
     modelPivot?: new () => Model | undefined;
 }
-export interface RelationQuery {
-    name?: string;
+export interface RelationQuery<K = any> {
+    name?: K extends void ? never : K;
     model: new () => Model;
     as?: string | undefined;
     localKey?: string | undefined;

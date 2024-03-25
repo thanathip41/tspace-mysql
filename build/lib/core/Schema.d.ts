@@ -133,8 +133,5 @@ declare class Schema extends Builder {
     private _syncExecute;
     private _syncForeignKey;
 }
-type SchemaType<TSchema, TSpecific = any> = {
-    [K in keyof TSchema]: K extends keyof TSpecific ? TSpecific[K] : any;
-};
-export { Schema, SchemaType };
+export { Schema };
 export default Schema;

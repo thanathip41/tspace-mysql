@@ -443,15 +443,15 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {Promise<boolean>}
      */
     cloneDB(database) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const db = yield this._queryStatement(`${this.$constants('SHOW_DATABASES')} ${this.$constants('LIKE')} '${database}'`);
             if (Object.values((_a = db[0]) !== null && _a !== void 0 ? _a : []).length)
                 throw new Error(`This database : '${database}' is already exists`);
             const tables = yield this.showTables();
             const backup = yield this._backup({ tables, database });
             yield this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
-            const creating = ({ table, values }) => __awaiter(this, void 0, void 0, function* () {
+            const creating = (_b) => __awaiter(this, [_b], void 0, function* ({ table, values }) {
                 try {
                     yield this._queryStatement(table);
                     if (values != null && values !== '')
@@ -486,8 +486,8 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.to.password
      * @return {Promise<void>}
      */
-    backup({ database, to }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    backup(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ database, to }) {
             if (to != null && Object.keys(to).length)
                 this.connection(Object.assign(Object.assign({}, to), { database }));
             return this.cloneDB(database);
@@ -505,8 +505,8 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.to.password
      * @return {Promise<void>}
      */
-    static backup({ database, to }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static backup(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ database, to }) {
             return new this().backup({ database, to });
         });
     }
@@ -524,9 +524,9 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupToFile({ filePath, database, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    backupToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
+            var _b;
             const tables = yield this.showTables();
             const backup = (yield this._backup({ tables, database }))
                 .map(b => {
@@ -539,7 +539,7 @@ class DB extends AbstractDB_1.AbstractDB {
                     values: b.values !== '' ? b.values + "\n" : ""
                 };
             });
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
+            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
             let sql = [
                 `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
@@ -572,8 +572,8 @@ class DB extends AbstractDB_1.AbstractDB {
     * @property {string} backup.connection.password
     * @return {Promise<void>}
     */
-    static backupToFile({ filePath, database, connection }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static backupToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
             return new this().backupToFile({ filePath, database, connection });
         });
     }
@@ -591,10 +591,10 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupSchemaToFile({ filePath, database, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
+    backupSchemaToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
+            var _b;
+            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
             const tables = yield this.showTables();
             const backup = (yield this._backup({ tables, database }))
@@ -634,8 +634,8 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupSchemaToFile({ filePath, database, connection }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static backupSchemaToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
             return new this().backupSchemaToFile({ filePath, database, connection });
         });
     }
@@ -653,10 +653,10 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupTableToFile({ filePath, table, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
+    backupTableToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, table, connection }) {
+            var _b;
+            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
             const schemas = yield this.showSchema(table);
             const createTableSQL = [
@@ -702,8 +702,8 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupTableToFile({ filePath, table, connection }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static backupTableToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, table, connection }) {
             return new this().backupTableToFile({ filePath, table, connection });
         });
     }
@@ -721,9 +721,9 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupTableSchemaToFile({ filePath, table, connection }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    backupTableSchemaToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, table, connection }) {
+            var _b;
             const schemas = yield this.showSchema(table);
             const createTableSQL = [
                 `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
@@ -732,7 +732,7 @@ class DB extends AbstractDB_1.AbstractDB {
                 `${this.$constants('ENGINE')};`,
             ];
             const sql = [createTableSQL.join(' ')];
-            if (connection != null && ((_a = Object.keys(connection)) === null || _a === void 0 ? void 0 : _a.length))
+            if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
             fs_1.default.writeFileSync(filePath, (0, sql_formatter_1.format)(sql.join('\n'), {
                 language: 'spark',
@@ -756,13 +756,13 @@ class DB extends AbstractDB_1.AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupTableSchemaToFile({ filePath, table, connection }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static backupTableSchemaToFile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, table, connection }) {
             return new this().backupTableSchemaToFile({ filePath, table, connection });
         });
     }
-    _backup({ tables, database }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    _backup(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tables, database }) {
             const backup = [];
             for (const table of tables) {
                 const schemas = yield this.showSchema(table);

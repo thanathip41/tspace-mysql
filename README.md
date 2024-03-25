@@ -2039,6 +2039,7 @@ import { User } from './User.ts'
 const schemaPhone = {
     id :new Blueprint().int().notNull().primary().autoIncrement(),
     uuid :new Blueprint().varchar(50).null(),
+    userId : new Blueprint().int().notNull(),
     number :new Blueprint().varchar(50).notNull(),
     createdAt :new Blueprint().timestamp().null(),
     updatedAt :new Blueprint().timestamp().null()
@@ -2179,11 +2180,8 @@ const users = await new User().where('idx',1).delete() ❌
 ### Safety Relationships
 
 ```js
-
-import { User , schemaUserType } from './User.ts'
-import { Phone, schemaPhoneType } from './Phone.ts'
-
-+--------------------------------------------------------------------------+
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 // Case #1 : Relationship with 2 relations 'phone' and 'phones'
   const users = await new User()
   .relations('phone','phones')
@@ -2225,7 +2223,7 @@ for(const user of users) {
 
 +--------------------------------------------------------------------------+
 
-// Case #2 : Relationship with 2 relations 'phone' and 'phones' and nested relations to 'user'
+// Case #2 : There is a relationship between two entities, 'phone' and 'phones', both of which are related to the 'user' entity through nested relations
   const users = await new User()
   .relations('phone','phones')
   .relationQuery('phone' , (query : Phone) => query.relations('user'))
@@ -2272,6 +2270,110 @@ for(const user of users) {
   }
 
 +--------------------------------------------------------------------------+
+// If you don't want to set types for every returning method such as 'findOne', 'findMany', and so on...
+
+import { Model , Blueprint , SchemaType , RelationType } from 'tspace-mysql'
+import { Phone , SchemaPhoneType }  from '../Phone'
+
+const schemaUser = {
+    id :new Blueprint().int().notNull().primary().autoIncrement(),
+    uuid :new Blueprint().varchar(50).null(),
+    email :new Blueprint().varchar(50).null(),
+    name :new Blueprint().varchar(255).null(),
+    username : new Blueprint().varchar(255).null(),
+    password : new Blueprint().varchar(255).null(),
+    createdAt :new Blueprint().timestamp().null(),
+    updatedAt :new Blueprint().timestamp().null()
+}
+
+type SchemaUserType = SchemaType<typeof schemaUser>
+
+type RelationUserType =  RelationType<{
+    phones : SchemaPhoneType[]
+    phone : SchemaPhoneType
+}>
+
+class User extends Model<SchemaUserType, RelationUserType>  {
+  constructor() {
+    super()
+    this.useSchema(schemaUser)
+    this.hasOne({ model : Phone, name : 'phonex' }) ❌
+    this.hasMany({ model : Phone, name : 'phonesx' }) ❌
+    this.hasOne({ model : Phone, name : 'phone' }) ✅
+    this.hasMany({ model : Phone, name : 'phones' }) ✅
+  }
+}
+
+export { User , SchemaUserType }
+export default User
+
++--------------------------------------------------------------------------+
+
+// in file Phone.ts
+import { Model , Blueprint , SchemaType , RelationType} from 'tspace-mysql'
+import { User } from './User.ts'
+const schemaPhone = {
+    id :new Blueprint().int().notNull().primary().autoIncrement(),
+    uuid :new Blueprint().varchar(50).null(),
+    userId : new Blueprint().int().notNull(),
+    number :new Blueprint().varchar(50).notNull(),
+    createdAt :new Blueprint().timestamp().null(),
+    updatedAt :new Blueprint().timestamp().null()
+}
+
+type SchemaPhoneType = SchemaType<typeof schemaPhone>
+
+type RelationPhoneType = RelationType<{
+    user : SchemaPhoneType[]
+}>
+
+class Phone extends Model<SchemaPhoneType,RelationPhoneType>  {
+  constructor() {
+    super()
+    this.useSchema(schemaPhone)
+    this.useBelongsTo({ model : User, name : 'userx'}) ❌
+    this.useBelongsTo({ model : User, name : 'user'}) ✅
+  }
+}
+
+export { Phone , SchemaPhoneType }
+export default Phone
+
++--------------------------------------------------------------------------+
+
+const users = await new User()
+  .relations('phonex','phonesx') ❌
+  .relationQuery('phonex' ❌ , (query : Phone) => query.relations('user')) ✅
+  .relationQuery('phonesx' ❌ , (query : Phone) => query.relations('user')) ✅
+  .findMany()
+
+const users = await new User()
+  .relations('phone','phones') ✅
+  .relationQuery('phonex' ❌ , (query : Phone) => query.relations('user')) ✅
+  .relationQuery('phonesx' ❌ , (query : Phone) => query.relations('user')) ✅
+  .findMany()
+
+const users = await new User()
+  .relations('phone','phones')
+  .relationQuery('phone' , (query : Phone) => query.relations('userx')) ❌
+  .relationQuery('phones' , (query : Phone) => query.relations('userx')) ❌
+  .findMany()
+
+const users = await new User()
+  .relations('phone','phones') ✅
+  .relationQuery('phone' ✅ , (query : Phone) => query.relations('user')) ✅
+  .relationQuery('phones'✅ , (query : Phone) => query.relations('user')) ✅
+  .findMany()
+
+  for(const user of users) {
+    user.phone.user ✅
+    user.phone.user.id ✅
+    user.phone.userx ❌
+    user.phone.user.idx ❌
+    user.phones.map(phone =>phone.user.id) ✅
+    user.phones.map(phone =>phone.user.idx) ❌
+  }
+
 ```
 
 ## Blueprint

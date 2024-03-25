@@ -11,7 +11,7 @@ import { Relation, Pagination, RelationQuery, ValidateSchema, GlobalSetting } fr
  * const users = await new User().findMany()
  * console.log(users)
  */
-declare class Model<TSchemaModel extends Record<string, Blueprint | string | number | Date> = any> extends AbstractModel<TSchemaModel> {
+declare class Model<TSchemaModel extends Record<string, Blueprint | string | number | Date> = any, TRelationModel = any> extends AbstractModel<TSchemaModel, TRelationModel> {
     constructor();
     /**
      * The 'global' method is used setting global variables in models.
@@ -444,7 +444,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @param    {Function} callback query callback
      * @return   {this}   this
      */
-    protected buildMethodRelation(name: string, callback?: Function): this;
+    protected buildMethodRelation<K extends keyof TRelationModel>(name: K, callback?: Function): this;
     /**
      *
      * @override
@@ -639,7 +639,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  await new User().relations('posts').findMany()
      *
      */
-    with(...nameRelations: string[]): this;
+    with<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -648,7 +648,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withAll(...nameRelations: string[]): this;
+    withAll<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
     * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
     *
@@ -657,7 +657,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
     * @param {...string} nameRelations if data exists return blank
     * @return {this} this
     */
-    withCount(...nameRelations: string[]): this;
+    withCount<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      * The 'withTrashed' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -666,7 +666,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withTrashed(...nameRelations: string[]): this;
+    withTrashed<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      * The 'withExists' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -693,7 +693,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  // use with for results of relationship if relations is exists
      *  await new User().relationsExists('posts').findMany()
      */
-    withExists(...nameRelations: string[]): this;
+    withExists<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -718,7 +718,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  await new User().has('posts').findMany()
      * @return {this} this
      */
-    has(...nameRelations: string[]): this;
+    has<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      *
      * The 'withQuery' method is particularly useful when you want to filter or add conditions records based on related data.
@@ -767,7 +767,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  .findMany()
      * @return {this} this
      */
-    withQuery<T extends Model>(nameRelation: string, callback: (query: T) => T): this;
+    withQuery<K extends keyof TRelationModel, TModel extends Model>(nameRelation: K, callback: (query: TModel) => TModel): this;
     /**
      *
      * Use relations in registry of model return result of relation query
@@ -792,7 +792,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  await new User().relations('posts').findMany()
      * @return {this} this
      */
-    relations(...nameRelations: string[]): this;
+    relations(...nameRelations: any[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -817,7 +817,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  await new User().relationsExists('posts').findMany()
      * @return {this} this
      */
-    relationsExists(...nameRelations: string[]): this;
+    relationsExists<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      *
      * Use relation '${name}' registry of model return callback this query model
@@ -864,21 +864,21 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      *  .findMany()
      * @return {this} this
      */
-    relationQuery<T extends Model>(nameRelation: string, callback: (query: T) => T): this;
+    relationQuery<K extends keyof TRelationModel, T extends Model>(nameRelation: K, callback: (query: T) => T): this;
     /**
      *
      * Use relations in registry of model return ignore soft deleted
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsAll(...nameRelations: string[]): this;
+    relationsAll<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      *
      * Use relations in registry of model return only in trash (soft delete)
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsTrashed(...nameRelations: string[]): this;
+    relationsTrashed<K extends keyof TRelationModel>(...nameRelations: K[]): this;
     /**
      * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
      *
@@ -895,7 +895,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected hasOne<K extends keyof TRelationModel>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
     /**
      * The 'hasMany' relationship defines a one-to-many relationship between two database tables.
      *
@@ -912,7 +912,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected hasMany<K extends keyof TRelationModel>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
     /**
      * The 'belongsTo' relationship defines a one-to-one or many-to-one relationship between two database tables.
      *
@@ -929,7 +929,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): this;
+    protected belongsTo<K extends keyof TRelationModel>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
     /**
      * The 'belongsToMany' relationship defines a many-to-many relationship between two database tables.
      *
@@ -949,7 +949,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @property {class?} relation.modelPivot model for pivot
      * @return   {this}   this
      */
-    protected belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: Relation): this;
+    protected belongsToMany<K extends keyof TRelationModel>({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: Relation<K>): this;
     /**
      * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
      *
@@ -1267,7 +1267,7 @@ declare class Model<TSchemaModel extends Record<string, Blueprint | string | num
      * @param {Function?} cb callback function return query sql
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    first<K>(cb?: Function): Promise<Partial<TSchemaModel> & K | null>;
+    first<K>(cb?: Function): Promise<Partial<TSchemaModel> & K & TRelationModel | null>;
     /**
      * @override
      * @param {Function?} cb callback function return query sql

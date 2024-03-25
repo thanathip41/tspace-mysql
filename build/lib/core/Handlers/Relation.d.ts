@@ -7,8 +7,8 @@ declare class RelationHandler {
     constructor(model: Model);
     load(parents: Record<string, any>[], relation: Relation): Promise<any[]>;
     loadExists(): string;
-    apply(nameRelations: string[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): Relation[];
-    callback(nameRelation: string, cb: Function): void;
+    apply(nameRelations: any[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): Relation[];
+    callback(nameRelation: any, cb: Function): void;
     hasOne({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;
     hasMany({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;
     belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: Relation): void;

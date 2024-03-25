@@ -2156,8 +2156,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {number} value
      * @return {promise<any>}
      */
-    increment(column = 'id', value = 1) {
-        return __awaiter(this, void 0, void 0, function* () {
+    increment() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id', value = 1) {
             const query = `${this.$constants('SET')} ${column} = ${column} + ${value}`;
             this.$state.set('UPDATE', [
                 `${this.$constants('UPDATE')}`,
@@ -2174,8 +2174,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {number} value
      * @return {promise<any>}
      */
-    decrement(column = 'id', value = 1) {
-        return __awaiter(this, void 0, void 0, function* () {
+    decrement() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id', value = 1) {
             const query = `${this.$constants('SET')} ${column} = ${column} - ${value}`;
             this.$state.set('UPDATE', [
                 `${this.$constants('UPDATE')}`,
@@ -2237,8 +2237,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<Pagination>}
      */
     pagination(paginationOptions) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             let limit = 15;
             let page = 1;
             if (paginationOptions != null) {
@@ -2328,8 +2328,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<object | null>}
      */
     first(cb) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.limit(1);
@@ -2388,8 +2388,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<object | Error>}
      */
     firstOrError(message, options) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             let sql = this._queryBuilder().select();
@@ -2448,8 +2448,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<any[]>}
      */
     get(cb) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             let sql = this._queryBuilder().select();
@@ -2533,8 +2533,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<Array>}
      */
-    toArray(column = 'id') {
-        return __awaiter(this, void 0, void 0, function* () {
+    toArray() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
             this.selectRaw(`${this.bindColumn(column)}`);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2549,8 +2549,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<boolean>}
      */
     exists() {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             this.limit(1);
             this.selectRaw('1');
             const sql = this._queryBuilder().select();
@@ -2570,8 +2570,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    count(column = 'id') {
-        return __awaiter(this, void 0, void 0, function* () {
+    count() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
             const distinct = this.$state.get('DISTINCT');
             column = distinct
                 ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}`
@@ -2589,8 +2589,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    avg(column = 'id') {
-        return __awaiter(this, void 0, void 0, function* () {
+    avg() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
             const distinct = this.$state.get('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('AVG')}(${column}) ${this.$constants('AS')} \`aggregate\``);
@@ -2606,8 +2606,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    sum(column = 'id') {
-        return __awaiter(this, void 0, void 0, function* () {
+    sum() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
             const distinct = this.$state.get('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('SUM')}(${column}) ${this.$constants('AS')} \`aggregate\``);
@@ -2623,9 +2623,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    max(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    max() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
+            var _a;
             const distinct = this.$state.get('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('MAX')}(${column}) ${this.$constants('AS')} \`aggregate\``);
@@ -2641,9 +2641,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} column [column=id]
      * @return {promise<number>}
      */
-    min(column = 'id') {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    min() {
+        return __awaiter(this, arguments, void 0, function* (column = 'id') {
+            var _a;
             const distinct = this.$state.get('DISTINCT');
             column = distinct ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}` : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('MIN')}(${column}) ${this.$constants('AS')} \`aggregate\``);
@@ -2659,8 +2659,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<boolean>}
      */
     delete() {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if (!this.$state.get('where').length) {
                 throw new Error("can't delete without where condition");
             }
@@ -2683,8 +2683,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<boolean>}
      */
     deleteMany() {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if (!this.$state.get('where').length) {
                 throw new Error("can't delete without where condition");
             }
@@ -2709,8 +2709,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {promise<boolean>}
      */
     forceDelete() {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
                 `${this.$state.get('FROM')}`,
@@ -2929,8 +2929,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showColumns(table = this.$state.get('TABLE_NAME')) {
-        return __awaiter(this, void 0, void 0, function* () {
+    showColumns() {
+        return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('COLUMNS')}`,
@@ -2948,8 +2948,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    showSchema(table = this.$state.get('TABLE_NAME')) {
-        return __awaiter(this, void 0, void 0, function* () {
+    showSchema() {
+        return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('COLUMNS')}`,
@@ -2989,8 +2989,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table [table= current table name]
      * @return {Promise<Array>}
      */
-    showSchemas(table = this.$state.get('TABLE_NAME')) {
-        return __awaiter(this, void 0, void 0, function* () {
+    showSchemas() {
+        return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
             return this.showSchema(table);
         });
     }
@@ -3001,8 +3001,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string=} table table name
      * @return {Promise<Array>}
      */
-    showValues(table = this.$state.get('TABLE_NAME')) {
-        return __awaiter(this, void 0, void 0, function* () {
+    showValues() {
+        return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
             const sql = [
                 `${this.$constants('SELECT')}`,
                 '*',
@@ -3266,8 +3266,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             return result;
         });
     }
-    _actionStatement({ sql, returnId = false }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    _actionStatement(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sql, returnId = false }) {
             if (this.$state.get('DEBUG'))
                 this.$utils.consoleDebug(sql);
             if (returnId) {
@@ -3464,8 +3464,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             }
         });
     }
-    _update(ignoreWhere = false) {
-        return __awaiter(this, void 0, void 0, function* () {
+    _update() {
+        return __awaiter(this, arguments, void 0, function* (ignoreWhere = false) {
             if (!this.$state.get('where').length && !ignoreWhere)
                 throw new Error("can't update without where condition");
             const result = yield this._actionStatement({

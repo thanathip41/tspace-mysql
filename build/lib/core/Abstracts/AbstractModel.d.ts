@@ -2,7 +2,8 @@ import { Pattern, Relation, RelationQuery, ValidateSchema } from '../../Interfac
 import { Blueprint } from '../Blueprint';
 import { Builder } from '../Builder';
 import { RelationHandler } from '../Handlers/Relation';
-declare abstract class AbstractModel<T> extends Builder {
+import { Model } from '../Model';
+declare abstract class AbstractModel<T, R> extends Builder {
     protected $relation: RelationHandler | undefined;
     protected $schema: Record<string, Blueprint> | undefined;
     protected $validateSchema: ValidateSchema | undefined;
@@ -48,7 +49,7 @@ declare abstract class AbstractModel<T> extends Builder {
     protected abstract hasMany({ name, model, localKey, foreignKey, freezeTable, as }: Relation): this;
     protected abstract belongsTo({ name, model, localKey, foreignKey, freezeTable, as }: Relation): this;
     protected abstract belongsToMany({ name, model, localKey, foreignKey, freezeTable, as }: Relation): this;
-    protected abstract buildMethodRelation(name: string, callback?: Function): this;
+    protected abstract buildMethodRelation<K extends keyof R>(name: K, callback?: Function): this;
     protected abstract hasOneBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
     protected abstract hasManyBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
     protected abstract belongsToBuilder({ name, model, localKey, foreignKey, freezeTable, as }: RelationQuery, callback: Function): this;
@@ -59,17 +60,17 @@ declare abstract class AbstractModel<T> extends Builder {
     abstract onlyTrashed(): this;
     abstract trashed(): this;
     abstract restore(): Promise<any[]>;
-    abstract with(...nameRelations: string[]): this;
-    abstract withQuery(nameRelations: string, callback: Function): this;
-    abstract withExists(...nameRelations: string[]): this;
-    abstract withTrashed(...nameRelations: string[]): this;
-    abstract withAll(...nameRelations: string[]): this;
-    abstract has(...nameRelations: string[]): this;
-    abstract relations(...nameRelations: string[]): this;
-    abstract relationQuery(nameRelations: string, callback: Function): this;
-    abstract relationsExists(...nameRelations: string[]): this;
-    abstract relationsAll(...nameRelations: string[]): this;
-    abstract relationsTrashed(...nameRelations: string[]): this;
+    abstract with<K extends keyof R>(...nameRelations: K[]): this;
+    abstract withQuery<K extends keyof R, TModel extends Model>(nameRelations: K, callback: (query: TModel) => TModel): this;
+    abstract withExists<K extends keyof R>(...nameRelations: K[]): this;
+    abstract withTrashed<K extends keyof R>(...nameRelations: K[]): this;
+    abstract withAll<K extends keyof R>(...nameRelations: K[]): this;
+    abstract has<K extends keyof R>(...nameRelations: K[]): this;
+    abstract relations<K extends keyof R>(...nameRelations: K[]): this;
+    abstract relationQuery<K extends keyof R, TModel extends Model>(nameRelations: K, callback: (query: TModel) => TModel): this;
+    abstract relationsExists<K extends keyof R>(...nameRelations: K[]): this;
+    abstract relationsAll<K extends keyof R>(...nameRelations: K[]): this;
+    abstract relationsTrashed<K extends keyof R>(...nameRelations: K[]): this;
 }
 export { AbstractModel };
 export default AbstractModel;

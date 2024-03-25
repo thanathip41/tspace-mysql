@@ -9,6 +9,7 @@ export { Blueprint };
 export { Pool };
 export * from './Decorator';
 export * from './Schema';
+export * from './Type';
 declare const _default: {
     DB: typeof DB;
     Model: typeof Model;

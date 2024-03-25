@@ -141,8 +141,8 @@ class Schema extends Builder_1.Builder {
     *
     *  await new Schema().sync(`app/Models` , { force : true , log = true, foreign = true , changed = true })
     */
-    sync(pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    sync(pathFolders_1) {
+        return __awaiter(this, arguments, void 0, function* (pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
             const directories = fs_1.default.readdirSync(pathFolders, { withFileTypes: true });
             const files = (yield Promise.all(directories.map((directory) => {
                 const newDir = path_1.default.resolve(String(pathFolders), directory.name);
@@ -217,8 +217,8 @@ class Schema extends Builder_1.Builder {
      *
      *  await Schema.sync(`app/Models` , { force : true })
      */
-    static sync(pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    static sync(pathFolders_1) {
+        return __awaiter(this, arguments, void 0, function* (pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
             return new this().sync(pathFolders, { force, log, foreign, changed });
         });
     }
@@ -235,9 +235,9 @@ class Schema extends Builder_1.Builder {
             }
         });
     }
-    _syncExecute({ models, force, log, foreign, changed }) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        return __awaiter(this, void 0, void 0, function* () {
+    _syncExecute(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ models, force, log, foreign, changed }) {
+            var _b, _c, _d, _e, _f, _g, _h, _j;
             const checkTables = yield this.query(this.$constants('SHOW_TABLES'));
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             for (const model of models) {
@@ -283,8 +283,8 @@ class Schema extends Builder_1.Builder {
                     for (const column of wasChangedColumns) {
                         if (column == null)
                             continue;
-                        const type = (_b = (_a = schemaModel[column]) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : null;
-                        const attributes = (_d = (_c = schemaModel[column]) === null || _c === void 0 ? void 0 : _c.attributes) !== null && _d !== void 0 ? _d : null;
+                        const type = (_c = (_b = schemaModel[column]) === null || _b === void 0 ? void 0 : _b.type) !== null && _c !== void 0 ? _c : null;
+                        const attributes = (_e = (_d = schemaModel[column]) === null || _d === void 0 ? void 0 : _d.attributes) !== null && _e !== void 0 ? _e : null;
                         const sql = [
                             this.$constants('ALTER_TABLE'),
                             `\`${model.getTableName()}\``,
@@ -302,8 +302,8 @@ class Schema extends Builder_1.Builder {
                 for (const column of missingColumns) {
                     const indexWithColumn = entries.findIndex(([key]) => key === column);
                     const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
-                    const type = (_f = (_e = schemaModel[column]) === null || _e === void 0 ? void 0 : _e.type) !== null && _f !== void 0 ? _f : null;
-                    const attributes = (_h = (_g = schemaModel[column]) === null || _g === void 0 ? void 0 : _g.attributes) !== null && _h !== void 0 ? _h : null;
+                    const type = (_g = (_f = schemaModel[column]) === null || _f === void 0 ? void 0 : _f.type) !== null && _g !== void 0 ? _g : null;
+                    const attributes = (_j = (_h = schemaModel[column]) === null || _h === void 0 ? void 0 : _h.attributes) !== null && _j !== void 0 ? _j : null;
                     if (findAfterIndex == null || type == null || attributes == null)
                         continue;
                     const sql = [
@@ -325,11 +325,11 @@ class Schema extends Builder_1.Builder {
             return;
         });
     }
-    _syncForeignKey({ schemaModel, model, log }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    _syncForeignKey(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ schemaModel, model, log }) {
+            var _b;
             for (const key in schemaModel) {
-                if (((_a = schemaModel[key]) === null || _a === void 0 ? void 0 : _a.foreignKey) == null)
+                if (((_b = schemaModel[key]) === null || _b === void 0 ? void 0 : _b.foreignKey) == null)
                     continue;
                 const foreign = schemaModel[key].foreignKey;
                 if (foreign.on == null)

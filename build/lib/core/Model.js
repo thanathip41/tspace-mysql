@@ -631,7 +631,7 @@ class Model extends AbstractModel_1.AbstractModel {
         var _a, _b;
         this.relations(name);
         const relation = this.$state.get('RELATIONS').find((data) => data.name === name);
-        this._assertError(relation == null, `This Relation "${name}" not be register in Model "${(_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
+        this._assertError(relation == null, `This Relation "${String(name)}" not be register in Model "${(_a = this.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
         const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
         this._assertError(!relationHasExists, `Unknown Relationship in [${this.$constants('RELATIONSHIP')}] !`);
         if (callback == null) {
@@ -1005,8 +1005,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     _queryStatement(sql) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             try {
                 if (this.$state.get('DEBUG'))
                     this.$utils.consoleDebug(sql);
@@ -1057,9 +1057,9 @@ class Model extends AbstractModel_1.AbstractModel {
      * @property {Function} actions.returnId
      * @return {this} this
      */
-    _actionStatement({ sql, returnId = false }) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    _actionStatement(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sql, returnId = false }) {
+            var _b;
             try {
                 if (this.$state.get('DEBUG'))
                     this.$utils.consoleDebug(sql);
@@ -1179,7 +1179,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 return result.affectedRows;
             }
             catch (error) {
-                if ((_a = this.$state.get('JOIN')) === null || _a === void 0 ? void 0 : _a.length)
+                if ((_b = this.$state.get('JOIN')) === null || _b === void 0 ? void 0 : _b.length)
                     throw error;
                 yield this._checkSchemaOrNextError(error, Number(this.$state.get('RETRY')));
                 this.$state.set('RETRY', Number(this.$state.get('RETRY')) + 1);
@@ -2495,8 +2495,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<boolean>} promise boolean
      */
     delete() {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._assertError(!this.$state.get('where').length, "The 'delete' method requires the use of 'where' conditions.");
             this.limit(1);
             if (this.$state.get('SOFT_DELETE')) {
@@ -2529,8 +2529,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<boolean>} promise boolean
      */
     deleteMany() {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._assertError(!this.$state.get('WHERE').length, "The 'deleteMany' method requires the use of 'where' conditions.");
             if (this.$state.get('SOFT_DELETE')) {
                 const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
@@ -2567,8 +2567,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<boolean>}
      */
     forceDelete() {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this.disableSoftDelete();
             this.$state.set('DELETE', [
                 `${this.$constants('DELETE')}`,
@@ -2588,8 +2588,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<Record<string,any> | null>} Record | null
     */
     first(cb) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._validateMethod('first');
             if (this.$state.get('VOID'))
                 return this._resultHandler(undefined);
@@ -2625,8 +2625,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<object | Error>} Record | throw error
     */
     firstOrError(message, options) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._validateMethod('firstOrError');
             if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
@@ -2659,8 +2659,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<array>} Array
     */
     get(cb) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._validateMethod('get');
             if (this.$state.get('VOID'))
                 return [];
@@ -2699,8 +2699,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {promise<Pagination>} Pagination
      */
     pagination(paginationOptions) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             this._validateMethod('pagination');
             let limit = 15;
             let page = 1;
@@ -2743,8 +2743,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {Promise<array>} Array
      */
     getGroupBy(column) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if ((_a = this.$state.get('EXCEPTS')) === null || _a === void 0 ? void 0 : _a.length)
                 this.select(...yield this.exceptColumns());
             this.selectRaw([
@@ -3184,19 +3184,19 @@ class Model extends AbstractModel_1.AbstractModel {
      * @property {boolean} options.changed - check when column is changed attribute will be change attribute
      * @return {Promise<void>}
      */
-    sync({ force = false, foreign = false, changed = false } = {}) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        return __awaiter(this, void 0, void 0, function* () {
+    sync() {
+        return __awaiter(this, arguments, void 0, function* ({ force = false, foreign = false, changed = false } = {}) {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             const checkTables = yield this._queryStatement(`${this.$constants('SHOW_TABLES')} ${this.$constants('LIKE')} '${this.getTableName()}'`);
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             const schemaModel = this.getSchemaModel();
             if (schemaModel == null)
                 return this._assertError(schemaModel == null, 'Schema model not found');
             const checkTableIsExists = existsTables.some((table) => table === this.getTableName());
-            const syncForeignKey = ({ schemaModel, model }) => __awaiter(this, void 0, void 0, function* () {
-                var _j;
+            const syncForeignKey = (_j) => __awaiter(this, [_j], void 0, function* ({ schemaModel, model }) {
+                var _k;
                 for (const key in schemaModel) {
-                    if (((_j = schemaModel[key]) === null || _j === void 0 ? void 0 : _j.foreignKey) == null)
+                    if (((_k = schemaModel[key]) === null || _k === void 0 ? void 0 : _k.foreignKey) == null)
                         continue;
                     const foreign = schemaModel[key].foreignKey;
                     const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName();
@@ -3528,24 +3528,24 @@ class Model extends AbstractModel_1.AbstractModel {
             return;
         });
     }
-    _execute({ sql, type, message, options }) {
-        var _a, _b;
-        return __awaiter(this, void 0, void 0, function* () {
+    _execute(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sql, type, message, options }) {
+            var _b, _c;
             let result = yield this._queryStatement(sql);
             if (!result.length)
                 return this._returnEmpty(type, result, message, options);
             const relations = this.$state.get('RELATIONS');
             for (const relation of relations) {
-                result = (_b = yield ((_a = this.$relation) === null || _a === void 0 ? void 0 : _a.load(result, relation))) !== null && _b !== void 0 ? _b : [];
+                result = (_c = yield ((_b = this.$relation) === null || _b === void 0 ? void 0 : _b.load(result, relation))) !== null && _c !== void 0 ? _c : [];
             }
             if (this.$state.get('HIDDEN').length)
                 this._hiddenColumnModel(result);
             return (yield this._returnResult(type, result)) || this._returnEmpty(type, result, message, options);
         });
     }
-    _executeGroup(dataParents, type = 'GET') {
-        var _a, _b, _c;
-        return __awaiter(this, void 0, void 0, function* () {
+    _executeGroup(dataParents_1) {
+        return __awaiter(this, arguments, void 0, function* (dataParents, type = 'GET') {
+            var _a, _b, _c;
             if (!dataParents.length)
                 return this._returnEmpty(type, dataParents);
             const relations = this.$state.get('RELATIONS');
@@ -3561,8 +3561,8 @@ class Model extends AbstractModel_1.AbstractModel {
         });
     }
     _pagination(data) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const currentPage = +(this.$state.get('PAGE'));
             const limit = Number(this.$state.get('PER_PAGE'));
             this._assertError(limit < 1, "This pagination needed limit minimun less 1 for limit");
@@ -3665,8 +3665,8 @@ class Model extends AbstractModel_1.AbstractModel {
         });
     }
     _returnResult(type, data) {
-        var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e;
             const registry = this.$state.get('REGISTRY');
             if (((_a = Object.keys(registry)) === null || _a === void 0 ? void 0 : _a.length) && registry != null) {
                 for (const d of data) {
@@ -3807,8 +3807,8 @@ class Model extends AbstractModel_1.AbstractModel {
         return data;
     }
     _attach(name, dataId, fields) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             this._assertError(!Array.isArray(dataId), `this ${dataId} is not an array`);
             const relation = (_a = this.$state.get('RELATION')) === null || _a === void 0 ? void 0 : _a.find((data) => data.name === name);
             this._assertError(!relation, `unknown name relation ['${name}'] in model`);
@@ -4019,8 +4019,8 @@ class Model extends AbstractModel_1.AbstractModel {
         });
     }
     _createMultipleModel() {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             for (const data of (_a = this.$state.get('DATA')) !== null && _a !== void 0 ? _a : []) {
                 yield this._validateSchema(data, 'insert');
             }
@@ -4227,9 +4227,9 @@ class Model extends AbstractModel_1.AbstractModel {
             }
         }
     }
-    _checkSchemaOrNextError(e, retry = 1) {
-        var _a, _b, _c, _d, _e;
-        return __awaiter(this, void 0, void 0, function* () {
+    _checkSchemaOrNextError(e_1) {
+        return __awaiter(this, arguments, void 0, function* (e, retry = 1) {
+            var _a, _b, _c, _d, _e;
             try {
                 if (retry > 2 || this.$state.get('RETRY') > 2)
                     throw e;
@@ -4299,22 +4299,22 @@ class Model extends AbstractModel_1.AbstractModel {
     _makeRelations() {
         if (this.$hasOne != null) {
             for (const hasOne of this.$hasOne) {
-                this.hasOne(Object.assign(Object.assign({}, hasOne), { name: String(hasOne.name) }));
+                this.hasOne(Object.assign(Object.assign({}, hasOne), { name: hasOne.name }));
             }
         }
         if (this.$hasMany != null) {
             for (const hasMany of this.$hasMany) {
-                this.hasMany(Object.assign(Object.assign({}, hasMany), { name: String(hasMany.name) }));
+                this.hasMany(Object.assign(Object.assign({}, hasMany), { name: hasMany.name }));
             }
         }
         if (this.$belongsTo != null) {
             for (const belongsTo of this.$belongsTo) {
-                this.belongsTo(Object.assign(Object.assign({}, belongsTo), { name: String(belongsTo.name) }));
+                this.belongsTo(Object.assign(Object.assign({}, belongsTo), { name: belongsTo.name }));
             }
         }
         if (this.$belongsToMany != null) {
             for (const belongsToMany of this.$belongsToMany) {
-                this.belongsToMany(Object.assign(Object.assign({}, belongsToMany), { name: String(belongsToMany.name) }));
+                this.belongsToMany(Object.assign(Object.assign({}, belongsToMany), { name: belongsToMany.name }));
             }
         }
         return this;
