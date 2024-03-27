@@ -792,7 +792,7 @@ class DB extends AbstractDB_1.AbstractDB {
         });
     }
     _initialDB() {
-        this.$state = new State_1.default(this.$constants('DB'));
+        this.$state = new State_1.default('db');
         return this;
     }
 }

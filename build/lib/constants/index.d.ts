@@ -1,5 +1,3 @@
-declare const CONSTANTS: {
-    [key: string]: string | Object;
-};
+declare const CONSTANTS: Record<string, any>;
 export { CONSTANTS };
 export default CONSTANTS;

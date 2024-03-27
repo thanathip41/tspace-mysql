@@ -26,7 +26,6 @@ const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const DB_1 = require("./DB");
 const connection_1 = require("../connection");
-const State_1 = require("./Handlers/State");
 class Builder extends AbstractBuilder_1.AbstractBuilder {
     constructor() {
         super();
@@ -129,15 +128,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this} this
      */
     sleep(second) {
-        const sql = `SELECT SLEEP(${second}) as delay`;
+        const sql = `SELECT SLEEP(${second}) as sleep`;
         this.$state.set('JOIN', [
-            ...this.$state.get('JOIN'),
-            [
+            ...this.$state.get('JOIN'), [
                 `${this.$constants('INNER_JOIN')}`,
                 `(${sql}) ${this.$constants('AS')} temp`,
                 `${this.$constants('ON')}`,
                 `1=1`
-            ].join(' ')
+            ]
+                .join(' ')
         ]);
         return this;
     }
@@ -247,12 +246,18 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @return {this}
      */
     where(column, operator, value) {
-        if (typeof column === 'object' && column !== null && !Array.isArray(column)) {
+        if (typeof column === 'object') {
             return this.whereObject(column);
         }
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
+        if (value === null) {
+            return this.whereNull(column);
+        }
+        if (Array.isArray(value)) {
+            return this.whereIn(column, value);
+        }
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -279,6 +284,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
+        if (value === null) {
+            return this.orWhereNull(column);
+        }
+        if (Array.isArray(value)) {
+            return this.orWhereIn(column, value);
+        }
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1502,7 +1513,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return `\`${column}\``;
             }).join(', ');
         }
-        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this.$state.set('GROUP_BY', [
+            ...this.$state.get('GROUP_BY'),
+            `${groupBy}`
+        ]);
         return this;
     }
     /**
@@ -1525,7 +1539,10 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return column;
             }).join(', ');
         }
-        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this.$state.set('GROUP_BY', [
+            ...this.$state.get('GROUP_BY'),
+            `${groupBy}`
+        ]);
         return this;
     }
     /**
@@ -2661,7 +2678,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     delete() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            if (!this.$state.get('where').length) {
+            if (!this.$state.get('WHERE').length) {
                 throw new Error("can't delete without where condition");
             }
             this.limit(1);
@@ -2685,7 +2702,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     deleteMany() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            if (!this.$state.get('where').length) {
+            if (!this.$state.get('WHERE').length) {
                 throw new Error("can't delete without where condition");
             }
             this.$state.set('DELETE', [
@@ -3057,7 +3074,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 data = [...data, columnAndValue];
             }
-            return yield this.createMultiple(data).save();
+            yield this.createMultiple(data).save();
+            return;
         });
     }
     /**
@@ -3194,6 +3212,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return null;
             return `${this.$constants('ORDER_BY')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(', ')}`;
         };
+        const bindGroupBy = (values) => {
+            if (!Array.isArray(values) || !values.length)
+                return null;
+            return `${this.$constants('GROUP_BY')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(', ')}`;
+        };
         const select = () => {
             return buildSQL([
                 bindSelect(this.$state.get('SELECT')),
@@ -3201,7 +3224,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 this.$state.get('TABLE_NAME'),
                 bindJoin(this.$state.get('JOIN')),
                 bindWhere(this.$state.get('WHERE')),
-                this.$state.get('GROUP_BY'),
+                // this.$state.get('GROUP_BY'),
+                bindGroupBy(this.$state.get('GROUP_BY')),
                 this.$state.get('HAVING'),
                 bindOrderBy(this.$state.get('ORDER_BY')),
                 this.$state.get('LIMIT'),
@@ -3280,7 +3304,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _insertNotExists() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('where').length)
+            if (!this.$state.get('WHERE').length)
                 throw new Error("Can't insert not exists without where condition");
             let sql = [
                 `${this.$constants('SELECT')}`,
@@ -3356,7 +3380,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _insertOrSelect() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('where').length) {
+            if (!this.$state.get('WHERE').length) {
                 throw new Error("Can't create or select without where condition");
             }
             let sql = [
@@ -3410,7 +3434,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _updateOrInsert() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('where').length) {
+            if (!this.$state.get('WHERE').length) {
                 throw new Error("Can't update or insert without where condition");
             }
             let sql = [
@@ -3466,7 +3490,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     }
     _update() {
         return __awaiter(this, arguments, void 0, function* (ignoreWhere = false) {
-            if (!this.$state.get('where').length && !ignoreWhere)
+            if (!this.$state.get('WHERE').length && !ignoreWhere)
                 throw new Error("can't update without where condition");
             const result = yield this._actionStatement({
                 sql: this._queryBuilder().update()
@@ -3593,10 +3617,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (name == null)
                 return constants_1.CONSTANTS;
             if (!constants_1.CONSTANTS.hasOwnProperty(name.toUpperCase()))
-                throw new Error(`Not found constants : ${name}`);
+                throw new Error(`Not found that constant : '${name}'`);
             return constants_1.CONSTANTS[name.toUpperCase()];
         };
-        this.$state = new State_1.StateHandler(this.$constants('DEFAULT'));
     }
 }
 exports.Builder = Builder;

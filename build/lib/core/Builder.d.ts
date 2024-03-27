@@ -1289,7 +1289,7 @@ declare class Builder extends AbstractBuilder {
      * @param {number} rows number of rows
      * @return {promise<any>}
      */
-    faker(rows: number, cb?: Function): Promise<Record<string, any>[]>;
+    faker(rows: number, cb?: Function): Promise<void>;
     /**
      *
      * truncate of table

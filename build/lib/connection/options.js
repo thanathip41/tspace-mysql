@@ -21,7 +21,7 @@ const environment = () => {
 dotenv_1.default.config({ path: environment() });
 const ENV = process.env;
 const env = {
-    HOST: ENV.DB_HOST || ENV.TSPACE_HOST,
+    HOST: ENV.DB_HOST || ENV.TSPACE_HOST || 'localhost',
     PORT: ENV.DB_PORT || ENV.TSPACE_PORT || 3306,
     USERNAME: ENV.DB_USERNAME || ENV.TSPACE_USERNAME || ENV.DB_USER,
     PASSWORD: ENV.DB_PASSWORD || ENV.TSPACE_PASSWORD || '',

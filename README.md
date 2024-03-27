@@ -2305,7 +2305,6 @@ class User extends Model<SchemaUserType, RelationUserType>  {
 }
 
 export { User , SchemaUserType }
-export default User
 
 +--------------------------------------------------------------------------+
 
@@ -2337,7 +2336,6 @@ class Phone extends Model<SchemaPhoneType,RelationPhoneType>  {
 }
 
 export { Phone , SchemaPhoneType }
-export default Phone
 
 +--------------------------------------------------------------------------+
 
@@ -2366,12 +2364,14 @@ const users = await new User()
   .findMany()
 
   for(const user of users) {
-    user.phone.user ✅
-    user.phone.user.id ✅
-    user.phone.userx ❌
-    user.phone.user.idx ❌
-    user.phones.map(phone =>phone.user.id) ✅
-    user.phones.map(phone =>phone.user.idx) ❌
+    user.phone.user ❌
+    user.phone?.user ✅
+    user.phone?.user.id ✅
+    user.phone?.userx ❌
+    user.phone?.user.idx ❌
+    user.phones.map(phone =>phone?.user.id) ❌
+    user.phones?.map(phone =>phone?.user.id) ✅
+    user.phones?.map(phone =>phone?.user.idx) ❌
   }
 
 ```

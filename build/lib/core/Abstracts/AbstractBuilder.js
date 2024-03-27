@@ -15,10 +15,7 @@ class AbstractBuilder {
         ];
         this.$utils = {};
         this.$constants = (name) => { };
-        this.$state = new State_1.StateHandler({
-            state: {},
-            constants: {}
-        });
+        this.$state = new State_1.StateHandler('default');
         this.$pool = {
             query: (sql) => { },
             set: (pool) => { },

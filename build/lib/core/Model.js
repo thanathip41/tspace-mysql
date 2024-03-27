@@ -18,9 +18,9 @@ const DB_1 = require("./DB");
 const Schema_1 = require("./Schema");
 const AbstractModel_1 = require("./Abstracts/AbstractModel");
 const Proxy_1 = require("./Handlers/Proxy");
-const State_1 = require("./Handlers/State");
 const Relation_1 = require("./Handlers/Relation");
 const Blueprint_1 = require("./Blueprint");
+const State_1 = require("./Handlers/State");
 let globalSettings = {
     softDelete: false,
     uuid: false,
@@ -310,7 +310,9 @@ class Model extends AbstractModel_1.AbstractModel {
             this.$constants('PATTERN').snake_case,
             this.$constants('PATTERN').camelCase
         ];
-        this._assertError(!allowPattern.includes(pattern), `tspace-mysql support only pattern ["${this.$constants('PATTERN').snake_case}","${this.$constants('PATTERN').camelCase}"]`);
+        if (!allowPattern.includes(pattern)) {
+            this._assertError(`tspace-mysql support only pattern ['${this.$constants('PATTERN').snake_case}','${this.$constants('PATTERN').camelCase}']`);
+        }
         this.$state.set('PATTERN', pattern);
         this._makeTableName();
         return this;
@@ -788,13 +790,18 @@ class Model extends AbstractModel_1.AbstractModel {
     groupBy(...columns) {
         let groupBy = 'id';
         if (columns === null || columns === void 0 ? void 0 : columns.length) {
-            groupBy = columns.map(column => {
-                if (column.includes(this.$constants('RAW')))
-                    return column === null || column === void 0 ? void 0 : column.replace(this.$constants('RAW'), '');
-                return `\`${column}\``;
+            groupBy = columns.map(c => {
+                if (/\./.test(c))
+                    return this.bindColumn(c);
+                if (c.includes(this.$constants('RAW')))
+                    return c === null || c === void 0 ? void 0 : c.replace(this.$constants('RAW'), '');
+                return `\`${c}\``;
             }).join(', ');
         }
-        this.$state.set('GROUP_BY', `${this.$constants('GROUP_BY')} ${groupBy}`);
+        this.$state.set('GROUP_BY', [
+            ...this.$state.get('GROUP_BY'),
+            `${groupBy}`
+        ]);
         return this;
     }
     /**
@@ -1839,13 +1846,19 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      */
     where(column, operator, value) {
-        if (typeof column === 'object' && column !== null && !Array.isArray(column)) {
+        if (typeof column === 'object') {
             return this.whereObject(column);
         }
         const c = this._columnPattern(String(column));
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
+        if (value === null) {
+            return this.whereNull(column);
+        }
+        if (Array.isArray(value)) {
+            return this.whereIn(column, value);
+        }
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1869,6 +1882,12 @@ class Model extends AbstractModel_1.AbstractModel {
         const c = this._columnPattern(String(column));
         value = this.$utils.escape(value);
         value = this._valueTrueFalse(value);
+        if (value === null) {
+            return this.orWhereNull(column);
+        }
+        if (Array.isArray(value)) {
+            return this.orWhereIn(column, value);
+        }
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1887,14 +1906,18 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     whereObject(columns) {
         for (let column in columns) {
-            column = this._columnPattern(String(column));
             const operator = '=';
             const value = this.$utils.escape(columns[column]);
+            if (value == null) {
+                this.whereNull(column);
+                continue;
+            }
+            const c = this._columnPattern(String(column));
             this.$state.set('WHERE', [
                 ...this.$state.get('WHERE'),
                 [
                     this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
-                    `${this.bindColumn(String(column))}`,
+                    `${this.bindColumn(String(c))}`,
                     `${operator}`,
                     `${this._checkValueHasRaw(value)}`
                 ].join(' ')
@@ -2497,7 +2520,7 @@ class Model extends AbstractModel_1.AbstractModel {
     delete() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            this._assertError(!this.$state.get('where').length, "The 'delete' method requires the use of 'where' conditions.");
+            this._assertError(!this.$state.get('WHERE').length, "The 'delete' method requires the use of 'where' conditions.");
             this.limit(1);
             if (this.$state.get('SOFT_DELETE')) {
                 const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
@@ -2579,6 +2602,22 @@ class Model extends AbstractModel_1.AbstractModel {
             if (result)
                 return Boolean(this._resultHandler((_a = !!result) !== null && _a !== void 0 ? _a : false));
             return Boolean(this._resultHandler((_b = !!result) !== null && _b !== void 0 ? _b : false));
+        });
+    }
+    /**
+     * @override
+     * @param {string=} column [column=id]
+     * @return {promise<Array>}
+     */
+    toArray(column) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (column == null)
+                column = 'id';
+            this.selectRaw(`${this.bindColumn(column)}`);
+            const sql = this._queryBuilder().select();
+            const result = yield this._queryStatement(sql);
+            const toArray = result.map((data) => data[column]);
+            return this._resultHandler(toArray);
         });
     }
     /**
@@ -3172,7 +3211,8 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
                 data.push(columnAndValue);
             }
-            return yield this.createMultiple(data).save();
+            yield this.createMultiple(data).save();
+            return;
         });
     }
     /**
@@ -3459,7 +3499,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 acc[key] = schemaTable[key].valueType;
                 return acc;
             }, {});
-            if (schema == null)
+            if (schema == null || !Object.keys(schema).length)
                 return;
             const regexDate = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/;
             const regexDateTime = /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]/;
@@ -3973,7 +4013,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     _insertNotExistsModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            this._assertError(!this.$state.get('where').length, "The 'createNotExists' method requires the use of 'where' conditions.");
+            this._assertError(!this.$state.get('WHERE').length, "The 'createNotExists' method requires the use of 'where' conditions.");
             const check = (yield new Model()
                 .copyModel(this, { where: true, select: true, limit: true })
                 .bind(this.$pool.get())
@@ -4046,7 +4086,9 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     _updateOrInsertModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            this._assertError(!this.$state.get('where').length, "The 'createOrUpdate' method requires the use of 'where' conditions.");
+            if (!this.$state.get('WHERE').length) {
+                throw this._assertError("The 'createOrUpdate' method requires the use of 'where' conditions.");
+            }
             const check = (yield new Model()
                 .copyModel(this, { select: true, where: true, limit: true })
                 .bind(this.$pool.get())
@@ -4101,7 +4143,9 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     _insertOrSelectModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            this._assertError(!this.$state.get('where').length, "The 'createOrSelect' method requires the use of 'where' conditions.");
+            if (!this.$state.get('WHERE').length) {
+                throw this._assertError("The 'createOrSelect' method requires the use of 'where' conditions.");
+            }
             const check = (yield new Model()
                 .copyModel(this, { select: true, where: true, limit: true })
                 .bind(this.$pool.get())
@@ -4150,7 +4194,9 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     _updateModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            this._assertError(!this.$state.get('where').length, "The 'update' method requires the use of 'where' conditions.");
+            if (!this.$state.get('WHERE').length) {
+                throw this._assertError("The 'update' method requires the use of 'where' conditions.");
+            }
             yield this._validateSchema(this.$state.get('DATA'), 'update');
             const sql = this._queryBuilder().update();
             const result = yield this._actionStatement({ sql });
@@ -4320,7 +4366,7 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     _initialModel() {
-        this.$state = new State_1.StateHandler(this.$constants('MODEL'));
+        this.$state = new State_1.StateHandler('model');
         if (this.$pattern != null)
             this.usePattern(this.$pattern);
         this._makeTableName();
