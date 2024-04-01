@@ -39,7 +39,7 @@ export interface RelationShip {
     belongsTo: string;
     belongsToMany: string;
 }
-export interface Pagination {
+export interface Pagination<K = any[]> {
     meta: {
         total: number;
         limit: number;
@@ -49,7 +49,7 @@ export interface Pagination {
         next_page: number;
         prev_page: number;
     };
-    data: any[];
+    data: K;
 }
 export interface Backup {
     database: string;

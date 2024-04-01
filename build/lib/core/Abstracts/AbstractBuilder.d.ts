@@ -100,7 +100,7 @@ declare abstract class AbstractBuilder {
     abstract findOne(): Promise<Record<string, any> | null>;
     abstract findMany(): Promise<any[]>;
     abstract getGroupBy(column: string): Promise<any[]>;
-    abstract findManyGroupBy(column: string): Promise<any[]>;
+    abstract findGroupBy(column: string): Promise<any[]>;
     abstract toArray(column: string): Promise<any[]>;
     abstract toJSON(): Promise<string>;
     abstract toSQL(): string;

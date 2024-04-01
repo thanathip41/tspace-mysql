@@ -1207,7 +1207,7 @@ declare class Builder extends AbstractBuilder {
      * @param {string} column
      * @return {promise<Array>}
      */
-    findManyGroupBy(column: string): Promise<any[]>;
+    findGroupBy(column: string): Promise<any[]>;
     /**
      * The 'save' method is used to persist a new 'Model' or new 'DB' instance or update an existing model instance in the database.
      *
@@ -1310,10 +1310,12 @@ declare class Builder extends AbstractBuilder {
         delete?: boolean;
         where?: boolean;
         limit?: boolean;
-        offset?: boolean;
+        orderBy?: boolean;
         join?: boolean;
+        offset?: boolean;
         groupBy?: boolean;
         select?: boolean;
+        having?: boolean;
     }): Builder;
     protected _queryBuilder(): {
         select: () => string;

@@ -499,7 +499,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             throw new Error(`This 'whereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+            : this.$constants(this.$constants('NULL'));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -524,7 +524,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             throw new Error(`This 'orWhereIn' method is required array only`);
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
-            : this.$constants('NULL');
+            : this.$constants(this.$constants('NULL'));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -700,9 +700,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('BETWEEN')}`,
-                    `${this.$constants('NULL')}`,
+                    `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
-                    `${this.$constants('NULL')}`
+                    `${this.$constants(this.$constants('NULL'))}`
                 ].join(' ')
             ]);
             return this;
@@ -739,9 +739,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('BETWEEN')}`,
-                    `${this.$constants('NULL')}`,
+                    `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
-                    `${this.$constants('NULL')}`
+                    `${this.$constants(this.$constants('NULL'))}`
                 ].join(' ')
             ]);
             return this;
@@ -778,9 +778,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('NOT_BETWEEN')}`,
-                    `${this.$constants('NULL')}`,
+                    `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
-                    `${this.$constants('NULL')}`
+                    `${this.$constants(this.$constants('NULL'))}`
                 ].join(' ')
             ]);
             return this;
@@ -817,9 +817,9 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                     `${this.bindColumn(column)}`,
                     `${this.$constants('NOT_BETWEEN')}`,
-                    `${this.$constants('NULL')}`,
+                    `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
-                    `${this.$constants('NULL')}`
+                    `${this.$constants(this.$constants('NULL'))}`
                 ].join(' ')
             ]);
             return this;
@@ -1961,8 +1961,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                 value = this.$utils.escapeActions(value);
             }
-            return `${this.bindColumn(column)} = ${value == null || value === 'NULL'
-                ? 'NULL'
+            return `${this.bindColumn(column)} = ${value == null || value === this.$constants('NULL')
+                ? this.$constants('NULL')
                 : typeof value === 'string' && value.includes(this.$constants('RAW'))
                     ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
                     : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
@@ -2255,13 +2255,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     pagination(paginationOptions) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c;
+            var _a, _b;
             let limit = 15;
             let page = 1;
             if (paginationOptions != null) {
                 limit = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.limit) || limit;
                 page = (paginationOptions === null || paginationOptions === void 0 ? void 0 : paginationOptions.page) || page;
             }
+            limit = limit > 1000 ? 1000 : limit;
             const currentPage = page;
             const nextPage = currentPage + 1;
             const prevPage = currentPage - 1 === 0 ? 1 : currentPage - 1;
@@ -2285,22 +2286,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                     },
                     data: []
                 };
-            const sqlCount = [
-                `${this.$constants('SELECT')}`,
-                `${this.$constants('COUNT')}(*)`,
-                `${this.$constants('AS')} total`
-            ].join(' ');
-            const sqlTotal = [
-                sqlCount,
-                this.$state.get('FROM'),
-                this.$state.get('TABLE_NAME'),
-                this._queryBuilder().where()
-            ].join(' ');
-            const count = yield this._queryStatement(sqlTotal);
-            const total = ((_b = count === null || count === void 0 ? void 0 : count.shift()) === null || _b === void 0 ? void 0 : _b.total) || 0;
+            const total = yield new DB_1.DB()
+                .copyBuilder(this, { where: true, join: true })
+                .bind(this.$pool.get())
+                .debug(this.$state.get('DEBUG'))
+                .count();
             let lastPage = Math.ceil(total / limit) || 0;
             lastPage = lastPage > 1 ? lastPage : 1;
-            const totalPage = (_c = result === null || result === void 0 ? void 0 : result.length) !== null && _c !== void 0 ? _c : 0;
+            const totalPage = (_b = result === null || result === void 0 ? void 0 : result.length) !== null && _b !== void 0 ? _b : 0;
             return {
                 meta: {
                     total: total,
@@ -2590,9 +2583,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     count() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
             const distinct = this.$state.get('DISTINCT');
-            column = distinct
-                ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}`
-                : `${this.bindColumn(column)}`;
+            column = column === '*'
+                ? '*'
+                : distinct
+                    ? `${this.$constants('DISTINCT')} ${this.bindColumn(column)}`
+                    : `${this.bindColumn(column)}`;
             this.selectRaw(`${this.$constants('COUNT')}(${column}) ${this.$constants('AS')} \`aggregate\``);
             const sql = this._queryBuilder().select();
             const result = yield this._queryStatement(sql);
@@ -2795,7 +2790,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column
      * @return {promise<Array>}
      */
-    findManyGroupBy(column) {
+    findGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
             return yield this.getGroupBy(column);
         });
@@ -3031,7 +3026,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 return `(${Object.values(value).map((v) => {
                     if (typeof v === 'object' && v != null && !Array.isArray(v))
                         return `'${JSON.stringify(v)}'`;
-                    return v == null ? 'NULL' : `'${v}'`;
+                    return v == null ? this.$constants('NULL') : `'${v}'`;
                 }).join(', ')})`;
             });
             return values;
@@ -3159,24 +3154,29 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         const newInstance = new Builder();
         newInstance.$state.clone(copy);
         newInstance.$state.set('SAVE', '');
-        if ((options === null || options === void 0 ? void 0 : options.insert) == null)
+        newInstance.$state.set('DEBUG', false);
+        if ((options === null || options === void 0 ? void 0 : options.insert) == null || !options.insert)
             newInstance.$state.set('INSERT', '');
-        if ((options === null || options === void 0 ? void 0 : options.update) == null)
+        if ((options === null || options === void 0 ? void 0 : options.update) == null || !options.update)
             newInstance.$state.set('UPDATE', '');
-        if ((options === null || options === void 0 ? void 0 : options.delete) == null)
+        if ((options === null || options === void 0 ? void 0 : options.delete) == null || !options.delete)
             newInstance.$state.set('DELETE', '');
-        if ((options === null || options === void 0 ? void 0 : options.where) == null)
-            newInstance.$state.set('WHERE', '');
-        if ((options === null || options === void 0 ? void 0 : options.limit) == null)
+        if ((options === null || options === void 0 ? void 0 : options.where) == null || !options.where)
+            newInstance.$state.set('WHERE', []);
+        if ((options === null || options === void 0 ? void 0 : options.limit) == null || !options.limit)
             newInstance.$state.set('LIMIT', '');
-        if ((options === null || options === void 0 ? void 0 : options.offset) == null)
+        if ((options === null || options === void 0 ? void 0 : options.offset) == null || !options.offset)
             newInstance.$state.set('OFFSET', '');
-        if ((options === null || options === void 0 ? void 0 : options.groupBy) == null)
+        if ((options === null || options === void 0 ? void 0 : options.groupBy) == null || !options.groupBy)
             newInstance.$state.set('GROUP_BY', '');
-        if ((options === null || options === void 0 ? void 0 : options.select) == null)
-            newInstance.$state.set('SELECT', '');
-        if ((options === null || options === void 0 ? void 0 : options.join) == null)
-            newInstance.$state.set('JOIN', '');
+        if ((options === null || options === void 0 ? void 0 : options.orderBy) == null || !options.orderBy)
+            newInstance.$state.set('ORDER_BY', []);
+        if ((options === null || options === void 0 ? void 0 : options.select) == null || !options.select)
+            newInstance.$state.set('SELECT', []);
+        if ((options === null || options === void 0 ? void 0 : options.join) == null || !options.join)
+            newInstance.$state.set('JOIN', []);
+        if ((options === null || options === void 0 ? void 0 : options.having) == null || !options.having)
+            newInstance.$state.set('HAVING', '');
         return newInstance;
     }
     _queryBuilder() {
@@ -3224,7 +3224,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 this.$state.get('TABLE_NAME'),
                 bindJoin(this.$state.get('JOIN')),
                 bindWhere(this.$state.get('WHERE')),
-                // this.$state.get('GROUP_BY'),
                 bindGroupBy(this.$state.get('GROUP_BY')),
                 this.$state.get('HAVING'),
                 bindOrderBy(this.$state.get('ORDER_BY')),
@@ -3523,8 +3522,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                 value = this.$utils.escapeActions(value);
             }
-            return `${this.bindColumn(column)} = ${value == null || value === 'NULL'
-                ? 'NULL'
+            return `${this.bindColumn(column)} = ${value == null || value === this.$constants('NULL')
+                ? this.$constants('NULL')
                 : this._checkValueHasRaw(value)}`;
         });
         return `${this.$constants('SET')} ${values}`;
@@ -3536,8 +3535,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                 value = this.$utils.escapeActions(value);
             }
-            return `${value == null || value === 'NULL'
-                ? 'NULL'
+            return `${value == null || value === this.$constants('NULL')
+                ? this.$constants('NULL')
                 : this._checkValueHasRaw(value)}`;
         });
         return [
@@ -3555,8 +3554,8 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                     value = this.$utils.escapeActions(value);
                 }
-                return `${value == null || value === 'NULL'
-                    ? 'NULL'
+                return `${value == null || value === this.$constants('NULL')
+                    ? this.$constants('NULL')
                     : this._checkValueHasRaw(value)}`;
             });
             values.push(`(${vals.join(',')})`);
@@ -3572,7 +3571,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         if (useDefault)
             return [operator, '='];
         if (operator == null)
-            throw new Error('Bad arguments');
+            throw new Error(`The arguments are required. Please check the your arguments in method 'where' or etc methods.`);
         if (operator.toUpperCase() === this.$constants('LIKE')) {
             operator = operator.toUpperCase();
         }

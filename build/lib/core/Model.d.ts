@@ -1297,14 +1297,14 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    get<K = Partial<TSchema>>(cb?: Function): Promise<Partial<TSchema[]> & K[]>;
+    get<K>(cb?: Function): Promise<Partial<(TSchema & TRelation & K)>[]>;
     /**
      *
      * @override
      * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    findMany<K = Partial<TSchema>>(cb?: Function): Promise<Partial<TSchema[]> & K[]>;
+    findMany<K>(cb?: Function): Promise<Partial<(TSchema & TRelation & K)>[]>;
     /**
      * @override
      * @param {object?} paginationOptions by default page = 1 , limit = 15
@@ -1312,10 +1312,10 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {number} paginationOptions.page
      * @return {promise<Pagination>} Pagination
      */
-    pagination(paginationOptions?: {
+    pagination<K>(paginationOptions?: {
         limit?: number;
         page?: number;
-    }): Promise<Pagination>;
+    }): Promise<Pagination<Partial<(TSchema & TRelation & K)>[]>>;
     /**
     *
     * @override
@@ -1324,16 +1324,22 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
     * @property {number}  paginationOptions.page
     * @return   {promise<Pagination>} Pagination
     */
-    paginate(paginationOptions?: {
+    paginate<K>(paginationOptions?: {
         limit?: number;
         page?: number;
-    }): Promise<Pagination>;
+    }): Promise<Pagination<Partial<(TSchema & TRelation & K)>[]>>;
     /**
      * @override
      * @param {string} column
      * @return {Promise<array>} Array
      */
-    getGroupBy(column: string): Promise<any[]>;
+    getGroupBy<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): Promise<any[]>;
+    /**
+     * @override
+     * @param {string} column
+     * @return {Promise<array>} Array
+     */
+    findGroupBy<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): Promise<any[]>;
     /**
      * @override
      * @param {object} data for insert
@@ -1467,7 +1473,16 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
         when: Record<string, any>;
         columns: Record<string, string | number | boolean | null | undefined>;
     }[]): this;
+    /**
+     * The 'getSchemaModel' method is used get a schema model
+     * @return {Record<string, Blueprint> | null} Record<string, Blueprint> | null
+     */
     getSchemaModel(): Record<string, Blueprint> | null;
+    /**
+     * The 'validation' method is used validate the column by validating
+     * @param {ValidateSchema} schema
+     * @return {this} this
+     */
     validation(schema?: ValidateSchema): this;
     /**
      * The 'bindPattern' method is used to covert column relate with pattern
