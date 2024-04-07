@@ -1,5 +1,5 @@
 /**
- *
+ * The 'SchemaType' type is used to specify the type of the schema.
  * @param {type} TSchema typeof the schema
  * @param {type} TSpecific override of the schema
  * @example
@@ -15,22 +15,22 @@
  *    updatedAt :new Blueprint().timestamp().null()
  *   }
  *
- *   type SchemaUserType = SchemaType<typeof schemaUser , {
+ *   type TSchemaUser = SchemaType<typeof schemaUser , {
  *      id : number,
  *      uuid : string,
  *      ........
  *   }>
  *
- *   class User<SchemaUserType> {}
+ *   class User<TSchemaUser> {}
  */
 export type SchemaType<TSchema, TSpecific = any> = {
     [K in keyof TSchema]: K extends keyof TSpecific ? TSpecific[K] : any;
 };
 /**
- *
- * @param {type} T relationships type
+ * The 'RelationType' type is used to specify the type of the relation.
+ * @param {type} TRelation relationships type
  * @example
- * import { Blueprint , RelationType , SchemaUserType , Model } from 'tspace-mysql'
+ * import { Blueprint , RelationType , TSchemaUser , Model } from 'tspace-mysql'
  * const schemaUser = {
  *    id :new Blueprint().int().notNull().primary().autoIncrement(),
  *    uuid :new Blueprint().varchar(50).null(),
@@ -42,19 +42,19 @@ export type SchemaType<TSchema, TSpecific = any> = {
  *    updatedAt :new Blueprint().timestamp().null()
  *   }
  *
- *   type SchemaUserType = SchemaType<typeof schemaUser , {
+ *   type TSchemaUser = SchemaType<typeof schemaUser , {
  *      id : number,
  *      uuid : string,
  *      ........
  *   }>
  *
- *   type RelationUserType =  RelationType<{
- *       phones : SchemaPhoneType[]
- *       phone  : SchemaPhoneType
+ *   type TRelationUser =  RelationType<{
+ *       phones : TSchemaPhone[]
+ *       phone  : TSchemaPhone
  *   }>
  *
- *   class User<SchemaUserType,RelationUserType> {}
+ *   class User<TSchemaUser,TRelationUser> {}
  */
-export type RelationType<T> = {
-    [K in keyof T]+?: T[K];
+export type RelationType<TRelation> = {
+    [K in keyof TRelation]+?: TRelation[K];
 };

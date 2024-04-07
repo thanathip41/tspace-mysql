@@ -45,6 +45,57 @@ class DB extends AbstractDB_1.AbstractDB {
         return new Proxy(this, Proxy_1.proxyHandler);
     }
     /**
+     * The 'instance' method is used get instance.
+     * @override
+     * @static
+     * @return {DB} instance of the DB
+     */
+    static get instance() {
+        return new this();
+    }
+    /**
+     * The 'query' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @param {Record<string,any>} parameters
+     * @return {promise<any[]>}
+     */
+    query(sql_1) {
+        return __awaiter(this, arguments, void 0, function* (sql, parameters = {}) {
+            if (Object.keys(parameters).length) {
+                let bindSql = sql;
+                for (const key in parameters) {
+                    const parameter = parameters[key];
+                    if (parameter === null) {
+                        bindSql = bindSql.replace(`:${key}`, this.$constants('NULL'));
+                        continue;
+                    }
+                    if (parameter === true || parameter === false) {
+                        bindSql = bindSql.replace(`:${key}`, `'${parameter === true ? 1 : 0}'`);
+                        continue;
+                    }
+                    bindSql = bindSql.replace(`:${key}`, Array.isArray(parameter)
+                        ? `(${parameter.map(p => `'${this.escape(p)}'`).join(',')})`
+                        : `'${this.escape(parameter)}'`);
+                }
+                return yield this.rawQuery(bindSql);
+            }
+            return yield this.rawQuery(sql);
+        });
+    }
+    /**
+     * The 'query' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @param {Record<string,any>} parameters
+     * @return {promise<any[]>}
+     */
+    static query(sql_1) {
+        return __awaiter(this, arguments, void 0, function* (sql, parameters = {}) {
+            return yield new this().query(sql, parameters);
+        });
+    }
+    /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
      * @return {this} this
@@ -262,20 +313,35 @@ class DB extends AbstractDB_1.AbstractDB {
      */
     op(picked, value) {
         const operator = {
-            equals: '=',
-            notEquals: '<>',
-            greaterThan: '>',
-            lessThan: '<',
-            greaterThanOrEqual: '>=',
-            lessThanOrEqual: '<=',
+            eq: '=',
+            notEq: '<>',
+            more: '>',
+            less: '<',
+            moreOrEq: '>=',
+            lessOrEq: '<=',
             like: 'LIKE',
             notLike: 'NOT LIKE',
             in: 'IN',
             notIn: 'NOT IN',
             isNull: 'IS NULL',
             isNotNull: 'IS NOT NULL',
+            '|eq': '|=',
+            '|notEq': '|<>',
+            '|more': '|>',
+            '|less': '|<',
+            '|moreOrEq': '|>=',
+            '|lessOrEq': '|<=',
+            '|like': '|LIKE',
+            '|notLike': '|NOT LIKE',
+            '|in': '|IN',
+            '|notIn': '|NOT IN',
+            '|isNull': '|IS NULL',
+            '|isNotNull': '|IS NOT NULL',
         };
-        return `${this.$constants('OP')}${operator[picked]} ${value}`;
+        return [
+            `${this.$constants('OP')}(${operator[picked]})`,
+            `${this.$constants('VALUE')}(${value})`
+        ].join(' ');
     }
     /**
      * The 'op' methid is used to operator for where conditions.

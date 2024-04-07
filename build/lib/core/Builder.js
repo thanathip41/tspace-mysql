@@ -26,10 +26,19 @@ const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const DB_1 = require("./DB");
 const connection_1 = require("../connection");
+const State_1 = require("./Handlers/State");
 class Builder extends AbstractBuilder_1.AbstractBuilder {
     constructor() {
         super();
         this._initialConnection();
+    }
+    /**
+     * The 'instance' method is used get instance.
+     * @static
+     * @return {Builder} instance of the Builder
+     */
+    static get instance() {
+        return new this();
     }
     /**
      * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
@@ -350,15 +359,60 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         for (const column in columns) {
             const operator = '=';
             const value = this.$utils.escape(columns[column]);
-            this.$state.set('WHERE', [
-                ...this.$state.get('WHERE'),
-                [
-                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
-                    `${this.bindColumn(String(column))}`,
-                    `${operator}`,
-                    `${this._checkValueHasRaw(value)}`
-                ].join(' ')
-            ]);
+            const useOp = this._checkValueHasOp(value);
+            if (useOp == null) {
+                this.$state.set('WHERE', [
+                    ...this.$state.get('WHERE'),
+                    [
+                        this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
+                        `${this.bindColumn(String(column))}`,
+                        `${operator}`,
+                        `${this._checkValueHasRaw(value)}`
+                    ].join(' ')
+                ]);
+                return this;
+            }
+            switch (useOp.op) {
+                case 'IN': {
+                    this.whereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case '|IN': {
+                    this.orWhereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'NOT IN': {
+                    this.whereNotIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case '|NOT IN': {
+                    this.orWhereNotIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'IS NULL': {
+                    this.whereNull(column);
+                    break;
+                }
+                case '|IS NULL': {
+                    this.orWhereNull(column);
+                    break;
+                }
+                case 'IS NOT NULL': {
+                    this.whereNotNull(column);
+                    break;
+                }
+                case '|IS NOT NULL': {
+                    this.orWhereNotNull(column);
+                    break;
+                }
+                default: {
+                    if (useOp.op.includes('|')) {
+                        this.orWhere(column, useOp.op.replace('|', ''), useOp.value);
+                        break;
+                    }
+                    this.where(column, useOp.op, useOp.value);
+                }
+            }
         }
         return this;
     }
@@ -2156,17 +2210,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     /**
-     * This 'query' method is used to execute sql statement
-     *
-     * @param {string} sql
-     * @return {promise<any>}
-     */
-    query(sql) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield this._queryStatement(sql);
-        });
-    }
-    /**
      *
      * plus value then update
      * @param {string} column
@@ -3355,9 +3398,26 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     _checkValueHasRaw(value) {
-        return typeof value === 'string' && value.startsWith(this.$constants('RAW'))
+        const detectedValue = typeof value === 'string' && value.startsWith(this.$constants('RAW'))
             ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
             : `'${this.$utils.covertBooleanToNumber(value)}'`;
+        return detectedValue;
+    }
+    _checkValueHasOp(str) {
+        var _a;
+        if (!str.includes(this.$constants('OP')) || !str.includes(this.$constants('VALUE'))) {
+            return null;
+        }
+        const opRegex = new RegExp(`\\${this.$constants('OP')}\\(([^)]+)\\)`);
+        const valueRegex = new RegExp(`\\${this.$constants('VALUE')}\\(([^)]+)\\)`);
+        const opMatch = str.match(opRegex);
+        const valueMatch = str.match(valueRegex);
+        const op = opMatch ? opMatch[1] : '';
+        const value = valueMatch ? valueMatch[1] : '';
+        return {
+            op: op.replace(this.$constants('OP'), ''),
+            value: (_a = value === null || value === void 0 ? void 0 : value.replace(this.$constants('VALUE'), '')) !== null && _a !== void 0 ? _a : ''
+        };
     }
     _insertMultiple() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3597,6 +3657,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
             };
         })();
+        this.$state = new State_1.StateHandler('default');
         this.$logger = (() => {
             let logger = [];
             return {

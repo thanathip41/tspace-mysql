@@ -9,6 +9,29 @@ import { Backup, BackupTableToFile, BackupToFile, Connection, ConnectionOptions,
 declare class DB extends AbstractDB {
     constructor(table?: string);
     /**
+     * The 'instance' method is used get instance.
+     * @override
+     * @static
+     * @return {DB} instance of the DB
+     */
+    static get instance(): DB;
+    /**
+     * The 'query' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @param {Record<string,any>} parameters
+     * @return {promise<any[]>}
+     */
+    query(sql: string, parameters?: Record<string, any>): Promise<any>;
+    /**
+     * The 'query' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @param {Record<string,any>} parameters
+     * @return {promise<any[]>}
+     */
+    static query(sql: string, parameters?: Record<string, any>): Promise<any[]>;
+    /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
      * @return {this} this
@@ -155,7 +178,7 @@ declare class DB extends AbstractDB {
      * @param {any} value
      * @return {string} string
      */
-    op<T extends keyof Operator>(picked: T, value: any): string;
+    op<T extends keyof Operator>(picked: T, value?: any): string;
     /**
      * The 'op' methid is used to operator for where conditions.
      * @static
@@ -163,7 +186,7 @@ declare class DB extends AbstractDB {
      * @param {any} value
      * @return {string} string
      */
-    static op<T extends keyof Operator>(operatorPicked: T, value: any): string;
+    static op<T extends keyof Operator>(operatorPicked: T, value?: any): string;
     /**
      * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials

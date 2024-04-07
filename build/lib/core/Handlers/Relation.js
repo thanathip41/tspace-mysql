@@ -36,33 +36,44 @@ class RelationHandler {
                 const data = parent[localKey];
                 if (parent.hasOwnProperty(localKey))
                     return data;
-                this.MODEL['_assertError'](data == null, `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
+                if (data == null) {
+                    const message = `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`;
+                    throw this.MODEL['_assertError'](message);
+                }
             })
                 .filter(d => d != null);
             const parentIds = Array.from(new Set(localKeyId)) || [];
             const query = relation.query;
             this._assertError(query == null, `Unknown callback query in [Relation : ${relation.name}]`);
             if (relation.count) {
-                const results = yield query
+                const childs = yield query
                     .whereIn(foreignKey, parentIds)
                     .select(foreignKey)
-                    .selectRaw(`${this.$constants('COUNT')}(${foreignKey}) ${this.$constants('AS')} \`aggregate\``)
+                    .selectRaw(`${this.$constants('COUNT')}(\`${foreignKey}\`) ${this.$constants('AS')} \`aggregate\``)
                     .debug(this.MODEL['$state'].get('DEBUG'))
                     .when(relation.trashed, (query) => query.onlyTrashed())
                     .when(relation.all, (query) => query.disableSoftDelete())
                     .bind(this.MODEL['$pool'].get())
                     .groupBy(foreignKey)
                     .get();
-                return this._relationMapData(parents, results, relation);
+                return this._relationMapData({
+                    parents,
+                    childs,
+                    relation
+                });
             }
-            const results = yield query
+            const childs = yield query
                 .whereIn(foreignKey, parentIds)
                 .debug(this.MODEL['$state'].get('DEBUG'))
                 .when(relation.trashed, (query) => query.onlyTrashed())
                 .when(relation.all, (query) => query.disableSoftDelete())
                 .bind(this.MODEL['$pool'].get())
                 .get();
-            return this._relationMapData(parents, results, relation);
+            return this._relationMapData({
+                parents,
+                childs,
+                relation
+            });
         });
     }
     loadExists() {
@@ -370,32 +381,32 @@ class RelationHandler {
         const functionName = [...this.$logger.get()][this.$logger.get().length - 2];
         return functionName.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
     }
-    _relationMapData(dataParents, dataChilds, r) {
+    _relationMapData({ parents, childs, relation }) {
         var _a;
-        let { name, as, query, relation, localKey, foreignKey } = this._valueInRelation(r);
+        let { name, as, query, relation: relationName, localKey, foreignKey } = this._valueInRelation(relation);
         const keyRelation = as !== null && as !== void 0 ? as : name;
         localKey = query == null ? localKey : query.covertFixColumnToColumnSchema(localKey);
         foreignKey = query == null ? foreignKey : query.covertFixColumnToColumnSchema(foreignKey);
-        for (const dataParent of dataParents) {
+        for (const dataParent of parents) {
             const relationIsHasOneOrBelongsTo = [
                 this.$constants('RELATIONSHIP').hasOne,
                 this.$constants('RELATIONSHIP').belongsTo
-            ].some(r => r === relation);
-            dataParent[keyRelation] = [];
+            ].some(r => r === relationName);
+            dataParent[keyRelation] = relation.count ? 0 : [];
             if (relationIsHasOneOrBelongsTo)
-                dataParent[keyRelation] = r.count ? 0 : null;
-            if (!dataChilds.length)
+                dataParent[keyRelation] = relation.count ? 0 : null;
+            if (!childs.length)
                 continue;
-            for (const dataChild of dataChilds) {
+            for (const dataChild of childs) {
                 if (dataChild[foreignKey] === dataParent[localKey]) {
-                    if (r.count) {
+                    if (relation.count) {
                         dataParent[keyRelation] = (_a = dataChild === null || dataChild === void 0 ? void 0 : dataChild.aggregate) !== null && _a !== void 0 ? _a : 0;
                         continue;
                     }
                     const relationIsHasOneOrBelongsTo = [
                         this.$constants('RELATIONSHIP').hasOne,
                         this.$constants('RELATIONSHIP').belongsTo
-                    ].some(r => r === relation);
+                    ].some(r => r === relationName);
                     if (relationIsHasOneOrBelongsTo) {
                         dataParent[keyRelation] = dataParent[keyRelation] || dataChild;
                         continue;
@@ -406,7 +417,7 @@ class RelationHandler {
                 }
             }
         }
-        return dataParents;
+        return parents;
     }
     _belongsToMany(parents, relation) {
         return __awaiter(this, void 0, void 0, function* () {

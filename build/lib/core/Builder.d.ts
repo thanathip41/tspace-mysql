@@ -3,6 +3,12 @@ import { Pagination, ConnectionOptions, Connection, ConnectionTransaction, NonEm
 declare class Builder extends AbstractBuilder {
     constructor();
     /**
+     * The 'instance' method is used get instance.
+     * @static
+     * @return {Builder} instance of the Builder
+     */
+    static get instance(): Builder;
+    /**
      * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
      *
      * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
@@ -977,13 +983,6 @@ declare class Builder extends AbstractBuilder {
      */
     rawQuery(sql: string): Promise<any>;
     /**
-     * This 'query' method is used to execute sql statement
-     *
-     * @param {string} sql
-     * @return {promise<any>}
-     */
-    query(sql: string): Promise<any>;
-    /**
      *
      * plus value then update
      * @param {string} column
@@ -1343,6 +1342,10 @@ declare class Builder extends AbstractBuilder {
     private _insertNotExists;
     private _insert;
     protected _checkValueHasRaw(value: any): string;
+    protected _checkValueHasOp(str: string): {
+        op: string;
+        value: string;
+    } | null;
     private _insertMultiple;
     private _insertOrSelect;
     private _updateOrInsert;

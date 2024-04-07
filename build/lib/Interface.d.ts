@@ -167,17 +167,29 @@ export interface GlobalSetting {
     logger?: boolean;
 }
 export interface Operator {
-    equals: string;
-    notEquals: string;
-    greaterThan: string;
-    lessThan: string;
-    greaterThanOrEqual: string;
-    lessThanOrEqual: string;
+    eq: string;
+    notEq: string;
+    more: string;
+    less: string;
+    moreOrEq: string;
+    lessOrEq: string;
     like: string;
     notLike: string;
     in: string;
     notIn: string;
     isNull: string;
     isNotNull: string;
+    '|eq': string;
+    '|notEq': string;
+    '|more': string;
+    '|less': string;
+    '|moreOrEq': string;
+    '|lessOrEq': string;
+    '|like': string;
+    '|notLike': string;
+    '|in': string;
+    '|notIn': string;
+    '|isNull': string;
+    '|isNotNull': string;
 }
 export type PoolEvent = 'CONNECTION' | 'RELEASE' | 'QUERY' | 'SLOW_QUERY' | 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';

@@ -28,7 +28,7 @@ declare abstract class AbstractModel<T, R> extends Builder {
         updated: Function;
         deleted: Function;
     }) | undefined;
-    protected abstract column<K extends keyof T>(key: K): K;
+    protected abstract column<K extends keyof T | `${string}.${string}`>(key: K): K;
     protected abstract useUUID(): this;
     protected abstract usePrimaryKey(primaryKey: string): this;
     protected abstract useRegistry(): this;

@@ -1,7 +1,39 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StateHandler = void 0;
-const STATE_DEFAULT = {};
+const STATE_DEFAULT = {
+    PRIMARY_KEY: 'id',
+    VOID: false,
+    RESULT: null,
+    DISTINCT: false,
+    PLUCK: '',
+    SAVE: '',
+    DELETE: '',
+    UPDATE: '',
+    INSERT: '',
+    SELECT: [],
+    ONLY: [],
+    EXCEPTS: [],
+    CHUNK: 0,
+    COUNT: '',
+    FROM: 'FROM',
+    JOIN: [],
+    WHERE: [],
+    GROUP_BY: [],
+    ORDER_BY: [],
+    LIMIT: '',
+    OFFSET: '',
+    HAVING: '',
+    TABLE_NAME: '',
+    UUID_CUSTOM: '',
+    HIDDEN: [],
+    DEBUG: false,
+    UUID: false,
+    PAGE: 1,
+    PER_PAGE: 1,
+    HOOKS: [],
+    RETURN_TYPE: null
+};
 const STATE_DB = {
     PRIMARY_KEY: 'id',
     VOID: false,
@@ -130,7 +162,7 @@ class StateHandler {
             return this.STATE.currentState;
         key = key.toUpperCase();
         if (!this.STATE.currentState.has(key) && key !== 'DEBUG') {
-            return this._assertError('DEBUG', `This state does not have that key '${key}'`);
+            return this._assertError(`This state does not have that key '${key}'`);
         }
         return this.STATE.currentState.get(key);
     }
@@ -151,9 +183,9 @@ class StateHandler {
         this.STATE.currentState.set('UPDATE', '');
         this.STATE.currentState.set('DELETE', '');
         this.STATE.currentState.set('WHERE', []);
+        this.STATE.currentState.set('SELECT', []);
         this.STATE.currentState.set('LIMIT', '');
         this.STATE.currentState.set('OFFSET', '');
-        this.STATE.currentState.set('SELECT', []);
         this.STATE.currentState.set('GROUP_BY', []);
         this.STATE.currentState.set('ORDER_BY', []);
         this.STATE.currentState.set('HAVING', '');

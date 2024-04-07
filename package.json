@@ -1,6 +1,6 @@
 {
   "name": "tspace-mysql",
-  "version": "1.5.4",
+  "version": "1.5.6",
   "description": "mysql query builder object relational mapping (ORM)",
   "main": "build/lib/index.js",
   "types": "build/lib/index.d.ts",

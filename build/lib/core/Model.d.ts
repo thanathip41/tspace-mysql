@@ -28,6 +28,13 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      */
     static global(settings: GlobalSetting): void;
     /**
+     * The 'instance' method is used get instance.
+     * @override
+     * @static
+     * @return {Model} instance of the Model
+     */
+    static get instance(): Model;
+    /**
      * The 'define' method is a special method that you can define within a model.
      * @example
      *  class User extends Model {
@@ -409,12 +416,6 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
     */
     protected useHooks(arrayFunctions: Function[]): this;
     /**
-     * The "column" method is used get column from your schema.
-     * @param {string} column
-     * @return {string}
-    */
-    column<K extends keyof TSchema>(column: K): K;
-    /**
      * The "beforeCreatingTable" method is used exection function when creating the table.
      * @param {Function} fn functions for executing before creating the table
      * @return {this} this
@@ -445,6 +446,12 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return   {this}   this
      */
     protected buildMethodRelation<K extends keyof TRelation>(name: K, callback?: Function): this;
+    /**
+     * The "column" method is used get column from your schema.
+     * @param {string} column
+     * @return {string}
+    */
+    column<K extends keyof TSchema | `${string}.${string}`>(column: K): K;
     /**
      *
      * @override
@@ -1047,7 +1054,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this} this
      */
-    where<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K | Record<string, any>, operator?: any, value?: any): this;
+    where<K extends keyof TSchema | `${string}.${string}`>(column: K | Record<string, any>, operator?: any, value?: any): this;
     /**
      * @override
      * @param {string} column
@@ -1061,7 +1068,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {Object} columns
      * @return {this}
      */
-    whereObject<K extends keyof TSchema>(columns: Record<K, any>): this;
+    whereObject<K extends keyof TSchema>(columns: Record<K, string | boolean | null | any[]>): this;
     /**
     * @override
     * @param    {string} column
@@ -1089,108 +1096,108 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {array} array
      * @return {this}
      */
-    whereIn<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    whereIn<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereIn<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    orWhereIn<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereNotIn<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    whereNotIn<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereNotIn<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    orWhereNotIn<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    whereSubQuery<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, subQuery: string): this;
+    whereSubQuery<K extends keyof TSchema | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
      * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    whereNotSubQuery<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, subQuery: string): this;
+    whereNotSubQuery<K extends keyof TSchema | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
      * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    orWhereSubQuery<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, subQuery: string): this;
+    orWhereSubQuery<K extends keyof TSchema | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
      * @override
      * @param {string} column
      * @param {string} subQuery
      * @return {this}
      */
-    orWhereNotSubQuery<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, subQuery: string): this;
+    orWhereNotSubQuery<K extends keyof TSchema | `${string}.${string}`>(column: K, subQuery: string): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereBetween<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    whereBetween<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereBetween<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    orWhereBetween<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    whereNotBetween<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    whereNotBetween<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @param {array} array
      * @return {this}
      */
-    orWhereNotBetween<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, array: any[]): this;
+    orWhereNotBetween<K extends keyof TSchema | `${string}.${string}`>(column: K, array: any[]): this;
     /**
      * @override
      * @param {string} column
      * @return {this}
      */
-    whereNull<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): this;
+    whereNull<K extends keyof TSchema | `${string}.${string}`>(column: K): this;
     /**
      * @override
      * @param {string} column
      * @return {this}
      */
-    orWhereNull<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): this;
+    orWhereNull<K extends keyof TSchema | `${string}.${string}`>(column: K): this;
     /**
      * @override
      * @param {string} column
      * @return {this}
      */
-    whereNotNull<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): this;
+    whereNotNull<K extends keyof TSchema | `${string}.${string}`>(column: K): this;
     /**
      * @override
      * @param {string} column
      * @return {this}
      */
-    orWhereNotNull<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K): this;
+    orWhereNotNull<K extends keyof TSchema | `${string}.${string}`>(column: K): this;
     /**
      * @override
      * @param {string} column
@@ -1198,7 +1205,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this}
      */
-    whereSensitive<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
+    whereSensitive<K extends keyof TSchema | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
      * @override
      * @param {string} column
@@ -1206,7 +1213,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this}
      */
-    whereStrict<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
+    whereStrict<K extends keyof TSchema | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
      * @override
      * @param {string} column
@@ -1214,7 +1221,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this}
      */
-    orWhereSensitive<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
+    orWhereSensitive<K extends keyof TSchema | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
     /**
      * @override
      * @param {Function} callback callback query
@@ -1228,7 +1235,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this}
      */
-    whereAny<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
+    whereAny<K extends keyof TSchema | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
     /**
      * The 'whereAll' method is used to clause to a database query.
      *
@@ -1240,7 +1247,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this}
      */
-    whereAll<K extends Extract<keyof TSchema, string> | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
+    whereAll<K extends keyof TSchema | `${string}.${string}`>(columns: K[], operator?: any, value?: any): this;
     /**
      * @override
      * @return {promise<boolean>} promise boolean
@@ -1500,7 +1507,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @override
      * @param {number} rows number of rows
      * @param {Function} callback function will be called data and index
-     * @return {promise<any[]>}
+     * @return {promise<void>}
      */
     faker(rows: number, callback?: Function): Promise<void>;
     /**

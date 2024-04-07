@@ -59,7 +59,7 @@ class Schema extends Builder_1.Builder {
                     `${table} (${columns === null || columns === void 0 ? void 0 : columns.join(',')})`,
                     `${this.$constants('ENGINE')}`
                 ].join(' ');
-                yield this.query(sql);
+                yield this.rawQuery(sql);
                 console.log(`Migrats : '${table}' created successfully`);
                 return;
             }
@@ -238,7 +238,7 @@ class Schema extends Builder_1.Builder {
     _syncExecute(_a) {
         return __awaiter(this, arguments, void 0, function* ({ models, force, log, foreign, changed }) {
             var _b, _c, _d, _e, _f, _g, _h, _j;
-            const checkTables = yield this.query(this.$constants('SHOW_TABLES'));
+            const checkTables = yield this.rawQuery(this.$constants('SHOW_TABLES'));
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             for (const model of models) {
                 if (model == null)
@@ -249,7 +249,7 @@ class Schema extends Builder_1.Builder {
                 const checkTableIsExists = existsTables.some((table) => table === model.getTableName());
                 if (!checkTableIsExists) {
                     const sql = this.createTable(`\`${model.getTableName()}\``, schemaModel);
-                    yield model.debug(log).query(sql);
+                    yield model.debug(log).rawQuery(sql);
                     const beforeCreatingTheTable = model['$state'].get('BEFORE_CREATING_TABLE');
                     if (beforeCreatingTheTable != null)
                         yield beforeCreatingTheTable();
@@ -292,7 +292,7 @@ class Schema extends Builder_1.Builder {
                             `\`${column}\``,
                             `\`${column}\` ${type} ${attributes.join(' ')}`,
                         ].join(' ');
-                        yield this.debug(log).query(sql);
+                        yield this.debug(log).rawQuery(sql);
                     }
                 }
                 const missingColumns = schemaModelKeys.filter(schemaModelKey => !schemaTableKeys.includes(schemaModelKey));
@@ -314,7 +314,7 @@ class Schema extends Builder_1.Builder {
                         this.$constants('AFTER'),
                         `\`${findAfterIndex}\``
                     ].join(' ');
-                    yield this.debug(log).query(sql);
+                    yield this.debug(log).rawQuery(sql);
                 }
                 yield this._syncForeignKey({
                     schemaModel,
@@ -347,7 +347,7 @@ class Schema extends Builder_1.Builder {
                     `${this.$constants('ON_DELETE')} ${foreign.onDelete} ${this.$constants('ON_UPDATE')} ${foreign.onUpdate}`
                 ].join(' ');
                 try {
-                    yield this.debug(log).query(sql);
+                    yield this.debug(log).rawQuery(sql);
                 }
                 catch (e) {
                     if (typeof onReference === "string")
@@ -358,8 +358,8 @@ class Schema extends Builder_1.Builder {
                     if (!schemaModelOn)
                         continue;
                     const tableSql = this.createTable(`\`${table}\``, schemaModelOn);
-                    yield this.debug(log).query(tableSql).catch(e => console.log(e));
-                    yield this.debug(log).query(sql).catch(e => console.log(e));
+                    yield this.debug(log).rawQuery(tableSql).catch(e => console.log(e));
+                    yield this.debug(log).rawQuery(sql).catch(e => console.log(e));
                     continue;
                 }
             }

@@ -49,6 +49,7 @@ const CONSTANTS = Object.freeze({
     KEY: 'KEY',
     RAW: '$RAW:',
     OP: '$OP:',
+    VALUE: '$VALUE:',
     IGNORE: '$IGNORE',
     WHEN: 'WHEN',
     THEN: 'THEN',

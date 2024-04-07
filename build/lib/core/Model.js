@@ -71,6 +71,15 @@ class Model extends AbstractModel_1.AbstractModel {
         return;
     }
     /**
+     * The 'instance' method is used get instance.
+     * @override
+     * @static
+     * @return {Model} instance of the Model
+     */
+    static get instance() {
+        return new this();
+    }
+    /**
      * The 'define' method is a special method that you can define within a model.
      * @example
      *  class User extends Model {
@@ -535,14 +544,6 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
-     * The "column" method is used get column from your schema.
-     * @param {string} column
-     * @return {string}
-    */
-    column(column) {
-        return column;
-    }
-    /**
      * The "beforeCreatingTable" method is used exection function when creating the table.
      * @param {Function} fn functions for executing before creating the table
      * @return {this} this
@@ -646,6 +647,14 @@ class Model extends AbstractModel_1.AbstractModel {
         }
         relation.query = callback(new relation.model());
         return this;
+    }
+    /**
+     * The "column" method is used get column from your schema.
+     * @param {string} column
+     * @return {string}
+    */
+    column(column) {
+        return column;
     }
     /**
      *
@@ -1914,20 +1923,65 @@ class Model extends AbstractModel_1.AbstractModel {
         for (let column in columns) {
             const operator = '=';
             const value = this.$utils.escape(columns[column]);
+            const c = this._columnPattern(String(column));
             if (value === null) {
                 this.whereNull(column);
                 continue;
             }
-            const c = this._columnPattern(String(column));
-            this.$state.set('WHERE', [
-                ...this.$state.get('WHERE'),
-                [
-                    this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
-                    `${this.bindColumn(String(c))}`,
-                    `${operator}`,
-                    `${this._checkValueHasRaw(value)}`
-                ].join(' ')
-            ]);
+            const useOp = this._checkValueHasOp(value);
+            if (useOp == null) {
+                this.$state.set('WHERE', [
+                    ...this.$state.get('WHERE'),
+                    [
+                        this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
+                        `${this.bindColumn(String(c))}`,
+                        `${operator}`,
+                        `${this._checkValueHasRaw(value)}`
+                    ].join(' ')
+                ]);
+                return this;
+            }
+            switch (useOp.op) {
+                case 'IN': {
+                    this.whereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case '|IN': {
+                    this.orWhereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'NOT IN': {
+                    this.whereNotIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case '|NOT IN': {
+                    this.orWhereNotIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'IS NULL': {
+                    this.whereNull(column);
+                    break;
+                }
+                case '|IS NULL': {
+                    this.orWhereNull(column);
+                    break;
+                }
+                case 'IS NOT NULL': {
+                    this.whereNotNull(column);
+                    break;
+                }
+                case '|IS NOT NULL': {
+                    this.orWhereNotNull(column);
+                    break;
+                }
+                default: {
+                    if (useOp.op.includes('|')) {
+                        this.orWhere(column, useOp.op.replace('|', ''), useOp.value);
+                        break;
+                    }
+                    this.where(column, useOp.op, useOp.value);
+                }
+            }
         }
         return this;
     }
@@ -2160,7 +2214,7 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     whereBetween(column, array) {
         if (!Array.isArray(array))
-            throw new Error("Value is't array");
+            throw this._assertError("The value isn't an array.");
         const c = this._columnPattern(String(column));
         if (!array.length) {
             this.$state.set('WHERE', [
@@ -3213,7 +3267,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @override
      * @param {number} rows number of rows
      * @param {Function} callback function will be called data and index
-     * @return {promise<any[]>}
+     * @return {promise<void>}
      */
     faker(rows, callback) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3417,7 +3471,7 @@ class Model extends AbstractModel_1.AbstractModel {
             if (!this.$state.get('LOGGER'))
                 return;
             const tableLogger = this.$state.get('TABLE_LOGGER');
-            const checkTables = yield new DB_1.DB().query(`${this.$constants('SHOW_TABLES')} ${this.$constants('LIKE')} '${tableLogger}'`);
+            const checkTables = yield new DB_1.DB().rawQuery(`${this.$constants('SHOW_TABLES')} ${this.$constants('LIKE')} '${tableLogger}'`);
             const existsTables = checkTables.map((c) => Object.values(c)[0])[0];
             if (existsTables != null)
                 return;
@@ -3433,7 +3487,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 updatedAt: new Blueprint_1.Blueprint().timestamp().null()
             };
             const sql = new Schema_1.Schema().createTable(`\`${tableLogger}\``, schemaLogger);
-            yield new DB_1.DB().debug(this.$state.get('DEBUG')).query(sql);
+            yield new DB_1.DB().debug(this.$state.get('DEBUG')).rawQuery(sql);
             return;
         });
     }
