@@ -29,7 +29,9 @@ const connection_1 = __importDefault(require("../connection"));
 exports.Pool = connection_1.default;
 __exportStar(require("./Decorator"), exports);
 __exportStar(require("./Schema"), exports);
-__exportStar(require("./Type"), exports);
+__exportStar(require("./UtilityTypes"), exports);
+__exportStar(require("./Repository"), exports);
+__exportStar(require("./Operator"), exports);
 exports.default = {
     DB: DB_1.default,
     Model: Model_1.default,
@@ -37,3 +39,4 @@ exports.default = {
     Blueprint: Blueprint_1.default,
     Pool: connection_1.default
 };
+//# sourceMappingURL=index.js.map

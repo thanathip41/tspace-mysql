@@ -29,7 +29,7 @@ const sql_formatter_1 = require("sql-formatter");
 const AbstractDB_1 = require("./Abstracts/AbstractDB");
 const Proxy_1 = require("./Handlers/Proxy");
 const connection_1 = require("../connection");
-const State_1 = __importDefault(require("./Handlers/State"));
+const State_1 = require("./Handlers/State");
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name
@@ -264,7 +264,7 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {string} string
      */
     escape(value) {
-        return this.$utils.escape(value);
+        return this.$utils.escape(value, true);
     }
     /**
      * The 'escape' methid is used to escaping SQL injections.
@@ -303,55 +303,6 @@ class DB extends AbstractDB_1.AbstractDB {
      */
     static raw(sql) {
         return `${new this().raw(sql)}`;
-    }
-    /**
-     * The 'op' methid is used to operator for where conditions.
-     * @static
-     * @param {string} picked
-     * @param {any} value
-     * @return {string} string
-     */
-    op(picked, value) {
-        const operator = {
-            eq: '=',
-            notEq: '<>',
-            more: '>',
-            less: '<',
-            moreOrEq: '>=',
-            lessOrEq: '<=',
-            like: 'LIKE',
-            notLike: 'NOT LIKE',
-            in: 'IN',
-            notIn: 'NOT IN',
-            isNull: 'IS NULL',
-            isNotNull: 'IS NOT NULL',
-            '|eq': '|=',
-            '|notEq': '|<>',
-            '|more': '|>',
-            '|less': '|<',
-            '|moreOrEq': '|>=',
-            '|lessOrEq': '|<=',
-            '|like': '|LIKE',
-            '|notLike': '|NOT LIKE',
-            '|in': '|IN',
-            '|notIn': '|NOT IN',
-            '|isNull': '|IS NULL',
-            '|isNotNull': '|IS NOT NULL',
-        };
-        return [
-            `${this.$constants('OP')}(${operator[picked]})`,
-            `${this.$constants('VALUE')}(${value})`
-        ].join(' ');
-    }
-    /**
-     * The 'op' methid is used to operator for where conditions.
-     * @static
-     * @param {string} operatorPicked
-     * @param {any} value
-     * @return {string} string
-     */
-    static op(operatorPicked, value) {
-        return new this().op(operatorPicked, value);
     }
     /**
      * The 'getConnection' method is used to get a pool connection.
@@ -591,28 +542,48 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {Promise<void>}
      */
     backupToFile(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database = 'db-backup', connection }) {
             var _b;
             const tables = yield this.showTables();
             const backup = (yield this._backup({ tables, database }))
                 .map(b => {
                 return {
-                    table: (0, sql_formatter_1.format)(b.table, {
-                        language: 'spark',
-                        tabWidth: 2,
-                        linesBetweenQueries: 1,
-                    }) + "\n",
-                    values: b.values !== '' ? b.values + "\n" : ""
+                    table: [
+                        `\n--`,
+                        `-- Table structure for table '${b.name}'`,
+                        `--\n`,
+                        `${(0, sql_formatter_1.format)(b.table, {
+                            language: 'spark',
+                            tabWidth: 2,
+                            linesBetweenQueries: 1
+                        })}`
+                    ].join('\n'),
+                    values: b.values !== '' ? [
+                        `\n--`,
+                        `-- Dumping data for table '${b.name}'`,
+                        `--\n`,
+                        `${b.values}`
+                    ].join('\n') : ''
                 };
             });
             if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
             let sql = [
+                `--`,
+                `-- tspace-mysql SQL Dump`,
+                `-- https://www.npmjs.com/package/tspace-mysql`,
+                `--`,
+                `-- Host: mysql-db`,
+                `-- Generation Time: ${new Date()}\n`,
                 `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
                 `START TRANSACTION;`,
-                `SET time_zone = "+00:00";`,
+                `SET time_zone = "+00:00";\n`,
+                `--`,
+                `-- Database: '${database}'`,
+                `--\n`,
                 `${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\`;`,
-                `USE \`${database}\`;`
+                `USE \`${database}\`;`,
+                `-- --------------------------------------------------------`
             ];
             for (const b of backup) {
                 sql = [...sql, b.table];
@@ -658,7 +629,7 @@ class DB extends AbstractDB_1.AbstractDB {
      * @return {Promise<void>}
      */
     backupSchemaToFile(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ filePath, database, connection }) {
+        return __awaiter(this, arguments, void 0, function* ({ filePath, database = 'db-backup', connection }) {
             var _b;
             if (connection != null && ((_b = Object.keys(connection)) === null || _b === void 0 ? void 0 : _b.length))
                 this.connection(connection);
@@ -846,10 +817,12 @@ class DB extends AbstractDB_1.AbstractDB {
                         `${this.$constants('INSERT')}`,
                         `\`${database}\`.\`${table}\``,
                         `(${columns.map((column) => `\`${column}\``).join(', ')})`,
-                        `${this.$constants('VALUES')} ${values.join(', ')};`
+                        `${this.$constants('VALUES')}`,
+                        `\n${values.join(',\n')};`
                     ];
                 }
                 backup.push({
+                    name: table == null ? '' : table,
                     table: createTableSQL.join(' '),
                     values: valueSQL.join(' '),
                 });
@@ -858,9 +831,10 @@ class DB extends AbstractDB_1.AbstractDB {
         });
     }
     _initialDB() {
-        this.$state = new State_1.default('db');
+        this.$state = new State_1.StateHandler('db');
         return this;
     }
 }
 exports.DB = DB;
 exports.default = DB;
+//# sourceMappingURL=DB.js.map

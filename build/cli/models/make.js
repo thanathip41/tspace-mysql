@@ -49,3 +49,4 @@ exports.default = (cmd) => {
         console.log(`Migration : '${tableName}' created successfully`);
     }
 };
+//# sourceMappingURL=make.js.map

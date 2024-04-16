@@ -1,5 +1,5 @@
 import Builder from '../Builder';
-import { Connection, ConnectionOptions } from '../../Interface';
+import { TConnection, TConnectionOptions } from '../../types';
 declare abstract class AbstractDB extends Builder {
     abstract table(name: string): this;
     abstract beginTransaction(): Promise<any>;
@@ -16,7 +16,7 @@ declare abstract class AbstractDB extends Builder {
         when: string;
         then: string;
     }[], final?: string): string | [];
-    abstract getConnection(options: ConnectionOptions): Promise<Connection>;
+    abstract getConnection(options: TConnectionOptions): Promise<TConnection>;
 }
 export { AbstractDB };
 export default AbstractDB;

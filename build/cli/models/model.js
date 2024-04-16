@@ -24,3 +24,4 @@ export default ${model}
 `;
 };
 exports.default = Model;
+//# sourceMappingURL=model.js.map

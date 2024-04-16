@@ -1,5 +1,5 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
-import { Backup, BackupTableToFile, BackupToFile, Connection, ConnectionOptions, ConnectionTransaction, Operator } from '../Interface';
+import { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery } from '../types';
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name
@@ -163,30 +163,14 @@ declare class DB extends AbstractDB {
      * @param {string} sql
      * @return {string} string
      */
-    raw(sql: string): string;
+    raw(sql: string): TRawStringQuery;
     /**
      * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
      * @static
      * @param {string} sql
      * @return {string} string
      */
-    static raw(sql: string): string;
-    /**
-     * The 'op' methid is used to operator for where conditions.
-     * @static
-     * @param {string} picked
-     * @param {any} value
-     * @return {string} string
-     */
-    op<T extends keyof Operator>(picked: T, value?: any): string;
-    /**
-     * The 'op' methid is used to operator for where conditions.
-     * @static
-     * @param {string} operatorPicked
-     * @param {any} value
-     * @return {string} string
-     */
-    static op<T extends keyof Operator>(operatorPicked: T, value?: any): string;
+    static raw(sql: string): TRawStringQuery;
     /**
      * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials
@@ -197,7 +181,7 @@ declare class DB extends AbstractDB {
      * @property {string} option.password
      * @return {Connection}
      */
-    getConnection(options?: ConnectionOptions): Promise<Connection>;
+    getConnection(options?: TConnectionOptions): Promise<TConnection>;
     /**
    * The 'getConnection' method is used to get a pool connection.
    * @param {Object} options options for connection database with credentials
@@ -208,7 +192,7 @@ declare class DB extends AbstractDB {
    * @property {string} option.password
    * @return {Connection}
    */
-    static getConnection(options: ConnectionOptions): Promise<Connection>;
+    static getConnection(options: TConnectionOptions): Promise<TConnection>;
     /**
      * The 'beginTransaction' is a method used to initiate a database transaction within your application's code.
      *
@@ -223,7 +207,7 @@ declare class DB extends AbstractDB {
      * @property {function} connection.commit - commit transaction of query
      * @property {function} connection.rollback - rollback transaction of query
      */
-    beginTransaction(): Promise<ConnectionTransaction>;
+    beginTransaction(): Promise<TConnectionTransaction>;
     /**
      * The 'beginTransaction' is a method used to initiate a database transaction within your application's code.
      *
@@ -239,7 +223,7 @@ declare class DB extends AbstractDB {
      * @property {function} connection.commit - commit transaction of query
      * @property {function} connection.rollback - rollback transaction of query
      */
-    static beginTransaction(): Promise<ConnectionTransaction>;
+    static beginTransaction(): Promise<TConnectionTransaction>;
     /**
      * The 'removeProperties' method is used to removed some properties.
      *
@@ -282,7 +266,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.to.password
      * @return {Promise<void>}
      */
-    backup({ database, to }: Backup): Promise<void>;
+    backup({ database, to }: TBackup): Promise<void>;
     /**
      *
      * This 'backup' method is used to backup database intro new database same server or to another server
@@ -295,7 +279,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.to.password
      * @return {Promise<void>}
      */
-    static backup({ database, to }: Backup): Promise<void>;
+    static backup({ database, to }: TBackup): Promise<void>;
     /**
      *
      * This 'backupToFile' method is used to backup database intro new ${file}.sql
@@ -310,7 +294,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    backupToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
     *
     * This 'backupToFile' method is used to backup database intro new ${file}.sql
@@ -325,7 +309,7 @@ declare class DB extends AbstractDB {
     * @property {string} backup.connection.password
     * @return {Promise<void>}
     */
-    static backupToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    static backupToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
      *
      * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
@@ -340,7 +324,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupSchemaToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    backupSchemaToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
      *
      * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
@@ -355,7 +339,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupSchemaToFile({ filePath, database, connection }: BackupToFile): Promise<void>;
+    static backupSchemaToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
      *
      * This 'backupTableToFile' method is used to backup database intro new ${file}.sql
@@ -370,7 +354,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupTableToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    backupTableToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
      *
      * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
@@ -385,7 +369,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupTableToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    static backupTableToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
      *
      * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
@@ -400,7 +384,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    backupTableSchemaToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    backupTableSchemaToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
      *
      * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
@@ -415,7 +399,7 @@ declare class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @return {Promise<void>}
      */
-    static backupTableSchemaToFile({ filePath, table, connection }: BackupTableToFile): Promise<void>;
+    static backupTableSchemaToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     private _backup;
     private _initialDB;
 }

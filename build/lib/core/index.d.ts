@@ -9,12 +9,14 @@ export { Blueprint };
 export { Pool };
 export * from './Decorator';
 export * from './Schema';
-export * from './Type';
+export * from './UtilityTypes';
+export * from './Repository';
+export * from './Operator';
 declare const _default: {
     DB: typeof DB;
     Model: typeof Model;
     Schema: typeof Schema;
     Blueprint: typeof Blueprint;
-    Pool: import("../Interface").Connection;
+    Pool: import("../types").TConnection;
 };
 export default _default;

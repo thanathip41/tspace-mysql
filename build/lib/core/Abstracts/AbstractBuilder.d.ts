@@ -1,4 +1,4 @@
-import { Pagination } from '../../Interface';
+import { TPagination } from '../../types';
 import { StateHandler } from '../Handlers/State';
 declare abstract class AbstractBuilder {
     protected $setters: string[];
@@ -77,8 +77,8 @@ declare abstract class AbstractBuilder {
     abstract createOrUpdate(data: Record<string, any>): this;
     abstract updateOrInsert(data: Record<string, any>): this;
     abstract updateOrCreate(data: Record<string, any>): this;
-    abstract createMultiple(data: Record<string, any>): this;
-    abstract insertMultiple(data: Record<string, any>): this;
+    abstract createMultiple(data: Record<string, any>[]): this;
+    abstract insertMultiple(data: Record<string, any>[]): this;
     abstract except(...columns: string[]): this;
     abstract only(...columns: string[]): this;
     abstract drop(): Promise<any>;
@@ -88,11 +88,11 @@ declare abstract class AbstractBuilder {
     abstract pagination({ limit, page }: {
         limit: number;
         page: number;
-    }): Promise<Pagination>;
+    }): Promise<TPagination>;
     abstract paginate({ limit, page }: {
         limit: number;
         page: number;
-    }): Promise<Pagination>;
+    }): Promise<TPagination>;
     abstract first(): Promise<Record<string, any> | null>;
     abstract firstOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;
     abstract findOneOrError(message: string, options?: Record<string, any>): Promise<Record<string, any>>;

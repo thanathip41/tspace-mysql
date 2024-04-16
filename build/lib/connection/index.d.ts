@@ -1,14 +1,14 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
 import { loadOptionsEnvironment } from './options';
-import { Connection, Options } from '../Interface';
+import { TConnection, TOptions } from '../types';
 export declare class PoolConnection extends EventEmitter {
     private OPTIONS;
     /**
      *
      * @Init a options connection pool
      */
-    constructor(options?: Options);
+    constructor(options?: TOptions);
     /**
      *
      * Get a connection to database
@@ -16,7 +16,7 @@ export declare class PoolConnection extends EventEmitter {
      * @property {Function} Connection.query
      * @property {Function} Connection.connection
      */
-    connection(): Connection;
+    connection(): TConnection;
     private _detectEventQuery;
     private _detectQueryType;
     private _defaultOptions;
@@ -32,7 +32,7 @@ export declare class PoolConnection extends EventEmitter {
  * @property {Function} Connection.query
  * @property {Function} Connection.connection
  */
-declare const pool: Connection;
+declare const pool: TConnection;
 export { loadOptionsEnvironment };
 export { pool as Pool };
 export default pool;

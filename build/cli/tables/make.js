@@ -24,3 +24,4 @@ exports.default = (formCommand) => {
     });
     console.log(`Migration : ${file} created successfully`);
 };
+//# sourceMappingURL=make.js.map

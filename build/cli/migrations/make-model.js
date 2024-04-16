@@ -64,7 +64,7 @@ exports.default = (cmd) => {
             return directory.isDirectory() ? lib_1.Schema.sync(newDir) : newDir;
         })));
         let pathModels = [].concat(...files).filter(d => d != null || d === '');
-        yield new Promise(r => setTimeout(r, 3000));
+        yield new Promise(r => setTimeout(r, 1500));
         const isFileTs = pathModels.some(pathModel => /\.ts$/.test(pathModel) && !(/\.d\.ts$/.test(pathModel)));
         const outDirForBuildTs = '__tmp-migrations-ts__';
         if (isFileTs) {
@@ -132,6 +132,65 @@ exports.default = (cmd) => {
         fs.writeFileSync(`${cwd}/${dir}/migrations.sql`, sql.join('\n'));
         return;
     });
+    const pushMigration = (sqlStatements) => __awaiter(void 0, void 0, void 0, function* () {
+        const createTables = [];
+        const inserts = [];
+        for (const sql of sqlStatements) {
+            if (sql.trim() === '')
+                continue;
+            const match = sql.match(/CREATE\s+DATABASE\s+IF\s+NOT\s+EXISTS\s+`([^`]+)`/i);
+            const createDatabase = match ? match[0] : null;
+            if (createDatabase) {
+                const result = yield new lib_1.DB()
+                    .rawQuery(createDatabase)
+                    .catch(e => console.log(`Failed to push changes errors: '${e.message}'`));
+                if (result != null) {
+                    console.log(`The database '${createDatabase}' has been created`);
+                }
+                continue;
+            }
+            const createTableStatements = sql
+                .split(';')
+                .filter((statement) => statement.replace(/--.*\n/g, '').trim().startsWith('CREATE TABLE IF NOT EXISTS'));
+            const inserttatements = sql
+                .split(';')
+                .filter((statement) => statement.replace(/--.*\n/g, '').trim().startsWith('INSERT INTO'));
+            if (!createTableStatements.length && !inserttatements.length)
+                continue;
+            if (createTableStatements.length) {
+                const match = createTableStatements.join(' ').match(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+`[^`]+`\.`([^`]+)`/i);
+                const table = match ? match[1] : null;
+                createTables.push({
+                    table: table == null ? '' : table,
+                    sql: createTableStatements.join(' ')
+                });
+            }
+            if (inserttatements.length) {
+                const match = inserttatements.join(' ').match(/INSERT\s+INTO\s+`[^`]+`\.`([^`]+)`/i);
+                const table = match ? match[1] : null;
+                inserts.push({
+                    table: table == null ? '' : table,
+                    sql: inserttatements.join(' ')
+                });
+            }
+        }
+        for (const c of createTables) {
+            const result = yield new lib_1.DB()
+                .rawQuery(c.sql)
+                .catch(e => console.log(`Failed to push changes errors: '${e.message}'`));
+            if (result != null) {
+                console.log(`The table '${c.table}' has been created`);
+            }
+        }
+        for (const c of inserts) {
+            const result = yield new lib_1.DB()
+                .rawQuery(c.sql)
+                .catch(e => console.log(`Failed to push changes errors: '${e.message}'`));
+            if (result != null) {
+                console.log(`The data inserted into the '${c.table}' table has been successful.`);
+            }
+        }
+    });
     const _import = (pathModel) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const loadModel = yield Promise.resolve(`${pathModel}`).then(s => __importStar(require(s)));
@@ -170,25 +229,10 @@ exports.default = (cmd) => {
         const filePath = `${cwd}/${dir}/migrations.sql`;
         const sqlString = fs.readFileSync(filePath, 'utf8');
         const sqlStatements = sqlString.split(';');
-        for (const sql of sqlStatements) {
-            if (sql.trim() === '')
-                continue;
-            const createTableStatements = sql
-                .split(';')
-                .filter((statement) => statement.trim().startsWith('CREATE TABLE IF NOT EXISTS'));
-            const table = createTableStatements.map((statement) => {
-                const tableNameMatch = statement.match(/`([^`]+)`/);
-                return tableNameMatch && tableNameMatch[1];
-            })[0];
-            new lib_1.DB()
-                .loadEnv(env)
-                .rawQuery(`${sql}`)
-                .then(_ => console.log(table == null
-                ? `The query '${sql}' has been successfully`
-                : `The table '${table}' has been successfully`))
-                .catch(e => console.log(`Failed to push changes errors: '${e.message}'`));
-        }
-        return process.exit(0);
+        pushMigration(sqlStatements)
+            .then(_ => console.log(`Migrations are migrating successfully`))
+            .catch(e => console.log(`Failed to migrate errors: '${e.message}'`))
+            .finally(() => process.exit(0));
     }
     if (generate) {
         migrations(`${cwd}/${models}`)
@@ -199,3 +243,4 @@ exports.default = (cmd) => {
     }
     throw new Error("Do you want to generate or push changes ? use '--generate' or '--push");
 };
+//# sourceMappingURL=make-model.js.map

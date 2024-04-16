@@ -12,3 +12,4 @@ export default ${model}
 `;
 };
 exports.default = Model;
+//# sourceMappingURL=modelDecorator.js.map

@@ -9,3 +9,4 @@ class AbstractDB extends Builder_1.default {
 }
 exports.AbstractDB = AbstractDB;
 exports.default = AbstractDB;
+//# sourceMappingURL=AbstractDB.js.map

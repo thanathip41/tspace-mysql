@@ -6,3 +6,4 @@ class AbstractModel extends Builder_1.Builder {
 }
 exports.AbstractModel = AbstractModel;
 exports.default = AbstractModel;
+//# sourceMappingURL=AbstractModel.js.map

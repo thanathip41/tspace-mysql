@@ -47,3 +47,4 @@ class LoggerHandler {
 }
 exports.LoggerHandler = LoggerHandler;
 exports.default = LoggerHandler;
+//# sourceMappingURL=Logger.js.map

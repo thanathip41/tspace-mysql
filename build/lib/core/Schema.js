@@ -368,3 +368,4 @@ class Schema extends Builder_1.Builder {
 }
 exports.Schema = Schema;
 exports.default = Schema;
+//# sourceMappingURL=Schema.js.map

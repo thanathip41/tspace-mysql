@@ -71,3 +71,4 @@ class User extends lib_1.Model {
     });
     /* ###################################################### */
 });
+//# sourceMappingURL=03-Model.test.js.map

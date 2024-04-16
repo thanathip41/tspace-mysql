@@ -44,10 +44,10 @@ const date = () => {
     const now = `${year}-${month}-${date}`;
     return now;
 };
-const escape = (str) => {
+const escape = (str, hard = false) => {
     if (typeof str !== 'string')
         return str;
-    if (str.includes('$RAW:'))
+    if (str.includes('$RAW:') && !hard)
         return str;
     return str.replace(/[\0\b\t\n\r\x1a\'\\]/g, "\\'");
 };
@@ -226,3 +226,4 @@ const utils = {
 };
 exports.utils = utils;
 exports.default = utils;
+//# sourceMappingURL=index.js.map

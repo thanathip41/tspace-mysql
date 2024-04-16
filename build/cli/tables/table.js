@@ -24,3 +24,4 @@ const Table = (table, npm) => {
 `;
 };
 exports.default = Table;
+//# sourceMappingURL=table.js.map

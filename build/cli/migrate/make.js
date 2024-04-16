@@ -28,3 +28,4 @@ exports.default = (cmd) => {
         console.log(err.message);
     }
 };
+//# sourceMappingURL=make.js.map

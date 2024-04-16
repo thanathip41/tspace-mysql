@@ -145,3 +145,4 @@ exports.default = (cmd) => {
         .catch(err => console.log(err))
         .finally(() => process.exit(0));
 };
+//# sourceMappingURL=make.js.map

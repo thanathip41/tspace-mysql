@@ -281,3 +281,4 @@ exports.PoolConnection = PoolConnection;
 const pool = new PoolConnection().connection();
 exports.Pool = pool;
 exports.default = pool;
+//# sourceMappingURL=index.js.map

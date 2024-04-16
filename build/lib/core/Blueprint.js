@@ -22,16 +22,39 @@ class Blueprint {
         this._attributes = [];
         this._foreignKey = null;
         this._column = null;
-        this._valueType = String;
+    }
+    /**
+     * Assign type 'int' in table
+     * @static
+     * @return {this} this
+     */
+    static int(_) {
+        const self = new Blueprint;
+        self._addAssignType('INT');
+        self._valueType = Number;
+        return self;
     }
     /**
      * Assign type 'int' in table
      * @return {this} this
      */
     int(_) {
-        this._addAssignType('INT');
-        this._valueType = Number;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType('INT');
+        self._valueType = Number;
+        return self;
+    }
+    /**
+     * Assign type 'TINYINT' in table
+     * @static
+     * @param {number} number
+     * @return {this} this
+     */
+    static tinyInt(number = 1) {
+        const self = new Blueprint;
+        self._addAssignType(`TINYINT(${number})`);
+        self._valueType = Number;
+        return self;
     }
     /**
      * Assign type 'TINYINT' in table
@@ -39,9 +62,22 @@ class Blueprint {
      * @return {this} this
      */
     tinyInt(number = 1) {
-        this._addAssignType(`TINYINT(${number})`);
-        this._valueType = Number;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TINYINT(${number})`);
+        self._valueType = Number;
+        return self;
+    }
+    /**
+     * Assign type 'TINYINT' in table
+     * @static
+     * @param {number} number
+     * @return {this} this
+     */
+    static tinyint(number = 1) {
+        const self = new Blueprint;
+        self._addAssignType(`TINYINT(${number})`);
+        self._valueType = Number;
+        return self;
     }
     /**
      * Assign type 'TINYINT' in table
@@ -49,9 +85,22 @@ class Blueprint {
      * @return {this} this
      */
     tinyint(number = 1) {
-        this._addAssignType(`TINYINT(${number})`);
-        this._valueType = Number;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TINYINT(${number})`);
+        self._valueType = Number;
+        return self;
+    }
+    /**
+     * Assign type 'BIGINT' in table
+     * @static
+     * @param {number} number [number = 10]
+     * @return {this} this
+     */
+    static bigInt(number = 10) {
+        const self = new Blueprint;
+        self._addAssignType(`BIGINT(${number})`);
+        self._valueType = Number;
+        return self;
     }
     /**
      * Assign type 'BIGINT' in table
@@ -59,9 +108,22 @@ class Blueprint {
      * @return {this} this
      */
     bigInt(number = 10) {
-        this._addAssignType(`BIGINT(${number})`);
-        this._valueType = Number;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`BIGINT(${number})`);
+        self._valueType = Number;
+        return self;
+    }
+    /**
+     * Assign type 'BIGINT' in table
+     * @static
+     * @param {number} number [number = 10]
+     * @return {this} this
+     */
+    static bigint(number = 10) {
+        const self = new Blueprint;
+        self._addAssignType(`BIGINT(${number})`);
+        self._valueType = Number;
+        return self;
     }
     /**
      * Assign type 'BIGINT' in table
@@ -69,9 +131,27 @@ class Blueprint {
      * @return {this} this
      */
     bigint(number = 10) {
-        this._addAssignType(`BIGINT(${number})`);
-        this._valueType = Number;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`BIGINT(${number})`);
+        self._valueType = Number;
+        return self;
+    }
+    /**
+     * Assign type 'DOUBLE' in table
+     * @static
+     * @param {number} length  between 1-255
+     * @param {number} decimal  0.000...n
+     * @return {this} this
+     */
+    static double(length = 0, decimal = 0) {
+        const self = new Blueprint;
+        self._valueType = Number;
+        if (!length || !decimal) {
+            self._addAssignType(`DOUBLE`);
+            return self;
+        }
+        self._addAssignType(`DOUBLE(${length},${decimal})`);
+        return self;
     }
     /**
      * Assign type 'DOUBLE' in table
@@ -80,13 +160,31 @@ class Blueprint {
      * @return {this} this
      */
     double(length = 0, decimal = 0) {
-        this._valueType = Number;
+        const self = new Blueprint;
+        self._valueType = Number;
         if (!length || !decimal) {
-            this._addAssignType(`DOUBLE`);
-            return this;
+            self._addAssignType(`DOUBLE`);
+            return self;
         }
-        this._addAssignType(`DOUBLE(${length},${decimal})`);
-        return this;
+        self._addAssignType(`DOUBLE(${length},${decimal})`);
+        return self;
+    }
+    /**
+     * Assign type 'FLOAT' in table
+     * @static
+     * @param {number} length  between 1-255
+     * @param {number} decimal 0.000...n
+     * @return {this} this
+     */
+    static float(length = 0, decimal = 0) {
+        const self = new Blueprint;
+        self._valueType = Number;
+        if (!length || !decimal) {
+            self._addAssignType(`FLOAT`);
+            return self;
+        }
+        self._addAssignType(`FLOAT(${length},${decimal})`);
+        return self;
     }
     /**
      * Assign type 'FLOAT' in table
@@ -95,13 +193,30 @@ class Blueprint {
      * @return {this} this
      */
     float(length = 0, decimal = 0) {
-        this._valueType = Number;
+        const self = new Blueprint;
+        self._valueType = Number;
         if (!length || !decimal) {
-            this._addAssignType(`FLOAT`);
-            return this;
+            self._addAssignType(`FLOAT`);
+            return self;
         }
-        this._addAssignType(`FLOAT(${length},${decimal})`);
-        return this;
+        self._addAssignType(`FLOAT(${length},${decimal})`);
+        return self;
+    }
+    /**
+     * Assign type 'VARCHAR' in table
+     * @static
+     * @param {number} length  [length = 191] length of string
+     * @return {this} this
+     */
+    static varchar(length = 191) {
+        const self = new Blueprint;
+        if (length > 255)
+            length = 255;
+        if (length <= 0)
+            length = 1;
+        self._addAssignType(`VARCHAR(${length})`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'VARCHAR' in table
@@ -109,12 +224,26 @@ class Blueprint {
      * @return {this} this
      */
     varchar(length = 191) {
+        const self = new Blueprint;
         if (length > 255)
             length = 255;
         if (length <= 0)
             length = 1;
-        this._addAssignType(`VARCHAR(${length})`);
-        return this;
+        self._addAssignType(`VARCHAR(${length})`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'CHAR' in table
+     * @static
+     * @param {number} length [length = 1] length of string
+     * @return {this} this
+     */
+    static char(length = 1) {
+        const self = new Blueprint;
+        self._addAssignType(`CHAR(${length})`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'CHAR' in table
@@ -122,72 +251,190 @@ class Blueprint {
      * @return {this} this
      */
     char(length = 1) {
-        this._addAssignType(`CHAR(${length})`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`CHAR(${length})`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'LONGTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static longText() {
+        const self = new Blueprint;
+        self._addAssignType(`LONGTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'LONGTEXT' in table
      * @return {this} this
      */
     longText() {
-        this._addAssignType(`LONGTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`LONGTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'LONGTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static longtext() {
+        const self = new Blueprint;
+        self._addAssignType(`LONGTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'LONGTEXT' in table
      * @return {this} this
      */
     longtext() {
-        this._addAssignType(`LONGTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`LONGTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'JSON' in table
+     * @static
+     * @return {this} this
+     */
+    static json() {
+        const self = new Blueprint;
+        self._addAssignType(`JSON`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'JSON' in table
      * @return {this} this
      */
     json() {
-        this._addAssignType(`JSON`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`JSON`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'MEDIUMTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static mediumText() {
+        const self = new Blueprint;
+        self._addAssignType(`MEDIUMTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'MEDIUMTEXT' in table
      * @return {this} this
      */
     mediumText() {
-        this._addAssignType(`MEDIUMTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`MEDIUMTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'MEDIUMTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static mediumtext() {
+        const self = new Blueprint;
+        self._addAssignType(`MEDIUMTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'MEDIUMTEXT' in table
      * @return {this} this
      */
     mediumtext() {
-        this._addAssignType(`MEDIUMTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`MEDIUMTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'TINYTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static tinyText() {
+        const self = new Blueprint;
+        self._addAssignType(`TINYTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'TINYTEXT' in table
      * @return {this} this
      */
     tinyText() {
-        this._addAssignType(`TINYTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TINYTEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
-    * Assign type 'TINYTEXT' in table
-    * @return {this} this
-    */
+     * Assign type 'TINYTEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static tinytext() {
+        const self = new Blueprint;
+        self._addAssignType(`TINYTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'TINYTEXT' in table
+     * @return {this} this
+     */
     tinytext() {
-        this._addAssignType(`TINYTEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TINYTEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'TEXT' in table
+     * @static
+     * @return {this} this
+     */
+    static text() {
+        const self = new Blueprint;
+        self._addAssignType(`TEXT`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'TEXT' in table
      * @return {this} this
      */
     text() {
-        this._addAssignType(`TEXT`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TEXT`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'ENUM'
+     * @static
+     * @param {...string} enums n1, n2, n3, ...n
+     * @return {this} this
+     */
+    static enum(...enums) {
+        const self = new Blueprint;
+        self._addAssignType(`ENUM(${enums.map(e => `'${e.replace(/'/g, '')}'`)})`);
+        self._valueType = String;
+        return self;
     }
     /**
      * Assign type 'ENUM'
@@ -195,45 +442,96 @@ class Blueprint {
      * @return {this} this
      */
     enum(...enums) {
-        this._addAssignType(`ENUM(${enums.map(e => `'${e.replace(/'/g, '')}'`)})`);
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`ENUM(${enums.map(e => `'${e.replace(/'/g, '')}'`)})`);
+        self._valueType = String;
+        return self;
+    }
+    /**
+     * Assign type 'DATE' in table
+     * @static
+     * @return {this} this
+     */
+    static date() {
+        const self = new Blueprint;
+        self._addAssignType(`DATE`);
+        self._valueType = Date;
+        return self;
     }
     /**
      * Assign type 'DATE' in table
      * @return {this} this
      */
     date() {
-        this._addAssignType(`DATE`);
-        this._valueType = Date;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`DATE`);
+        self._valueType = Date;
+        return self;
+    }
+    /**
+     * Assign type 'DATETIME' in table
+     * @static
+     * @return {this} this
+     */
+    static dateTime() {
+        const self = new Blueprint;
+        self._addAssignType(`DATETIME`);
+        self._valueType = Date;
+        return self;
     }
     /**
      * Assign type 'DATETIME' in table
      * @return {this} this
      */
     dateTime() {
-        this._addAssignType(`DATETIME`);
-        this._valueType = Date;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`DATETIME`);
+        self._valueType = Date;
+        return self;
+    }
+    /**
+     * Assign type 'DATETIME' in table
+     * @static
+     * @return {this} this
+     */
+    static datetime() {
+        const self = new Blueprint;
+        self._addAssignType(`DATETIME`);
+        self._valueType = Date;
+        return self;
     }
     /**
      * Assign type 'DATETIME' in table
      * @return {this} this
      */
     datetime() {
-        this._addAssignType(`DATETIME`);
-        this._valueType = Date;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`DATETIME`);
+        self._valueType = Date;
+        return self;
+    }
+    /**
+     * Assign type 'TIMESTAMP' in table
+     * @static
+     * @return {this} this
+     */
+    static timestamp() {
+        const self = new Blueprint;
+        self._addAssignType(`TIMESTAMP`);
+        self._valueType = Date;
+        return self;
     }
     /**
      * Assign type 'TIMESTAMP' in table
      * @return {this} this
      */
     timestamp() {
-        this._addAssignType(`TIMESTAMP`);
-        this._valueType = Date;
-        return this;
+        const self = new Blueprint;
+        self._addAssignType(`TIMESTAMP`);
+        self._valueType = Date;
+        return self;
     }
+    //---------------------------- attributes ------------------------------------//
     /**
      * Assign attributes 'UNSIGNED' in table
      * @return {this} this
@@ -383,3 +681,4 @@ class Blueprint {
 }
 exports.Blueprint = Blueprint;
 exports.default = Blueprint;
+//# sourceMappingURL=Blueprint.js.map

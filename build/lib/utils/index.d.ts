@@ -6,7 +6,7 @@ declare const utils: {
     columnRelation: (name: string) => string;
     timestamp: (dateString?: string) => string;
     date: () => string;
-    escape: (str: any) => any;
+    escape: (str: any, hard?: boolean) => any;
     escapeActions: (str: any) => any;
     escapeXSS: (str: any) => any;
     isSubQuery: (subQuery: string) => boolean;

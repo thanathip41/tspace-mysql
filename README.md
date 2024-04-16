@@ -86,6 +86,12 @@ npm install tspace-mysql -g
     - [Safety Update](#safety-update)
     - [Safety Delete](#safety-delete)
     - [Safety Relationships](#safety-relationships)
+- [Repository](#repository)
+  - [Repository Select Statements](#repository-select-statements)
+  - [Repository Insert Statements](#repository-insert-statements)
+  - [Repository Update Statements](#repository-update-statements)
+  - [Repository Delete Statements](#repository-delete-statements)
+  - [Repository Transactions](#repository-transactions)
 - [Blueprint](#blueprint)
 - [Cli](#cli)
   - [Make Model](#make-model)
@@ -95,6 +101,7 @@ npm install tspace-mysql -g
   - [Dump](#dump)
   - [Generate Models](#generate-models)
   - [Migration Models](#migrate-models)
+  - [Migration DB](#migration-db)
 
 ## Configuration
 
@@ -232,7 +239,7 @@ const select = await new DB("users").select("id", "username").findOne();
 
 const selectRaw = await new DB("users").selectRaw("COUNT(id)").findMany();
 // SELECT COUNT(id) FROM `users`;
-// also you can use the DB.raw() function
+// You can also use the DB.raw() function
 // const selectRaw = await new DB("users").selec(DB.raw("COUNT(id)")).findMany();
 
 const selectObject = await new DB("posts")
@@ -271,6 +278,12 @@ const users = await new DB("users")
   )
   .findMany();
 // SELECT * FROM `users` WHERE `users`.`id` = (SELECT `users`.`id` FROM `users` WHERE `users`.`id` = '1' LIMIT 1);
+
+const findFullName = await new User()
+.select('name',`${DB.raw('CONCAT(firstName," ",lastName) as fullName')}`)
+.whereRaw(`CONCAT(firstName," ",lastName) LIKE '%${search}%'`)
+.findOne()     
+//  SELECT `users`.`name`, CONCAT(firstName," ",lastName) as fullName FROM `users` WHERE CONCAT(firstName," ",lastName) LIKE '%search%' LIMIT 1;
 ```
 
 ## Ordering, Grouping, Limit and Offset
@@ -404,24 +417,26 @@ const users = await new DB("users")
 ### Where Object Clauses
 
 ```js
+import { Operator } from 'tspace-mysql'
+
 const whereObject = await new DB("users")
   .whereObject({
-    id : DB.op('eq',1),
-    username : DB.op('in',['user1','user2']),
-    name : DB.op('like','%value%')
+    id :  Operator.eq(1),
+    username :  Operator.in(['user1','user2']),
+    name :  Operator.like('%value%')
   })
    .findMany();
 
 // You can also use .where as well.
 const where = await new DB("users")
   .where({
-    id : DB.op('eq',1),
-    username : DB.op('in',['user1','user2']),
-    name : DB.op('like','%value%')
+    id : 1,
+    username : 'username1',
+    name : Operator.like('%value%')
   })
    .findMany();
 
-// SELECT * FROM `users` WHERE `users`.`id` = '1' AND `users`.`username` IN ('user1','user2') AND `users`.`name` LIKE '%value%';
+// SELECT * FROM `users` WHERE `users`.`id` = '1' AND `users`.`username` = 'user1' AND `users`.`name` LIKE '%value%';
 
 ```
 
@@ -587,7 +602,7 @@ const pageTwoUsers = await new DB("users").paginate({ page: 2, limit: 5 });
 */
 ```
 
-## Insert Statement
+## Insert Statements
 
 ```js
 const user = await new DB("users")
@@ -1873,23 +1888,45 @@ using the following:
 #### Schema Model
 
 ```js
-import { Model, Blueprint } from "tspace-mysql";
-class User extends Model {
+import { Model, Blueprint , TSchema } from "tspace-mysql";
+
+const schema = {
+  id: new Blueprint().int().notNull().primary().autoIncrement(),
+  uuid: new Blueprint().varchar(50).null(),
+  name: new Blueprint().varchar(191).notNull(),
+  email: new Blueprint().varchar(191).notNull(),
+  createdAt: new Blueprint().timestamp().null().bindColumn('created_at'),
+  updatedAt: new Blueprint().timestamp().null().bindColumn('updated_at'),
+  deletedAt: new Blueprint().timestamp().null().bindColumn('deleted_at')
+}
+
+
+// make type in TS
+type TSchemaUser = TSchema<typeof Schema>
+
+// the TSchemaUser will be created like that
+/**
+  {
+    id : number,
+    uuid : string | null,
+    name : string,
+    email : string,
+    createdAt : Date | string | null,
+    updatedAt : Date | string | null,
+    deletedAt : Date | string | null
+  }
+*/
+
+
+class User extends Model
+<TSchemaUser>  // use the schema for this User model
+{
   constructor() {
     super();
     this.useCamelCase()
-    this.useSchema({
-      id: new Blueprint().int().notNull().primary().autoIncrement(),
-      uuid: new Blueprint().varchar(50).null(),
-      name: new Blueprint().varchar(191).notNull(),
-      email: new Blueprint().varchar(191).notNull(),
-      createdAt: new Blueprint().timestamp().null().bindColumn('created_at'), // you can fix the column name with 'bindColumn'
-      updatedAt: new Blueprint().timestamp().null().bindColumn('updated_at'),
-      deletedAt: new Blueprint().timestamp().null().bindColumn('deleted_at')
-    })
+    this.useSchema(schema)
   }
 }
-
 
 ```
 
@@ -2031,7 +2068,7 @@ Type safety still works when you add additional types to your model, using the f
 
 ```js
 // in file User.ts
-import { Model , Blueprint , SchemaType } from 'tspace-mysql'
+import { Model , Blueprint , TSchema } from 'tspace-mysql'
 import Phone  from '../Phone'
 
 const schemaUser = {
@@ -2045,17 +2082,7 @@ const schemaUser = {
     updatedAt :new Blueprint().timestamp().null()
 }
 
-type TSchemaUser = SchemaType<typeof schemaUser>
-
-// You can also reassign the type for the schema
-/**
-  type TSchemaUser = SchemaType<typeof schemaUser , {
-      id : number,
-      uuid : string,
-      ...
-  }>
-
-*/
+type TSchemaUser = TSchema<typeof schemaUser>
 
 class User extends Model<TSchemaUser>  { // Add this '<TSchemaUser>' to activate the type for the Model.
   constructor() {
@@ -2066,13 +2093,13 @@ class User extends Model<TSchemaUser>  { // Add this '<TSchemaUser>' to activate
   }
 }
 
-export { User , TSchemaUser }
+export { User }
 export default User
 
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , SchemaType } from 'tspace-mysql'
+import { Model , Blueprint , TSchema } from 'tspace-mysql'
 import { User } from './User.ts'
 const schemaPhone = {
     id :new Blueprint().int().notNull().primary().autoIncrement(),
@@ -2083,7 +2110,7 @@ const schemaPhone = {
     updatedAt :new Blueprint().timestamp().null()
 }
 
-type TSchemaPhone = SchemaType<typeof schemaPhone>
+type TSchemaPhone = TSchema<typeof schemaPhone>
 
 class Phone extends Model<TSchemaPhone>  {
   constructor() {
@@ -2093,7 +2120,7 @@ class Phone extends Model<TSchemaPhone>  {
   }
 }
 
-export { Phone , TSchemaPhone }
+export { Phone }
 export default Phone
 
 +--------------------------------------------------------------------------+
@@ -2102,8 +2129,8 @@ export default Phone
 ### Safety Select
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User  } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().select('id','username').findMany() ✅
 const users = await new User().select('idx','username').findMany() ❌
@@ -2117,8 +2144,8 @@ const users = await new User().except('idx','username').findMany() ❌
 
 ```js
 
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().orderBy('id','DESC').findMany() ✅
 const users = await new User().orderBy('idx','DESC').findMany() ❌
@@ -2134,8 +2161,8 @@ const users = await new User().oldest('idx').findMany() ❌
 ### Safety GroupBy
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User  } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().groupBy('id').findMany() ✅
 const users = await new User().groupBy('idx').findMany() ❌
@@ -2145,8 +2172,8 @@ const users = await new User().groupBy('idx').findMany() ❌
 ### Safety Where
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().where('id',1).findMany() ✅
 const users = await new User().where('idxx',1).findMany() ❌
@@ -2183,10 +2210,12 @@ const users = await new User()
 ### Safety Insert
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().create({ id : 10 }).save() ✅
+
+const users = await new User().create({ id : "10" }).save() ❌
 
 const users = await new User().create({ idx : 10 }).save() ❌
 
@@ -2195,11 +2224,12 @@ const users = await new User().create({ idx : 10 }).save() ❌
 ### Safety Update
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().update({ id : 10 }).where('id',1).save() ✅
 const users = await new User().update({ id : 10 }).where('idx',1).save() ❌
+const users = await new User().update({ id : "10" }).where('id',1).save() ❌
 const users = await new User().update({ idx : 10 }).where('idx',1).save() ❌
 
 ```
@@ -2207,8 +2237,8 @@ const users = await new User().update({ idx : 10 }).where('idx',1).save() ❌
 ### Safety Delete
 
 ```js
-import { User , TSchemaUser } from './User.ts'
-import { Phone, TSchemaPhone } from './Phone.ts'
+import { User } from './User.ts'
+import { Phone } from './Phone.ts'
 
 const users = await new User().where('id',1).delete() ✅
 const users = await new User().where('idx',1).delete() ❌
@@ -2218,6 +2248,7 @@ const users = await new User().where('idx',1).delete() ❌
 ### Safety Relationships
 
 ```js
+import { TSchemaModel } from 'tspace-mysql'
 import { User } from './User.ts'
 import { Phone } from './Phone.ts'
 // Case #1 : Relationship with 2 relations 'phone' and 'phones'
@@ -2248,7 +2279,7 @@ import { Phone } from './Phone.ts'
 // good 👍👍👍
 const users = await new User()
 .relations('phone','phones')
-.findMany<{ phone : TSchemaPhone , phones : TSchemaPhone[] }>()
+.findMany<{ phone : TSchemaModel<Phone> , phones : TSchemaModel<Phone>[] }>()
 
 for(const user of users) {
   user.phone  ✅
@@ -2266,7 +2297,7 @@ for(const user of users) {
   .relations('phone','phones')
   .relationQuery('phone' , (query : Phone) => query.relations('user'))
   .relationQuery('phones' , (query : Phone) => query.relations('user'))
-  .findMany<{ phone : TSchemaPhone , phones : TSchemaPhone[] }>()
+  .findMany<{ phone : TSchemaModel<Phone> , phones : TSchemaModel<Phone>[] }>()
 
   for(const user of users) {
     user.phone.user ❌
@@ -2294,8 +2325,8 @@ for(const user of users) {
   .relationQuery('phone' , (query : Phone) => query.relations('user'))
   .relationQuery('phones' , (query : Phone) => query.relations('user'))
   .findMany<{ 
-    phone : Partial<TSchemaPhone> & { user : TSchemaUser};
-    phones : (Partial<TSchemaPhone> & { user : TSchemaUser})[];
+    phone : Partial<TSchemaModel<Phone>> & { user : TSchemaModel<User>};
+    phones : (Partial<TSchemaModel<Phone>> & { user : TSchemaModel<User>})[];
   }>()
 
   for(const user of users) {
@@ -2310,8 +2341,8 @@ for(const user of users) {
 +--------------------------------------------------------------------------+
 // If you don't want to set types for every returning method such as 'findOne', 'findMany', and so on...
 
-import { Model , Blueprint , SchemaType , RelationType } from 'tspace-mysql'
-import { Phone , TSchemaPhone }  from '../Phone'
+import { Model , Blueprint , TSchema , TRelation , TSchemaModel } from 'tspace-mysql'
+import { Phone }  from '../Phone'
 
 const schemaUser = {
     id :new Blueprint().int().notNull().primary().autoIncrement(),
@@ -2324,15 +2355,15 @@ const schemaUser = {
     updatedAt :new Blueprint().timestamp().null()
 }
 
-type TSchemaUser = SchemaType<typeof schemaUser>
+type TSchemaUser = TSchema<typeof schemaUser>
 
-type RelationUserType =  RelationType<{
-  phones : TSchemaPhone[]
-  phone : TSchemaPhone
+type TRelationUser =  TRelation<{
+  phones : TSchemaModel<Phone>[]
+  phone  : TSchemaModel<Phone>
 }>
 
 // Add this '<TSchemaUser, RelationUserType>' to activate the type for the Model.
-class User extends Model<TSchemaUser, RelationUserType>  { 
+class User extends Model< TSchemaUser, TRelationUser >  { 
   constructor() {
     super()
     this.useSchema(schemaUser)
@@ -2343,13 +2374,14 @@ class User extends Model<TSchemaUser, RelationUserType>  {
   }
 }
 
-export { User , TSchemaUser }
+export { User }
 
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , SchemaType , RelationType} from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TRelation , TSchemaModel } from 'tspace-mysql'
 import { User } from './User.ts'
+
 const schemaPhone = {
     id :new Blueprint().int().notNull().primary().autoIncrement(),
     uuid :new Blueprint().varchar(50).null(),
@@ -2359,13 +2391,16 @@ const schemaPhone = {
     updatedAt :new Blueprint().timestamp().null()
 }
 
-type TSchemaPhone = SchemaType<typeof schemaPhone>
+type TSchemaPhone = TSchema<typeof schemaPhone>
 
-type RelationPhoneType = RelationType<{
-  user : TSchemaUser[]
+type TRelationPhone = TRelation<{
+  user : TSchemaModel<User>[]
 }>
 
-class Phone extends Model<TSchemaPhone,RelationPhoneType>  {
+class Phone extends Model<
+  TSchemaPhone,
+  TRelationPhone
+>  {
   constructor() {
     super()
     this.useSchema(schemaPhone)
@@ -2374,7 +2409,7 @@ class Phone extends Model<TSchemaPhone,RelationPhoneType>  {
   }
 }
 
-export { Phone , TSchemaPhone }
+export { Phone }
 
 +--------------------------------------------------------------------------+
 
@@ -2415,9 +2450,206 @@ const users = await new User()
 
 ```
 
+## Repository
+```js
+Repository is a mechanism that encapsulates all database operations related to a specific model. It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
+
+** The Repository check always type safety if model is used the type of schema 
+
+```
+### Repository Select Statements
+```js
+import { Repository , TRepository , Operator } from 'tspace-mysql'
+import { User } from '../Models/User'
+import { Phone } from '../Models/Phone'
+
+const userRepository = Repository.bind(User)
+const needPhone = true
+const user = await userRepository.findOne({
+  select : ['id','name','username'],
+  where : {
+    id: 1
+  },
+  when : {
+    condition : `${needPhone}`,
+    callback: () => ({
+      relations : ['phone']
+    })
+  }
+})
+
+const users = await userRepository.findMany({
+  select : ['id','name','username'],
+  limit : 3,
+  orderBy : {
+    id : 'ASC',
+    name : 'DESC'
+  }
+  groupBy : ['id'],
+  where : {
+    id: Operator.in([1,2,3])
+  }
+})
+
+const userPaginate = await userRepository.pagination({
+  select : ['id','name','username'],
+  page : 1,
+  limit : 3,
+  where : {
+    id:  Operator.in([1,2,3])
+  }
+})
+
+const findFullName = await userRepository.findOne({
+  select : ['name',`${DB.raw('CONCAT(firstName," ",lastName) as fullName')}`],
+  whereRaw : [
+    `CONCAT(firstName," ",lastName) LIKE '%${search}%'`
+  ]
+})
+
+// ------- relationship -------
+
+const userHasPhones = await userRepository.findOne({
+  select : ['*'],
+  where : {
+    id: 1
+  },
+  relations : ['post'],
+  relationQuery:{
+    name : 'post',
+    callback: () => ({
+      select: ['id', 'userId', 'name'],
+      relations : ['user']
+    }) as TRepository<Phone> // add type for the callback know to check type of the model
+  }
+})
+
+```
+### Repository Insert Statements
+```js
+
+const userRepository = Repository.bind(User)
+
+const created = await userRepository.create({
+  data : {
+    name : "repository-name",
+    // ....
+  }
+})
+
+const createdMultiple = await u.createMultiple({
+  data : [
+    {
+      name: "tspace4",
+      // ....
+    },
+    {
+      name: "tspace5",
+      // ....
+    },
+    {
+      name: "tspace6",
+      // ....
+    }
+    // ....
+  ]
+})
+
+const createdNotExists = await userRepository.createNotExists({
+  data : {
+    name : "repository-name",
+    // ....
+  },
+  where : {
+    id : 1
+  }
+})
+
+const createdOrSelected = await userRepository.createOrSelect({
+  data : {
+    name : "repository-name",
+    // ....
+  },
+  where : {
+    id : 1
+  }
+})
+
+
+```
+### Repository Update Statements
+```js
+
+const userRepository = Repository.bind(User)
+
+const updated = await userRepository.update({
+  data : {
+    name : "repository-name",
+    // ....
+  },
+  where : {
+    id : 1
+  }
+})
+
+```
+### Repository Delete Statements
+```js
+
+const userRepository = Repository.bind(User)
+
+const deleted = await userRepository.delete({
+  where : {
+    id : 1
+  }
+})
+
+```
+
+### Repository Transactions
+
+```js
+import { DB , Repository } from 'tspace-mysql'
+import { User } from '../Models/User'
+const userRepository = Repository.bind(User)
+
+const transaction = await DB.beginTransaction()
+
+try {
+  await transaction.startTransaction()
+
+  const created = await userRepository.create({
+    data : {
+      name : "repository-name",
+      // ....
+    },
+    transaction // add this for the transaction
+  })
+
+  const updated = await userRepository.update({
+    data : {
+      name : "repository-name",
+      // ....
+    },
+    where : {
+      id : created.id
+    },
+    transaction
+  })
+
+  await transaction.commit()
+
+} catch (err) {
+
+  await transaction.rollback()
+}
+
+```
+
 ## Blueprint
 
-Schema table created by command make:migration, you may use the:
+Blueprint is a tool used for defining database schemas programmatically. 
+It allows developers to describe the structure of their database tables using a simple and intuitive syntax rather than writing SQL queries directly., you may use the:
 
 ```js
 import { Schema , Blueprint , DB } from 'tspace-mysql'
@@ -2488,7 +2720,7 @@ foreign({ references : ${COLUMN} , on : ${TABLE-NAME OR MODEL CLASSES} })
  * Binding a column in the key of the schema forwards the key to the corresponding column in the database.
  * @BindColumn
  */
-bindColumn('<REAL-NAME-COLUMN-IN-DB>')
+bindColumn('< real name column in table >')
 
 
 ```
@@ -2505,9 +2737,9 @@ npm install tspace-mysql -g
 
 ## Make Model
 
-Command will be placed Model in the specific directory
+The command will be placed Model in the specific directory.
 
-```js
+```sh
 
 /**
   *
@@ -2532,9 +2764,9 @@ tspace-mysql make:model User --m --dir=app/Models
 
 ## Make Migration
 
-Command will be placed Migration in the specific directory
+The command will be placed Migration in the specific directory.
 
-```js
+```sh
 /**
   *
   * @make Migration Table
@@ -2559,7 +2791,7 @@ tspace-mysql make:migration users --dir=app/Models/Migrations
 
 ## Migrate
 
-```js
+```sh
 /**
   *
   * @run Migrate table
@@ -2588,18 +2820,18 @@ tspace-mysql migrate --dir=app/Models/Migrations --type=js
 
 # Query
 
-Command will be execute a query
+The command will execute a query.
 
-```js
+```sh
 tspace-mysql query "SELECT * FROM users"
 
 ```
 
 # Dump
 
-Command will be dump database or table into file
+The command will dump the database or table into a file.
 
-```js
+```sh
 tspace-mysql dump:db "database" --values // backup with values in the tables
 
 tspace-mysql dump:table "table" --values // backup with values in the table
@@ -2608,9 +2840,9 @@ tspace-mysql dump:table "table" --values // backup with values in the table
 
 # Generate Models
 
-Command will be generate models from table in database
+The command will generate models from tables in the database.
 
-```js
+```sh
 tspace-mysql generate:models --dir=<folder for creating>
 
 tspace-mysql generate:models --dir=app/Models --env=development --decorators
@@ -2619,13 +2851,38 @@ tspace-mysql generate:models --dir=app/Models --env=development --decorators
 
 # Migration Models
 
-Command will be generate migrations by schema in your models
+The command will generate migrations based on the schema in your models to a .sql file, 
+can also push the migration files to the database.
 
-```js
-tspace-mysql migrations:models --dir=<path to migration> --models=<path to your models> --generate
-tspace-mysql migrations:models --dir=<path to migration> --push
+```sh
+/**
+  *
+  * @arg --push will push the migration files to the database
+  * @arg --generate will generate the migration files
+  */
+tspace-mysql migrations:models --dir=<path-to-migration> --models=<path to your models> --generate
+tspace-mysql migrations:models --dir=<path-to-migration> --push
 
 tspace-mysql migrations:models --models=src/app/models --dir=migrations  --generate
 tspace-mysql migrations:models --dir=migrations --push
+
+```
+
+# Migration DB
+
+The command will generate migrations based on the schema in your database to a .sql file, 
+can also push the migration files to the database.
+
+```sh
+/**
+  *
+  * @arg --push will push the migration files to the database
+  * @arg --generate will generate the migration files
+  */
+tspace-mysql migrations:db --dir=<path-to-migration> --generate --db=<db-name>
+tspace-mysql migrations:db --dir=<path-to-migration> --push
+
+tspace-mysql migrations:db --dir=migrations --generate --db=db-migratons
+tspace-mysql migrations:db --dir=migrations --push
 
 ```

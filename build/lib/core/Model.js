@@ -71,6 +71,17 @@ class Model extends AbstractModel_1.AbstractModel {
         return;
     }
     /**
+     * The 'column' method is used keyof column in schema.
+     * @param {string} column
+     * @example
+     * import { User } from '../User'
+     * Model.column<User>('id')
+     * @return {string} column
+     */
+    static column(column) {
+        return column;
+    }
+    /**
      * The 'instance' method is used get instance.
      * @override
      * @static
@@ -185,7 +196,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * It's automatically create, called when not exists table or columns.
      * @param {object} schema using Blueprint for schema
      * @example
-     * import { Blueprint } from 'tspace-mysql'
+     * import { Blueprint, TRelation } from 'tspace-mysql';
      * class User extends Model {
      *     constructor() {
      *        super()
@@ -320,7 +331,8 @@ class Model extends AbstractModel_1.AbstractModel {
             this.$constants('PATTERN').camelCase
         ];
         if (!allowPattern.includes(pattern)) {
-            throw this._assertError(`The 'tspace-mysql' support only pattern '${this.$constants('PATTERN').snake_case}', '${this.$constants('PATTERN').camelCase}'`);
+            throw this._assertError(`The 'tspace-mysql' support only pattern '${this.$constants('PATTERN').snake_case}', 
+                '${this.$constants('PATTERN').camelCase}'`);
         }
         this.$state.set('PATTERN', pattern);
         this._makeTableName();
@@ -649,12 +661,18 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
-     * The "column" method is used get column from your schema.
-     * @param {string} column
-     * @return {string}
-    */
-    column(column) {
-        return column;
+     * The 'typeOfSchema' method is used get type of schema.
+     * @return {TSchema} type of schema
+     */
+    typeOfSchema() {
+        return {};
+    }
+    /**
+     * The 'typeOfRelation' method is used get type of relation.
+     * @return {TRelation} type of Relation
+     */
+    typeOfRelation() {
+        return {};
     }
     /**
      *
@@ -1264,7 +1282,8 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @return {this} this
      * @example
-     *   import { Model } from 'tspace-mysql'
+     *   import { Model , TRelation } from 'tspace-mysql'
+     *
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -1344,6 +1363,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @return {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
+import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -1450,6 +1470,11 @@ class Model extends AbstractModel_1.AbstractModel {
         (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.callback(nameRelation, callback);
         return this;
     }
+    findWithQuery(nameRelation) {
+        var _a;
+        const cb = (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.returnCallback(nameRelation);
+        return cb;
+    }
     /**
      *
      * Use relations in registry of model return result of relation query
@@ -1535,13 +1560,13 @@ class Model extends AbstractModel_1.AbstractModel {
      *   }
      *
      *   await new User().relations('posts')
-     *   .relationQuery('posts', (query : Post) => {
+     *   .TRelationQueryOptions('posts', (query : Post) => {
      *       return query.relations('comments','user')
-     *       .relationQuery('comments', (query : Comment) => {
+     *       .TRelationQueryOptions('comments', (query : Comment) => {
      *           return query.relations('user','post')
      *       })
-     *       .relationQuery('user', (query : User) => {
-     *           return query.relations('posts').relationQuery('posts',(query : Post)=> {
+     *       .TRelationQueryOptions('user', (query : User) => {
+     *           return query.relations('posts').TRelationQueryOptions('posts',(query : Post)=> {
      *               return query.relations('comments','user')
      *               // relation n, n, ...n
      *           })
@@ -1550,7 +1575,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *  .findMany()
      * @return {this} this
      */
-    relationQuery(nameRelation, callback) {
+    TRelationQueryOptions(nameRelation, callback) {
         return this.withQuery(nameRelation, callback);
     }
     /**
@@ -1939,7 +1964,7 @@ class Model extends AbstractModel_1.AbstractModel {
                         `${this._checkValueHasRaw(value)}`
                     ].join(' ')
                 ]);
-                return this;
+                continue;
             }
             switch (useOp.op) {
                 case 'IN': {
@@ -1948,6 +1973,14 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
                 case '|IN': {
                     this.orWhereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'QUERY': {
+                    this.whereSubQuery(column, useOp.value);
+                    break;
+                }
+                case '!QUERY': {
+                    this.orWhereSubQuery(column, useOp.value);
                     break;
                 }
                 case 'NOT IN': {
@@ -3083,6 +3116,34 @@ class Model extends AbstractModel_1.AbstractModel {
         return this.createOrSelect(data);
     }
     /**
+    *
+    * @override
+    * @param {object} data create not exists data
+    * @return {this} this
+    */
+    createNotExists(data) {
+        if (!Object.keys(data).length)
+            throw this._assertError('This method must be required');
+        this.$state.set('DATA', data);
+        const query = this._queryInsertModel(data);
+        this.$state.set('INSERT', [
+            `${this.$constants('INSERT')}`,
+            `${this.$state.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
+        return this;
+    }
+    /**
+     *
+     * @override
+     * @param {object} data create not exists data
+     * @return {this} this this
+     */
+    insertNotExists(data) {
+        return this.createNotExists(data);
+    }
+    /**
      * @override
      * @param {Record<string,any>[]} data create multiple data
      * @return {this} this this
@@ -3106,34 +3167,6 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     insertMultiple(data) {
         return this.createMultiple(data);
-    }
-    /**
-     *
-     * @override
-     * @param {object} data create not exists data
-     * @return {this} this
-     */
-    createNotExists(data) {
-        if (!Object.keys(data).length)
-            throw this._assertError('This method must be required');
-        this.$state.set('DATA', data);
-        const query = this._queryInsertModel(data);
-        this.$state.set('INSERT', [
-            `${this.$constants('INSERT')}`,
-            `${this.$state.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        this.$state.set('SAVE', 'INSERT_NOT_EXISTS');
-        return this;
-    }
-    /**
-     *
-     * @override
-     * @param {object} data create not exists data
-     * @return {this} this this
-     */
-    insertNotExists(data) {
-        return this.createNotExists(data);
     }
     /**
      *
@@ -4520,3 +4553,4 @@ class Model extends AbstractModel_1.AbstractModel {
 }
 exports.Model = Model;
 exports.default = Model;
+//# sourceMappingURL=Model.js.map

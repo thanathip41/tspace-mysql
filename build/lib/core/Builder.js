@@ -25,8 +25,8 @@ const AbstractBuilder_1 = require("./Abstracts/AbstractBuilder");
 const utils_1 = require("../utils");
 const constants_1 = require("../constants");
 const DB_1 = require("./DB");
-const connection_1 = require("../connection");
 const State_1 = require("./Handlers/State");
+const connection_1 = require("../connection");
 class Builder extends AbstractBuilder_1.AbstractBuilder {
     constructor() {
         super();
@@ -379,6 +379,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 case '|IN': {
                     this.orWhereIn(column, Array.isArray(useOp.value) ? useOp.value : useOp.value.split(','));
+                    break;
+                }
+                case 'QUERY': {
+                    this.whereSubQuery(column, useOp.value);
+                    break;
+                }
+                case '!QUERY': {
+                    this.orWhereSubQuery(column, useOp.value);
                     break;
                 }
                 case 'NOT IN': {
@@ -1299,7 +1307,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
-    * The 'join' method is used to perform various types of SQL joins between two or more database tables.
+    * The 'joinSubQuery' method is used to perform various types of SQL joins between two or more database tables.
     *
     * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
     * @param    {object}  property object { localKey , foreignKey , sqlr }
@@ -1751,6 +1759,76 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return this;
     }
     /**
+     *
+     * The 'updateMultiple' method is used to update existing records in a database table that are associated.
+     *
+     * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+     *
+     * It allows you to remove more records that match certain criteria.
+     * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
+     * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
+     * @return {this} this
+     */
+    updateMultiple(cases) {
+        if (!cases.length)
+            throw new Error(`The method 'updateMultiple' must not be empty.`);
+        this.limit(cases.length);
+        const updateColumns = cases.reduce((columns, item) => {
+            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = [
+                this.$constants('RAW'),
+                this.$constants('CASE'),
+                `${this.$constants('ELSE')} ${this.bindColumn(key)}`,
+                this.$constants('END')
+            ]), columns);
+        }, {});
+        const columns = cases.reduce((columns, item) => {
+            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = ''), columns);
+        }, {});
+        for (let i = cases.length - 1; i >= 0; i--) {
+            const c = cases[i];
+            if (c.when == null || !Object.keys(c.when).length)
+                throw new Error(`This 'when' property is missing some properties`);
+            if (c.columns == null || !Object.keys(c.columns).length)
+                throw new Error(`This 'columns' property is missing some properties`);
+            const when = Object.entries(c.when).map(([key, value]) => {
+                value = this.$utils.escape(value);
+                value = this._valueTrueFalse(value);
+                return `${this.bindColumn(key)} = '${value}'`;
+            });
+            for (const [key, value] of Object.entries(c.columns)) {
+                if (updateColumns[key] == null)
+                    continue;
+                const startIndex = updateColumns[key].indexOf(this.$constants('CASE'));
+                const str = `${this.$constants('WHEN')} ${when.join(` ${this.$constants('AND')} `)} ${this.$constants('THEN')} '${value}'`;
+                updateColumns[key].splice(startIndex + 1, 0, str);
+            }
+        }
+        for (const key in columns) {
+            if (updateColumns[key] == null)
+                continue;
+            columns[key] = `( ${updateColumns[key].join(' ')} )`;
+        }
+        const keyValue = Object.entries(columns).map(([column, value]) => {
+            if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
+                value = this.$utils.escapeActions(value);
+            }
+            return `${this.bindColumn(column)} = ${value == null || value === this.$constants('NULL')
+                ? this.$constants('NULL')
+                : typeof value === 'string' && value.includes(this.$constants('RAW'))
+                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
+                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
+        });
+        const query = `${this.$constants('SET')} ${keyValue.join(', ')}`;
+        this.$state.set('UPDATE', [
+            `${this.$constants('UPDATE')}`,
+            `${this.$state.get('TABLE_NAME')}`,
+            `${query}`
+        ].join(' '));
+        this.$state.set('SAVE', 'UPDATE');
+        return this;
+    }
+    /**
      * The 'updateNotExists' method is used to update existing records in a database table that are associated.
      *
      * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
@@ -1963,71 +2041,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     createOrUpdate(data) {
         this.updateOrCreate(data);
-        return this;
-    }
-    /**
-     *
-     * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
-     * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
-     * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
-     * @return {this} this
-     */
-    updateMultiple(cases) {
-        if (!cases.length)
-            throw new Error(`The method 'updateMultiple' must not be empty.`);
-        this.limit(cases.length);
-        const updateColumns = cases.reduce((columns, item) => {
-            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = [
-                this.$constants('RAW'),
-                this.$constants('CASE'),
-                `${this.$constants('ELSE')} ${this.bindColumn(key)}`,
-                this.$constants('END')
-            ]), columns);
-        }, {});
-        const columns = cases.reduce((columns, item) => {
-            return (item.columns && Object.keys(item.columns).forEach(key => columns[key] = ''), columns);
-        }, {});
-        for (let i = cases.length - 1; i >= 0; i--) {
-            const c = cases[i];
-            if (c.when == null || !Object.keys(c.when).length)
-                throw new Error(`This 'when' property is missing some properties`);
-            if (c.columns == null || !Object.keys(c.columns).length)
-                throw new Error(`This 'columns' property is missing some properties`);
-            const when = Object.entries(c.when).map(([key, value]) => {
-                value = this.$utils.escape(value);
-                value = this._valueTrueFalse(value);
-                return `${this.bindColumn(key)} = '${value}'`;
-            });
-            for (const [key, value] of Object.entries(c.columns)) {
-                if (updateColumns[key] == null)
-                    continue;
-                const startIndex = updateColumns[key].indexOf(this.$constants('CASE'));
-                const str = `${this.$constants('WHEN')} ${when.join(` ${this.$constants('AND')} `)} ${this.$constants('THEN')} '${value}'`;
-                updateColumns[key].splice(startIndex + 1, 0, str);
-            }
-        }
-        for (const key in columns) {
-            if (updateColumns[key] == null)
-                continue;
-            columns[key] = `( ${updateColumns[key].join(' ')} )`;
-        }
-        const keyValue = Object.entries(columns).map(([column, value]) => {
-            if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
-                value = this.$utils.escapeActions(value);
-            }
-            return `${this.bindColumn(column)} = ${value == null || value === this.$constants('NULL')
-                ? this.$constants('NULL')
-                : typeof value === 'string' && value.includes(this.$constants('RAW'))
-                    ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
-                    : `'${this.$utils.covertBooleanToNumber(value)}'`}`;
-        });
-        const query = `${this.$constants('SET')} ${keyValue.join(', ')}`;
-        this.$state.set('UPDATE', [
-            `${this.$constants('UPDATE')}`,
-            `${this.$state.get('TABLE_NAME')}`,
-            `${query}`
-        ].join(' '));
-        this.$state.set('SAVE', 'UPDATE');
         return this;
     }
     /**
@@ -3398,13 +3411,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         });
     }
     _checkValueHasRaw(value) {
-        const detectedValue = typeof value === 'string' && value.startsWith(this.$constants('RAW'))
+        const detectedValue = typeof value === 'string' && value.includes(this.$constants('RAW'))
             ? `${this.$utils.covertBooleanToNumber(value)}`.replace(this.$constants('RAW'), '')
             : `'${this.$utils.covertBooleanToNumber(value)}'`;
         return detectedValue;
     }
     _checkValueHasOp(str) {
         var _a;
+        if (typeof str !== 'string')
+            str = String(str);
         if (!str.includes(this.$constants('OP')) || !str.includes(this.$constants('VALUE'))) {
             return null;
         }
@@ -3684,3 +3699,4 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
 }
 exports.Builder = Builder;
 exports.default = Builder;
+//# sourceMappingURL=Builder.js.map

@@ -34,3 +34,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tspace = __importStar(require("./core"));
 __exportStar(require("./core"), exports);
 exports.default = tspace;
+//# sourceMappingURL=index.js.map

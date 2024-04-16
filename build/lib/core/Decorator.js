@@ -172,3 +172,4 @@ const BelongsToMany = ({ name, as, model, localKey, foreignKey, freezeTable, piv
     };
 };
 exports.BelongsToMany = BelongsToMany;
+//# sourceMappingURL=Decorator.js.map

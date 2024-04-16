@@ -10,11 +10,30 @@ const make_1 = __importDefault(require("./models/make"));
 const make_2 = __importDefault(require("./tables/make"));
 const make_3 = __importDefault(require("./migrate/make"));
 const make_4 = __importDefault(require("./generate/make"));
-const make_5 = __importDefault(require("./migrations/make"));
+const make_model_1 = __importDefault(require("./migrations/make-model"));
 const make_db_1 = __importDefault(require("./migrations/make-db"));
 const query_1 = __importDefault(require("./query"));
 const db_1 = __importDefault(require("./dump/db"));
 const table_1 = __importDefault(require("./dump/table"));
+const help = () => {
+    console.log(`
+\x1b[31m
+    tspace-mysql make:model User --m --dir=app/Models  
+    tspace-mysql make:migration users --dir=app/Models/Migrations
+    tspace-mysql migrate --dir=App/Models/Migrations --type=js
+    tspace-mysql query "SELECT * FROM users" --env=development
+    tspace-mysql generate:models --dir=app/Models --env=development
+    tspace-mysql generate:models --dir=app/Models --env=development --decorators
+    tspace-mysql dump:db "database" --dir=app/db --v --env=development
+    tspace-mysql dump:table "table" --dir=app/table --v --env=development
+    tspace-mysql migrations:models --dir=migrations --models=src/models --generate
+    tspace-mysql migrations:models --dir=migrations --models=src/models --push
+    tspace-mysql migrations:db --dir=migrations --generate --db=new-db
+    tspace-mysql migrations:db --dir=migrations --push
+\x1b[0m
+`);
+    console.log(`Read more https://www.npmjs.com/package/tspace-mysql`);
+};
 const commands = {
     'query': query_1.default,
     'make:model': make_1.default,
@@ -25,27 +44,10 @@ const commands = {
     'gen:models': make_4.default,
     'dump:db': db_1.default,
     'dump:table': table_1.default,
-    'migrations:models': make_5.default,
+    'migrations:models': make_model_1.default,
     'migrations:db': make_db_1.default,
-    'help': () => {
-        console.log(`
-        \x1b[31m
-            tspace-mysql make:model User --m --dir=app/Models  
-            tspace-mysql make:migration users --dir=app/Models/Migrations
-            tspace-mysql migrate --dir=App/Models/Migrations --type=js
-            tspace-mysql query "SELECT * FROM users" --env=development
-            tspace-mysql generate:models --dir=app/Models --env=development
-            tspace-mysql generate:models --dir=app/Models --env=development --decorators
-            tspace-mysql dump:db "database" --dir=app/db --v --env=development
-            tspace-mysql dump:table "table" --dir=app/table --v --env=development
-            tspace-mysql migrations:models --dir=migrations --models=src/models --generate
-            tspace-mysql migrations:models --dir=migrations --models=src/models --push
-            tspace-mysql migrations:db --dir=migrations --generate
-            tspace-mysql migrations:db --dir=migrations --push
-        \x1b[0m
-    `);
-        console.log(`Read more https://www.npmjs.com/package/tspace-mysql`);
-    }
+    'help': () => help(),
+    'lists': () => help()
 };
 try {
     const name = (_c = (_b = (_a = process.argv.slice(2)) === null || _a === void 0 ? void 0 : _a.find(data => {
@@ -101,5 +103,6 @@ try {
     commands[process.argv[2]](cmd);
 }
 catch (err) {
-    console.log("The input command failed. Please try again using 'tspace-mysql help'");
+    console.log("The input command failed. Please try again using 'tspace-mysql lists'");
 }
+//# sourceMappingURL=index.js.map

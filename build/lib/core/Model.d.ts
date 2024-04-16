@@ -1,6 +1,7 @@
 import { AbstractModel } from './Abstracts/AbstractModel';
 import { Blueprint } from './Blueprint';
-import { Relation, Pagination, RelationQuery, ValidateSchema, GlobalSetting } from '../Interface';
+import { TShemaModel } from './UtilityTypes';
+import { TRelationOptions, TPagination, TRelationQueryOptions, TValidateSchema, TGlobalSetting, TRawStringQuery } from '../types';
 /**
  *
  * 'Model' class is a representation of a database table
@@ -11,7 +12,7 @@ import { Relation, Pagination, RelationQuery, ValidateSchema, GlobalSetting } fr
  * const users = await new User().findMany()
  * console.log(users)
  */
-declare class Model<TSchema extends Record<string, Blueprint | string | number | Date> = any, TRelation = any> extends AbstractModel<TSchema, TRelation> {
+declare class Model<TSchema extends Record<string, any> = any, TRelation = unknown> extends AbstractModel<TSchema, TRelation> {
     constructor();
     /**
      * The 'global' method is used setting global variables in models.
@@ -26,7 +27,16 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * })
      * @return {void} void
      */
-    static global(settings: GlobalSetting): void;
+    static global(settings: TGlobalSetting): void;
+    /**
+     * The 'column' method is used keyof column in schema.
+     * @param {string} column
+     * @example
+     * import { User } from '../User'
+     * Model.column<User>('id')
+     * @return {string} column
+     */
+    static column<T extends Model>(column: keyof TShemaModel<T> | `${string}.${string}`): string;
     /**
      * The 'instance' method is used get instance.
      * @override
@@ -138,7 +148,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * It's automatically create, called when not exists table or columns.
      * @param {object} schema using Blueprint for schema
      * @example
-     * import { Blueprint } from 'tspace-mysql'
+     * import { Blueprint, TRelation } from 'tspace-mysql';
      * class User extends Model {
      *     constructor() {
      *        super()
@@ -370,7 +380,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  }
      * }
      */
-    protected useValidationSchema(schema?: ValidateSchema): this;
+    protected useValidationSchema(schema?: TValidateSchema): this;
     /**
      * This 'useValidateSchema' method is used to validate the schema when have some action create or update.
      * @param {Object<ValidateSchema>} schema types (String Number and Date)
@@ -402,7 +412,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  }
      * }
      */
-    protected useValidateSchema(schema?: ValidateSchema): this;
+    protected useValidateSchema(schema?: TValidateSchema): this;
     /**
      * The "useHooks" method is used to assign hook function when execute returned results to callback function.
      * @param {Function[]} arrayFunctions functions for callback result
@@ -445,20 +455,24 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param    {Function} callback query callback
      * @return   {this}   this
      */
-    protected buildMethodRelation<K extends keyof TRelation>(name: K, callback?: Function): this;
+    protected buildMethodRelation<K extends TRelation extends object ? keyof TRelation : string>(name: K, callback?: Function): this;
     /**
-     * The "column" method is used get column from your schema.
-     * @param {string} column
-     * @return {string}
-    */
-    column<K extends keyof TSchema | `${string}.${string}`>(column: K): K;
+     * The 'typeOfSchema' method is used get type of schema.
+     * @return {TSchema} type of schema
+     */
+    typeOfSchema(): TSchema;
+    /**
+     * The 'typeOfRelation' method is used get type of relation.
+     * @return {TRelation} type of Relation
+     */
+    typeOfRelation(): TRelation;
     /**
      *
      * @override
      * @param {string[]} ...columns
      * @return {this} this
      */
-    select<K extends Extract<keyof TSchema, string> | `${string}.${string}` | '*'>(...columns: K[]): this;
+    select<K extends Extract<keyof TSchema, string> | `${string}.${string}` | TRawStringQuery | '*'>(...columns: K[]): this;
     /**
      *
      * @override
@@ -627,7 +641,8 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @return {this} this
      * @example
-     *   import { Model } from 'tspace-mysql'
+     *   import { Model , TRelation } from 'tspace-mysql'
+     *
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -646,7 +661,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  await new User().relations('posts').findMany()
      *
      */
-    with<K extends keyof TRelation>(...nameRelations: K[]): this;
+    with<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -655,7 +670,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withAll<K extends keyof TRelation>(...nameRelations: K[]): this;
+    withAll<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
     * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
     *
@@ -664,7 +679,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
     * @param {...string} nameRelations if data exists return blank
     * @return {this} this
     */
-    withCount<K extends keyof TRelation>(...nameRelations: K[]): this;
+    withCount<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      * The 'withTrashed' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -673,7 +688,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    withTrashed<K extends keyof TRelation>(...nameRelations: K[]): this;
+    withTrashed<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      * The 'withExists' method is used to eager load related (relations) data when retrieving records from a database.
      *
@@ -683,6 +698,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
+import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -700,7 +716,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  // use with for results of relationship if relations is exists
      *  await new User().relationsExists('posts').findMany()
      */
-    withExists<K extends keyof TRelation>(...nameRelations: K[]): this;
+    withExists<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -725,7 +741,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  await new User().has('posts').findMany()
      * @return {this} this
      */
-    has<K extends keyof TRelation>(...nameRelations: K[]): this;
+    has<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      *
      * The 'withQuery' method is particularly useful when you want to filter or add conditions records based on related data.
@@ -774,7 +790,8 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  .findMany()
      * @return {this} this
      */
-    withQuery<K extends keyof TRelation, TModel extends Model>(nameRelation: K, callback: (query: TModel) => TModel): this;
+    withQuery<K extends TRelation extends object ? keyof TRelation : string, TModel extends Model>(nameRelation: K, callback: (query: TModel) => TModel): this;
+    findWithQuery<K extends TRelation extends object ? keyof TRelation : string, TModel extends Model>(nameRelation: K): Model<any, any> | undefined;
     /**
      *
      * Use relations in registry of model return result of relation query
@@ -799,7 +816,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  await new User().relations('posts').findMany()
      * @return {this} this
      */
-    relations(...nameRelations: any[]): this;
+    relations<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      *
      * Use relations in registry of model return only exists result of relation query
@@ -824,7 +841,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  await new User().relationsExists('posts').findMany()
      * @return {this} this
      */
-    relationsExists<K extends keyof TRelation>(...nameRelations: K[]): this;
+    relationsExists<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      *
      * Use relation '${name}' registry of model return callback this query model
@@ -856,13 +873,13 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *   }
      *
      *   await new User().relations('posts')
-     *   .relationQuery('posts', (query : Post) => {
+     *   .TRelationQueryOptions('posts', (query : Post) => {
      *       return query.relations('comments','user')
-     *       .relationQuery('comments', (query : Comment) => {
+     *       .TRelationQueryOptions('comments', (query : Comment) => {
      *           return query.relations('user','post')
      *       })
-     *       .relationQuery('user', (query : User) => {
-     *           return query.relations('posts').relationQuery('posts',(query : Post)=> {
+     *       .TRelationQueryOptions('user', (query : User) => {
+     *           return query.relations('posts').TRelationQueryOptions('posts',(query : Post)=> {
      *               return query.relations('comments','user')
      *               // relation n, n, ...n
      *           })
@@ -871,21 +888,21 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      *  .findMany()
      * @return {this} this
      */
-    relationQuery<K extends keyof TRelation, T extends Model>(nameRelation: K, callback: (query: T) => T): this;
+    TRelationQueryOptions<K extends TRelation extends object ? keyof TRelation : string, T extends Model>(nameRelation: K, callback: (query: T) => T): this;
     /**
      *
      * Use relations in registry of model return ignore soft deleted
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsAll<K extends keyof TRelation>(...nameRelations: K[]): this;
+    relationsAll<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      *
      * Use relations in registry of model return only in trash (soft delete)
      * @param {...string} nameRelations if data exists return blank
      * @return {this} this
      */
-    relationsTrashed<K extends keyof TRelation>(...nameRelations: K[]): this;
+    relationsTrashed<K extends TRelation extends object ? keyof TRelation : string>(...nameRelations: K[]): this;
     /**
      * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
      *
@@ -902,7 +919,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected hasOne<K extends keyof TRelation>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
+    protected hasOne<K extends TRelation extends object ? keyof TRelation : string>({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions<K>): this;
     /**
      * The 'hasMany' relationship defines a one-to-many relationship between two database tables.
      *
@@ -919,7 +936,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected hasMany<K extends keyof TRelation>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
+    protected hasMany<K extends TRelation extends object ? keyof TRelation : string>({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions<K>): this;
     /**
      * The 'belongsTo' relationship defines a one-to-one or many-to-one relationship between two database tables.
      *
@@ -936,7 +953,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {string} relation.freezeTable
      * @return   {this}   this
      */
-    protected belongsTo<K extends keyof TRelation>({ name, as, model, localKey, foreignKey, freezeTable }: Relation<K>): this;
+    protected belongsTo<K extends TRelation extends object ? keyof TRelation : string>({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions<K>): this;
     /**
      * The 'belongsToMany' relationship defines a many-to-many relationship between two database tables.
      *
@@ -956,7 +973,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {class?} relation.modelPivot model for pivot
      * @return   {this}   this
      */
-    protected belongsToMany<K extends keyof TRelation>({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: Relation<K>): this;
+    protected belongsToMany<K extends TRelation extends object ? keyof TRelation : string>({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: TRelationOptions<K>): this;
     /**
      * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
      *
@@ -971,7 +988,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param    {Function?} callback callback of query
      * @return   {this} this
      */
-    protected hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
+    protected hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable }: TRelationQueryOptions, callback?: Function): this;
     /**
      * The 'hasManyBuilder' method is useful for creating 'hasMany' relationship to function
      *
@@ -986,7 +1003,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    protected hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
+    protected hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }: TRelationQueryOptions, callback?: Function): this;
     /**
      * The 'belongsToBuilder' method is useful for creating 'belongsTo' relationship to function
      * @param    {object}  relation registry relation in your model
@@ -1000,7 +1017,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    protected belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable }: RelationQuery, callback?: Function): this;
+    protected belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable }: TRelationQueryOptions, callback?: Function): this;
     /**
      * The 'belongsToManyBuilder' method is useful for creating 'belongsToMany' relationship to function
      * @param    {object}  relation registry relation in your model
@@ -1014,7 +1031,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param    {function?} callback callback of query
      * @return   {this} this
      */
-    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: RelationQuery, callback?: Function): this;
+    protected belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }: TRelationQueryOptions, callback?: Function): this;
     /**
      * The 'trashed' method is used to specify that you want to retrieve only the soft-deleted records from a database table.
      *
@@ -1054,7 +1071,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {any?} value
      * @return {this} this
      */
-    where<K extends keyof TSchema | `${string}.${string}`>(column: K | Record<string, any>, operator?: any, value?: any): this;
+    where<K extends keyof TSchema | `${string}.${string}` | TRawStringQuery>(column: K | Record<string, any>, operator?: any, value?: any): this;
     /**
      * @override
      * @param {string} column
@@ -1068,7 +1085,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {Object} columns
      * @return {this}
      */
-    whereObject<K extends keyof TSchema>(columns: Record<K, string | boolean | null | any[]>): this;
+    whereObject<K extends keyof TSchema>(columns: Record<K, string | number | boolean | null | any[]>): this;
     /**
     * @override
     * @param    {string} column
@@ -1124,7 +1141,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {string} subQuery
      * @return {this}
      */
-    whereSubQuery<K extends keyof TSchema | `${string}.${string}`>(column: K, subQuery: string): this;
+    whereSubQuery<K extends keyof TSchema | `${string}.${string}`, Q extends string>(column: K, subQuery: string): this;
     /**
      * @override
      * @param {string} column
@@ -1280,38 +1297,38 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {Function?} cb callback function return query sql
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    first<K>(cb?: Function): Promise<Partial<TSchema> & K & TRelation | null>;
+    first<K>(cb?: Function): Promise<TSchema & K & Partial<TRelation extends any ? TSchema & TRelation : TRelation> | null>;
     /**
      * @override
      * @param {Function?} cb callback function return query sql
      * @return {promise<Record<string,any> | null>} Record | null
     */
-    findOne<K>(cb?: Function): Promise<Partial<TSchema> & K | null>;
+    findOne<K>(cb?: Function): Promise<Partial<TSchema> & K & Partial<TRelation> | null>;
     /**
      * @override
      * @return {promise<object | Error>} Record | throw error
     */
-    firstOrError<K>(message: string, options?: Record<string, any>): Promise<Partial<TSchema> & K>;
+    firstOrError<K>(message: string, options?: Record<string, any>): Promise<TSchema & K & Partial<TRelation>>;
     /**
      *
      * @override
      * @return {promise<any>} Record | throw error
     */
-    findOneOrError<K>(message: string, options?: Record<string, any>): Promise<Partial<TSchema> & K>;
+    findOneOrError<K>(message: string, options?: Record<string, any>): Promise<Partial<TSchema> & K & Partial<TRelation>>;
     /**
      *
      * @override
      * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    get<K>(cb?: Function): Promise<Partial<(TSchema & TRelation & K)>[]>;
+    get<K>(cb?: Function): Promise<(TSchema & K & Partial<TRelation>)[]>;
     /**
      *
      * @override
      * @param {Function?} cb callback function return query sql
      * @return {promise<array>} Array
     */
-    findMany<K>(cb?: Function): Promise<Partial<(TSchema & TRelation & K)>[]>;
+    findMany<K>(cb?: Function): Promise<Partial<(TSchema & K & Partial<TRelation>)>[]>;
     /**
      * @override
      * @param {object?} paginationOptions by default page = 1 , limit = 15
@@ -1322,7 +1339,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
     pagination<K>(paginationOptions?: {
         limit?: number;
         page?: number;
-    }): Promise<Pagination<Partial<(TSchema & TRelation & K)>[]>>;
+    }): Promise<TPagination<Partial<(TSchema & K & Partial<TRelation>)>[]>>;
     /**
     *
     * @override
@@ -1334,7 +1351,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
     paginate<K>(paginationOptions?: {
         limit?: number;
         page?: number;
-    }): Promise<Pagination<Partial<(TSchema & TRelation & K)>[]>>;
+    }): Promise<TPagination<Partial<(TSchema & K & Partial<TRelation>)>[]>>;
     /**
      * @override
      * @param {string} column
@@ -1353,16 +1370,20 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return {this} this
      */
     insert<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for insert
      * @return {this} this
      */
     create<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data
@@ -1370,8 +1391,10 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return {this} this
      */
     update<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never, updateNotExists?: string[]): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }, updateNotExists?: string[]): this;
     /**
      * @override
      * @param {object} data
@@ -1379,86 +1402,91 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return {this} this
      */
     updateMany<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never, updateNotExists?: string[]): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }, updateNotExists?: string[]): this;
     /**
      * @override
      * @param {object} data
      * @return {this} this
      */
     updateNotExists<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for update or create
      * @return {this} this
      */
     updateOrCreate<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for update or create
      * @return {this} this
      */
     updateOrInsert<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for update or create
      * @return {this} this
      */
     insertOrUpdate<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for update or create
      * @return {this} this
      */
     createOrUpdate<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for create
      * @return {this} this
      */
     createOrSelect<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      * @override
      * @param {object} data for update or create
      * @return {this} this
      */
     insertOrSelect<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
-     * @override
-     * @param {Record<string,any>[]} data create multiple data
-     * @return {this} this this
-     */
-    createMultiple<K extends keyof TSchema>(data: Record<K, string | number | boolean | null | undefined>[]): this;
-    /**
-     *
-     * @override
-     * @param {Record<string,any>[]} data create multiple data
-     * @return {this} this
-     */
-    insertMultiple<K extends keyof TSchema>(data: Record<K, string | number | boolean | null | undefined>[]): this;
-    /**
-     *
-     * @override
-     * @param {object} data create not exists data
-     * @return {this} this
-     */
+    *
+    * @override
+    * @param {object} data create not exists data
+    * @return {this} this
+    */
     createNotExists<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
     /**
      *
      * @override
@@ -1466,8 +1494,27 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @return {this} this this
      */
     insertNotExists<K extends keyof TSchema>(data: K extends keyof TSchema ? {
-        [P in K]: string | number | boolean | null | undefined;
-    } : never): this;
+        [P in K]: TSchema[K];
+    } : {
+        [P in K]: any;
+    }): this;
+    /**
+     * @override
+     * @param {Record<string,any>[]} data create multiple data
+     * @return {this} this this
+     */
+    createMultiple<K extends keyof TSchema>(data: (K extends keyof TSchema ? Partial<{
+        [K in keyof TSchema]: TSchema[K];
+    }> : Record<string, any>)[]): this;
+    /**
+     *
+     * @override
+     * @param {Record<string,any>[]} data create multiple data
+     * @return {this} this
+     */
+    insertMultiple<K extends keyof TSchema>(data: (K extends keyof TSchema ? Partial<{
+        [K in keyof TSchema]: TSchema[K];
+    }> : Record<string, any>)[]): this;
     /**
      *
      * @override
@@ -1476,9 +1523,13 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
      * @return {this} this
      */
-    updateMultiple(cases: {
-        when: Record<string, any>;
-        columns: Record<string, string | number | boolean | null | undefined>;
+    updateMultiple<K extends keyof TSchema>(cases: {
+        when: (K extends keyof TSchema ? Partial<{
+            [K in keyof TSchema]: TSchema[K];
+        }> : Record<string, any>);
+        columns: (K extends keyof TSchema ? Partial<{
+            [K in keyof TSchema]: TSchema[K];
+        }> : Record<string, any>);
     }[]): this;
     /**
      * The 'getSchemaModel' method is used get a schema model
@@ -1490,7 +1541,7 @@ declare class Model<TSchema extends Record<string, Blueprint | string | number |
      * @param {ValidateSchema} schema
      * @return {this} this
      */
-    validation(schema?: ValidateSchema): this;
+    validation(schema?: TValidateSchema): this;
     /**
      * The 'bindPattern' method is used to covert column relate with pattern
      * @param {string} column

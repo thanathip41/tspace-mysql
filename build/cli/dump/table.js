@@ -38,3 +38,4 @@ exports.default = (cmd) => {
         .catch(err => console.log(err))
         .finally(() => process.exit(0));
 };
+//# sourceMappingURL=table.js.map
