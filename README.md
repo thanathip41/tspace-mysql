@@ -63,7 +63,7 @@ npm install tspace-mysql -g
     - [Observer](#observer)
     - [Logger](#logger)
     - [Hooks](#hooks)
-  - [SoftDelete](#soft-delete)
+  - [SoftDelete](#softdelete)
   - [Schema](#schema)
     - [Schema Model](#schema-model)
     - [Validation](#validation)
@@ -75,6 +75,7 @@ npm install tspace-mysql -g
     - [Many To Many](#many-to-many)
     - [Deeply Nested Relations](#deeply-nested-relations)
     - [Relation Exists](#relation-exists)
+    - [Relation Trashed](#relation-trashed)
     - [Built in Relation Functions](#built-in-relation-functions)
   - [Decorator](#decorator)
   - [Type Safety](#type-safety)
@@ -1414,6 +1415,10 @@ class User extends Model {
 const user = await new User().where('user_id',1).findOne()
 // SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NULL LIMIT 1;
 
+// find in trashed
+const user = await new User().trashed().findMany()
+// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NOT NULL;
+
 ```
 
 ### Relationships
@@ -1700,6 +1705,9 @@ class Post extends Model {
 }
 // normal relations
 await new User().relations('posts').findMany()
+// SELECT * FROM `users` WHERE `users`.`deleted_at`;
+// SELECT * FROM `posts` WHERE `posts`.`userId` IN (...) AND `posts`.`deleted_at` IS NULL;
+
 /*
  * @returns [
  *  {
@@ -1730,6 +1738,11 @@ await new User().relations('posts').findMany()
 */
 
 await new User().relationsExists('posts').findMany()
+// SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL 
+// AND EXISTS (SELECT 1 FROM `posts` WHERE `users`.`id` = `posts`.`user_id` AND `posts`.`deletedA_at` IS NULL );
+
+// SELECT * FROM `posts` WHERE `posts`.`user_id` IN (...) AND `posts`.`deleted_at` IS NULL;
+
 /*
  * @returns [
  *  {
@@ -1748,6 +1761,130 @@ await new User().relationsExists('posts').findMany()
  * because posts id 1 and id 3 has been removed from database (using soft delete)
  */
 
+```
+
+#### Relation Trashed
+Relationships can return results only if they are deleted in table, considering soft deletes.
+Let's illustrate this with an example:
+```js
+
++-------------+--------------+----------------------------+--------------------+
+|                     table users                         |                    |
++-------------+--------------+----------------------------+--------------------+
+| id          | username     | email                      | deleted_at         |
+|-------------|--------------|----------------------------|--------------------|
+| 1           | tspace1      | tspace1@gmail.com          |                    |
+| 2           | tspace2      | tspace2@gmail.com          |                    |
+| 3           | tspace3      | tspace3@gmail.com          |2020-07-15 00:00:00 |
++-------------+--------------+----------------------------+--------------------+
+
++-------------+--------------+----------------------------+--------------------+
+|                     table posts                         |                    |
++-------------+--------------+----------------------------+--------------------+
+| id          | user_id      | title                      | deleted_at         |
+|-------------|--------------|----------------------------|--------------------|
+| 1           | 1            | posts 1                    |2020-07-15 00:00:00 |
+| 2           | 2            | posts 2                    |                    |
+| 3           | 3            | posts 3                    |2020-07-15 00:00:00 |
++-------------+--------------+----------------------------+--------------------+
+
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'posts' , model : Post })
+        this.useSoftDelete()
+    }
+}
+
++--------------------------------------------------------------------------+
+
+class Post extends Model {
+    constructor(){
+        super()
+        this.hasMany({ name : 'comments' , model : Comment })
+        this.belongsTo({ name : 'user' , model : User })
+        this.useSoftDelete()
+    }
+}
+
+// normal relations
+await new User().relations('posts').findMany()
+// SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL;
+// SELECT * FROM `posts` WHERE `posts`.`user_id` IN (...) AND `posts`.`deleted_at` IS NULL;
+
+/*
+ * @returns [
+ *  {
+ *      id : 1,
+ *      username:  "tspace1",
+ *      email : "tspace1@gmail.com",
+ *      posts : []
+ *  }
+ *  {
+ *      id : 2,
+ *      username:  "tspace2",
+ *      email : "tspace2@gmail.com",
+ *      posts : [
+ *        {
+ *          id : 2,
+ *          user_id :  2,
+ *          title : "posts 2"
+ *        }
+ *    ]
+ *  }
+ * ]
+ */
+
+// relationsTrashed
+await new User().relationsTrashed('posts').findMany()
+// SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL;
+// SELECT * FROM `posts` WHERE `posts`.`user_id` IN (...) AND `posts`.`deleted_at` IS NOT NULL;
+
+/*
+ * @returns [
+ *  {
+ *      id : 1,
+ *      username:  "tspace1",
+ *      email : "tspace1@gmail.com",
+ *      posts : [
+ *       {
+ *          id : 1,
+ *          user_id :  1,
+ *          title : "posts 1"
+ *        }
+ *      ]
+ *  }
+ *  {
+ *      id : 2,
+ *      username:  "tspace2",
+ *      email : "tspace2@gmail.com",
+ *      posts : []
+ *  }
+ * ]
+ */
+
+// relationsTrashed + trashed
+await new User().relationsTrashed('posts').trashed().findMany()
+// SELECT * FROM `users` WHERE `users`.`deleted_at` IS NOT NULL;
+// SELECT * FROM `posts` WHERE `posts`.`user_id` IN (...) AND `posts`.`deleted_at` IS NOT NULL;
+/*
+ * @returns [
+ *  {
+ *      id : 3,
+ *      username:  "tspace3",
+ *      email : "tspace3@gmail.com",
+ *      posts : [
+ *        {
+ *          id : 3,
+ *          user_id :  3,
+ *          title : "posts 3"
+ *        }
+ *      ]
+ *  }
+ * ]
+ */
 
 ```
 
@@ -2452,7 +2589,8 @@ const users = await new User()
 
 ## Repository
 ```js
-Repository is a mechanism that encapsulates all database operations related to a specific model. It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
+Repository is a mechanism that encapsulates all database operations related to a specific model. 
+It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
 
 ** The Repository check always type safety if model is used the type of schema 
 
@@ -2656,6 +2794,7 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
 (async () => {
     await new Schema().table('users', {
         id           : new Blueprint().int().notNull().primary().autoIncrement(),
+        // or id     : new Blueprint().serial().primary(),
         uuid         : new Blueprint().varchar(120).null()
         name         : new Blueprint().varchar(120).default('name'),
         email        : new Blueprint().varchar(255).unique().notNull(),

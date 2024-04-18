@@ -1,5 +1,5 @@
 import { Model } from "./Model";
-import { TRelationModel, TShemaModel } from "./UtilityTypes";
+import { TRelationModel, TSchemaModel } from "./UtilityTypes";
 import { TPagination, TRepositoryRequest, TRepositoryRequestPagination, TRepositoryRequestAggregate, TRepositoryCreateMultiple, TRepositoryCreateOrThings, TRepositoryCreate, TRepositoryDelete, TRepositoryUpdate, TRepositoryUpdateMultiple } from "../types";
 declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown> {
     private _model;
@@ -682,7 +682,7 @@ export declare class Repository {
      * @param {Model} model A class constructor for a model
      * @returns {RepositoryHandler<T,R>}
      */
-    bind<M extends Model>(model: new () => M): RepositoryHandler<TShemaModel<M>, TRelationModel<M>>;
+    bind<M extends Model>(model: new () => M): RepositoryHandler<TSchemaModel<M>, TRelationModel<M>>;
     /**
      *
      * The 'bind' method is used to bind the model to the repository
@@ -690,6 +690,6 @@ export declare class Repository {
      * @param {Model} model A class constructor for a model
      * @returns {RepositoryHandler<T,R>}
      */
-    static bind<M extends Model>(model: new () => M): RepositoryHandler<TShemaModel<M>, TRelationModel<M>>;
+    static bind<M extends Model>(model: new () => M): RepositoryHandler<TSchemaModel<M>, TRelationModel<M>>;
 }
 export {};

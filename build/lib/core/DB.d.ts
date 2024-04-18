@@ -12,7 +12,7 @@ declare class DB extends AbstractDB {
      * The 'instance' method is used get instance.
      * @override
      * @static
-     * @return {DB} instance of the DB
+     * @returns {DB} instance of the DB
      */
     static get instance(): DB;
     /**
@@ -20,7 +20,7 @@ declare class DB extends AbstractDB {
      *
      * @param {string} sql
      * @param {Record<string,any>} parameters
-     * @return {promise<any[]>}
+     * @returns {promise<any[]>}
      */
     query(sql: string, parameters?: Record<string, any>): Promise<any>;
     /**
@@ -28,26 +28,26 @@ declare class DB extends AbstractDB {
      *
      * @param {string} sql
      * @param {Record<string,any>} parameters
-     * @return {promise<any[]>}
+     * @returns {promise<any[]>}
      */
     static query(sql: string, parameters?: Record<string, any>): Promise<any[]>;
     /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
-     * @return {this} this
+     * @returns {this} this
      */
     table(table: string): this;
     /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
-     * @return {DB} DB
+     * @returns {DB} DB
      */
     static table(table: string): DB;
     /**
      * The 'jsonObject' method is used to specify select data to JSON objects.
      * @param {string} object table name
      * @param {string} alias
-     * @return {string} string
+     * @returns {string} string
      */
     jsonObject(object: Record<string, string>, alias: string): string;
     /**
@@ -55,14 +55,14 @@ declare class DB extends AbstractDB {
      * @static
      * @param {string} object table name
      * @param {string} alias
-     * @return {string} string
+     * @returns {string} string
      */
     static jsonObject(object: Record<string, string>, alias: string): string;
     /**
      * The 'JSONObject' method is used to specify select data to JSON objects.
      * @param {string} object table name
      * @param {string} alias
-     * @return {string} string
+     * @returns {string} string
      */
     JSONObject(object: Record<string, string>, alias: string): string;
     /**
@@ -70,27 +70,27 @@ declare class DB extends AbstractDB {
      * @static
      * @param {string} object table name
      * @param {string} alias
-     * @return {string} string
+     * @returns {string} string
      */
     static JSONObject(object: Record<string, string>, alias: string): string;
     /**
      * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
      * @param {string} key
-     * @return {string | object} string || object
+     * @returns {string | object} string || object
      */
     constants(key?: string): string | Record<string, any>;
     /**
      * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
      * @static
      * @param {string} key
-     * @return {string | object} string || object
+     * @returns {string | object} string || object
      */
     static constants(key?: string): string | Record<string, any>;
     /**
      * cases query
      * @param {arrayObject} cases array object {when , then }
      * @param {string?} final else condition
-     * @return {string} string
+     * @returns {string} string
      */
     caseUpdate(cases: {
         when: string;
@@ -101,7 +101,7 @@ declare class DB extends AbstractDB {
      * @static
      * @param {arrayObject} cases array object {when , then }
      * @param {string?} final else condition
-     * @return {this}
+     * @returns {this}
      */
     static caseUpdate(cases: {
         when: string;
@@ -109,66 +109,66 @@ declare class DB extends AbstractDB {
     }[], final?: string): string | [];
     /**
      * The 'generateUUID' methid is used to generate a universal unique identifier.
-     * @return {string} string
+     * @returns {string} string
      */
     generateUUID(): string;
     /**
      * The 'generateUUID' methid is used to generate a universal unique identifier.
      * @static
-     * @return {string} string
+     * @returns {string} string
      */
     static generateUUID(): string;
     /**
      * The 'snakeCase' methid is used to covert value to snakeCase pattern.
-     * @return {string} string
+     * @returns {string} string
      */
     snakeCase(value: string): string;
     /**
      * The 'snakeCase' methid is used to covert value to snake_case pattern.
-     * @return {string} string
+     * @returns {string} string
      */
     static snakeCase(value: string): string;
     /**
      * The 'camelCase' methid is used to covert value to camelCase pattern.
-     * @return {string} string
+     * @returns {string} string
      */
     camelCase(value: string): string;
     /**
      * The 'camelCase' methid is used to covert value to camelCase pattern.
-     * @return {string} string
+     * @returns {string} string
      */
     static camelCase(value: string): string;
     /**
      * The 'escape' methid is used to escaping SQL injections.
-     * @return {string} string
+     * @returns {string} string
      */
     escape(value: string): string;
     /**
      * The 'escape' methid is used to escaping SQL injections.
-     * @return {string} string
+     * @returns {string} string
      */
     static escape(value: string): string;
     /**
      * The 'escapeXSS' methid is used to escaping XSS characters.
-     * @return {string} string
+     * @returns {string} string
      */
     escapeXSS(value: string): string;
     /**
      * The 'escapeXSS' methid is used to escaping XSS characters.
-     * @return {string} string
+     * @returns {string} string
      */
     static escapeXSS(value: string): string;
     /**
      * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
      * @param {string} sql
-     * @return {string} string
+     * @returns {string} string
      */
     raw(sql: string): TRawStringQuery;
     /**
      * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
      * @static
      * @param {string} sql
-     * @return {string} string
+     * @returns {string} string
      */
     static raw(sql: string): TRawStringQuery;
     /**
@@ -179,7 +179,7 @@ declare class DB extends AbstractDB {
      * @property {string} option.database
      * @property {string} option.username
      * @property {string} option.password
-     * @return {Connection}
+     * @returns {Connection}
      */
     getConnection(options?: TConnectionOptions): Promise<TConnection>;
     /**
@@ -190,7 +190,7 @@ declare class DB extends AbstractDB {
    * @property {string} option.database
    * @property {string} option.username
    * @property {string} option.password
-   * @return {Connection}
+   * @returns {Connection}
    */
     static getConnection(options: TConnectionOptions): Promise<TConnection>;
     /**
@@ -200,7 +200,7 @@ declare class DB extends AbstractDB {
      *
      * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
      * ensuring data integrity.
-     * @return {ConnectionTransaction} object - Connection for the transaction
+     * @returns {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -216,7 +216,7 @@ declare class DB extends AbstractDB {
      * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
      * ensuring data integrity.
      * @static
-     * @return {ConnectionTransaction} object - Connection for the transaction
+     * @returns {ConnectionTransaction} object - Connection for the transaction
      * @type     {object} connection
      * @property {function} connection.query - execute query sql then release connection to pool
      * @property {function} connection.startTransaction - start transaction of query
@@ -229,7 +229,7 @@ declare class DB extends AbstractDB {
      *
      * @param {Array | Record} data
      * @param {string[]} propertiesToRemoves
-     * @return {Array | Record} this
+     * @returns {Array | Record} this
      */
     removeProperties(data: any[] | Record<string, any>, propertiesToRemoves: string[]): Array<any> | Record<string, any>;
     /**
@@ -237,21 +237,21 @@ declare class DB extends AbstractDB {
      *
      * @param {Array | Record} data
      * @param {string[]} propertiesToRemoves
-     * @return {Array | Record} this
+     * @returns {Array | Record} this
      */
     static removeProperties(data: any[] | Record<string, any>, propertiesToRemoves: string[]): Array<any> | Record<string, any>;
     /**
      *
      * This 'cloneDB' method is used to clone current database to new database
      * @param {string} database clone current database to new database name
-     * @return {Promise<boolean>}
+     * @returns {Promise<boolean>}
      */
     cloneDB(database: string): Promise<void>;
     /**
     *
     * This 'cloneDB' method is used to clone current database to new database
     * @param {string} database clone current database to new database name
-    * @return {Promise<boolean>}
+    * @returns {Promise<boolean>}
     */
     static cloneDB(database: string): Promise<void>;
     /**
@@ -264,7 +264,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.to.port
      * @property {string} backup.to.username
      * @property {string} backup.to.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     backup({ database, to }: TBackup): Promise<void>;
     /**
@@ -277,7 +277,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.to.port
      * @property {string} backup.to.username
      * @property {string} backup.to.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     static backup({ database, to }: TBackup): Promise<void>;
     /**
@@ -292,7 +292,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     backupToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
@@ -307,7 +307,7 @@ declare class DB extends AbstractDB {
     * @property {number} backup.connection.database
     * @property {string} backup.connection.username
     * @property {string} backup.connection.password
-    * @return {Promise<void>}
+    * @returns {Promise<void>}
     */
     static backupToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
@@ -322,7 +322,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     backupSchemaToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
@@ -337,7 +337,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     static backupSchemaToFile({ filePath, database, connection }: TBackupToFile): Promise<void>;
     /**
@@ -352,7 +352,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     backupTableToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
@@ -367,7 +367,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     static backupTableToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
@@ -382,7 +382,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     backupTableSchemaToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     /**
@@ -397,7 +397,7 @@ declare class DB extends AbstractDB {
      * @property {number} backup.connection.database
      * @property {string} backup.connection.username
      * @property {string} backup.connection.password
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     static backupTableSchemaToFile({ filePath, table, connection }: TBackupTableToFile): Promise<void>;
     private _backup;

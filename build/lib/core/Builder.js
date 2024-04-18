@@ -35,7 +35,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'instance' method is used get instance.
      * @static
-     * @return {Builder} instance of the Builder
+     * @returns {Builder} instance of the Builder
      */
     static get instance() {
         return new this();
@@ -44,7 +44,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
      *
      * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
-     * @return {this} this
+     * @returns {this} this
      */
     distinct() {
         this.$state.set('DISTINCT', true);
@@ -55,7 +55,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to choose the specific columns that should be included in the result set of a database query.
      * @param {string[]} ...columns
-     * @return {this} this
+     * @returns {this} this
      */
     select(...columns) {
         if (!columns.length) {
@@ -85,7 +85,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string[]} ...columns
-     * @return {this} this
+     * @returns {this} this
      */
     selectRaw(...columns) {
         if (!columns.length)
@@ -112,7 +112,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to choose the specific columns that should be included in the result set to 'Object' of a database query.
      * @param {string} object table name
      * @param {string} alias as name of the column
-     * @return {this} this
+     * @returns {this} this
      */
     selectObject(object, alias) {
         if (!Object.keys(object).length)
@@ -134,7 +134,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'sleep' method is used to delay the query.
      *
      * @param {number} second - The number of seconds to sleep
-     * @return {this} this
+     * @returns {this} this
      */
     sleep(second) {
         const sql = `SELECT SLEEP(${second}) as sleep`;
@@ -153,7 +153,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'returnType' method is used covert the results to type 'object' or 'array'.
      *
      * @param {string} type - The types 'object' | 'array'
-     * @return {this} this
+     * @returns {this} this
      */
     returnType(type) {
         this.$state.set('RETURN_TYPE', type);
@@ -165,7 +165,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It is often used when you need to retrieve a single value,
      * such as an ID or a specific attribute, from a query result.
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     pluck(column) {
         this.$state.set('PLUCK', column);
@@ -176,7 +176,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to choose the specific columns that should be not included in the result set of a database query.
      * @param {...string} columns
-     * @return {this} this
+     * @returns {this} this
      */
     except(...columns) {
         if (!columns.length)
@@ -191,7 +191,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'exceptTimestamp' method is used to timestamp columns (created_at , updated_at) you don't want to retrieve from a database table.
      *
-     * @return {this} this
+     * @returns {this} this
      */
     exceptTimestamp() {
         this.$state.set('EXCEPTS', ['created_at', 'updated_at']);
@@ -200,7 +200,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'void' method is used to specify which you don't want to return a result from database table.
      *
-     * @return {this} this
+     * @returns {this} this
      */
     void() {
         this.$state.set('VOID', true);
@@ -211,7 +211,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to choose the specific columns that should be not included in the result.
      * @param {...string} columns show only colums selected
-     * @return {this} this
+     * @returns {this} this
      */
     only(...columns) {
         this.$state.set('ONLY', columns);
@@ -224,7 +224,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This helps prevent memory exhaustion and improves the performance of your application when dealing with large datasets.
      * @param {number} chunk
-     * @return {this} this
+     * @returns {this} this
      */
     chunk(chunk) {
         this.$state.set('CHUNK', chunk);
@@ -233,7 +233,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'when' method is used to specify if condition should be true will be next to the actions
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
-     * @return {this} this
+     * @returns {this} this
      */
     when(condition, callback) {
         if (!condition)
@@ -252,7 +252,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     where(column, operator, value) {
         if (typeof column === 'object') {
@@ -287,7 +287,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     orWhere(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -316,7 +316,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to include custom SQL expressions as conditions in your query,
      * which can be useful for situations where you need to perform complex or custom filtering that cannot be achieved using Laravel's standard query builder methods.
      * @param {string} sql where column with raw sql
-     * @return {this} this
+     * @returns {this} this
      */
     whereRaw(sql) {
         this.$state.set('WHERE', [
@@ -334,7 +334,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to include custom SQL expressions as conditions in your query,
      * which can be useful for situations where you need to perform complex or custom filtering that cannot be achieved using Laravel's standard query builder methods.
      * @param {string} sql where column with raw sql
-     * @return {this} this
+     * @returns {this} this
      */
     orWhereRaw(sql) {
         this.$state.set('WHERE', [
@@ -353,7 +353,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method is defalut operator '=' only
      * @param {Object} columns
-     * @return {this}
+     * @returns {this}
      */
     whereObject(columns) {
         for (const column in columns) {
@@ -433,7 +433,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @property {string}  property.key
      * @property {string}  property.value
      * @property {string?} property.operator
-     * @return   {this}
+     * @returns   {this}
      */
     whereJSON(column, { key, value, operator }) {
         value = this.$utils.escape(value);
@@ -458,7 +458,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @property {string}  property.key
      * @property {string}  property.value
      * @property {string?} property.operator
-     * @return   {this}
+     * @returns   {this}
      */
     whereJson(column, { key, value, operator }) {
         return this.whereJSON(column, { key, value, operator });
@@ -469,7 +469,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to filter records based on whether a specified condition is true for related records.
      * @param {string} sql
-     * @return {this}
+     * @returns {this}
      */
     whereExists(sql) {
         this.$state.set('WHERE', [
@@ -488,7 +488,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to filter records based on whether a specified condition is true for related records.
      * @param {string} sql
-     * @return {this}
+     * @returns {this}
      */
     whereNotExists(sql) {
         this.$state.set('WHERE', [
@@ -504,7 +504,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * @param {number} id
-     * @return {this} this
+     * @returns {this} this
      */
     whereId(id, column = 'id') {
         this.$state.set('WHERE', [
@@ -519,7 +519,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * @param {string} email where using email
-     * @return {this}
+     * @returns {this}
      */
     whereEmail(email) {
         const column = 'email';
@@ -536,7 +536,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * @param {number} userId
      * @param {string?} column custom it *if column is not user_id
-     * @return {this}
+     * @returns {this}
      */
     whereUser(userId, column = 'user_id') {
         this.$state.set('WHERE', [
@@ -554,7 +554,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereIn(column, array) {
         if (!Array.isArray(array))
@@ -579,7 +579,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereIn(column, array) {
         if (!Array.isArray(array))
@@ -604,7 +604,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is the opposite of whereIn and is useful when you want to filter records based on a column not matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereNotIn(column, array) {
         if (!Array.isArray(array))
@@ -629,7 +629,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is the opposite of whereIn and is useful when you want to filter records based on a column not matching any of the values provided in an array.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotIn(column, array) {
         if (!Array.isArray(array))
@@ -656,7 +656,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * They are often used when you need to perform a query to retrieve some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     whereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
@@ -680,7 +680,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * They are often used when you need to perform a query to retrieve not some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     whereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
@@ -704,7 +704,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * They are often used when you need to perform a query to retrieve some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     orWhereSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
@@ -728,7 +728,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * They are often used when you need to perform a query to retrieve not some values and then use those values as part of the condition in the main query.
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotSubQuery(column, subQuery) {
         if (!this.$utils.isSubQuery(subQuery))
@@ -750,7 +750,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column's value being within a certain numeric or date range.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereBetween(column, array) {
         if (!Array.isArray(array))
@@ -789,7 +789,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column's value being within a certain numeric or date range.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereBetween(column, array) {
         if (!Array.isArray(array))
@@ -828,7 +828,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column's value does not fall within a specified range of values.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereNotBetween(column, array) {
         if (!Array.isArray(array))
@@ -867,7 +867,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is useful when you want to filter records based on a column's value does not fall within a specified range of values.
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotBetween(column, array) {
         if (!Array.isArray(array))
@@ -905,7 +905,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method is helpful when you want to filter records based on whether a particular column has a NULL value.
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     whereNull(column) {
         this.$state.set('WHERE', [
@@ -923,7 +923,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method is helpful when you want to filter records based on whether a particular column has a NULL value.
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     orWhereNull(column) {
         this.$state.set('WHERE', [
@@ -941,7 +941,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method is useful when you want to filter records based on whether a particular column has a non-null value.
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     whereNotNull(column) {
         this.$state.set('WHERE', [
@@ -959,7 +959,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method is useful when you want to filter records based on whether a particular column has a non-null value.
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotNull(column) {
         this.$state.set('WHERE', [
@@ -981,7 +981,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -1008,7 +1008,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereStrict(column, operator, value) {
         return this.whereSensitive(column, operator, value);
@@ -1022,7 +1022,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     orWhereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -1045,7 +1045,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {Function} callback callback query
-     * @return {this}
+     * @returns {this}
      */
     whereQuery(callback) {
         var _a;
@@ -1073,7 +1073,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {function} callback callback query
-     * @return {this}
+     * @returns {this}
      */
     whereGroup(callback) {
         return this.whereQuery(callback);
@@ -1083,7 +1083,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {function} callback callback query
-     * @return {this}
+     * @returns {this}
      */
     orWhereQuery(callback) {
         var _a;
@@ -1111,7 +1111,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify conditions that records in the database must meet in order to be included in the result set.
      * @param {function} callback callback query
-     * @return {this}
+     * @returns {this}
      */
     orWhereGroup(callback) {
         return this.orWhereQuery(callback);
@@ -1124,7 +1124,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string[]} columns
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereAny(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -1152,7 +1152,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string[]} columns
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereAll(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -1172,7 +1172,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * @param {Array<{when , then}>} cases used to add conditions when and then
      * @param {string?} elseCase else when end of conditions
-     * @return {this}
+     * @returns {this}
      */
     whereCases(cases, elseCase) {
         if (!cases.length)
@@ -1211,7 +1211,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * @param {Array<{when , then}>} cases used to add conditions when and then
      * @param {string?} elseCase else when end of conditions
-     * @return {this}
+     * @returns {this}
      */
     orWhereCases(cases, elseCase) {
         if (!cases.length)
@@ -1247,7 +1247,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * select by cases
      * @param {array} cases array object [{ when : 'id < 7' , then : 'id is than under 7'}]
      * @param {string} as assign name
-     * @return {this}
+     * @returns {this}
      */
     case(cases, as) {
         let query = [this.$constants('CASE')];
@@ -1291,7 +1291,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * .where('users.id',1)
      * .where('posts.id',2)
      * .get()
-     * @return {this}
+     * @returns {this}
      */
     join(localKey, referenceKey) {
         var _a;
@@ -1318,7 +1318,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     * await new DB('users')
     * .joinSubQuery({ localKey : 'id' , foreignKey : 'userId' , sql : '....sql'})
     * .get()
-    * @return {this}
+    * @returns {this}
     */
     joinSubQuery({ localKey, foreignKey, sql }) {
         this.$state.set('JOIN', [
@@ -1340,7 +1340,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * If there is no match in the left table, NULL values are returned for columns from the left table
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
-     * @return {this}
+     * @returns {this}
      */
     rightJoin(localKey, referenceKey) {
         var _a;
@@ -1363,7 +1363,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * If there is no match in the right table, NULL values are returned for columns from the right table.
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
-     * @return {this}
+     * @returns {this}
      */
     leftJoin(localKey, referenceKey) {
         var _a;
@@ -1384,7 +1384,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
      * @param {string} localKey local key in current table
      * @param {string} referenceKey reference key in next table
-     * @return {this}
+     * @returns {this}
      */
     crossJoin(localKey, referenceKey) {
         var _a;
@@ -1405,7 +1405,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction (ascending or descending) for each column.
      * @param {string} column
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
-     * @return {this}
+     * @returns {this}
      */
     orderBy(column, order = 'ASC') {
         if (typeof column !== 'string')
@@ -1429,7 +1429,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string} column
      * @param {string?} order [order=asc] asc, desc
-     * @return {this}
+     * @returns {this}
      */
     orderByRaw(column, order = this.$constants('ASC')) {
         if (column.includes(this.$constants('RAW'))) {
@@ -1444,7 +1444,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'random' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
      *
-     * @return {this}
+     * @returns {this}
      */
     random() {
         this.$state.set('ORDER_BY', [
@@ -1456,7 +1456,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'inRandom' method is used to retrieve random records from a database table or to randomize the order in which records are returned in the query result set.
      *
-     * @return {this}
+     * @returns {this}
      */
     inRandom() {
         return this.random();
@@ -1466,7 +1466,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction descending for each column.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     latest(...columns) {
         let orderBy = '`id`';
@@ -1492,7 +1492,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     latestRaw(...columns) {
         let orderBy = '`id`';
@@ -1514,7 +1514,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify one or more columns by which the result set should be ordered, as well as the sorting direction ascending for each column.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     oldest(...columns) {
         let orderBy = '`id`';
@@ -1540,7 +1540,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     oldestRaw(...columns) {
         let orderBy = '`id`';
@@ -1564,7 +1564,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * Grouping is commonly used for generating summary reports, calculating totals, and performing other aggregate operations on data.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     groupBy(...columns) {
         let groupBy = 'id';
@@ -1590,7 +1590,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     groupByRaw(...columns) {
         let groupBy = 'id';
@@ -1614,7 +1614,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * The having clause allows you to apply conditions to aggregated values, such as the result of COUNT, SUM, AVG, or other aggregate functions.
      * @param {string} condition
-     * @return {this}
+     * @returns {this}
      */
     having(condition) {
         if (condition.includes(this.$constants('RAW'))) {
@@ -1632,7 +1632,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to specify raw-sql parameters for the query.
      * @param {string} condition
-     * @return {this}
+     * @returns {this}
      */
     havingRaw(condition) {
         return this.having(condition);
@@ -1642,7 +1642,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify the maximum number of rows to retrieve from the database table.
      * @param {number=} number [number=1]
-     * @return {this}
+     * @returns {this}
      */
     limit(number = 1) {
         this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`);
@@ -1653,7 +1653,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to specify the maximum number of rows to retrieve from the database table.
      * @param {number=} number [number=1]
-     * @return {this}
+     * @returns {this}
      */
     take(number = 1) {
         return this.limit(number);
@@ -1663,7 +1663,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It is often used in combination with the limit method for pagination or to skip a certain number of records when retrieving data from a database table.
      * @param {number=} number [number=1]
-     * @return {this}
+     * @returns {this}
      */
     offset(number = 1) {
         this.$state.set('OFFSET', `${this.$constants('OFFSET')} ${number}`);
@@ -1676,7 +1676,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It is often used in combination with the limit method for pagination or to skip a certain number of records when retrieving data from a database table.
      * @param {number=} number [number=1]
-     * @return {this}
+     * @returns {this}
      */
     skip(number = 1) {
         return this.offset(number);
@@ -1685,7 +1685,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'hidden' method is used to specify which columns you want to hidden result.
      * It allows you to choose the specific columns that should be hidden in the result.
      * @param {...string} columns
-     * @return {this} this
+     * @returns {this} this
      */
     hidden(...columns) {
         this.$state.set('HIDDEN', columns);
@@ -1699,7 +1699,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to remove one record that match certain criteria.
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
-     * @return {this} this
+     * @returns {this} this
      */
     update(data, updateNotExists = []) {
         this.limit(1);
@@ -1733,7 +1733,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to remove more records that match certain criteria.
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
-     * @return {this} this
+     * @returns {this} this
      */
     updateMany(data, updateNotExists = []) {
         if (!Object.keys(data).length)
@@ -1768,7 +1768,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
-     * @return {this} this
+     * @returns {this} this
      */
     updateMultiple(cases) {
         if (!cases.length)
@@ -1835,7 +1835,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It method will be update record if data is empty or null in the column values
      * @param {object} data
-     * @return {this} this
+     * @returns {this} this
      */
     updateNotExists(data) {
         this.limit(1);
@@ -1859,7 +1859,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It simplifies the process of creating and inserting records.
      * @param {object} data
-     * @return {this} this
+     * @returns {this} this
      */
     insert(data) {
         if (!Object.keys(data).length)
@@ -1878,7 +1878,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It simplifies the process of creating and inserting records.
      * @param {object} data
-     * @return {this} this
+     * @returns {this} this
      */
     create(data) {
         if (!Object.keys(data).length)
@@ -1897,7 +1897,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It simplifies the process of creating and inserting records with an array.
      * @param {array} data create multiple data
-     * @return {this} this this
+     * @returns {this} this this
      */
     createMultiple(data) {
         if (!Object.keys(data).length)
@@ -1916,7 +1916,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It simplifies the process of creating and inserting records with an array.
      * @param {array} data create multiple data
-     * @return {this} this this
+     * @returns {this} this this
      */
     insertMultiple(data) {
         return this.createMultiple(data);
@@ -1927,7 +1927,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
      * but without raising an error or exception if duplicates are encountered.
      * @param {object} data create not exists data
-     * @return {this} this this
+     * @returns {this} this this
      */
     createNotExists(data) {
         const query = this._queryInsert(data);
@@ -1945,7 +1945,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
      * but without raising an error or exception if duplicates are encountered.
      * @param {object} data insert not exists data
-     * @return {this} this this
+     * @returns {this} this this
      */
     insertNotExists(data) {
         this.createNotExists(data);
@@ -1957,7 +1957,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
      * but if exists should be returns a result.
      * @param {object} data insert data
-     * @return {this} this this
+     * @returns {this} this this
      */
     createOrSelect(data) {
         const queryInsert = this._queryInsert(data);
@@ -1975,7 +1975,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
      * but if exists should be returns a result.
      * @param {object} data insert or update data
-     * @return {this} this this
+     * @returns {this} this this
      */
     insertOrSelect(data) {
         this.createOrSelect(data);
@@ -1987,7 +1987,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to update a record based on certain conditions and,
      * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
-     * @return {this} this this
+     * @returns {this} this this
      */
     updateOrCreate(data) {
         this.limit(1);
@@ -2012,7 +2012,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to update a record based on certain conditions and,
      * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
-     * @return {this} this this
+     * @returns {this} this this
      */
     updateOrInsert(data) {
         this.updateOrCreate(data);
@@ -2024,7 +2024,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to update a record based on certain conditions and,
      * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data insert or update data
-     * @return {this} this this
+     * @returns {this} this this
      */
     insertOrUpdate(data) {
         this.updateOrCreate(data);
@@ -2037,7 +2037,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This method is particularly useful when you want to update a record based on certain conditions and,
      * if the record matching those conditions doesn't exist, create a new one with the provided data.
      * @param {object} data create or update data
-     * @return {this} this this
+     * @returns {this} this this
      */
     createOrUpdate(data) {
         this.updateOrCreate(data);
@@ -2047,7 +2047,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'toString' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
      *
      * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
-     * @return {string} return sql query
+     * @returns {string} return sql query
      */
     toString() {
         const sql = this._queryBuilder().any();
@@ -2057,7 +2057,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'toSQL' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
      *
      * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
-     * @return {string} return sql query
+     * @returns {string} return sql query
      */
     toSQL() {
         return this.toString();
@@ -2066,21 +2066,21 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'toRawSQL' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
      *
      * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
-     * @return {string}
+     * @returns {string}
     */
     toRawSQL() {
         return this.toString();
     }
     /**
      * The 'getTableName' method is used to get table name
-     * @return {string} return table name
+     * @returns {string} return table name
      */
     getTableName() {
         return this.$state.get('TABLE_NAME').replace(/\`/g, '');
     }
     /**
      * The 'getSchema' method is used to get schema information
-     * @return {this} this this
+     * @returns {this} this this
      */
     getSchema() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2096,7 +2096,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'bindColumn' method is used to concat table and column -> `users`.`id`
      * @param {string} column
-     * @return {string} return table.column
+     * @returns {string} return table.column
      */
     bindColumn(column) {
         if (!/\./.test(column)) {
@@ -2108,7 +2108,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'debug' method is used to console.log raw SQL query that would be executed by a query builder
      * @param {boolean} debug debug sql statements
-     * @return {this} this this
+     * @returns {this} this this
      */
     debug(debug = true) {
         this.$state.set('DEBUG', debug);
@@ -2117,7 +2117,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'dd' method is used to console.log raw SQL query that would be executed by a query builder
      * @param {boolean} debug debug sql statements
-     * @return {this} this this
+     * @returns {this} this this
      */
     dd(debug = true) {
         this.$state.set('DEBUG', debug);
@@ -2126,7 +2126,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'hook' method is used function when execute returns a result to callback function
      * @param {Function} func function for callback result
-     * @return {this}
+     * @returns {this}
     */
     hook(func) {
         if (typeof func !== "function")
@@ -2137,7 +2137,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'before' method is used function when execute returns a result to callback function
      * @param {Function} func function for callback result
-     * @return {this}
+     * @returns {this}
     */
     before(func) {
         if (typeof func !== "function")
@@ -2153,7 +2153,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {string} option.database
      * @param {string} option.user
      * @param {string} option.password
-     * @return {this} this
+     * @returns {this} this
      */
     connection(options) {
         const { host, port, database, username: user, password } = options, others = __rest(options, ["host", "port", "database", "username", "password"]);
@@ -2168,7 +2168,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * @param {string} env load environment using with command line arguments
-     * @return {this} this
+     * @returns {this} this
      */
     loadEnv(env) {
         if (env === null)
@@ -2187,7 +2187,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * @param {Function} pool pool connection database
-     * @return {this} this
+     * @returns {this} this
      */
     pool(pool) {
         if (!(pool === null || pool === void 0 ? void 0 : pool.hasOwnProperty('query'))) {
@@ -2199,7 +2199,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * make sure this connection has same transaction in pool connection
      * @param {object} connection pool database
-     * @return {this} this
+     * @returns {this} this
      */
     bind(connection) {
         if (!(connection === null || connection === void 0 ? void 0 : connection.hasOwnProperty('query'))) {
@@ -2215,7 +2215,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * This 'rawQuery' method is used to execute sql statement
      *
      * @param {string} sql
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     rawQuery(sql) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2227,7 +2227,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * plus value then update
      * @param {string} column
      * @param {number} value
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     increment() {
         return __awaiter(this, arguments, void 0, function* (column = 'id', value = 1) {
@@ -2245,7 +2245,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * minus value then update
      * @param {string} column
      * @param {number} value
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     decrement() {
         return __awaiter(this, arguments, void 0, function* (column = 'id', value = 1) {
@@ -2268,7 +2268,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'all' method is used to retrieve all records from a database table associated.
      *
      * It returns an array instances, ignore all condition.
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     all() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2285,7 +2285,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * This method allows you to quickly fetch a specific record by specifying the primary key value, which is typically an integer id.
      * @param {number} id
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     find(id) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2307,7 +2307,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {?object} paginationOptions
      * @param {number} paginationOptions.limit default 15
      * @param {number} paginationOptions.page default 1
-     * @return {promise<Pagination>}
+     * @returns {promise<Pagination>}
      */
     pagination(paginationOptions) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2372,7 +2372,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @param {?object} paginationOptions
      * @param {number} paginationOptions.limit
      * @param {number} paginationOptions.page
-     * @return {promise<Pagination>}
+     * @returns {promise<Pagination>}
      */
     paginate(paginationOptions) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2391,7 +2391,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @param {Function?} cb callback function return query sql
-     * @return {promise<object | null>}
+     * @returns {promise<object | null>}
      */
     first(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2438,7 +2438,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @param {Function?} cb callback function return query sql
-     * @return {promise<object | null>}
+     * @returns {promise<object | null>}
      */
     findOne(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2451,7 +2451,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      *
      * If record is null, this method will throw an error
-     * @return {promise<object | Error>}
+     * @returns {promise<object | Error>}
      */
     firstOrError(message, options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2499,7 +2499,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * If record is null, this method will throw an error
      * execute data return object | null
-     * @return {promise<object | null>}
+     * @returns {promise<object | null>}
      */
     findOneOrError(message, options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2511,7 +2511,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      * @param {Function?} cb callback function return query sql
-     * @return {promise<any[]>}
+     * @returns {promise<any[]>}
      */
     get(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2565,7 +2565,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      * @param {Function?} cb callback function return query sql
-     * @return {promise<any[]>}
+     * @returns {promise<any[]>}
      */
     findMany(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2579,7 +2579,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      *
      * It returns a JSON formatted
-     * @return {promise<string>}
+     * @returns {promise<string>}
      */
     toJSON() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2597,7 +2597,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It returns an array formatted
      * @param {string=} column [column=id]
-     * @return {promise<Array>}
+     * @returns {promise<Array>}
      */
     toArray() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2612,7 +2612,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
      *
      * It returns a boolean value indicating whether there are any matching records.
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     exists() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2634,7 +2634,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It returns an integer representing the count of records.
      * @param {string=} column [column=id]
-     * @return {promise<number>}
+     * @returns {promise<number>}
      */
     count() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2655,7 +2655,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It calculates the mean value of the specified column for all records that match the query conditions and returns the result as a floating-point number.
      * @param {string=} column [column=id]
-     * @return {promise<number>}
+     * @returns {promise<number>}
      */
     avg() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2672,7 +2672,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It computes the total of the specified column's values for all records that match the query conditions and returns the result as a numeric value.
      * @param {string=} column [column=id]
-     * @return {promise<number>}
+     * @returns {promise<number>}
      */
     sum() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2689,7 +2689,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It finds the highest value in the specified column among all records that match the query conditions and returns that value.
      * @param {string=} column [column=id]
-     * @return {promise<number>}
+     * @returns {promise<number>}
      */
     max() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2707,7 +2707,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It finds the smallest value in the specified column among all records that match the query conditions and returns that value.
      * @param {string=} column [column=id]
-     * @return {promise<number>}
+     * @returns {promise<number>}
      */
     min() {
         return __awaiter(this, arguments, void 0, function* (column = 'id') {
@@ -2724,7 +2724,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'delete' method is used to delete records from a database table based on the specified query conditions.
      *
      * It allows you to remove one record that match certain criteria.
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     delete() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2748,7 +2748,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'deleteMany' method is used to delete records from a database table based on the specified query conditions.
      *
      * It allows you to remove more records that match certain criteria.
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     deleteMany() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2774,7 +2774,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * It allows you to remove one or more records that match certain criteria.
      *
      * This method should be ignore the soft delete
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     forceDelete() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2797,7 +2797,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It returns record an Array-Object key by column *grouping results in column
      * @param {string} column
-     * @return {promise<Array>}
+     * @returns {promise<Array>}
      */
     getGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2844,7 +2844,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It returns record an Array-Object key by column *grouping results in column
      * @param {string} column
-     * @return {promise<Array>}
+     * @returns {promise<Array>}
      */
     findGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2855,7 +2855,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'save' method is used to persist a new 'Model' or new 'DB' instance or update an existing model instance in the database.
      *
      * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
-     * @return {Promise<any>} promise
+     * @returns {Promise<any>} promise
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2873,7 +2873,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * The 'makeSelectStatement' method is used to make select statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeSelectStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2893,7 +2893,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * The 'makeInsertStatement' method is used to make insert table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeInsertStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2914,7 +2914,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * The 'makeUpdateStatement' method is used to make update table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeUpdateStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2936,7 +2936,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * The 'makeDeleteStatement' method is used to make delete statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeDeleteStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2955,7 +2955,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * The 'makeCreateTableStatement' method is used to make create table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeCreateTableStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2976,7 +2976,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      * The 'showTables' method is used to show schema table.
      *
-     * @return {Promise<Array>}
+     * @returns {Promise<Array>}
      */
     showTables() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2995,7 +2995,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'showColumns' method is used to show columns table.
      *
      * @param {string=} table table name
-     * @return {Promise<Array>}
+     * @returns {Promise<Array>}
      */
     showColumns() {
         return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
@@ -3014,7 +3014,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'showSchema' method is used to show schema table.
      *
      * @param {string=} table [table= current table name]
-     * @return {Promise<Array>}
+     * @returns {Promise<Array>}
      */
     showSchema() {
         return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
@@ -3055,7 +3055,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'showSchemas' method is used to show schema table.
      *
      * @param {string=} table [table= current table name]
-     * @return {Promise<Array>}
+     * @returns {Promise<Array>}
      */
     showSchemas() {
         return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
@@ -3067,7 +3067,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * The 'showValues' method is used to show values table.
      *
      * @param {string=} table table name
-     * @return {Promise<Array>}
+     * @returns {Promise<Array>}
      */
     showValues() {
         return __awaiter(this, arguments, void 0, function* (table = this.$state.get('TABLE_NAME')) {
@@ -3094,7 +3094,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      *
      * It simplifies the process of creating and inserting records.
      * @param {number} rows number of rows
-     * @return {promise<any>}
+     * @returns {promise<any>}
      */
     faker(rows, cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3132,7 +3132,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * truncate of table
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     truncate() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3147,7 +3147,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     /**
      *
      * drop of table
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     drop() {
         return __awaiter(this, void 0, void 0, function* () {

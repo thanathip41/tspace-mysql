@@ -64,7 +64,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *   timestamp  : true,
      *   logger     : true,
      * })
-     * @return {void} void
+     * @returns {void} void
      */
     static global(settings) {
         globalSettings = Object.assign({}, globalSettings, settings);
@@ -76,7 +76,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @example
      * import { User } from '../User'
      * Model.column<User>('id')
-     * @return {string} column
+     * @returns {string} column
      */
     static column(column) {
         return column;
@@ -85,7 +85,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * The 'instance' method is used get instance.
      * @override
      * @static
-     * @return {Model} instance of the Model
+     * @returns {Model} instance of the Model
      */
     static get instance() {
         return new this();
@@ -101,7 +101,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *       this.useSoftDelete()
      *     }
      *  }
-     * @return {void} void
+     * @returns {void} void
      */
     define() { }
     /**
@@ -115,7 +115,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *       this.useSoftDelete()
      *     }
      *  }
-     * @return {void} void
+     * @returns {void} void
      */
     boot() { }
     /**
@@ -126,7 +126,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * Observers are used to encapsulate the event-handling logic for these events,
      * keeping the logic separate from the model itself and promoting cleaner, more maintainable code.
      * @param {Function} observer
-     * @return this
+     * @returns this
      * @example
      *
      * class UserObserve {
@@ -178,7 +178,7 @@ class Model extends AbstractModel_1.AbstractModel {
     *       })
     *   }
     * }
-    * @return {this} this
+    * @returns {this} this
     */
     useLogger({ selected = false, inserted = true, updated = true, deleted = true } = {}) {
         this.$state.set('LOGGER', true);
@@ -210,7 +210,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *         })
      *     }
      * }
-     * @return {this} this
+     * @returns {this} this
      */
     useSchema(schema) {
         this.$state.set('SCHEMA_TABLE', schema);
@@ -221,7 +221,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * The "useRegistry" method is used to define Function to results.
      *
      * It's automatically given Function to results.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -236,7 +236,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The "useLoadRelationsInRegistry" method is used automatically called relations in your registry Model.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -255,7 +255,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * The "useBuiltInRelationFunctions" method is used to define the function.
      *
      * It's automatically given built-in relation functions to a results.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -272,7 +272,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * The "usePrimaryKey" method is add primary keys for database tables.
      *
      * @param {string} primary
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -290,7 +290,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * It's automatically genarate when created a result.
      * @param {string?} column [column=uuid] make new name column for custom column replace uuid with this
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -307,7 +307,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The "useDebug" method is viewer raw-sql logs when excute the results.
-     * @return {this} this
+     * @returns {this} this
      */
     useDebug() {
         this.$state.set('DEBUG', true);
@@ -316,7 +316,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The "usePattern" method is used to assign pattern [snake_case , camelCase].
      * @param  {string} pattern
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -340,7 +340,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The "useCamelCase" method is used to assign pattern camelCase.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -356,7 +356,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The "SnakeCase" method is used to assign pattern snake_case.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -378,7 +378,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * This feature is particularly useful when you want to retain a record of deleted data and potentially recover it later,
      * or when you want to maintain referential integrity in your database
      * @param {string?} column default deleted_at
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -398,7 +398,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {object} timestampFormat
      * @property {string} timestampFormat.createdAt  - change new name column replace by default [created at]
      * @property {string} timestampFormat.updatedAt - change new name column replace by default updated at
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -422,7 +422,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * This "useTable" method is used to assign the name of the table.
      * @param {string} table table name in database
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -436,7 +436,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * This "useTableSingular" method is used to assign the name of the table with signgular pattern.
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -452,7 +452,7 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * This "useTablePlural " method is used to assign the name of the table with pluarl pattern
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *     constructor() {
@@ -469,7 +469,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * This 'useValidationSchema' method is used to validate the schema when have some action create or update.
      * @param {Object<ValidateSchema>} schema types (String Number and Date)
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *   constructor() {
@@ -505,7 +505,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * This 'useValidateSchema' method is used to validate the schema when have some action create or update.
      * @param {Object<ValidateSchema>} schema types (String Number and Date)
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *   constructor() {
@@ -539,7 +539,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The "useHooks" method is used to assign hook function when execute returned results to callback function.
      * @param {Function[]} arrayFunctions functions for callback result
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *   constructor() {
@@ -550,7 +550,7 @@ class Model extends AbstractModel_1.AbstractModel {
     useHooks(arrayFunctions) {
         for (const func of arrayFunctions) {
             if (typeof func !== "function")
-                throw new Error(`this '${func}' is not a function`);
+                throw this._assertError(`this 'function' is not a function`);
             this.$state.set('HOOKS', [...this.$state.get('HOOKS'), func]);
         }
         return this;
@@ -558,7 +558,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The "beforeCreatingTable" method is used exection function when creating the table.
      * @param {Function} fn functions for executing before creating the table
-     * @return {this} this
+     * @returns {this} this
      * @example
      * class User extends Model {
      *   constructor() {
@@ -581,7 +581,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * exceptColumns for method except
      * @override
-     * @return {promise<string>} string
+     * @returns {promise<string>} string
      */
     exceptColumns() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -640,7 +640,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * Build  method for relation in model
      * @param    {string} name name relation registry in your model
      * @param    {Function} callback query callback
-     * @return   {this}   this
+     * @returns   {this}   this
      */
     buildMethodRelation(name, callback) {
         var _a, _b;
@@ -662,14 +662,14 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The 'typeOfSchema' method is used get type of schema.
-     * @return {TSchema} type of schema
+     * @returns {TSchema} type of schema
      */
     typeOfSchema() {
         return {};
     }
     /**
      * The 'typeOfRelation' method is used get type of relation.
-     * @return {TRelation} type of Relation
+     * @returns {TRelation} type of Relation
      */
     typeOfRelation() {
         return {};
@@ -678,7 +678,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * @param {string[]} ...columns
-     * @return {this} this
+     * @returns {this} this
      */
     select(...columns) {
         if (!columns.length) {
@@ -706,7 +706,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * @param {...string} columns
-     * @return {this} this
+     * @returns {this} this
      */
     except(...columns) {
         if (!columns.length)
@@ -721,7 +721,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      *
      * @override
-     * @return {this} this
+     * @returns {this} this
      */
     exceptTimestamp() {
         let excepts = [];
@@ -751,7 +751,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @override
      * @param {string} column
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
-     * @return {this}
+     * @returns {this}
      */
     orderBy(column, order = 'ASC') {
         let c = String(column);
@@ -770,7 +770,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     latest(...columns) {
         let orderBy = '`id`';
@@ -793,7 +793,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     oldest(...columns) {
         let orderBy = '`id`';
@@ -816,7 +816,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * @param {string?} columns [column=id]
-     * @return {this}
+     * @returns {this}
      */
     groupBy(...columns) {
         let groupBy = 'id';
@@ -838,7 +838,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * @override
      * @param {string} column
-     * @return {string} return table.column
+     * @returns {string} return table.column
      */
     bindColumn(column, pattern = true) {
         if (!/\./.test(column)) {
@@ -853,7 +853,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * The 'makeSelectStatement' method is used to make select statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeSelectStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -879,7 +879,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * The 'makeInsertStatement' method is used to make insert table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeInsertStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -906,7 +906,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * The 'makeUpdateStatement' method is used to make update table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeUpdateStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -934,7 +934,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * The 'makeDeleteStatement' method is used to make delete statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeDeleteStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -954,7 +954,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * @override
      * The 'makeCreateTableStatement' method is used to make create table statement.
-     * @return {Promise<string>} string
+     * @returns {Promise<string>} string
      */
     makeCreateTableStatement() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -989,7 +989,7 @@ class Model extends AbstractModel_1.AbstractModel {
      *
      * Clone instance of model
      * @param {Model} instance instance of model
-     * @return {this} this
+     * @returns {this} this
      */
     clone(instance) {
         const copy = Object.fromEntries(instance.$state.get());
@@ -1001,7 +1001,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * Copy an instance of model
      * @param {Model} instance instance of model
      * @param {Object} options keep data
-     * @return {Model} Model
+     * @returns {Model} Model
      */
     copyModel(instance, options) {
         if (!(instance instanceof Model)) {
@@ -1042,7 +1042,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * execute the query using raw sql syntax
      * @override
      * @param {string} sql
-     * @return {this} this
+     * @returns {this} this
      */
     _queryStatement(sql) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1095,7 +1095,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {Object} actions
      * @property {Function} actions.sqlresult
      * @property {Function} actions.returnId
-     * @return {this} this
+     * @returns {this} this
      */
     _actionStatement(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sql, returnId = false }) {
@@ -1233,7 +1233,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * Assign table name
      * @param {string} table table name
-     * @return {this} this
+     * @returns {this} this
      */
     table(table) {
         this.$state.set('TABLE_NAME', `\`${table}\``);
@@ -1242,7 +1242,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * Assign ignore delete_at in model
      *  @param {boolean} condition
-     * @return {this} this
+     * @returns {this} this
      */
     disableSoftDelete(condition = false) {
         this.$state.set('SOFT_DELETE', condition);
@@ -1251,7 +1251,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The 'disableVoid' method is used to ignore void.
      *
-     * @return {this} this
+     * @returns {this} this
      */
     disableVoid() {
         this.$state.set('VOID', false);
@@ -1260,7 +1260,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * Assign ignore delete_at in model
      * @param {boolean} condition
-     * @return {this} this
+     * @returns {this} this
      */
     ignoreSoftDelete(condition = false) {
         this.$state.set('SOFT_DELETE', condition);
@@ -1269,7 +1269,7 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * Assign build in function to result of data
      * @param {Record} func
-     * @return {this} this
+     * @returns {this} this
      */
     registry(func) {
         this.$state.set('REGISTRY', Object.assign(Object.assign({}, func), { attach: this._attach, detach: this._detach }));
@@ -1278,9 +1278,10 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The 'with' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient.
+     *
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
-     * @return {this} this
+     * @returns {this} this
      * @example
      *   import { Model , TRelation } from 'tspace-mysql'
      *
@@ -1310,12 +1311,43 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
+     * The 'relations' method is used to eager load related (relations) data when retrieving records from a database.
+     *
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient.
+     *
+     * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
+     * @returns {this} this
+     * @example
+     *   import { Model , TRelation } from 'tspace-mysql'
+     *
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use 'with' for results of relationship
+     *  await new User().relations('posts').findMany()
+     *
+     */
+    relations(...nameRelations) {
+        return this.with(...nameRelations);
+    }
+    /**
      * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
      *
      * Eager loading allows you to retrieve a primary model and its related models in a more efficient
      * It's method ignore soft delete
-     * @param {...string} nameRelations if data exists return blank
-     * @return {this} this
+     * @param {...string} nameRelations if data exists return empty
+     * @returns {this} this
      */
     withAll(...nameRelations) {
         var _a;
@@ -1325,14 +1357,37 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
-    * The 'withAll' method is used to eager load related (relations) data when retrieving records from a database.
-    *
-    * Eager loading allows you to retrieve a primary model and its related models in a more efficient
-    * It's method ignore soft delete
-    * @param {...string} nameRelations if data exists return blank
-    * @return {this} this
-    */
+     * The 'relationsAll' method is used to eager load related (relations) data when retrieving records from a database.
+     *
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient.
+     *
+     * It's method ignore soft delete
+     * @param {...string} nameRelations if data exists return empty
+     * @returns {this} this
+     */
+    relationsAll(...nameRelations) {
+        return this.withAll(...nameRelations);
+    }
+    /**
+     * The 'withCount' method is used to eager load related (relations) data and count data in the relation.
+     *
+     * @param {...string} nameRelations if data exists return 0
+     * @returns {this} this
+     */
     withCount(...nameRelations) {
+        var _a;
+        if (!nameRelations.length)
+            return this;
+        this.$state.set('RELATIONS', (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.apply(nameRelations, 'count'));
+        return this;
+    }
+    /**
+     * The 'relationsCount' method is used to eager load related (relations) data and count data in the relation.
+     *
+     * @param {...string} nameRelations if data exists return 0
+     * @returns {this} this
+     */
+    relationsCount(...nameRelations) {
         var _a;
         if (!nameRelations.length)
             return this;
@@ -1342,10 +1397,11 @@ class Model extends AbstractModel_1.AbstractModel {
     /**
      * The 'withTrashed' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient.
+     *
      * It's method return results only in trash (soft deleted)
      * @param {...string} nameRelations if data exists return blank
-     * @return {this} this
+     * @returns {this} this
      */
     withTrashed(...nameRelations) {
         var _a;
@@ -1355,15 +1411,62 @@ class Model extends AbstractModel_1.AbstractModel {
         return this;
     }
     /**
+     * The 'relationsTrashed' method is used to eager load related (relations) data when retrieving records from a database.
+     *
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient.
+     *
+     * It's method return results only in trash (soft deleted)
+     * @param {...string} nameRelations if data exists return blank
+     * @returns {this} this
+     */
+    relationsTrashed(...nameRelations) {
+        return this.withTrashed(...nameRelations);
+    }
+    /**
      * The 'withExists' method is used to eager load related (relations) data when retrieving records from a database.
      *
      * Eager loading allows you to retrieve a primary model and its related models in a more efficient
      * It's method return only exists result of relation query
      * @param {...string} nameRelations
-     * @return {this} this
+     * @returns {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
-import { TRelationOptions } from '../types';
+     *   import { TRelationOptions } from '../types';
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *  // use with for results of relationship if relations is exists
+     *  await new User().withExists('posts').findMany()
+     */
+    withExists(...nameRelations) {
+        var _a;
+        if (!nameRelations.length)
+            return this;
+        this.$state.set('RELATIONS_EXISTS', true);
+        this.$state.set('RELATIONS', (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.apply(nameRelations, 'exists'));
+        return this;
+    }
+    /**
+     * The 'relationsExists' method is used to eager load related (relations) data when retrieving records from a database.
+     *
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * It's method return only exists result of relation query
+     * @param {...string} nameRelations
+     * @returns {this} this
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -1381,20 +1484,19 @@ import { TRelationOptions } from '../types';
      *  // use with for results of relationship if relations is exists
      *  await new User().relationsExists('posts').findMany()
      */
-    withExists(...nameRelations) {
-        var _a;
-        if (!nameRelations.length)
-            return this;
-        this.$state.set('RELATIONS_EXISTS', true);
-        this.$state.set('RELATIONS', (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.apply(nameRelations, 'exists'));
-        return this;
+    relationsExists(...nameRelations) {
+        return this.withExists(...nameRelations);
     }
     /**
+     * The 'has' method is used to eager load related (relations) data when retrieving records from a database.
      *
-     * Use relations in registry of model return only exists result of relation query
-     * @param {...string} nameRelations if data exists return blank
+     * Eager loading allows you to retrieve a primary model and its related models in a more efficient
+     * It's method return only exists result of relation query
+     * @param {...string} nameRelations
+     * @returns {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
+     *   import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -1411,7 +1513,6 @@ import { TRelationOptions } from '../types';
      *   }
      *  // use with for results of relationship if relations is exists
      *  await new User().has('posts').findMany()
-     * @return {this} this
      */
     has(...nameRelations) {
         return this.withExists(...nameRelations);
@@ -1419,6 +1520,60 @@ import { TRelationOptions } from '../types';
     /**
      *
      * The 'withQuery' method is particularly useful when you want to filter or add conditions records based on related data.
+     *
+     * Use relation '${name}' registry models then return callback queries
+     * @param {string} nameRelation name relation in registry in your model
+     * @param {function} callback query callback
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })
+     *       }
+     *   }
+     *
+     *   class Comment extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'users' , model : User })
+     *           this.belongsTo({ name : 'post' , model : Post })
+     *       }
+     *   }
+     *
+     *   await new User().relations('posts')
+     *   .withQuery('posts', (query : Post) => {
+     *       return query.relations('comments','user')
+     *       .withQuery('comments', (query : Comment) => {
+     *           return query.relations('user','post')
+     *       })
+     *       .withQuery('user', (query : User) => {
+     *           return query.relations('posts').withQuery('posts',(query : Post)=> {
+     *               return query.relations('comments','user')
+     *               // relation n, n, ...n
+     *           })
+     *       })
+     *   })
+     *  .findMany()
+     * @returns {this} this
+     */
+    withQuery(nameRelation, callback) {
+        var _a;
+        this.with(nameRelation);
+        (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.callback(nameRelation, callback);
+        return this;
+    }
+    /**
+     *
+     * The 'relationQuery' method is particularly useful when you want to filter or add conditions records based on related data.
      *
      * Use relation '${name}' registry models then return callback queries
      * @param {string} nameRelation name relation in registry in your model
@@ -1462,139 +1617,23 @@ import { TRelationOptions } from '../types';
      *       })
      *   })
      *  .findMany()
-     * @return {this} this
+     * @returns {this} this
      */
-    withQuery(nameRelation, callback) {
-        var _a;
-        this.with(nameRelation);
-        (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.callback(nameRelation, callback);
-        return this;
-    }
-    findWithQuery(nameRelation) {
-        var _a;
-        const cb = (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.returnCallback(nameRelation);
-        return cb;
-    }
-    /**
-     *
-     * Use relations in registry of model return result of relation query
-     * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
-     * @example
-     *   import { Model } from 'tspace-mysql'
-     *   class User extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'posts' , model : Post })
-     *       }
-     *   }
-     *
-     *   class Post extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'comments' , model : Comment })
-     *           this.belongsTo({ name : 'user' , model : User })
-     *       }
-     *   }
-     *  // use with for results of relationship
-     *  await new User().relations('posts').findMany()
-     * @return {this} this
-     */
-    relations(...nameRelations) {
-        return this.with(...nameRelations);
-    }
-    /**
-     *
-     * Use relations in registry of model return only exists result of relation query
-     * @param {...string} nameRelations if data exists return blank
-     * @example
-     *   import { Model } from 'tspace-mysql'
-     *   class User extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'posts' , model : Post })
-     *       }
-     *   }
-     *
-     *   class Post extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'comments' , model : Comment })
-     *           this.belongsTo({ name : 'user' , model : User })
-     *       }
-     *   }
-     *  // use with for results of relationship if relations is exists
-     *  await new User().relationsExists('posts').findMany()
-     * @return {this} this
-     */
-    relationsExists(...nameRelations) {
-        return this.withExists(...nameRelations);
-    }
-    /**
-     *
-     * Use relation '${name}' registry of model return callback this query model
-     * @param {string} nameRelation name relation in registry in your model
-     * @param {function} callback query callback
-     * @example
-     *   import { Model } from 'tspace-mysql'
-     *   class User extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'posts' , model : Post })
-     *       }
-     *   }
-     *
-     *   class Post extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'comments' , model : Comment })
-     *           this.belongsTo({ name : 'user' , model : User })
-     *       }
-     *   }
-     *
-     *   class Comment extends Model {
-     *       constructor(){
-     *           super()
-     *           this.hasMany({ name : 'users' , model : User })
-     *           this.belongsTo({ name : 'post' , model : Post })
-     *       }
-     *   }
-     *
-     *   await new User().relations('posts')
-     *   .TRelationQueryOptions('posts', (query : Post) => {
-     *       return query.relations('comments','user')
-     *       .TRelationQueryOptions('comments', (query : Comment) => {
-     *           return query.relations('user','post')
-     *       })
-     *       .TRelationQueryOptions('user', (query : User) => {
-     *           return query.relations('posts').TRelationQueryOptions('posts',(query : Post)=> {
-     *               return query.relations('comments','user')
-     *               // relation n, n, ...n
-     *           })
-     *       })
-     *   })
-     *  .findMany()
-     * @return {this} this
-     */
-    TRelationQueryOptions(nameRelation, callback) {
+    relationQuery(nameRelation, callback) {
         return this.withQuery(nameRelation, callback);
     }
     /**
      *
-     * Use relations in registry of model return ignore soft deleted
-     * @param {...string} nameRelations if data exists return blank
-     * @return {this} this
-     */
-    relationsAll(...nameRelations) {
-        return this.withAll(...nameRelations);
-    }
-    /**
+     * The 'findWithQuery' method is particularly useful when you want to filter or add conditions records based on related data.
      *
-     * Use relations in registry of model return only in trash (soft delete)
-     * @param {...string} nameRelations if data exists return blank
-     * @return {this} this
+     * Use relation '${name}' registry models then return callback queries
+     * @param {string} nameRelation name relation in registry in your model
+     * @returns {Model} model instance
      */
-    relationsTrashed(...nameRelations) {
-        return this.withTrashed(...nameRelations);
+    findWithQuery(nameRelation) {
+        var _a;
+        const instanceCallback = (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.returnCallback(nameRelation);
+        return instanceCallback == null ? null : instanceCallback;
     }
     /**
      * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
@@ -1610,7 +1649,7 @@ import { TRelationOptions } from '../types';
      * @property {string} relation.localKey
      * @property {string} relation.foreignKey
      * @property {string} relation.freezeTable
-     * @return   {this}   this
+     * @returns   {this}   this
      */
     hasOne({ name, as, model, localKey, foreignKey, freezeTable }) {
         var _a;
@@ -1638,7 +1677,7 @@ import { TRelationOptions } from '../types';
      * @property {string} relation.localKey
      * @property {string} relation.foreignKey
      * @property {string} relation.freezeTable
-     * @return   {this}   this
+     * @returns   {this}   this
      */
     hasMany({ name, as, model, localKey, foreignKey, freezeTable }) {
         var _a;
@@ -1666,7 +1705,7 @@ import { TRelationOptions } from '../types';
      * @property {string} relation.localKey
      * @property {string} relation.foreignKey
      * @property {string} relation.freezeTable
-     * @return   {this}   this
+     * @returns   {this}   this
      */
     belongsTo({ name, as, model, localKey, foreignKey, freezeTable }) {
         var _a;
@@ -1697,7 +1736,7 @@ import { TRelationOptions } from '../types';
      * @property {string} relation.pivot table name of pivot
      * @property {string} relation.oldVersion return value of old version
      * @property {class?} relation.modelPivot model for pivot
-     * @return   {this}   this
+     * @returns   {this}   this
      */
     belongsToMany({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }) {
         var _a;
@@ -1726,7 +1765,7 @@ import { TRelationOptions } from '../types';
      * @property {string?} foreignKey
      * @property {string?} freezeTable
      * @param    {Function?} callback callback of query
-     * @return   {this} this
+     * @returns   {this} this
      */
     hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable }, callback) {
         var _a;
@@ -1752,7 +1791,7 @@ import { TRelationOptions } from '../types';
      * @property {string?} foreignKey
      * @property {string?} freezeTable
      * @param    {function?} callback callback of query
-     * @return   {this} this
+     * @returns   {this} this
      */
     hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable }, callback) {
         var _a;
@@ -1777,7 +1816,7 @@ import { TRelationOptions } from '../types';
      * @property {string?} foreignKey
      * @property {string?} freezeTable
      * @param    {function?} callback callback of query
-     * @return   {this} this
+     * @returns   {this} this
      */
     belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable }, callback) {
         var _a;
@@ -1793,6 +1832,7 @@ import { TRelationOptions } from '../types';
     }
     /**
      * The 'belongsToManyBuilder' method is useful for creating 'belongsToMany' relationship to function
+     *
      * @param    {object}  relation registry relation in your model
      * @type     {object}  relation
      * @property {class}  model
@@ -1802,7 +1842,7 @@ import { TRelationOptions } from '../types';
      * @property {string?} foreignKey
      * @property {string?} freezeTable
      * @param    {function?} callback callback of query
-     * @return   {this} this
+     * @returns   {this} this
      */
     belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot, oldVersion, modelPivot }, callback) {
         var _a;
@@ -1824,11 +1864,11 @@ import { TRelationOptions } from '../types';
      *
      * Soft deleting is a feature that allows you to mark records as deleted without physically removing them from the database. Instead,
      * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
-     * @return {this} this
+     * @returns {this} this
      */
     onlyTrashed() {
         this.disableSoftDelete();
-        const column = String(this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT')));
+        const column = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
         this.whereNotNull(column);
         return this;
     }
@@ -1837,14 +1877,14 @@ import { TRelationOptions } from '../types';
      *
      * Soft deleting is a feature that allows you to mark records as deleted without physically removing them from the database. Instead,
      * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
-     * @return {this} this
+     * @returns {this} this
      */
     trashed() {
         return this.onlyTrashed();
     }
     /**
      * restore data in trashed
-     * @return {promise}
+     * @returns {promise}
      */
     restore() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1865,7 +1905,7 @@ import { TRelationOptions } from '../types';
     }
     /**
      *
-     * @return {string} string
+     * @returns {string} string
      */
     toTableName() {
         return this.getTableName();
@@ -1873,7 +1913,7 @@ import { TRelationOptions } from '../types';
     /**
      *
      * @param {string} column
-     * @return {string} string
+     * @returns {string} string
      */
     toTableNameAndColumn(column) {
         return `\`${this.getTableName()}\`.\`${this._valuePattern(column)}\``;
@@ -1883,7 +1923,7 @@ import { TRelationOptions } from '../types';
      * @param {string | K} column if arguments is object
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this} this
+     * @returns {this} this
      */
     where(column, operator, value) {
         if (typeof column === 'object') {
@@ -1915,7 +1955,7 @@ import { TRelationOptions } from '../types';
      * @param {string} column
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     orWhere(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -1942,7 +1982,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {Object} columns
-     * @return {this}
+     * @returns {this}
      */
     whereObject(columns) {
         for (let column in columns) {
@@ -2025,7 +2065,7 @@ import { TRelationOptions } from '../types';
     * @property {string}  property.key
     * @property {string}  property.value
     * @property {string?} property.operator
-    * @return   {this}
+    * @returns   {this}
     */
     whereJSON(column, { key, value, operator }) {
         value = this.$utils.escape(value);
@@ -2046,7 +2086,7 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {number} userId
      * @param {string?} column custom it *if column is not user_id
-     * @return {this}
+     * @returns {this}
      */
     whereUser(userId, column = 'user_id') {
         column = this._columnPattern(String(column));
@@ -2063,11 +2103,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereIn(column, array) {
-        if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -2087,11 +2128,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereIn(column, array) {
-        if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         const values = array.length
             ? `${array.map((value) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -2111,11 +2153,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereNotIn(column, array) {
-        if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         if (!array.length)
             return this;
@@ -2135,11 +2178,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotIn(column, array) {
-        if (!Array.isArray(array))
-            throw new Error(`This 'whereIn' method is required array only`);
+        if (!Array.isArray(array)) {
+            this._assertError(`This 'orWhereNotIn' method is required array only`);
+        }
         const c = this._columnPattern(String(column));
         if (!array.length)
             return this;
@@ -2159,11 +2203,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     whereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        if (!this.$utils.isSubQuery(subQuery)) {
+            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
+        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2180,11 +2225,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     whereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        if (!this.$utils.isSubQuery(subQuery)) {
+            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
+        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2201,16 +2247,19 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     orWhereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
+        if (!this.$utils.isSubQuery(subQuery)) {
+            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
+        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
-                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length
+                    ? `${this.$constants('OR')}`
+                    : '',
                 `${this.bindColumn(c)}`,
                 `${this.$constants('IN')}`,
                 `(${subQuery})`
@@ -2222,16 +2271,19 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {string} subQuery
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid sub query (Sub query Operand should contain 1 column(s) not select * )`);
+        if (!this.$utils.isSubQuery(subQuery)) {
+            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
+        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
-                this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
+                this.$state.get('WHERE').length
+                    ? `${this.$constants('OR')}`
+                    : '',
                 `${this.bindColumn(c)}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${subQuery})`
@@ -2243,11 +2295,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereBetween(column, array) {
-        if (!Array.isArray(array))
-            throw this._assertError("The value isn't an array.");
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         if (!array.length) {
             this.$state.set('WHERE', [
@@ -2281,11 +2334,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereBetween(column, array) {
-        if (!Array.isArray(array))
-            throw new Error("Value is't array");
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         if (!array.length) {
             this.$state.set('WHERE', [
@@ -2319,11 +2373,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     whereNotBetween(column, array) {
-        if (!Array.isArray(array))
-            throw new Error("Value is't array");
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         if (!array.length) {
             this.$state.set('WHERE', [
@@ -2357,11 +2412,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {string} column
      * @param {array} array
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotBetween(column, array) {
-        if (!Array.isArray(array))
-            throw new Error("Value is't array");
+        if (!Array.isArray(array)) {
+            throw this._assertError("This method must require the value to be an array only.");
+        }
         const c = this._columnPattern(String(column));
         if (!array.length) {
             this.$state.set('WHERE', [
@@ -2394,7 +2450,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     whereNull(column) {
         const c = this._columnPattern(String(column));
@@ -2411,7 +2467,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     orWhereNull(column) {
         const c = this._columnPattern(String(column));
@@ -2428,7 +2484,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     whereNotNull(column) {
         const c = this._columnPattern(String(column));
@@ -2445,7 +2501,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {this}
+     * @returns {this}
      */
     orWhereNotNull(column) {
         const c = this._columnPattern(String(column));
@@ -2464,7 +2520,7 @@ import { TRelationOptions } from '../types';
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -2488,7 +2544,7 @@ import { TRelationOptions } from '../types';
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereStrict(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -2512,7 +2568,7 @@ import { TRelationOptions } from '../types';
      * @param {string} column
      * @param {string?} operator = < > != !< !>
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     orWhereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -2534,15 +2590,15 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {Function} callback callback query
-     * @return {this}
+     * @returns {this}
      */
     whereQuery(callback) {
         const db = new Model().copyModel(this);
         const repository = callback(db);
         if (repository instanceof Promise)
-            throw new Error('"whereQuery" is not supported a Promise');
+            throw this._assertError('The "whereQuery" method is not supported a Promise');
         if (!(repository instanceof Model))
-            throw new Error(`Unknown callback query: '${repository}'`);
+            throw this._assertError(`Unknown callback query: '${repository}'`);
         const where = (repository === null || repository === void 0 ? void 0 : repository.$state.get('WHERE')) || [];
         if (!where.length)
             return this;
@@ -2563,7 +2619,7 @@ import { TRelationOptions } from '../types';
      * @param {string[]} columns
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereAny(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -2591,7 +2647,7 @@ import { TRelationOptions } from '../types';
      * @param {string[]} columns
      * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
      * @param {any?} value
-     * @return {this}
+     * @returns {this}
      */
     whereAll(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
@@ -2608,14 +2664,12 @@ import { TRelationOptions } from '../types';
     }
     /**
      * @override
-     * @return {promise<boolean>} promise boolean
+     * @returns {promise<boolean>} promise boolean
      */
     delete() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'delete' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             this.limit(1);
             if (this.$state.get('SOFT_DELETE')) {
                 const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
@@ -2644,14 +2698,12 @@ import { TRelationOptions } from '../types';
     }
     /**
      * @override
-     * @return {promise<boolean>} promise boolean
+     * @returns {promise<boolean>} promise boolean
      */
     deleteMany() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'deleteMany' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             if (this.$state.get('SOFT_DELETE')) {
                 const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
                 const sql = new Model()
@@ -2684,7 +2736,7 @@ import { TRelationOptions } from '../types';
      * It allows you to remove one or more records that match certain criteria.
      *
      * This method should be ignore the soft delete
-     * @return {promise<boolean>}
+     * @returns {promise<boolean>}
      */
     forceDelete() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2704,7 +2756,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string=} column [column=id]
-     * @return {promise<Array>}
+     * @returns {promise<Array>}
      */
     toArray(column) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2721,7 +2773,7 @@ import { TRelationOptions } from '../types';
      *
      * @override
      * @param {Function?} cb callback function return query sql
-     * @return {promise<Record<string,any> | null>} Record | null
+     * @returns {promise<Record<string,any> | null>} Record | null
     */
     first(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2751,7 +2803,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {Function?} cb callback function return query sql
-     * @return {promise<Record<string,any> | null>} Record | null
+     * @returns {promise<Record<string,any> | null>} Record | null
     */
     findOne(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2760,7 +2812,7 @@ import { TRelationOptions } from '../types';
     }
     /**
      * @override
-     * @return {promise<object | Error>} Record | throw error
+     * @returns {promise<object | Error>} Record | throw error
     */
     firstOrError(message, options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2783,7 +2835,7 @@ import { TRelationOptions } from '../types';
     /**
      *
      * @override
-     * @return {promise<any>} Record | throw error
+     * @returns {promise<any>} Record | throw error
     */
     findOneOrError(message, options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2794,7 +2846,7 @@ import { TRelationOptions } from '../types';
      *
      * @override
      * @param {Function?} cb callback function return query sql
-     * @return {promise<array>} Array
+     * @returns {promise<array>} Array
     */
     get(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2824,7 +2876,7 @@ import { TRelationOptions } from '../types';
      *
      * @override
      * @param {Function?} cb callback function return query sql
-     * @return {promise<array>} Array
+     * @returns {promise<array>} Array
     */
     findMany(cb) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2836,7 +2888,7 @@ import { TRelationOptions } from '../types';
      * @param {object?} paginationOptions by default page = 1 , limit = 15
      * @property {number} paginationOptions.limit
      * @property {number} paginationOptions.page
-     * @return {promise<Pagination>} Pagination
+     * @returns {promise<Pagination>} Pagination
      */
     pagination(paginationOptions) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2871,7 +2923,7 @@ import { TRelationOptions } from '../types';
     * @param    {?object} paginationOptions by default page = 1 , limit = 15
     * @property {number}  paginationOptions.limit
     * @property {number}  paginationOptions.page
-    * @return   {promise<Pagination>} Pagination
+    * @returns   {promise<Pagination>} Pagination
     */
     paginate(paginationOptions) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2881,7 +2933,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {Promise<array>} Array
+     * @returns {Promise<array>} Array
      */
     getGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2923,7 +2975,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {string} column
-     * @return {Promise<array>} Array
+     * @returns {Promise<array>} Array
      */
     findGroupBy(column) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2933,11 +2985,12 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for insert
-     * @return {this} this
+     * @returns {this} this
      */
     insert(data) {
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         this.$state.set('DATA', data);
         const query = this._queryInsertModel(data);
         this.$state.set('INSERT', [
@@ -2951,7 +3004,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for insert
-     * @return {this} this
+     * @returns {this} this
      */
     create(data) {
         return this.insert(data);
@@ -2960,11 +3013,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data}
-     * @return {this} this
+     * @returns {this} this
      */
     update(data, updateNotExists = []) {
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         if (updateNotExists.length) {
             for (const c of updateNotExists) {
                 for (const column in data) {
@@ -2991,11 +3045,12 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {object} data
      * @param {array?} updateNotExists options for except update some records in your ${data}
-     * @return {this} this
+     * @returns {this} this
      */
     updateMany(data, updateNotExists = []) {
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         if (updateNotExists.length) {
             for (const c of updateNotExists) {
                 for (const column in data) {
@@ -3020,12 +3075,13 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data
-     * @return {this} this
+     * @returns {this} this
      */
     updateNotExists(data) {
         this.limit(1);
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         for (const column in data) {
             const value = data[column];
             data = Object.assign(Object.assign({}, data), { [column]: this._updateHandler(column, value) });
@@ -3043,12 +3099,13 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for update or create
-     * @return {this} this
+     * @returns {this} this
      */
     updateOrCreate(data) {
         this.limit(1);
-        if (!Object.keys(data).length)
-            throw new Error('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         const queryUpdate = this._queryUpdateModel(data);
         const queryInsert = this._queryInsertModel(data);
         this.$state.set('DATA', data);
@@ -3068,7 +3125,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for update or create
-     * @return {this} this
+     * @returns {this} this
      */
     updateOrInsert(data) {
         return this.updateOrCreate(data);
@@ -3076,7 +3133,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for update or create
-     * @return {this} this
+     * @returns {this} this
      */
     insertOrUpdate(data) {
         return this.updateOrCreate(data);
@@ -3084,7 +3141,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for update or create
-     * @return {this} this
+     * @returns {this} this
      */
     createOrUpdate(data) {
         return this.updateOrCreate(data);
@@ -3092,11 +3149,12 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for create
-     * @return {this} this
+     * @returns {this} this
      */
     createOrSelect(data) {
-        if (!Object.keys(data).length)
-            throw this._assertError('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         this.$state.set('DATA', data);
         const queryInsert = this._queryInsertModel(data);
         this.$state.set('INSERT', [
@@ -3110,7 +3168,7 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {object} data for update or create
-     * @return {this} this
+     * @returns {this} this
      */
     insertOrSelect(data) {
         return this.createOrSelect(data);
@@ -3119,11 +3177,12 @@ import { TRelationOptions } from '../types';
     *
     * @override
     * @param {object} data create not exists data
-    * @return {this} this
+    * @returns {this} this
     */
     createNotExists(data) {
-        if (!Object.keys(data).length)
-            throw this._assertError('This method must be required');
+        if (!Object.keys(data).length) {
+            throw this._assertError('This method must require at least 1 argument.');
+        }
         this.$state.set('DATA', data);
         const query = this._queryInsertModel(data);
         this.$state.set('INSERT', [
@@ -3138,7 +3197,7 @@ import { TRelationOptions } from '../types';
      *
      * @override
      * @param {object} data create not exists data
-     * @return {this} this this
+     * @returns {this} this this
      */
     insertNotExists(data) {
         return this.createNotExists(data);
@@ -3146,9 +3205,12 @@ import { TRelationOptions } from '../types';
     /**
      * @override
      * @param {Record<string,any>[]} data create multiple data
-     * @return {this} this this
+     * @returns {this} this this
      */
     createMultiple(data) {
+        if (!Array.isArray(data) || !data.length) {
+            throw this._assertError('This method must require a non-empty array.');
+        }
         this.$state.set('DATA', data);
         const query = this._queryInsertMultipleModel(data);
         this.$state.set('INSERT', [
@@ -3163,7 +3225,7 @@ import { TRelationOptions } from '../types';
      *
      * @override
      * @param {Record<string,any>[]} data create multiple data
-     * @return {this} this
+     * @returns {this} this
      */
     insertMultiple(data) {
         return this.createMultiple(data);
@@ -3174,11 +3236,11 @@ import { TRelationOptions } from '../types';
      * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
-     * @return {this} this
+     * @returns {this} this
      */
     updateMultiple(cases) {
         if (!cases.length) {
-            throw this._assertError(`The method 'updateMultiple' array must not be empty.`);
+            throw this._assertError('This method must require a non-empty array.');
         }
         this.limit(cases.length);
         const updateColumns = cases.reduce((columns, item) => {
@@ -3252,7 +3314,7 @@ import { TRelationOptions } from '../types';
     }
     /**
      * The 'getSchemaModel' method is used get a schema model
-     * @return {Record<string, Blueprint> | null} Record<string, Blueprint> | null
+     * @returns {Record<string, Blueprint> | null} Record<string, Blueprint> | null
      */
     getSchemaModel() {
         if (this.$schema == null)
@@ -3262,7 +3324,7 @@ import { TRelationOptions } from '../types';
     /**
      * The 'validation' method is used validate the column by validating
      * @param {ValidateSchema} schema
-     * @return {this} this
+     * @returns {this} this
      */
     validation(schema) {
         this.$state.set('VALIDATE_SCHEMA', true);
@@ -3272,14 +3334,14 @@ import { TRelationOptions } from '../types';
     /**
      * The 'bindPattern' method is used to covert column relate with pattern
      * @param {string} column
-     * @return {string} return table.column
+     * @returns {string} return table.column
      */
     bindPattern(column) {
         return this._valuePattern(column);
     }
     /**
      * @override
-     * @return {Promise<Record<string,any> | any[] | null | undefined>}
+     * @returns {Promise<Record<string,any> | any[] | null | undefined>}
      */
     save() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3291,7 +3353,7 @@ import { TRelationOptions } from '../types';
                 case 'INSERT_NOT_EXISTS': return yield this._insertNotExistsModel();
                 case 'UPDATE_OR_INSERT': return yield this._updateOrInsertModel();
                 case 'INSERT_OR_SELECT': return yield this._insertOrSelectModel();
-                default: throw new Error(`Unknown this [${this.$state.get('SAVE')}]`);
+                default: throw this._assertError(`Unknown this [${this.$state.get('SAVE')}]`);
             }
         });
     }
@@ -3300,7 +3362,7 @@ import { TRelationOptions } from '../types';
      * @override
      * @param {number} rows number of rows
      * @param {Function} callback function will be called data and index
-     * @return {promise<void>}
+     * @returns {promise<void>}
      */
     faker(rows, callback) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3349,7 +3411,7 @@ import { TRelationOptions } from '../types';
      * @property {boolean} options.log   - show log execution with sql statements
      * @property {boolean} options.foreign - check when has a foreign keys will be created
      * @property {boolean} options.changed - check when column is changed attribute will be change attribute
-     * @return {Promise<void>}
+     * @returns {Promise<void>}
      */
     sync() {
         return __awaiter(this, arguments, void 0, function* ({ force = false, foreign = false, changed = false } = {}) {
@@ -3971,7 +4033,7 @@ import { TRelationOptions } from '../types';
                     break;
                 }
                 default: {
-                    throw new Error('Missing method first get or pagination');
+                    throw this._assertError('Missing method first get or pagination');
                 }
             }
             yield this.$utils.hookHandle(this.$state.get('HOOKS'), result);
@@ -4012,7 +4074,7 @@ import { TRelationOptions } from '../types';
                 const errorTable = e.message;
                 const search = errorTable.search("ER_NO_SUCH_TABLE");
                 if (!!search)
-                    throw new Error(e.message);
+                    throw this._assertError(e.message);
                 try {
                     const pivotTable = `${relationTable}_${thisTable}`;
                     const success = yield new DB_1.DB().table(pivotTable).createMultiple(dataId.map((id) => {
@@ -4021,7 +4083,7 @@ import { TRelationOptions } from '../types';
                     return success;
                 }
                 catch (e) {
-                    throw new Error(e.message);
+                    throw this._assertError(e.message);
                 }
             }
         });
@@ -4052,7 +4114,7 @@ import { TRelationOptions } from '../types';
                 const errorTable = e.message;
                 const search = errorTable.search("ER_NO_SUCH_TABLE");
                 if (!!search)
-                    throw new Error(e.message);
+                    throw this._assertError(e.message);
                 try {
                     const pivotTable = `${relationTable}_${thisTable}`;
                     for (const id of dataId) {
@@ -4064,7 +4126,7 @@ import { TRelationOptions } from '../types';
                     return true;
                 }
                 catch (e) {
-                    throw new Error(e.message);
+                    throw this._assertError(e.message);
                 }
             }
         });
@@ -4163,9 +4225,7 @@ import { TRelationOptions } from '../types';
     }
     _insertNotExistsModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'createNotExists' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             const check = (yield new Model()
                 .copyModel(this, { where: true, select: true, limit: true })
                 .bind(this.$pool.get())
@@ -4238,9 +4298,7 @@ import { TRelationOptions } from '../types';
     }
     _updateOrInsertModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'createOrUpdate' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             const check = (yield new Model()
                 .copyModel(this, { select: true, where: true, limit: true })
                 .bind(this.$pool.get())
@@ -4295,9 +4353,7 @@ import { TRelationOptions } from '../types';
     }
     _insertOrSelectModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'createOrSelect' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             const check = (yield new Model()
                 .copyModel(this, { select: true, where: true, limit: true })
                 .bind(this.$pool.get())
@@ -4346,9 +4402,7 @@ import { TRelationOptions } from '../types';
     }
     _updateModel() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.$state.get('WHERE').length) {
-                throw this._assertError("The 'update' method requires the use of 'where' conditions.");
-            }
+            this._guardWhereCondition();
             yield this._validateSchema(this.$state.get('DATA'), 'update');
             const sql = this._queryBuilder().update();
             const result = yield this._actionStatement({ sql });
@@ -4520,6 +4574,22 @@ import { TRelationOptions } from '../types';
             }
         }
         return this;
+    }
+    _guardWhereCondition() {
+        const wheres = this.$state.get('WHERE');
+        if (!wheres.length) {
+            throw this._assertError("The statement requires the use of 'where' conditions.");
+        }
+        if (wheres.length === 1 && this.$state.get('SOFT_DELETE')) {
+            const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
+            const softDeleteIsNull = [
+                this.bindColumn(`${this.getTableName()}.${deletedAt}`),
+                this.$constants('IS_NULL')
+            ].join(' ');
+            if (wheres.some((where) => where.includes(softDeleteIsNull))) {
+                throw this._assertError(`The statement is not allowed to use the '${deletedAt}' column as a condition for any action`);
+            }
+        }
     }
     _initialModel() {
         this.$state = new State_1.StateHandler('model');

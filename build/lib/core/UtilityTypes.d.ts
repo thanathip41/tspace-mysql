@@ -122,7 +122,7 @@ export type RelationType<R> = {
     [K in keyof R]+?: R[K];
 };
 /**
- * The 'TShemaModel' type is used to get type of schema in the model
+ * The 'TSchemaModel' type is used to get type of schema in the model
  * @generic {Model} M Model
  * @example
  * import { TSchemaModel } from 'tspace-mysql'
@@ -138,7 +138,25 @@ export type RelationType<R> = {
  *   }
  *
  */
-export type TShemaModel<M extends Model> = ReturnType<M['typeOfSchema']>;
+export type TSchemaModel<M extends Model> = ReturnType<M['typeOfSchema']>;
+/**
+ * The 'SchemaModelType' type is used to get type of schema in the model
+ * @generic {Model} M Model
+ * @example
+ * import { TSchemaModel } from 'tspace-mysql'
+ * import { User } from '../Models/User'
+ *
+ *  type TSchemaModelOfUser = TSchemaModel<User>
+ *   // now you can see the schema like that
+ *   {
+ *       id : number,
+ *       uuid : string | null,
+ *       name : string
+ *       // ....
+ *   }
+ *
+ */
+export type SchemaModelType<M extends Model> = ReturnType<M['typeOfSchema']>;
 /**
  * The 'TRelationModel' type is used to get type of schema in the model
  * @generic {Model} M Model
@@ -161,4 +179,4 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  * The 'TRepository' type is used to get type of repository
  * @generic {Model} M Model
  */
-export type TRepository<M extends Model> = TRepositoryRequest<TShemaModel<M>, TRelationModel<M>>;
+export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M>, TRelationModel<M>>;

@@ -58,17 +58,19 @@ declare abstract class AbstractModel<T, R> extends Builder {
     abstract registry(func: Record<string, Function>): this;
     abstract onlyTrashed(): this;
     abstract trashed(): this;
-    abstract restore(): Promise<any[]>;
+    abstract restore(): Promise<T[]>;
     abstract with<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract withQuery<K extends R extends object ? keyof R : string, TModel extends Model>(nameRelations: K, callback: (query: TModel) => TModel): this;
     abstract withExists<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract withTrashed<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract withAll<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
+    abstract withCount<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract has<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract relations<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
-    abstract TRelationQueryOptions<K extends R extends object ? keyof R : string, TModel extends Model>(nameRelations: K, callback: (query: TModel) => TModel): this;
+    abstract relationQuery<K extends R extends object ? keyof R : string, TModel extends Model>(nameRelations: K, callback: (query: TModel) => TModel): this;
     abstract relationsExists<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract relationsAll<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
+    abstract relationsCount<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
     abstract relationsTrashed<K extends R extends object ? keyof R : string>(...nameRelations: K[]): this;
 }
 export { AbstractModel };
