@@ -73,6 +73,7 @@ npm install tspace-mysql -g
     - [One To Many](#one-to-many)
     - [Belongs To](#belongs-to)
     - [Many To Many](#many-to-many)
+    - [Relation](#relation)
     - [Deeply Nested Relations](#deeply-nested-relations)
     - [Relation Exists](#relation-exists)
     - [Relation Trashed](#relation-trashed)
@@ -544,7 +545,6 @@ const users = await new DB("users")
   )
   .findMany();
 /*
-
   SELECT * FROM `users` 
   WHERE `users`.`id`
     IN (
@@ -1577,10 +1577,82 @@ const userUsingFunction = await new User().roles().findOne()
 // user?.roles => [{...}]
 ```
 
+#### Relation
+
+Relationships are connections between entities. 
+Let's consider an example of a relationship:
+
+```js
+
++-------------+--------------+----------------------------+
+|                     table users                         |                    
++-------------+--------------+----------------------------+
+| id          | username     | email                      |
+|-------------|--------------|----------------------------|
+| 1           | tspace1      | tspace1@gmail.com          |
+| 2           | tspace2      | tspace2@gmail.com          |
+| 3           | tspace3      | tspace3@gmail.com          |
++-------------+--------------+----------------------------+
+
++-------------+--------------+----------------------------+
+|                     table posts                         |
++-------------+--------------+----------------------------+
+| id          | user_id      | title                      |
+|-------------|--------------|----------------------------|
+| 1           | 1            | posts 1                    |
+| 2           | 1            | posts 2                    |
+| 3           | 3            | posts 3                    |
++-------------+--------------+----------------------------+
+
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+    constructor(){
+      super()
+      this.hasMany({ name : 'posts' , model : Post })
+    }
+}
+
+class Post extends Model {
+    constructor(){
+      super()
+      this.belongsTo({ name : 'user' , model : User })
+    }
+}
+
+await new User()
+.relations('posts')
+.findOne()
+// SELECT * FROM `users` LIMIT 1;
+// SELECT * FROM `posts` WHERE `posts`.`userId` IN (...);
+
+/*
+ * @returns 
+ *  {
+ *      id : 1,
+ *      username:  "tspace1",
+ *      email : "tspace1@gmail.com",
+ *      posts : [
+ *        {
+ *           id : 1 ,
+ *           user_id : 1,
+ *           title : "post 1"
+ *        },
+ *        {
+ *           id : 2 ,
+ *           user_id : 1,
+ *           title : "post 2"
+ *        }
+ *      ]
+ *  }
+*/
+
+```
+
 #### Deeply Nested Relations
 
-Relationships can involve deep connections.
-Let's example of a deep relationship:
+Relationships can involve deep connections. 
+Let's consider an example of a deep relationship:
 
 ```js
 import { Model } from 'tspace-mysql'
@@ -2478,7 +2550,7 @@ for(const user of users) {
 +--------------------------------------------------------------------------+
 // If you don't want to set types for every returning method such as 'findOne', 'findMany', and so on...
 
-import { Model , Blueprint , TSchema , TRelation , TSchemaModel } from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
 import { Phone }  from '../Phone'
 
 const schemaUser = {
@@ -2495,8 +2567,8 @@ const schemaUser = {
 type TSchemaUser = TSchema<typeof schemaUser>
 
 type TRelationUser =  TRelation<{
-  phones : TSchemaModel<Phone>[]
-  phone  : TSchemaModel<Phone>
+  phones : Phone[]
+  phone  : Phone
 }>
 
 // Add this '<TSchemaUser, RelationUserType>' to activate the type for the Model.
@@ -2516,7 +2588,7 @@ export { User }
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , TSchema , TRelation , TSchemaModel } from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
 import { User } from './User.ts'
 
 const schemaPhone = {
@@ -2531,7 +2603,7 @@ const schemaPhone = {
 type TSchemaPhone = TSchema<typeof schemaPhone>
 
 type TRelationPhone = TRelation<{
-  user : TSchemaModel<User>[]
+  user : User[]
 }>
 
 class Phone extends Model<
@@ -2655,10 +2727,10 @@ const userHasPhones = await userRepository.findOne({
   relations : ['post'],
   relationQuery:{
     name : 'post',
-    callback: () => ({
+    callback: () : TRepository<Phone> => ({ // add type for the callback know to check type of the model
       select: ['id', 'userId', 'name'],
       relations : ['user']
-    }) as TRepository<Phone> // add type for the callback know to check type of the model
+    }) 
   }
 })
 

@@ -3366,7 +3366,7 @@ class Model extends AbstractModel_1.AbstractModel {
      */
     faker(rows, callback) {
         return __awaiter(this, void 0, void 0, function* () {
-            let data = [];
+            const data = [];
             const sql = [
                 `${this.$constants('SHOW')}`,
                 `${this.$constants('FIELDS')}`,
@@ -3382,10 +3382,10 @@ class Model extends AbstractModel_1.AbstractModel {
                         Type: value.type
                     };
                 });
+            if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
+                throw this._assertError("Unknow this table.");
+            }
             for (let row = 0; row < rows; row++) {
-                if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
-                    throw this._assertError("Unknow this table.");
-                }
                 let columnAndValue = {};
                 for (const { Field: field, Type: type } of fields) {
                     const deletedAt = this._valuePattern(this.$state.get('SOFT_DELETE_FORMAT'));
@@ -3400,7 +3400,7 @@ class Model extends AbstractModel_1.AbstractModel {
                 }
                 data.push(columnAndValue);
             }
-            yield this.createMultiple(data).save();
+            yield this.createMultiple(data).void().save();
             return;
         });
     }
@@ -3555,7 +3555,7 @@ class Model extends AbstractModel_1.AbstractModel {
             }
             case this.$constants('PATTERN').camelCase: {
                 return fixColumn === column
-                    ? column.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`)
+                    ? column.replace(/(.(_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`)
                     : fixColumn;
             }
             default: return column;

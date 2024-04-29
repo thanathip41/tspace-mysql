@@ -1,6 +1,6 @@
 {
   "name": "tspace-mysql",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "description": "mysql query builder object relational mapping (ORM)",
   "main": "build/lib/index.js",
   "types": "build/lib/index.d.ts",
@@ -32,8 +32,9 @@
     "migrate",
     "backup",
     "blueprint",
+    "repository",
     "type safety",
-    "repository"
+    "end-to-end-safety"
   ],
   "author": "Thanathip (https://github.com/thanathip41)",
   "license": "MIT",

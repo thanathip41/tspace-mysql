@@ -620,11 +620,11 @@ class RelationHandler {
             }
             case this.$constants('PATTERN').camelCase: {
                 if (schema == null) {
-                    return value.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
+                    return value.replace(/(.(_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
                 }
                 const find = schema[value];
                 if (find == null || find.column == null) {
-                    return value.replace(/(.(\_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
+                    return value.replace(/(.(_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
                 }
                 return find.column;
             }

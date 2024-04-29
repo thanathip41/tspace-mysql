@@ -134,7 +134,7 @@ const camelCase = (data) => {
         if (typeof (data) !== "object")
             return data;
         Object.entries(data).forEach(([oldName]) => {
-            const newName = oldName.replace(/(.(\_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
+            const newName = oldName.replace(/(.(_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
             if (newName !== oldName) {
                 if (data.hasOwnProperty(oldName)) {
                     data = Object.assign(Object.assign({}, data), { [newName]: data[oldName] });

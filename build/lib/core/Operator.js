@@ -28,7 +28,7 @@ const OPERATOR = {
     '|notIn': '|NOT IN',
     '|isNull': '|IS NULL',
     '|isNotNull': '|IS NOT NULL',
-    '|query': '!QUERY'
+    '|query': '|QUERY'
 };
 /**
  * The 'Operator' class is used to operator for where conditions.

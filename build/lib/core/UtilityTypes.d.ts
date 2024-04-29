@@ -59,6 +59,8 @@ export type SchemaType<T, S = {}> = {
 };
 /**
  * The 'TRelation' type is used to specify the type of the relation.
+ *
+ * The function will merge the schema and relationships in the other model
  * @param {type} R relationships type
  * @example
  * import { Blueprint , TRelation , TSchemaUser , Model } from 'tspace-mysql'
@@ -85,9 +87,11 @@ export type SchemaType<T, S = {}> = {
  *   }>
  *
  *   class User<TSchemaUser,TRelationUser> {}
+ *
+ *   new User().find().then((user) => user.phone?.name)
  */
 export type TRelation<R> = {
-    [K in keyof R]+?: R[K];
+    [K in keyof R]+?: R[K] extends Array<infer A> ? A extends Model ? Array<TSchemaModel<A> & TRelationModel<A>> : Array<A> : R[K] extends Model ? TSchemaModel<R[K]> & TRelationModel<R[K]> : R[K];
 };
 /**
  * The 'TRelation' type is used to specify the type of the relation.
@@ -119,7 +123,7 @@ export type TRelation<R> = {
  *   class User<TSchemaUser,TRelationUser> {}
  */
 export type RelationType<R> = {
-    [K in keyof R]+?: R[K];
+    [K in keyof R]+?: R[K] extends Array<infer A> ? A extends Model ? Array<TSchemaModel<A> & TRelationModel<A>> : Array<A> : R[K] extends Model ? TSchemaModel<R[K]> & TRelationModel<R[K]> : R[K];
 };
 /**
  * The 'TSchemaModel' type is used to get type of schema in the model
@@ -162,6 +166,24 @@ export type SchemaModelType<M extends Model> = ReturnType<M['typeOfSchema']>;
  * @generic {Model} M Model
  * @example
  * import { TRelationModel } from 'tspace-mysql'
+ * import { User } from '../Models/User
+ *
+ *  type TRelationModelOfUser = TRelationModel<User>
+ *
+ *   {
+ *       phone : {
+ *          id : number,
+ *          // ....
+ *       }
+ *   }
+ *
+ */
+export type RelationModelType<M extends Model> = ReturnType<M['typeOfRelation']>;
+/**
+ * The 'RelationModelType' type is used to get type of schema in the model
+ * @generic {Model} M Model
+ * @example
+ * import { RelationModelType } from 'tspace-mysql'
  * import { User } from '../Models/User
  *
  *  type TRelationModelOfUser = TRelationModel<User>
