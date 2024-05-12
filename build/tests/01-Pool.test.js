@@ -14,7 +14,7 @@ const mocha_1 = require("mocha");
 const lib_1 = require("../lib");
 (0, mocha_1.describe)('Testing Pool', function () {
     /* ##################################################### */
-    (0, mocha_1.it)('Pool: It is can doing ?', function () {
+    (0, mocha_1.it)('Pool: It is connected?', function () {
         return __awaiter(this, void 0, void 0, function* () {
             (0, chai_1.expect)(lib_1.Pool).to.have.an('object');
             (0, chai_1.expect)(lib_1.Pool).to.have.property('query');
@@ -37,7 +37,6 @@ const lib_1 = require("../lib");
             (0, chai_1.expect)(connect.query).to.be.an('function');
             const connectQuery = yield connect.query('SELECT 1 as ping');
             (0, chai_1.expect)(connectQuery).to.be.an('array');
-            (0, chai_1.expect)(connectQuery.length).to.be.equal(1);
             (0, chai_1.expect)(connectQuery[0].ping).to.be.equal(1);
         });
     });

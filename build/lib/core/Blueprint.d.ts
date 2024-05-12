@@ -311,12 +311,12 @@ declare class Blueprint<T = any> {
      * @static
      * @return {Blueprint<T>} Blueprint
      */
-    static timestamp(): Blueprint<Date>;
+    static timestamp(): Blueprint<Date | string>;
     /**
      * Assign type 'TIMESTAMP' in table
      * @return {Blueprint<T>} Blueprint
      */
-    timestamp(): Blueprint<Date>;
+    timestamp(): Blueprint<Date | string>;
     /**
      * Assign attributes 'UNSIGNED' in table
      * @return {Blueprint<T>} Blueprint

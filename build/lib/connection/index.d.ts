@@ -23,6 +23,7 @@ export declare class PoolConnection extends EventEmitter {
     private _loadOptions;
     private _convertStringToObject;
     private _covertKeyTypeToCorrectType;
+    private _messageConnected;
     private _messageError;
 }
 /**

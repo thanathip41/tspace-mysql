@@ -8,6 +8,7 @@ export type TRelationOptions<K = any> = {
     freezeTable?: string;
     pivot?: string;
     query?: any;
+    queryPivot?: any;
     relation?: Object;
     exists?: boolean;
     all?: boolean;
@@ -162,9 +163,15 @@ export type TValidateSchemaDecorator = NumberConstructor | StringConstructor | D
 export type TNonEmptyArray<T> = [T, ...T[]];
 export type TGlobalSetting = {
     softDelete?: boolean;
+    debug?: boolean;
     uuid?: boolean;
     timestamp?: boolean;
-    logger?: boolean;
+    logger?: {
+        selected?: boolean;
+        inserted?: boolean;
+        updated?: boolean;
+        deleted?: boolean;
+    };
 };
 export type TOperator = {
     'eq': string;
@@ -234,7 +241,6 @@ export type TRepositoryUpdateMultiple<T extends Record<string, any> = any> = {
             [K in keyof T]: T[K];
         }>;
     }[];
-    where: Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : unknown;
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
 };
@@ -243,13 +249,18 @@ export type TRepositoryDelete<T extends Record<string, any> = any> = {
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
 };
+export type TRegistry = {
+    '$save': Function;
+    '$attach': Function;
+    '$detach': Function;
+};
 export type TRepositoryRequest<T extends Record<string, any> = any, R = any> = {
     debug?: boolean;
     when?: {
         condition: boolean;
         callback: () => TRepositoryRequest<T, R>;
     };
-    select?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery | '*')[];
+    select?: '*' | (keyof Partial<T> | `${string}.${string}` | TRawStringQuery | '*')[];
     join?: {
         localKey: `${string}.${string}`;
         referenceKey: `${string}.${string}`;
@@ -271,6 +282,7 @@ export type TRepositoryRequest<T extends Record<string, any> = any, R = any> = {
     limit?: number;
     offset?: number;
     relations?: R extends object ? (keyof R)[] : string[];
+    relationsExists?: R extends object ? (keyof R)[] : string[];
     relationQuery?: {
         name: R extends object ? (keyof R) : string;
         callback: () => TRepositoryRequest<any, any>;

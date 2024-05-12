@@ -94,6 +94,7 @@ npm install tspace-mysql -g
   - [Repository Update Statements](#repository-update-statements)
   - [Repository Delete Statements](#repository-delete-statements)
   - [Repository Transactions](#repository-transactions)
+  - [Repository Relations](#repository-relations)
 - [Blueprint](#blueprint)
 - [Cli](#cli)
   - [Make Model](#make-model)
@@ -423,22 +424,13 @@ import { Operator } from 'tspace-mysql'
 
 const whereObject = await new DB("users")
   .whereObject({
-    id :  Operator.eq(1),
+    id :  Operator.notEq(1),
     username :  Operator.in(['user1','user2']),
     name :  Operator.like('%value%')
   })
-   .findMany();
+  .findMany();
 
-// You can also use .where as well.
-const where = await new DB("users")
-  .where({
-    id : 1,
-    username : 'username1',
-    name : Operator.like('%value%')
-  })
-   .findMany();
-
-// SELECT * FROM `users` WHERE `users`.`id` = '1' AND `users`.`username` = 'user1' AND `users`.`name` LIKE '%value%';
+// SELECT * FROM `users` WHERE `users`.`id` <> '1' AND `users`.`username` = 'user1' AND `users`.`name` LIKE '%value%';
 
 ```
 
@@ -767,7 +759,6 @@ const user = await new DB("users")
       },
     },
   ])
-  .whereIn("id", [1, 2])
   .save();
 
 /** 
@@ -1181,13 +1172,13 @@ class User extends Model {
      * this.useHooks([(r) => console.log(r)])
      * this.useObserver(Observe)
      * this.useSchema ({
-     *     id          : new Blueprint().int().notNull().primary().autoIncrement(),
-     *     uuid        : new Blueprint().varchar(50).null(),
-     *     name        : new Blueprint().varchar(191).notNull(),
-     *     email       : new Blueprint().varchar(191).notNull(),
-     *     created_at  : new Blueprint().timestamp().null(),
-     *     updated_at  : new Blueprint().timestamp().null(),
-     *     deleted_at  : new Blueprint().timestamp().null()
+     *     id          : Blueprint.int().notNull().primary().autoIncrement(),
+     *     uuid        : Blueprint.varchar(50).null(),
+     *     name        : Blueprint.varchar(191).notNull(),
+     *     email       : Blueprint.varchar(191).notNull(),
+     *     created_at  : Blueprint.timestamp().null(),
+     *     updated_at  : Blueprint.timestamp().null(),
+     *     deleted_at  : Blueprint.timestamp().null()
      *  }) // auto-generated table when table is not exists and auto-create column when column not exists
      *
      *  // validate input when create or update reference to the schema in 'this.useSchema'
@@ -1669,6 +1660,7 @@ class Post extends Model {
         super()
         this.hasMany({ name : 'comments' , model : Comment })
         this.belongsTo({ name : 'user' , model : User })
+        this.belongsToMany({ name : 'users' , model : User , modelPivot : PostUser })
     }
 }
 +--------------------------------------------------------------------------+
@@ -1679,12 +1671,15 @@ class Comment extends Model {
         this.belongsTo({ name : 'post' , model : Post })
     }
 }
+
+class PostUser extends Model {}
 +--------------------------------------------------------------------------+
 // Deeply nested relations
 await new User()
 .relations('posts')
 .relationQuery('posts', (query : Post) => {
-    return query.relations('comments','user')
+    return query
+    .relations('comments','user','users')
     .relationQuery('comments', (query : Comment) => {
         return query.relations('user','post')
     })
@@ -1694,6 +1689,12 @@ await new User()
             // relation n, n, ...n
         })
     })
+    .relationQuery('users', (query : User) => {
+        return query
+    })
+    .relationQuery('users', (query : PostUser) => {
+        return query
+    }, { pivot : true })
 })
 .findMany()
 
@@ -2047,13 +2048,13 @@ class UserObserve {
 @Table('users')
 class User extends Model {
 
-    @Column(() => new Blueprint().int().notNull().primary().autoIncrement())
+    @Column(() => Blueprint.int().notNull().primary().autoIncrement())
     public id!: number
 
-    @Column(() => new Blueprint().varchar(50).null())
+    @Column(() => Blueprint.varchar(50).null())
     public uuid!: string
 
-    @Column(() => new Blueprint().varchar(50).null())
+    @Column(() => Blueprint.varchar(50).null())
     @Validate({
         type : String,
         require : true,
@@ -2064,22 +2065,22 @@ class User extends Model {
     })
     public email!: string
 
-    @Column(() => new Blueprint().varchar(50).null())
+    @Column(() => Blueprint.varchar(50).null())
     public name !: string
 
-    @Column(() => new Blueprint().varchar(50).null())
+    @Column(() => Blueprint.varchar(50).null())
     public username !: string
 
-    @Column(() => new Blueprint().varchar(50).null())
+    @Column(() => Blueprint.varchar(50).null())
     public password !: string
 
-    @Column(() => new Blueprint().timestamp().null())
+    @Column(() => Blueprint.timestamp().null())
     public createdAt!: Date
 
-    @Column(() => new Blueprint().timestamp().null())
+    @Column(() => Blueprint.timestamp().null())
     public updatedAt!: Date
 
-    @Column(() => new Blueprint().timestamp().null())
+    @Column(() => Blueprint.timestamp().null())
     public deletedAt!: Date
 
 }
@@ -2100,13 +2101,13 @@ using the following:
 import { Model, Blueprint , TSchema } from "tspace-mysql";
 
 const schema = {
-  id: new Blueprint().int().notNull().primary().autoIncrement(),
-  uuid: new Blueprint().varchar(50).null(),
-  name: new Blueprint().varchar(191).notNull(),
-  email: new Blueprint().varchar(191).notNull(),
-  createdAt: new Blueprint().timestamp().null().bindColumn('created_at'),
-  updatedAt: new Blueprint().timestamp().null().bindColumn('updated_at'),
-  deletedAt: new Blueprint().timestamp().null().bindColumn('deleted_at')
+  id: Blueprint.int().notNull().primary().autoIncrement(),
+  uuid: Blueprint.varchar(50).null(),
+  name: Blueprint.varchar(191).notNull(),
+  email: Blueprint.varchar(191).notNull(),
+  createdAt: Blueprint.timestamp().null().bindColumn('created_at'),
+  updatedAt: Blueprint.timestamp().null().bindColumn('updated_at'),
+  deletedAt: Blueprint.timestamp().null().bindColumn('deleted_at')
 }
 
 
@@ -2151,13 +2152,13 @@ class User extends Model {
     super();
     this.useCamelCase();
     this.useSchema({
-      id: new Blueprint().int().notNull().primary().autoIncrement(),
-      uuid: new Blueprint().varchar(50).null(),
-      name: new Blueprint().varchar(191).notNull(),
-      email: new Blueprint().varchar(191).notNull(),
-      createdAt: new Blueprint().timestamp().null(),
-      updatedAt: new Blueprint().timestamp().null(),
-      deletedAt: new Blueprint().timestamp().null(),
+      id: Blueprint.int().notNull().primary().autoIncrement(),
+      uuid: Blueprint.varchar(50).null(),
+      name: Blueprint.varchar(191).notNull(),
+      email: Blueprint.varchar(191).notNull(),
+      createdAt: Blueprint.timestamp().null(),
+      updatedAt: Blueprint.timestamp().null(),
+      deletedAt: Blueprint.timestamp().null(),
     });
 
     // validate input when create or update reference to the schema in 'this.useSchema'
@@ -2225,13 +2226,13 @@ class User extends Model {
     });
 
     this.useSchema({
-      id: new Blueprint().int().notNull().primary().autoIncrement(),
-      uuid: new Blueprint().varchar(50).null(),
-      email: new Blueprint().int().notNull().unique(),
-      name: new Blueprint().varchar(255).null(),
-      created_at: new Blueprint().timestamp().null(),
-      updated_at: new Blueprint().timestamp().null(),
-      deleted_at: new Blueprint().timestamp().null(),
+      id: Blueprint.int().notNull().primary().autoIncrement(),
+      uuid: Blueprint.varchar(50).null(),
+      email: Blueprint.int().notNull().unique(),
+      name: Blueprint.varchar(255).null(),
+      created_at: Blueprint.timestamp().null(),
+      updated_at: Blueprint.timestamp().null(),
+      deleted_at: Blueprint.timestamp().null(),
     });
   }
 }
@@ -2244,18 +2245,18 @@ class Post extends Model {
     this.hasMany({ name: "comments", model: Comment });
     this.belongsTo({ name: "user", model: User });
     this.useSchema({
-      id: new Blueprint().int().notNull().primary().autoIncrement(),
-      uuid: new Blueprint().varchar(50).null(),
-      user_id: new Blueprint().int().notNull().foreign({
+      id: Blueprint.int().notNull().primary().autoIncrement(),
+      uuid: Blueprint.varchar(50).null(),
+      user_id: Blueprint.int().notNull().foreign({
         references: "id",
         on: User,
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
       }),
-      title: new Blueprint().varchar(255).null(),
-      created_at: new Blueprint().timestamp().null(),
-      updated_at: new Blueprint().timestamp().null(),
-      deleted_at: new Blueprint().timestamp().null(),
+      title: Blueprint.varchar(255).null(),
+      created_at: Blueprint.timestamp().null(),
+      updated_at: Blueprint.timestamp().null(),
+      deleted_at: Blueprint.timestamp().null(),
     });
   }
 }
@@ -2281,14 +2282,14 @@ import { Model , Blueprint , TSchema } from 'tspace-mysql'
 import Phone  from '../Phone'
 
 const schemaUser = {
-    id :new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid :new Blueprint().varchar(50).null(),
-    email :new Blueprint().varchar(50).null(),
-    name :new Blueprint().varchar(255).null(),
-    username : new Blueprint().varchar(255).null(),
-    password : new Blueprint().varchar(255).null(),
-    createdAt :new Blueprint().timestamp().null(),
-    updatedAt :new Blueprint().timestamp().null()
+    id :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid :Blueprint.varchar(50).null(),
+    email :Blueprint.varchar(50).null(),
+    name :Blueprint.varchar(255).null(),
+    username : Blueprint.varchar(255).null(),
+    password : Blueprint.varchar(255).null(),
+    createdAt :Blueprint.timestamp().null(),
+    updatedAt :Blueprint.timestamp().null()
 }
 
 type TSchemaUser = TSchema<typeof schemaUser>
@@ -2311,12 +2312,12 @@ export default User
 import { Model , Blueprint , TSchema } from 'tspace-mysql'
 import { User } from './User.ts'
 const schemaPhone = {
-    id :new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid :new Blueprint().varchar(50).null(),
-    userId : new Blueprint().int().notNull(),
-    number :new Blueprint().varchar(50).notNull(),
-    createdAt :new Blueprint().timestamp().null(),
-    updatedAt :new Blueprint().timestamp().null()
+    id :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid :Blueprint.varchar(50).null(),
+    userId : Blueprint.int().notNull(),
+    number :Blueprint.varchar(50).notNull(),
+    createdAt :Blueprint.timestamp().null(),
+    updatedAt :Blueprint.timestamp().null()
 }
 
 type TSchemaPhone = TSchema<typeof schemaPhone>
@@ -2554,14 +2555,14 @@ import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
 import { Phone }  from '../Phone'
 
 const schemaUser = {
-    id :new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid :new Blueprint().varchar(50).null(),
-    email :new Blueprint().varchar(50).null(),
-    name :new Blueprint().varchar(255).null(),
-    username : new Blueprint().varchar(255).null(),
-    password : new Blueprint().varchar(255).null(),
-    createdAt :new Blueprint().timestamp().null(),
-    updatedAt :new Blueprint().timestamp().null()
+    id :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid :Blueprint.varchar(50).null(),
+    email :Blueprint.varchar(50).null(),
+    name :Blueprint.varchar(255).null(),
+    username : Blueprint.varchar(255).null(),
+    password : Blueprint.varchar(255).null(),
+    createdAt :Blueprint.timestamp().null(),
+    updatedAt :Blueprint.timestamp().null()
 }
 
 type TSchemaUser = TSchema<typeof schemaUser>
@@ -2592,12 +2593,12 @@ import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
 import { User } from './User.ts'
 
 const schemaPhone = {
-    id :new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid :new Blueprint().varchar(50).null(),
-    userId : new Blueprint().int().notNull(),
-    number :new Blueprint().varchar(50).notNull(),
-    createdAt :new Blueprint().timestamp().null(),
-    updatedAt :new Blueprint().timestamp().null()
+    id :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid :Blueprint.varchar(50).null(),
+    userId : Blueprint.int().notNull(),
+    number :Blueprint.varchar(50).notNull(),
+    createdAt :Blueprint.timestamp().null(),
+    updatedAt :Blueprint.timestamp().null()
 }
 
 type TSchemaPhone = TSchema<typeof schemaPhone>
@@ -2671,7 +2672,6 @@ It provides methods for querying, inserting, updating, and deleting records in t
 ```js
 import { Repository , TRepository , Operator } from 'tspace-mysql'
 import { User } from '../Models/User'
-import { Phone } from '../Models/Phone'
 
 const userRepository = Repository.bind(User)
 const needPhone = true
@@ -2716,24 +2716,6 @@ const findFullName = await userRepository.findOne({
     `CONCAT(firstName," ",lastName) LIKE '%${search}%'`
   ]
 })
-
-// ------- relationship -------
-
-const userHasPhones = await userRepository.findOne({
-  select : ['*'],
-  where : {
-    id: 1
-  },
-  relations : ['post'],
-  relationQuery:{
-    name : 'post',
-    callback: () : TRepository<Phone> => ({ // add type for the callback know to check type of the model
-      select: ['id', 'userId', 'name'],
-      relations : ['user']
-    }) 
-  }
-})
-
 ```
 ### Repository Insert Statements
 ```js
@@ -2856,6 +2838,41 @@ try {
 
 ```
 
+### Repository Relations
+```js
+import { Repository , TRepository , Operator } from 'tspace-mysql'
+import { User } from '../Models/User'
+import { Phone } from '../Models/Phone'
+
+const userRepository = Repository.bind(User)
+
+const userHasPhones = await userRepository.findOne({
+  select : ['*'],
+  where : {
+    id: 1
+  },
+  relations : ['phone'],
+  relationQuery:{
+    name : 'phone',
+    callback: () : TRepository<Phone> => ({ // add type for the callback know to check type of the model
+      select: ['id', 'userId', 'name'],
+      relations : ['user']
+    }) 
+  }
+})
+
+const phoneRepository = Repository.bind(Phone)
+
+const phoneBelongUser = await phoneRepository.findOne({
+  select : ['*'],
+  where : {
+    id: 1
+  },
+  relations : ['user']
+})
+
+```
+
 ## Blueprint
 
 Blueprint is a tool used for defining database schemas programmatically. 
@@ -2865,17 +2882,17 @@ It allows developers to describe the structure of their database tables using a 
 import { Schema , Blueprint , DB } from 'tspace-mysql'
 (async () => {
     await new Schema().table('users', {
-        id           : new Blueprint().int().notNull().primary().autoIncrement(),
-        // or id     : new Blueprint().serial().primary(),
-        uuid         : new Blueprint().varchar(120).null()
-        name         : new Blueprint().varchar(120).default('name'),
-        email        : new Blueprint().varchar(255).unique().notNull(),
-        email_verify : new Blueprint().tinyInt(),
-        password     : new Blueprint().varchar(255),
-        json         : new Blueprint().json(),
-        created_at   : new Blueprint().null().timestamp(),
-        updated_at   : new Blueprint().null().timestamp(),
-        deleted_at   : new Blueprint().null().timestamp()
+        id           : Blueprint.int().notNull().primary().autoIncrement(),
+        // or id     : Blueprint.serial().primary(),
+        uuid         : Blueprint.varchar(120).null()
+        name         : Blueprint.varchar(120).default('name'),
+        email        : Blueprint.varchar(255).unique().notNull(),
+        email_verify : Blueprint.tinyInt(),
+        password     : Blueprint.varchar(255),
+        json         : Blueprint.json(),
+        created_at   : Blueprint.null().timestamp(),
+        updated_at   : Blueprint.null().timestamp(),
+        deleted_at   : Blueprint.null().timestamp()
     })
     /**
      *

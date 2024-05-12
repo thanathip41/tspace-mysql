@@ -23,17 +23,38 @@ const Blueprint_1 = require("./Blueprint");
 const State_1 = require("./Handlers/State");
 let globalSettings = {
     softDelete: false,
+    debug: false,
     uuid: false,
     timestamp: false,
-    logger: false,
+    logger: {
+        selected: false,
+        inserted: false,
+        updated: false,
+        deleted: false
+    }
 };
 /**
  *
  * 'Model' class is a representation of a database table
+ * @generic {Type} TS
+ * @generic {Type} TR
  * @example
- * class User extends Model {
- *     ...........
+ * import { Model, Blueprint , TSchema , TRelation } from 'tspace-mysql'
+ *
+ * const schema = {
+ *   id    : new Blueprint().int().primary().autoIncrement(),
+ *   uuid  : new Blueprint().varchar(50).null(),
+ *   email : new Blueprint().varchar(50).null(),
+ *   name  : new Blueprint().varchar(255).null(),
  * }
+ *
+ * type TS = TSchema<typeof schema>
+ * type TR = TRelation<{}>
+ *
+ * class User extends Model<TS,TR> {
+ *     ...........configration
+ * }
+ *
  * const users = await new User().findMany()
  * console.log(users)
  */
@@ -62,7 +83,13 @@ class Model extends AbstractModel_1.AbstractModel {
      *   softDelete : true,
      *   uuid       : true,
      *   timestamp  : true,
-     *   logger     : true,
+     *   debug      : true
+     *   logger     : {
+     *       selected : true,
+     *       inserted : true,
+     *       updated  : true,
+     *       deleted  : true
+     *   },
      * })
      * @returns {void} void
      */
@@ -196,7 +223,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * It's automatically create, called when not exists table or columns.
      * @param {object} schema using Blueprint for schema
      * @example
-     * import { Blueprint, TRelation } from 'tspace-mysql';
+     * import { Blueprint, TR } from 'tspace-mysql';
      * class User extends Model {
      *     constructor() {
      *        super()
@@ -231,7 +258,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * }
      */
     useRegistry() {
-        this.$state.set('REGISTRY', Object.assign(Object.assign({}, this.$state.get('REGISTRY')), { '$attach': this._attach, '$detach': this._detach }));
+        this.$state.set('REGISTRY', Object.assign(Object.assign({}, this.$state.get('REGISTRY')), { '$save': this._save.bind(this), '$attach': this._attach.bind(this), '$detach': this._detach.bind(this) }));
         return this;
     }
     /**
@@ -662,14 +689,14 @@ class Model extends AbstractModel_1.AbstractModel {
     }
     /**
      * The 'typeOfSchema' method is used get type of schema.
-     * @returns {TSchema} type of schema
+     * @returns {TS} type of schema
      */
     typeOfSchema() {
         return {};
     }
     /**
      * The 'typeOfRelation' method is used get type of relation.
-     * @returns {TRelation} type of Relation
+     * @returns {TR} type of Relation
      */
     typeOfRelation() {
         return {};
@@ -1272,7 +1299,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @returns {this} this
      */
     registry(func) {
-        this.$state.set('REGISTRY', Object.assign(Object.assign({}, func), { attach: this._attach, detach: this._detach }));
+        this.$state.set('REGISTRY', Object.assign(Object.assign({}, func), { '$save': this._save.bind(this), '$attach': this._attach.bind(this), '$detach': this._detach.bind(this) }));
         return this;
     }
     /**
@@ -1283,7 +1310,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @returns {this} this
      * @example
-     *   import { Model , TRelation } from 'tspace-mysql'
+     *   import { Model , TR } from 'tspace-mysql'
      *
      *   class User extends Model {
      *       constructor(){
@@ -1318,7 +1345,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * @param {...string} nameRelations ...name registry in models using (hasOne , hasMany , belongsTo , belongsToMany)
      * @returns {this} this
      * @example
-     *   import { Model , TRelation } from 'tspace-mysql'
+     *   import { Model , TR } from 'tspace-mysql'
      *
      *   class User extends Model {
      *       constructor(){
@@ -1524,6 +1551,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * Use relation '${name}' registry models then return callback queries
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
+     * @param {object} options pivot the query
      * @example
      *   import { Model } from 'tspace-mysql'
      *   class User extends Model {
@@ -1565,10 +1593,14 @@ class Model extends AbstractModel_1.AbstractModel {
      *  .findMany()
      * @returns {this} this
      */
-    withQuery(nameRelation, callback) {
-        var _a;
+    withQuery(nameRelation, callback, options = { pivot: false }) {
+        var _a, _b;
         this.with(nameRelation);
-        (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.callback(nameRelation, callback);
+        if (options.pivot) {
+            (_a = this.$relation) === null || _a === void 0 ? void 0 : _a.callbackPivot(String(nameRelation), callback);
+            return this;
+        }
+        (_b = this.$relation) === null || _b === void 0 ? void 0 : _b.callback(String(nameRelation), callback);
         return this;
     }
     /**
@@ -1578,6 +1610,7 @@ class Model extends AbstractModel_1.AbstractModel {
      * Use relation '${name}' registry models then return callback queries
      * @param {string} nameRelation name relation in registry in your model
      * @param {function} callback query callback
+     * @param {object} options pivot the query
      * @example
      *   import { Model } from 'tspace-mysql'
      *   class User extends Model {
@@ -1619,8 +1652,8 @@ class Model extends AbstractModel_1.AbstractModel {
      *  .findMany()
      * @returns {this} this
      */
-    relationQuery(nameRelation, callback) {
-        return this.withQuery(nameRelation, callback);
+    relationQuery(nameRelation, callback, options = { pivot: false }) {
+        return this.withQuery(nameRelation, callback, options);
     }
     /**
      *
@@ -2954,22 +2987,20 @@ class Model extends AbstractModel_1.AbstractModel {
                 const splits = (_b = (_a = result === null || result === void 0 ? void 0 : result.data) === null || _a === void 0 ? void 0 : _a.split(',')) !== null && _b !== void 0 ? _b : '0';
                 splits.forEach((split) => data = [...data, split]);
             });
-            const sqlChild = new Model()
+            const grouping = yield new Model()
                 .copyModel(this)
-                .select('*')
-                .whereIn('id', data.map((a) => `\'${a}\'`))
-                .toString();
-            const childData = yield this._queryStatement(sqlChild);
-            const child = yield this._executeGroup(childData);
-            const resultData = results.map((result) => {
+                .whereIn('id', data.map((v) => v))
+                .debug(this.$state.get('DEBUG'))
+                .get();
+            const result = results.map((result) => {
                 const id = result[column];
-                const newData = child.filter((data) => data[column] === id);
+                const newData = grouping.filter((data) => data[column] === id);
                 return ({
                     [column]: id,
                     data: newData
                 });
             });
-            return this._resultHandler(resultData);
+            return this._resultHandler(result);
         });
     }
     /**
@@ -3309,6 +3340,7 @@ class Model extends AbstractModel_1.AbstractModel {
             `${this.$state.get('TABLE_NAME')}`,
             `${query}`
         ].join(' '));
+        this.whereRaw('1');
         this.$state.set('SAVE', 'UPDATE');
         return this;
     }
@@ -4050,6 +4082,20 @@ class Model extends AbstractModel_1.AbstractModel {
         }
         return data;
     }
+    _save() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = this.$state.get('RESULT');
+            if (result.id == null) {
+                throw this._assertError(`This '$save' must be required the 'id' for the function`);
+            }
+            const update = JSON.parse(JSON.stringify(Object.assign({}, result)));
+            return yield this
+                .where('id', result.id)
+                .update(update)
+                .dd()
+                .save();
+        });
+    }
     _attach(name, dataId, fields) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -4592,20 +4638,29 @@ class Model extends AbstractModel_1.AbstractModel {
         }
     }
     _initialModel() {
+        var _a, _b, _c, _d;
         this.$state = new State_1.StateHandler('model');
         if (this.$pattern != null)
             this.usePattern(this.$pattern);
         this._makeTableName();
         this.$relation = new Relation_1.RelationHandler(this);
         this._makeRelations();
+        if (globalSettings.debug)
+            this.useDebug();
         if (globalSettings.softDelete)
             this.useSoftDelete();
         if (globalSettings.uuid)
             this.useUUID();
         if (globalSettings.timestamp)
             this.useTimestamp();
-        if (globalSettings.logger)
-            this.useLogger({});
+        if (globalSettings.logger != null) {
+            this.useLogger({
+                selected: (_a = globalSettings.logger) === null || _a === void 0 ? void 0 : _a.selected,
+                inserted: (_b = globalSettings.logger) === null || _b === void 0 ? void 0 : _b.inserted,
+                updated: (_c = globalSettings.logger) === null || _c === void 0 ? void 0 : _c.updated,
+                deleted: (_d = globalSettings.logger) === null || _d === void 0 ? void 0 : _d.deleted
+            });
+        }
         if (this.$table != null)
             this.useTable(this.$table);
         if (this.$uuid != null)

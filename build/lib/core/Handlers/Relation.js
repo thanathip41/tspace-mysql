@@ -37,14 +37,15 @@ class RelationHandler {
                 if (parent.hasOwnProperty(localKey))
                     return data;
                 if (data == null) {
-                    const message = `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`;
-                    throw this.MODEL['_assertError'](message);
+                    throw this._assertError(`This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
                 }
             })
                 .filter(d => d != null);
             const parentIds = Array.from(new Set(localKeyId)) || [];
             const query = relation.query;
-            this._assertError(query == null, `Unknown callback query in [TRelationOptions : ${relation.name}]`);
+            if (query == null) {
+                throw this._assertError(`The callback query '${relation.name}' is unknown.`);
+            }
             if (relation.count) {
                 const childs = yield query
                     .whereIn(foreignKey, parentIds)
@@ -87,7 +88,9 @@ class RelationHandler {
                 continue;
             const { localKey, foreignKey, pivot, modelPivot } = this._valueInTRelationOptions(relation);
             const query = relation.query;
-            this._assertError(query == null, `Unknown callback query in [TRelationOptions : '${relation.name}']`);
+            if (query == null) {
+                throw this._assertError(`The callback query '${relation.name}' is unknown.`);
+            }
             let clone = new Model_1.Model().clone(query);
             const cloneTRelationOptionss = clone['$state'].get('RELATIONS');
             if (cloneTRelationOptionss.length) {
@@ -128,14 +131,20 @@ class RelationHandler {
         const sql = this.MODEL['_queryBuilder']().select();
         return sql;
     }
-    apply(nameTRelationOptionss, type) {
-        const relations = nameTRelationOptionss.map((name) => {
+    apply(nameRelations, type) {
+        const relations = nameRelations.map((name) => {
             var _a, _b, _c;
             const relation = (_a = this.MODEL['$state'].get('RELATION')) === null || _a === void 0 ? void 0 : _a.find((data) => data.name === name);
-            this._assertError(relation == null, `The relation '${name}' is not registered in the model '${(_b = this.MODEL.constructor) === null || _b === void 0 ? void 0 : _b.name}'.`);
+            if (relation == null) {
+                throw this._assertError(`This name relation '${name}' not be register in Model '${(_b = this.MODEL.constructor) === null || _b === void 0 ? void 0 : _b.name}.'`);
+            }
             const relationHasExists = (_c = Object.values(this.$constants('RELATIONSHIP'))) === null || _c === void 0 ? void 0 : _c.includes(relation.relation);
-            this._assertError(!relationHasExists, `Unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
-            this._assertError(relation.model == null, `The model is not found'.`);
+            if (!relationHasExists) {
+                throw this._assertError(`The relationship '${relation.relation}' is unknown.`);
+            }
+            if (relation.model == null) {
+                throw this._assertError(`Model for the relationship is unknown.`);
+            }
             if (relation.query == null)
                 relation.query = new relation.model();
             return relation;
@@ -155,21 +164,51 @@ class RelationHandler {
                 ...this.MODEL['$state'].get('RELATIONS')]
             : relations;
     }
-    callback(nameTRelationOptions, cb) {
+    callback(nameRelation, cb) {
         var _a, _b;
-        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameTRelationOptions);
-        this._assertError(relation == null, `This TRelationOptions "${nameTRelationOptions}" not be register in Model "${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
+        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
+        if (relation == null) {
+            throw this._assertError(`This name relation '${nameRelation}' not be register in Model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}.'`);
+        }
         const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
-        this._assertError(!relationHasExists, `unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
+        if (!relationHasExists) {
+            throw this._assertError(`The relationship '${relation.relation}' is unknown.`);
+        }
+        if (relation.model == null) {
+            throw this._assertError(`Model for the relationship is unknown.`);
+        }
         relation.query = cb(new relation.model());
         return;
     }
-    returnCallback(nameTRelationOptions) {
+    callbackPivot(nameRelation, cb) {
         var _a, _b;
-        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameTRelationOptions);
-        this._assertError(relation == null, `This TRelationOptions "${nameTRelationOptions}" not be register in Model "${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}"`);
+        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
+        if (relation == null) {
+            throw this._assertError(`This name relation '${nameRelation}' not be register in Model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'`);
+        }
         const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
-        this._assertError(!relationHasExists, `unknown relationship in [${this.$constants('RELATIONSHIP')}] !`);
+        if (!relationHasExists) {
+            throw this._assertError(`The relationship '${relation.relation}' is unknown.`);
+        }
+        if (relation.relation !== this.$constants('RELATIONSHIP').belongsToMany) {
+            throw this._assertError(`The pivot options support 'belongsToMany' relations exclusively.`);
+        }
+        if (relation.modelPivot == null) {
+            throw this._assertError(`Model pivot for the relationship is unknown`);
+        }
+        relation.queryPivot = cb(new relation.modelPivot());
+        return;
+    }
+    returnCallback(nameRelation) {
+        var _a, _b;
+        const relation = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
+        if (relation == null) {
+            throw this._assertError(`This name relation '${nameRelation}' not be register in Model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'`);
+        }
+        const relationHasExists = (_b = Object.values(this.$constants('RELATIONSHIP'))) === null || _b === void 0 ? void 0 : _b.includes(relation.relation);
+        if (!relationHasExists) {
+            throw this._assertError(`The relationship '${relation.relation}' is unknown.`);
+        }
         return new relation.model();
     }
     hasOne({ name, as, model, localKey, foreignKey, freezeTable }) {
@@ -236,11 +275,11 @@ class RelationHandler {
         ]);
     }
     hasOneBuilder({ name, as, model, localKey, foreignKey, freezeTable, }, callback) {
-        const nameTRelationOptions = name == null
+        const nameRelation = name == null
             ? this._functionTRelationOptionsName()
             : String(name);
         const relation = {
-            name: nameTRelationOptions,
+            name: nameRelation,
             model,
             as,
             relation: this.$constants('RELATIONSHIP').hasOne,
@@ -249,7 +288,7 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        const r = this._relationBuilder(nameTRelationOptions, relation);
+        const r = this._relationBuilder(nameRelation, relation);
         if (callback == null) {
             r.query = new r.model();
             return this;
@@ -258,11 +297,11 @@ class RelationHandler {
         return;
     }
     hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, }, callback) {
-        const nameTRelationOptions = name == null
+        const nameRelation = name == null
             ? this._functionTRelationOptionsName()
             : String(name);
         const relation = {
-            name: nameTRelationOptions,
+            name: nameRelation,
             model,
             as,
             relation: this.$constants('RELATIONSHIP').hasMany,
@@ -271,7 +310,7 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        const r = this._relationBuilder(nameTRelationOptions, relation);
+        const r = this._relationBuilder(nameRelation, relation);
         if (callback == null) {
             r.query = new r.model();
             return this;
@@ -280,11 +319,11 @@ class RelationHandler {
         return;
     }
     belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable, }, callback) {
-        const nameTRelationOptions = name == null
+        const nameRelation = name == null
             ? this._functionTRelationOptionsName()
             : String(name);
         const relation = {
-            name: nameTRelationOptions,
+            name: nameRelation,
             model,
             as,
             relation: this.$constants('RELATIONSHIP').belongsTo,
@@ -293,7 +332,7 @@ class RelationHandler {
             freezeTable,
             query: null
         };
-        const r = this._relationBuilder(nameTRelationOptions, relation);
+        const r = this._relationBuilder(nameRelation, relation);
         if (callback == null) {
             r.query = new r.model();
             return this;
@@ -302,11 +341,11 @@ class RelationHandler {
         return;
     }
     belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }, callback) {
-        const nameTRelationOptions = name == null
+        const nameRelation = name == null
             ? this._functionTRelationOptionsName()
             : String(name);
         const relation = {
-            name: nameTRelationOptions,
+            name: nameRelation,
             model,
             as,
             relation: this.$constants('RELATIONSHIP').belongsToMany,
@@ -316,7 +355,7 @@ class RelationHandler {
             pivot,
             query: null
         };
-        const r = this._relationBuilder(nameTRelationOptions, relation);
+        const r = this._relationBuilder(nameRelation, relation);
         if (callback == null) {
             r.query = new r.model();
             return this;
@@ -377,12 +416,12 @@ class RelationHandler {
             .toString();
         return sql;
     }
-    _relationBuilder(nameTRelationOptions, relation) {
+    _relationBuilder(nameRelation, relation) {
         var _a;
         this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION'), relation]);
-        this.MODEL['with'](nameTRelationOptions);
-        const r = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameTRelationOptions);
-        this._assertError(relation == null, `The relation '${nameTRelationOptions}' is not registered in the model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'.`);
+        this.MODEL['with'](nameRelation);
+        const r = this.MODEL['$state'].get('RELATIONS').find((data) => data.name === nameRelation);
+        this._assertError(relation == null, `The relation '${nameRelation}' is not registered in the model '${(_a = this.MODEL.constructor) === null || _a === void 0 ? void 0 : _a.name}'.`);
         return r;
     }
     _functionTRelationOptionsName() {
@@ -430,7 +469,7 @@ class RelationHandler {
     _belongsToMany(parents, relation) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            const { name, foreignKey, localKey, pivot, oldVersion, modelPivot } = this._valueInTRelationOptions(relation);
+            let { name, foreignKey, localKey, pivot, oldVersion, modelPivot, queryPivot } = this._valueInTRelationOptions(relation);
             const localKeyId = parents.map((parent) => {
                 const data = parent[foreignKey];
                 if (parent.hasOwnProperty(foreignKey))
@@ -438,20 +477,22 @@ class RelationHandler {
                 this._assertError(data == null, `This relationship lacks a primary or foreign key in the '${relation === null || relation === void 0 ? void 0 : relation.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`);
             }).filter((d) => d != null);
             const mainResultIds = Array.from(new Set(localKeyId));
-            const modelTRelationOptions = relation.query == null ? new relation.model() : relation.query;
-            const relationColumn = this.MODEL['_classToTableName'](modelTRelationOptions.constructor.name, { singular: true });
+            const modelRelation = relation.query == null ? new relation.model() : relation.query;
+            const relationColumn = this.MODEL['_classToTableName'](modelRelation.constructor.name, { singular: true });
             const mainlocalKey = 'id';
             const relationForeignKey = this._valuePattern(`${relationColumn}Id`);
             const localKeyPivotTable = this._valuePattern([pluralize_1.default.singular(this.MODEL['getTableName']()), foreignKey].join("_"));
             const pivotTable = String(((_a = relation.pivot) !== null && _a !== void 0 ? _a : pivot));
             const sqlPivotExists = new Model_1.Model()
-                .copyModel(modelTRelationOptions)
+                .copyModel(modelRelation)
                 .selectRaw("1")
-                .whereReference(`\`${modelTRelationOptions.getTableName()}\`.\`${foreignKey}\``, `\`${pivotTable}\`.\`${localKey}\``)
+                .whereReference(`\`${modelRelation.getTableName()}\`.\`${foreignKey}\``, `\`${pivotTable}\`.\`${localKey}\``)
                 .toString();
-            const queryPivot = modelPivot
-                ? new modelPivot()
-                : new Model_1.Model().table(pivotTable);
+            queryPivot = queryPivot == null
+                ? modelPivot
+                    ? new modelPivot()
+                    : new Model_1.Model().table(pivotTable)
+                : queryPivot;
             if (relation.count) {
                 const pivotResults = yield queryPivot
                     .whereIn(localKeyPivotTable, mainResultIds)
@@ -489,10 +530,12 @@ class RelationHandler {
             const relationIds = Array.from(new Set(pivotResults
                 .map((pivotResult) => pivotResult[relationForeignKey])
                 .filter((d) => d != null)));
-            const relationResults = yield this.MODEL.rawQuery(modelTRelationOptions
+            const relationResults = yield modelRelation
                 .whereIn(mainlocalKey, relationIds)
                 .when(relation.trashed, (query) => query.disableSoftDelete())
-                .toString());
+                .bind(this.MODEL['$pool'].get())
+                .debug(this.MODEL['$state'].get('DEBUG'))
+                .get();
             if (oldVersion) {
                 for (const pivotResult of pivotResults) {
                     for (const relationResult of relationResults) {
@@ -544,6 +587,7 @@ class RelationHandler {
         const modelPivot = relationModel.modelPivot;
         const oldVersion = relationModel.oldVersion;
         const query = relationModel === null || relationModel === void 0 ? void 0 : relationModel.query;
+        const queryPivot = relationModel === null || relationModel === void 0 ? void 0 : relationModel.queryPivot;
         const table = relationModel.freezeTable
             ? relationModel.freezeTable
             : (_a = relationModel.query) === null || _a === void 0 ? void 0 : _a.getTableName();
@@ -600,6 +644,7 @@ class RelationHandler {
             foreignKey,
             model,
             query,
+            queryPivot,
             pivot,
             oldVersion,
             modelPivot

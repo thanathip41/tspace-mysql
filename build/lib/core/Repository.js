@@ -35,6 +35,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object | null>}
@@ -84,6 +85,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object | null>}
@@ -128,6 +130,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object>[]}
@@ -177,6 +180,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<object>[]}
@@ -222,6 +226,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @property {?number} options.page
@@ -276,6 +281,7 @@ class RepositoryHandler {
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @property {?number} options.page
@@ -886,16 +892,40 @@ class RepositoryHandler {
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
      * @return {promise<T[]>}
+     * @example
+     * const saveUpdateMultiple = await userRepository.updateMultiple({
+     *   cases : [
+     *     {
+     *       when : {
+     *         id: 1
+     *       },
+     *       columns : {
+     *         name : 'name-edit-in-multiple : id 1 '
+     *       }
+     *     },
+     *     {
+     *       when : {
+     *         id : 2
+     *       },
+     *       columns : {
+     *         name : 'name-edit-in-multiple : id 2'
+     *       }
+     *     }
+     *   ],
+     *  where : {
+     *     id : Operator.in([1,2])
+     *  }
+     * })
+     *
      */
     updateMultiple(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ cases, where, debug, transaction }) {
-            if (where == null || !Object.keys(where).length)
-                throw new Error("The method updateMany can't use without where condition");
+        return __awaiter(this, arguments, void 0, function* ({ cases, debug, transaction }) {
+            if (!cases.length)
+                throw new Error("The method updateMultiple can't use without cases condition");
             const instance = new this._model();
             if (debug != null && debug) {
                 instance.debug();
             }
-            instance.where(where);
             if (transaction != null) {
                 instance.bind(transaction);
             }
@@ -955,10 +985,13 @@ class RepositoryHandler {
         });
     }
     _handlerRequest(options) {
-        let { select, join, leftJoin, rightJoin, where, whereRaw, whereQuery, groupBy, having, orderBy, limit, offset, relations, relationQuery, when, instance } = options;
+        let { select, join, leftJoin, rightJoin, where, whereRaw, whereQuery, groupBy, having, orderBy, limit, offset, relations, relationsExists, relationQuery, when, instance } = options;
         instance = instance == null ? new this._model() : instance;
         if (select != null) {
-            instance.select(...select);
+            if (select === '*')
+                instance.select(select);
+            else
+                instance.select(...select);
         }
         if (join != null) {
             for (const v of join) {
@@ -1008,6 +1041,9 @@ class RepositoryHandler {
         }
         if (relations != null) {
             instance.with(...relations);
+        }
+        if (relationsExists != null) {
+            instance.withExists(...relationsExists);
         }
         if (relationQuery != null && relationQuery.name) {
             const cbRelation = instance.findWithQuery(relationQuery.name);

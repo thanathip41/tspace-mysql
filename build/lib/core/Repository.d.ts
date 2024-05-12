@@ -26,6 +26,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object | null>}
@@ -66,6 +67,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object | null>}
@@ -106,6 +108,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<Object>[]}
@@ -146,6 +149,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @returns {promise<object>[]}
@@ -187,6 +191,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @property {?number} options.page
@@ -229,6 +234,7 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?{localKey , referenceKey}[]} options.rightJoin
      * @property {?{localKey , referenceKey}[]} options.leftJoin
      * @property {?string[]} options.relations
+     * @property {string[]} options.relationExists
      * @property {?{condition,callback}} options.relationQuery
      * @property {?boolean} options.debug
      * @property {?number} options.page
@@ -631,8 +637,33 @@ declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
      * @return {promise<T[]>}
+     * @example
+     * const saveUpdateMultiple = await userRepository.updateMultiple({
+     *   cases : [
+     *     {
+     *       when : {
+     *         id: 1
+     *       },
+     *       columns : {
+     *         name : 'name-edit-in-multiple : id 1 '
+     *       }
+     *     },
+     *     {
+     *       when : {
+     *         id : 2
+     *       },
+     *       columns : {
+     *         name : 'name-edit-in-multiple : id 2'
+     *       }
+     *     }
+     *   ],
+     *  where : {
+     *     id : Operator.in([1,2])
+     *  }
+     * })
+     *
      */
-    updateMultiple({ cases, where, debug, transaction }: TRepositoryUpdateMultiple<T[]>): Promise<T[]>;
+    updateMultiple({ cases, debug, transaction }: TRepositoryUpdateMultiple<T>): Promise<T[]>;
     /**
      * The 'delete' method is used to delete records from a database table based on the specified query conditions.
      *

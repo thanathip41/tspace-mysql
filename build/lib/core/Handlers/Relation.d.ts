@@ -7,9 +7,10 @@ declare class RelationHandler {
     constructor(model: Model);
     load(parents: Record<string, any>[], relation: TRelationOptions): Promise<any[]>;
     loadExists(): string;
-    apply(nameTRelationOptionss: any[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): TRelationOptions[];
-    callback(nameTRelationOptions: any, cb: Function): void;
-    returnCallback(nameTRelationOptions: any): Model<any, any>;
+    apply(nameRelations: any[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): TRelationOptions[];
+    callback(nameRelation: any, cb: Function): void;
+    callbackPivot(nameRelation: string, cb: Function): void;
+    returnCallback(nameRelation: any): Model<any, any>;
     hasOne({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions): void;
     hasMany({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions): void;
     belongsTo({ name, as, model, localKey, foreignKey, freezeTable }: TRelationOptions): void;

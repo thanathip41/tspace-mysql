@@ -2822,7 +2822,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 `${this.$state.get('TABLE_NAME')}`,
                 `${this.$constants('WHERE')} id`,
                 `${this.$constants('IN')}`,
-                `(${data.map((a) => `\'${a}\'`).join(',') || ['0']})`
+                `(${data.map((a) => `'${a}'`).join(',') || ['0']})`
             ].join(' ');
             const groups = yield this._queryStatement(sqlGroups);
             const resultData = results.map((result) => {
@@ -3624,7 +3624,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a;
         let values = [];
         for (let objects of data) {
-            this.$utils.covertDataToDateIfDate(data);
+            this.$utils.covertDataToDateIfDate(objects);
             const vals = Object.values(objects).map((value) => {
                 if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                     value = this.$utils.escapeActions(value);

@@ -54,18 +54,35 @@ class PoolConnection extends events_1.EventEmitter {
      */
     connection() {
         const pool = (0, mysql2_1.createPool)(Object.fromEntries(this.OPTIONS));
-        pool.getConnection((err, _) => {
-            if (err == null || !err) {
-                this.emit('CONNECTION', pool);
-                return;
-            }
-            const message = this._messageError.bind(this);
-            process.nextTick(() => {
-                console.log(message(err.message == null || err.message === '' ? err.code : err.message));
-                if (options_1.default.CONNECTION_ERROR)
-                    return process.exit();
+        /**
+         * After the server is listening, verify that the pool has successfully connected to the database.
+         * @protected {Pool} pool
+         * @returns {void}
+         */
+        setTimeout(() => {
+            pool.getConnection((err, connection) => {
+                if (err == null || !err) {
+                    this.emit('CONNECTION', pool);
+                    connection.query(`SHOW VARIABLES LIKE 'version%'`, (err, results) => {
+                        connection.release();
+                        if (err)
+                            return;
+                        const message = [
+                            results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version'),
+                            results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version_comment')
+                        ].map(v => v === null || v === void 0 ? void 0 : v.Value).join(' - ');
+                        console.log(this._messageConnected.bind(this)(`${message}.`));
+                    });
+                    return;
+                }
+                const message = this._messageError.bind(this);
+                process.nextTick(() => {
+                    console.log(message(err.message == null || err.message === '' ? err.code : err.message));
+                    if (options_1.default.CONNECTION_ERROR)
+                        return process.exit();
+                });
             });
-        });
+        }, 1000 * 2);
         pool.on('release', (connection) => {
             this.emit('RELEASE', connection);
         });
@@ -163,7 +180,7 @@ class PoolConnection extends events_1.EventEmitter {
             dateStrings: Boolean(options_1.default.DATE_STRINGS),
             connectTimeout: Number.isNaN(Number(options_1.default.TIMEOUT)) ? 60 * 1000 : Number(options_1.default.TIMEOUT),
             waitForConnections: Boolean(options_1.default.WAIT_FOR_CONNECTIONS),
-            queueLimit: Number.isNaN(Number(options_1.default.QUEUE_LIMIT) ? 0 : Number(options_1.default.QUEUE_LIMIT)),
+            queueLimit: Number.isNaN(Number(options_1.default.QUEUE_LIMIT)) ? 0 : Number(options_1.default.QUEUE_LIMIT),
             charset: String(options_1.default.CHARSET),
             host: String(options_1.default.HOST),
             port: Number.isNaN(Number(options_1.default.PORT)) ? 3306 : Number(options_1.default.PORT),
@@ -253,6 +270,20 @@ class PoolConnection extends events_1.EventEmitter {
                 data[key] = +value;
         }
         return data;
+    }
+    _messageConnected(message) {
+        return `
+            \x1b[1m\x1b[32m
+            Connection established to the database. 
+            Version : ${message !== null && message !== void 0 ? message : ''} \x1b[0m
+            ------------------------------- \x1b[30m
+                HOST     : ${this.OPTIONS.get('host')}         
+                PORT     : ${this.OPTIONS.get('port')}        
+                DATABASE : ${this.OPTIONS.get('database')}
+                USERNAME : ${this.OPTIONS.get('user')}          
+                PASSWORD : ${this.OPTIONS.get('password')} \x1b[0m 
+            -------------------------------
+        `;
     }
     _messageError(message) {
         return `
