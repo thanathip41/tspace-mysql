@@ -1,6 +1,6 @@
 import { Model } from "./Model";
 /**
- * Make schema for table with Blueprint
+ * Class 'Blueprint' is used to make the schema for table
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
  *   await new Schema().table('users',{

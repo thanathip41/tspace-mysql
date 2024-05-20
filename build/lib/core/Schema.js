@@ -51,7 +51,7 @@ class Schema extends Builder_1.Builder {
                     const { type, attributes } = data;
                     columns = [
                         ...columns,
-                        `${key} ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
+                        `\`${key}\` ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
                     ];
                 }
                 const sql = [
@@ -74,7 +74,7 @@ class Schema extends Builder_1.Builder {
                 const { type, attributes } = data;
                 columns = [
                     ...columns,
-                    `${key} ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
+                    `\`${key}\` ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
                 ];
             }
             return [
@@ -273,7 +273,7 @@ class Schema extends Builder_1.Builder {
                 const schemaTableKeys = schemaTable.map((k) => k.Field);
                 const schemaModelKeys = Object.keys(schemaModel);
                 const wasChangedColumns = changed ? Object.entries(schemaModel).map(([key, value]) => {
-                    const find = schemaTable.find(t => t.Field === key);
+                    const find = schemaTable.find(t => (t.Field === key) && (key !== 'id'));
                     if (find == null)
                         return null;
                     const compare = String(find.Type).toLocaleLowerCase() !== String(value.type).toLocaleLowerCase();

@@ -67,18 +67,6 @@ const escapeXSS = (str) => {
         .replace(/\([^)]*\) *=>/g, '')
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 };
-const isSubQuery = (subQuery) => {
-    const checkIsSubQuery = (/\bSELECT\s+(?!\*)/i.test(subQuery));
-    if (!checkIsSubQuery)
-        return false;
-    const selectMatch = subQuery.match(/^\s*SELECT\s+(.*)\s+FROM/i);
-    if (!selectMatch)
-        return false;
-    const selectColumns = selectMatch[1].trim().split(',');
-    if (selectColumns.length !== 1)
-        return false;
-    return true;
-};
 const columnRelation = (name) => {
     var _a;
     const matches = (_a = name === null || name === void 0 ? void 0 : name.match(/[A-Z]/g)) !== null && _a !== void 0 ? _a : [];
@@ -215,7 +203,6 @@ const utils = {
     escape,
     escapeActions,
     escapeXSS,
-    isSubQuery,
     generateUUID,
     covertBooleanToNumber,
     covertDataToDateIfDate,

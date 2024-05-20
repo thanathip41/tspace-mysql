@@ -71,7 +71,7 @@ class PoolConnection extends events_1.EventEmitter {
                             results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version'),
                             results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version_comment')
                         ].map(v => v === null || v === void 0 ? void 0 : v.Value).join(' - ');
-                        console.log(this._messageConnected.bind(this)(`${message}.`));
+                        console.log(this._messageConnected.bind(this)(`${message}`));
                     });
                     return;
                 }
@@ -82,7 +82,7 @@ class PoolConnection extends events_1.EventEmitter {
                         return process.exit();
                 });
             });
-        }, 1000 * 2);
+        }, 1000 * 4);
         pool.on('release', (connection) => {
             this.emit('RELEASE', connection);
         });
@@ -176,20 +176,20 @@ class PoolConnection extends events_1.EventEmitter {
     }
     _defaultOptions() {
         return new Map(Object.entries({
-            connectionLimit: Number.isNaN(Number(options_1.default.CONNECTION_LIMIT)) ? 30 : Number(options_1.default.CONNECTION_LIMIT),
+            connectionLimit: Number(options_1.default.CONNECTION_LIMIT),
             dateStrings: Boolean(options_1.default.DATE_STRINGS),
-            connectTimeout: Number.isNaN(Number(options_1.default.TIMEOUT)) ? 60 * 1000 : Number(options_1.default.TIMEOUT),
+            connectTimeout: Number(options_1.default.TIMEOUT),
             waitForConnections: Boolean(options_1.default.WAIT_FOR_CONNECTIONS),
-            queueLimit: Number.isNaN(Number(options_1.default.QUEUE_LIMIT)) ? 0 : Number(options_1.default.QUEUE_LIMIT),
+            queueLimit: Number(options_1.default.QUEUE_LIMIT),
             charset: String(options_1.default.CHARSET),
             host: String(options_1.default.HOST),
-            port: Number.isNaN(Number(options_1.default.PORT)) ? 3306 : Number(options_1.default.PORT),
+            port: Number(options_1.default.PORT),
             database: String(options_1.default.DATABASE),
             user: String(options_1.default.USERNAME),
-            password: String(options_1.default.PASSWORD) === '' ? '' : String(options_1.default.PASSWORD),
-            multipleStatements: Boolean(options_1.default.MULTIPLE_STATEMENTS || false),
-            enableKeepAlive: Boolean(options_1.default.ENABLE_KEEP_ALIVE || false),
-            keepAliveInitialDelay: Number.isNaN(Number(options_1.default.KEEP_ALIVE_DELAY || 0) ? 0 : Number(options_1.default.KEEP_ALIVE_DELAY)),
+            password: String(options_1.default.PASSWORD),
+            multipleStatements: Boolean(options_1.default.MULTIPLE_STATEMENTS),
+            enableKeepAlive: Boolean(options_1.default.ENABLE_KEEP_ALIVE),
+            keepAliveInitialDelay: Number(options_1.default.KEEP_ALIVE_DELAY),
         }));
     }
     _loadOptions() {
@@ -276,7 +276,7 @@ class PoolConnection extends events_1.EventEmitter {
             \x1b[1m\x1b[32m
             Connection established to the database. 
             Version : ${message !== null && message !== void 0 ? message : ''} \x1b[0m
-            ------------------------------- \x1b[30m
+            ------------------------------- \x1b[34m
                 HOST     : ${this.OPTIONS.get('host')}         
                 PORT     : ${this.OPTIONS.get('port')}        
                 DATABASE : ${this.OPTIONS.get('database')}

@@ -1,5 +1,5 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
-import { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery } from '../types';
+import type { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery } from '../types';
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name

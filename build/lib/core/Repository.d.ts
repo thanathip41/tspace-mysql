@@ -1,6 +1,6 @@
 import { Model } from "./Model";
-import { TRelationModel, TSchemaModel } from "./UtilityTypes";
-import { TPagination, TRepositoryRequest, TRepositoryRequestPagination, TRepositoryRequestAggregate, TRepositoryCreateMultiple, TRepositoryCreateOrThings, TRepositoryCreate, TRepositoryDelete, TRepositoryUpdate, TRepositoryUpdateMultiple } from "../types";
+import type { TRelationModel, TSchemaModel } from "./UtilityTypes";
+import type { TPagination, TRepositoryRequest, TRepositoryRequestPagination, TRepositoryRequestAggregate, TRepositoryCreateMultiple, TRepositoryCreateOrThings, TRepositoryCreate, TRepositoryDelete, TRepositoryUpdate, TRepositoryUpdateMultiple } from "../types";
 declare class RepositoryHandler<T extends Record<string, any> = any, R = unknown> {
     private _model;
     constructor(_model: {

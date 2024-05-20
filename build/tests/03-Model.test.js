@@ -255,6 +255,29 @@ chai_1.default.use(chai_json_schema_1.default);
             }
         });
     });
+    (0, mocha_1.it)(`Relation : nested 'users' hasMany 'posts' 'posts' belongsTo 'users' ?`, function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield new schema_spec_1.User()
+                .with('posts')
+                .withQuery('posts', (query) => {
+                return query.with('user')
+                    .withQuery('user', (query) => query.with('post'));
+            })
+                .first();
+            (0, chai_1.expect)(result).to.be.an('object');
+            (0, chai_1.expect)(result).to.be.jsonSchema(schema_spec_1.userSchemaObject);
+            (0, chai_1.expect)(result).to.have.property('posts');
+            (0, chai_1.expect)(result.posts).to.be.an('array');
+            (0, chai_1.expect)(result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
+            for (const post of result.posts) {
+                (0, chai_1.expect)(post).to.have.property('user');
+                (0, chai_1.expect)(post.user).to.be.an('object');
+                (0, chai_1.expect)(post.user).to.be.jsonSchema(schema_spec_1.userSchemaObject);
+                (0, chai_1.expect)(post.user.post).to.be.an('object');
+                (0, chai_1.expect)(post.user.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
+            }
+        });
+    });
     /* ###################################################### */
 });
 //# sourceMappingURL=03-Model.test.js.map

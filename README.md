@@ -2942,15 +2942,6 @@ autoIncrement()
  *  @ForeginKey
  */
 foreign({ references : ${COLUMN} , on : ${TABLE-NAME OR MODEL CLASSES} })
-
-/**
- * 
- * Binding a column in the key of the schema forwards the key to the corresponding column in the database.
- * @BindColumn
- */
-bindColumn('< real name column in table >')
-
-
 ```
 
 ## Cli

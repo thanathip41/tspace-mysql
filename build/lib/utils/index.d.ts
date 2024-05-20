@@ -9,7 +9,6 @@ declare const utils: {
     escape: (str: any, hard?: boolean) => any;
     escapeActions: (str: any) => any;
     escapeXSS: (str: any) => any;
-    isSubQuery: (subQuery: string) => boolean;
     generateUUID: () => string;
     covertBooleanToNumber: (data: any) => any;
     covertDataToDateIfDate: (data: Record<string, any>) => void;

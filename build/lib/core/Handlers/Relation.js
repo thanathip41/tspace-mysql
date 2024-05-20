@@ -430,10 +430,8 @@ class RelationHandler {
     }
     _relationMapData({ parents, childs, relation }) {
         var _a;
-        let { name, as, query, relation: relationName, localKey, foreignKey } = this._valueInTRelationOptions(relation);
+        let { name, as, relation: relationName, localKey, foreignKey } = this._valueInTRelationOptions(relation);
         const keyTRelationOptions = as !== null && as !== void 0 ? as : name;
-        localKey = query == null ? localKey : query.covertFixColumnToColumnSchema(localKey);
-        foreignKey = query == null ? foreignKey : query.covertFixColumnToColumnSchema(foreignKey);
         for (const dataParent of parents) {
             const relationIsHasOneOrBelongsTo = [
                 this.$constants('RELATIONSHIP').hasOne,
@@ -633,8 +631,6 @@ class RelationHandler {
                 pluralize_1.default.singular(pivotModel.getTableName())
             ].sort().join('_'));
         }
-        foreignKey = this.MODEL.covertColumnSchemaToFixColumn(foreignKey);
-        localKey = this.MODEL.covertColumnSchemaToFixColumn(localKey);
         return {
             name,
             as,

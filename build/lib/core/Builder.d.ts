@@ -917,6 +917,11 @@ declare class Builder extends AbstractBuilder {
      */
     getTableName(): string;
     /**
+     * The 'getColumns' method is used to get columns
+     * @returns {this} this this
+     */
+    getColumns(): Promise<string[]>;
+    /**
      * The 'getSchema' method is used to get schema information
      * @returns {this} this this
      */

@@ -641,14 +641,7 @@ class Model extends AbstractModel_1.AbstractModel {
                     removeExcepts.push(hasDot ? removeExcept.map(r => `${tableName}.${r}`) : removeExcept);
                     continue;
                 }
-                const sql = [
-                    `${this.$constants('SHOW')}`,
-                    `${this.$constants('COLUMNS')}`,
-                    `${this.$constants('FROM')}`,
-                    `${tableName}`
-                ].join(' ');
-                const rawColumns = yield this._queryStatement(sql);
-                const columns = rawColumns.map((column) => column.Field);
+                const columns = yield this.getColumns();
                 const removeExcept = columns.filter((column) => {
                     return excepts.every((except) => {
                         if (/\./.test(except)) {
@@ -2239,9 +2232,6 @@ class Model extends AbstractModel_1.AbstractModel {
      * @returns {this}
      */
     whereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery)) {
-            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
-        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2261,9 +2251,6 @@ class Model extends AbstractModel_1.AbstractModel {
      * @returns {this}
      */
     whereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery)) {
-            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
-        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2283,9 +2270,6 @@ class Model extends AbstractModel_1.AbstractModel {
      * @returns {this}
      */
     orWhereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery)) {
-            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
-        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2307,9 +2291,6 @@ class Model extends AbstractModel_1.AbstractModel {
      * @returns {this}
      */
     orWhereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery)) {
-            throw this._assertError(`This "subQuery" is invalid. Sub query is should contain 1 column(s)`);
-        }
         const c = this._columnPattern(String(column));
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3399,15 +3380,9 @@ class Model extends AbstractModel_1.AbstractModel {
     faker(rows, callback) {
         return __awaiter(this, void 0, void 0, function* () {
             const data = [];
-            const sql = [
-                `${this.$constants('SHOW')}`,
-                `${this.$constants('FIELDS')}`,
-                `${this.$constants('FROM')}`,
-                `${this.$state.get('TABLE_NAME')}`
-            ].join(' ');
             const schemaModel = this.getSchemaModel();
             const fields = schemaModel == null
-                ? yield this._queryStatement(sql)
+                ? yield this.getSchema()
                 : Object.entries(schemaModel).map(([key, value]) => {
                     return {
                         Field: key,
@@ -3415,7 +3390,7 @@ class Model extends AbstractModel_1.AbstractModel {
                     };
                 });
             if (this.$state.get('TABLE_NAME') === '' || this.$state.get('TABLE_NAME') == null) {
-                throw this._assertError("Unknow this table.");
+                throw this._assertError("Unknow table.");
             }
             for (let row = 0; row < rows; row++) {
                 let columnAndValue = {};
@@ -3452,7 +3427,7 @@ class Model extends AbstractModel_1.AbstractModel {
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             const schemaModel = this.getSchemaModel();
             if (schemaModel == null)
-                throw this._assertError(schemaModel == null, 'Schema model not found');
+                throw this._assertError('The schema model does not exist.');
             const checkTableIsExists = existsTables.some((table) => table === this.getTableName());
             const syncForeignKey = (_j) => __awaiter(this, [_j], void 0, function* ({ schemaModel, model }) {
                 var _k;
@@ -3550,45 +3525,14 @@ class Model extends AbstractModel_1.AbstractModel {
             return;
         });
     }
-    covertColumnSchemaToFixColumn(column) {
-        const schema = this.$state.get('SCHEMA_TABLE');
-        if (schema == null)
-            return column;
-        const find = schema[column];
-        if (find == null || find.column == null) {
-            return column;
-        }
-        return find.column;
-    }
-    covertFixColumnToColumnSchema(column) {
-        const schema = this.$state.get('SCHEMA_TABLE');
-        if (schema == null)
-            return column;
-        const fixColumns = [];
-        for (const key in schema) {
-            const find = schema[key];
-            if (find.column == null)
-                continue;
-            fixColumns.push({
-                key,
-                value: find.column
-            });
-        }
-        const findColumnSameTheColumn = fixColumns.find(fixColumn => fixColumn.value === column);
-        return findColumnSameTheColumn == null ? column : findColumnSameTheColumn.key;
-    }
     _valuePattern(column) {
-        const fixColumn = this.covertColumnSchemaToFixColumn(column);
         switch (this.$state.get('PATTERN')) {
             case this.$constants('PATTERN').snake_case: {
-                return fixColumn === column
-                    ? column.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`)
-                    : fixColumn;
+                return column.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
             }
             case this.$constants('PATTERN').camelCase: {
-                return fixColumn === column
-                    ? column.replace(/(.(_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`)
-                    : fixColumn;
+                return column
+                    .replace(/(.(_|-|\s)+.)/g, (str) => `${str[0]}${str[str.length - 1].toUpperCase()}`);
             }
             default: return column;
         }
@@ -3811,23 +3755,6 @@ class Model extends AbstractModel_1.AbstractModel {
             return (yield this._returnResult(type, result)) || this._returnEmpty(type, result, message, options);
         });
     }
-    _executeGroup(dataParents_1) {
-        return __awaiter(this, arguments, void 0, function* (dataParents, type = 'GET') {
-            var _a, _b, _c;
-            if (!dataParents.length)
-                return this._returnEmpty(type, dataParents);
-            const relations = this.$state.get('RELATIONS');
-            if (relations.length) {
-                for (const relation of relations) {
-                    dataParents = (_b = yield ((_a = this.$relation) === null || _a === void 0 ? void 0 : _a.load(dataParents, relation))) !== null && _b !== void 0 ? _b : [];
-                }
-            }
-            if ((_c = this.$state.get('HIDDEN')) === null || _c === void 0 ? void 0 : _c.length)
-                this._hiddenColumnModel(dataParents);
-            const resultData = yield this._returnResult(type, dataParents);
-            return resultData || this._returnEmpty(type, dataParents);
-        });
-    }
     _pagination(data) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -3969,21 +3896,6 @@ class Model extends AbstractModel_1.AbstractModel {
                 data = this._showOnly(data);
             let result = null;
             let res = [];
-            for (const r of data) {
-                const newData = {};
-                for (const origin in r) {
-                    const value = r[origin];
-                    const covert = this.covertFixColumnToColumnSchema(origin);
-                    if (origin === covert) {
-                        newData[origin] = value;
-                        continue;
-                    }
-                    newData[covert] = value;
-                }
-                if (Object.keys(newData).length) {
-                    res.push(newData);
-                }
-            }
             if (!res.length)
                 res = data;
             switch (type) {

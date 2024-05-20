@@ -659,8 +659,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @returns {this}
      */
     whereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -683,8 +681,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @returns {this}
      */
     whereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -707,8 +703,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @returns {this}
      */
     orWhereSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid. Sub query is should contain 1 column(s)`);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -731,8 +725,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @returns {this}
      */
     orWhereNotSubQuery(column, subQuery) {
-        if (!this.$utils.isSubQuery(subQuery))
-            throw new Error(`This "${subQuery}" is invalid sub query (Sub query Operand should contain 1 column(s) not select * )`);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -2077,6 +2069,23 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     getTableName() {
         return this.$state.get('TABLE_NAME').replace(/\`/g, '');
+    }
+    /**
+     * The 'getColumns' method is used to get columns
+     * @returns {this} this this
+     */
+    getColumns() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sql = [
+                `${this.$constants('SHOW')}`,
+                `${this.$constants('COLUMNS')}`,
+                `${this.$constants('FROM')}`,
+                `\`${this.$state.get('TABLE_NAME').replace(/\`/g, '')}\``
+            ].join(' ');
+            const rawColumns = yield this._queryStatement(sql);
+            const columns = rawColumns.map((column) => column.Field);
+            return columns;
+        });
     }
     /**
      * The 'getSchema' method is used to get schema information

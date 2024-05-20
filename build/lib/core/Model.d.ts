@@ -1636,8 +1636,6 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
         foreign?: boolean | undefined;
         changed?: boolean | undefined;
     }): Promise<void>;
-    covertColumnSchemaToFixColumn(column: string): string;
-    covertFixColumnToColumnSchema(column: string): string;
     private _valuePattern;
     private _checkTableLoggerIsExists;
     private _columnPattern;
@@ -1662,7 +1660,6 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
     private _showOnly;
     private _validateSchema;
     private _execute;
-    private _executeGroup;
     private _pagination;
     private _returnEmpty;
     private _returnResult;
