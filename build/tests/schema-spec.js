@@ -2,6 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.postSchemaArray = exports.postSchemaObject = exports.userSchemaArray = exports.userSchemaObject = exports.PostUser = exports.Post = exports.User = void 0;
 const lib_1 = require("../../src/lib");
+const userSchema = {
+    id: new lib_1.Blueprint().int().primary().autoIncrement(),
+    uuid: new lib_1.Blueprint().varchar(50).null(),
+    email: new lib_1.Blueprint().varchar(50).null(),
+    name: new lib_1.Blueprint().varchar(255).null(),
+    username: new lib_1.Blueprint().varchar(255).null(),
+    password: new lib_1.Blueprint().varchar(255).null(),
+    createdAt: new lib_1.Blueprint().timestamp().null(),
+    updatedAt: new lib_1.Blueprint().timestamp().null(),
+    deletedAt: new lib_1.Blueprint().timestamp().null(),
+};
 class User extends lib_1.Model {
     constructor() {
         super();
@@ -11,17 +22,7 @@ class User extends lib_1.Model {
         this.useSoftDelete();
         this.hasMany({ model: Post, name: 'posts' });
         this.hasOne({ model: Post, name: 'post' });
-        this.useSchema({
-            id: new lib_1.Blueprint().int().primary().autoIncrement(),
-            uuid: new lib_1.Blueprint().varchar(50).null(),
-            email: new lib_1.Blueprint().varchar(50).null(),
-            name: new lib_1.Blueprint().varchar(255).null(),
-            username: new lib_1.Blueprint().varchar(255).null(),
-            password: new lib_1.Blueprint().varchar(255).null(),
-            createdAt: new lib_1.Blueprint().timestamp().null(),
-            updatedAt: new lib_1.Blueprint().timestamp().null(),
-            deletedAt: new lib_1.Blueprint().timestamp().null(),
-        });
+        this.useSchema(userSchema);
     }
 }
 exports.User = User;
@@ -77,9 +78,9 @@ exports.userSchemaObject = {
         name: { anyOf: [{ type: 'string' }, { type: 'null' }] },
         username: { anyOf: [{ type: 'string' }, { type: 'null' }] },
         password: { type: 'string' },
-        createdAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
-        updatedAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
-        deletedAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
+        createdAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
+        updatedAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
+        deletedAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
     }
 };
 exports.userSchemaArray = {
@@ -95,9 +96,9 @@ exports.postSchemaObject = {
         title: { type: 'string' },
         subtitle: { anyOf: [{ type: 'string' }, { type: 'null' }] },
         description: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-        createdAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
-        updatedAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
-        deletedAt: { anyOf: [{ type: 'string' }, { type: 'date' }, { type: 'null' }] },
+        createdAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
+        updatedAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
+        deletedAt: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }, { type: 'null' }] },
     }
 };
 exports.postSchemaArray = {

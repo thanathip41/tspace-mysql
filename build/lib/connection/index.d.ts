@@ -25,6 +25,7 @@ export declare class PoolConnection extends EventEmitter {
     private _covertKeyTypeToCorrectType;
     private _messageConnected;
     private _messageError;
+    private _messageSlowQuery;
 }
 /**
  *

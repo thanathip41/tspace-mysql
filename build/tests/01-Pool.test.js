@@ -24,7 +24,7 @@ const lib_1 = require("../lib");
             const query = yield lib_1.Pool.query('SELECT 1 as ping');
             (0, chai_1.expect)(query).to.be.an('array');
             (0, chai_1.expect)(query.length).to.be.equal(1);
-            (0, chai_1.expect)(query[0].ping).to.be.equal(1);
+            (0, chai_1.expect)(query[0].ping).to.be.equal("1");
             const connect = yield lib_1.Pool.connection();
             (0, chai_1.expect)(connect).to.be.an('object');
             (0, chai_1.expect)(connect).to.have.property('query');
@@ -37,7 +37,7 @@ const lib_1 = require("../lib");
             (0, chai_1.expect)(connect.query).to.be.an('function');
             const connectQuery = yield connect.query('SELECT 1 as ping');
             (0, chai_1.expect)(connectQuery).to.be.an('array');
-            (0, chai_1.expect)(connectQuery[0].ping).to.be.equal(1);
+            (0, chai_1.expect)(connectQuery[0].ping).to.be.equal("1");
         });
     });
     /* ###################################################### */

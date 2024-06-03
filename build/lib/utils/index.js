@@ -138,10 +138,24 @@ const camelCase = (data) => {
         return data;
     }
 };
-const consoleDebug = (debug) => {
-    if (typeof debug !== "string" || debug == null)
+const consoleDebug = (sql, retry = false) => {
+    if (typeof sql !== "string" || sql == null)
         return;
-    console.log(`\n\x1b[34mQUERY:\x1b[0m \x1b[33m${debug === null || debug === void 0 ? void 0 : debug.replace(/(\r\n|\n|\r|\t)/gm, "").trim()};\x1b[0m`);
+    const maxLength = 5000;
+    sql = sql === null || sql === void 0 ? void 0 : sql.replace(/(\r\n|\n|\r|\t)/gm, "");
+    if (sql.length > maxLength) {
+        sql = `${sql.slice(0, maxLength)}.....`;
+    }
+    if (!retry) {
+        console.log(`\n\x1b[34mQUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`);
+        return;
+    }
+    console.log(`\n\x1b[31mRETRY QUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`);
+};
+const consoleExec = (startTime, endTime) => {
+    const diffInMilliseconds = endTime - startTime;
+    const diffInSeconds = diffInMilliseconds / 1000;
+    console.log(`\n\x1b[34mDURATION:\x1b[0m \x1b[32m${diffInSeconds} sec\x1b[0m`);
 };
 const randomString = (length = 100) => {
     let str = '';
@@ -154,6 +168,8 @@ const randomString = (length = 100) => {
 const faker = (value) => {
     var _a, _b;
     value = value.toLocaleLowerCase();
+    if (!value.search('uuid'))
+        return generateUUID();
     if (!value.search('timestamp'))
         return timestamp();
     if (!value.search('datetime'))
@@ -192,10 +208,18 @@ const hookHandle = (hooks, result) => __awaiter(void 0, void 0, void 0, function
         yield hook(result);
     return;
 });
+const chunkArray = (array, length) => {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += length) {
+        chunks.push(array.slice(i, i + length));
+    }
+    return chunks;
+};
 const utils = {
     typeOf,
     isDate,
     consoleDebug,
+    consoleExec,
     faker,
     columnRelation,
     timestamp,
@@ -209,7 +233,8 @@ const utils = {
     snakeCase,
     camelCase,
     randomString,
-    hookHandle
+    hookHandle,
+    chunkArray
 };
 exports.utils = utils;
 exports.default = utils;

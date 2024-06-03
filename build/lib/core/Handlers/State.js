@@ -124,7 +124,9 @@ const STATE_MODEL = {
     OBSERVER: null,
     DATA: null,
     BEFORE_CREATING_TABLE: null,
-    RETURN_TYPE: null
+    RETURN_TYPE: null,
+    GLOBAL_SCOPE: true,
+    GLOBAL_SCOPE_QUERY: null,
 };
 class StateHandler {
     constructor(state) {
@@ -160,14 +162,12 @@ class StateHandler {
     get(key) {
         if (key == null)
             return this.STATE.currentState;
-        key = key.toUpperCase();
         if (!this.STATE.currentState.has(key) && key !== 'DEBUG') {
             return this._assertError(`This state does not have that key '${key}'`);
         }
         return this.STATE.currentState.get(key);
     }
     set(key, value) {
-        key = key.toUpperCase();
         if (!this.STATE.currentState.has(key)) {
             return this._assertError(`That key '${key}' can't be set in the state`);
         }

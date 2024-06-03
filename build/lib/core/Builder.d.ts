@@ -41,7 +41,16 @@ declare class Builder extends AbstractBuilder {
      * @param {string} alias as name of the column
      * @returns {this} this
      */
-    selectObject(object: Record<string, string>, alias: string): this;
+    selectObject(object: Record<string, `${string}.${string}`>, alias: string): this;
+    /**
+     * The 'selectObject' method is used to specify which columns you want to retrieve from a database table.
+     *
+     * It allows you to choose the specific columns that should be included in the result set to 'Object' of a database query.
+     * @param {string} object table name
+     * @param {string} alias as name of the column
+     * @returns {this} this
+     */
+    selectArray(object: Record<string, `${string}.${string}`>, alias: string): this;
     /**
      * The 'sleep' method is used to delay the query.
      *
@@ -133,6 +142,33 @@ declare class Builder extends AbstractBuilder {
      * @returns {this}
      */
     orWhere(column: string, operator?: any, value?: any): this;
+    /**
+     * The 'whereDay' method is used to add a "where" clause that filters results based on the day part of a date column.
+     *
+     * It is especially useful for querying records that fall within a specific day.
+     * @param {string} column
+     * @param {number} day
+     * @returns {this}
+     */
+    whereDay(column: string, day: number): this;
+    /**
+     * The 'whereMonth' method is used to add a "where" clause that filters results based on the month part of a date column.
+     *
+     * It is especially useful for querying records that fall within a specific month.
+     * @param {string} column
+     * @param {number} month
+     * @returns {this}
+     */
+    whereMonth(column: string, month: number): this;
+    /**
+     * The 'whereYear' method is used to add a "where" clause that filters results based on the year part of a date column.
+     *
+     * It is especially useful for querying records that fall within a specific year.
+     * @param {string} column
+     * @param {number} year
+     * @returns {this}
+     */
+    whereYear(column: string, year: number): this;
     /**
      * The 'whereRaw' method is used to add a raw SQL condition to a database query.
      *
@@ -580,7 +616,7 @@ declare class Builder extends AbstractBuilder {
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @returns {this}
      */
-    orderBy(column: string, order?: 'ASC' | 'DESC'): this;
+    orderBy(column: string, order?: 'ASC' | 'asc' | 'DESC' | 'desc'): this;
     /**
      * The 'orderByRaw' method is used to specify the order in which the results of a database query should be sorted.
      *
@@ -993,6 +1029,13 @@ declare class Builder extends AbstractBuilder {
      */
     rawQuery(sql: string): Promise<any>;
     /**
+     * This 'rawQuery' method is used to execute sql statement
+     *
+     * @param {string} sql
+     * @returns {promise<any>}
+     */
+    static rawQuery(sql: string): Promise<any>;
+    /**
      *
      * plus value then update
      * @param {string} column
@@ -1298,7 +1341,7 @@ declare class Builder extends AbstractBuilder {
      * @param {number} rows number of rows
      * @returns {promise<any>}
      */
-    faker(rows: number, cb?: Function): Promise<void>;
+    faker(rows: number, cb?: (results: Record<string, any>, index: number) => Record<string, any>): Promise<void>;
     /**
      *
      * truncate of table

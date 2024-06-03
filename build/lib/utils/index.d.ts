@@ -1,7 +1,8 @@
 declare const utils: {
     typeOf: (data: any) => string;
     isDate: (data: any) => boolean;
-    consoleDebug: (debug?: string) => void;
+    consoleDebug: (sql?: string, retry?: boolean) => void;
+    consoleExec: (startTime: number, endTime: number) => void;
     faker: (value: string) => string | number | boolean;
     columnRelation: (name: string) => string;
     timestamp: (dateString?: string) => string;
@@ -16,6 +17,8 @@ declare const utils: {
     camelCase: (data: any) => any;
     randomString: (length?: number) => string;
     hookHandle: (hooks: Function[], result: any[] | null) => Promise<void>;
+    chunkArray: <T>(array: T[], length: number) => T[][];
 };
+export type TUtils = typeof utils;
 export { utils };
 export default utils;

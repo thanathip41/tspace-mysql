@@ -151,7 +151,7 @@ class Schema extends Builder_1.Builder {
                 return directory.isDirectory() ? Schema.sync(newDir, { force, log, changed }) : newDir;
             })));
             const pathModels = [].concat(...files).filter(d => d != null || d === '');
-            yield new Promise(r => setTimeout(r, 1200));
+            yield new Promise(r => setTimeout(r, 2000));
             const models = yield Promise.all(pathModels.map((pathModel) => this._import(pathModel)).filter(d => d != null));
             if (!models.length)
                 return;

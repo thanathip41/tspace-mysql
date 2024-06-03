@@ -30,7 +30,7 @@ class RelationHandler {
             }
             if (!((_a = Object.keys(relation)) === null || _a === void 0 ? void 0 : _a.length))
                 return [];
-            const { localKey, foreignKey } = this._valueInTRelationOptions(relation);
+            const { localKey, foreignKey } = this._valueInTRelation(relation);
             const localKeyId = parents
                 .map((parent) => {
                 const data = parent[localKey];
@@ -78,7 +78,7 @@ class RelationHandler {
         });
     }
     loadExists() {
-        var _a, _b, _c;
+        var _a, _b;
         const relations = this.MODEL['$state'].get('RELATIONS');
         for (const index in relations) {
             const relation = relations[index];
@@ -86,20 +86,20 @@ class RelationHandler {
                 continue;
             if (relation.exists == null)
                 continue;
-            const { localKey, foreignKey, pivot, modelPivot } = this._valueInTRelationOptions(relation);
+            const { localKey, foreignKey, pivot, modelPivot } = this._valueInTRelation(relation);
             const query = relation.query;
             if (query == null) {
                 throw this._assertError(`The callback query '${relation.name}' is unknown.`);
             }
-            let clone = new Model_1.Model().clone(query);
-            const cloneTRelationOptionss = clone['$state'].get('RELATIONS');
-            if (cloneTRelationOptionss.length) {
-                for (const r of cloneTRelationOptionss) {
+            let clone = new Model_1.Model().copyModel(query);
+            const cloneRelations = clone['$state'].get('RELATIONS');
+            if (cloneRelations.length) {
+                for (const r of cloneRelations) {
                     if (!r.exists)
                         continue;
                     if (r.query == null)
                         continue;
-                    const sql = (_c = (_b = clone['$relation']) === null || _b === void 0 ? void 0 : _b._handleTRelationOptionssExists(r)) !== null && _c !== void 0 ? _c : '';
+                    const sql = (_b = clone['$relation']) === null || _b === void 0 ? void 0 : _b._handleTRelationOptionssExists(r);
                     clone.whereExists(sql);
                 }
             }
@@ -366,19 +366,19 @@ class RelationHandler {
     _handleTRelationOptionssExists(relation) {
         var _a, _b, _c, _d;
         this._assertError(!((_a = Object.keys(relation)) === null || _a === void 0 ? void 0 : _a.length), `unknown [relation]`);
-        const { localKey, foreignKey } = this._valueInTRelationOptions(relation);
+        const { localKey, foreignKey } = this._valueInTRelation(relation);
         const query = relation.query;
         this._assertError(query == null, `Unknown callback query in [TRelationOptions : '${relation.name}']`);
-        const clone = new Model_1.Model().clone(query);
-        const cloneTRelationOptionss = clone['$state'].get('RELATIONS');
-        if (cloneTRelationOptionss.length) {
-            for (const r of cloneTRelationOptionss) {
+        const clone = new Model_1.Model().copyModel(query);
+        const cloneRelations = clone['$state'].get('RELATIONS');
+        if (cloneRelations.length) {
+            for (const r of cloneRelations) {
                 if (!r.exists)
                     continue;
                 if (r.query == null)
                     continue;
                 if (r.relation === this.$constants('RELATIONSHIP').belongsToMany) {
-                    const data = (_b = clone['$relation']) === null || _b === void 0 ? void 0 : _b._valueInTRelationOptions(r);
+                    const data = (_b = clone['$relation']) === null || _b === void 0 ? void 0 : _b._valueInTRelation(r);
                     if (data == null)
                         continue;
                     const { modelPivot, pivot, foreignKey } = data;
@@ -429,45 +429,60 @@ class RelationHandler {
         return functionName.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
     }
     _relationMapData({ parents, childs, relation }) {
-        var _a;
-        let { name, as, relation: relationName, localKey, foreignKey } = this._valueInTRelationOptions(relation);
-        const keyTRelationOptions = as !== null && as !== void 0 ? as : name;
-        for (const dataParent of parents) {
-            const relationIsHasOneOrBelongsTo = [
-                this.$constants('RELATIONSHIP').hasOne,
-                this.$constants('RELATIONSHIP').belongsTo
-            ].some(r => r === relationName);
-            dataParent[keyTRelationOptions] = relation.count ? 0 : [];
+        var _a, _b;
+        const { name, as, relation: relationName, localKey, foreignKey } = this._valueInTRelation(relation);
+        const alias = as !== null && as !== void 0 ? as : name;
+        const children = [...childs].reduce((prev, curr) => {
+            const key = curr[foreignKey];
+            if (!prev[key]) {
+                prev[key] = { [foreignKey]: key, values: [] };
+            }
+            prev[key].values.push(Object.assign({}, curr));
+            return prev;
+        }, {});
+        const relationIsHasOneOrBelongsTo = [
+            this.$constants('RELATIONSHIP').hasOne,
+            this.$constants('RELATIONSHIP').belongsTo
+        ].some(r => r === relationName);
+        const relationIsHasManyOrBelongsToMany = [
+            this.$constants('RELATIONSHIP').hasMany,
+            this.$constants('RELATIONSHIP').belongsToMany
+        ].some(r => r === relationName);
+        for (const parent of parents) {
             if (relationIsHasOneOrBelongsTo)
-                dataParent[keyTRelationOptions] = relation.count ? 0 : null;
-            if (!childs.length)
+                parent[alias] = relation.count ? 0 : null;
+            if (relationIsHasManyOrBelongsToMany)
+                parent[alias] = relation.count ? 0 : [];
+            const match = children[`${parent[localKey]}`];
+            if (match == null)
                 continue;
-            for (const dataChild of childs) {
-                if (dataChild[foreignKey] === dataParent[localKey]) {
-                    if (relation.count) {
-                        dataParent[keyTRelationOptions] = (_a = dataChild === null || dataChild === void 0 ? void 0 : dataChild.aggregate) !== null && _a !== void 0 ? _a : 0;
-                        continue;
+            const childrens = (_a = match === null || match === void 0 ? void 0 : match.values) !== null && _a !== void 0 ? _a : [];
+            for (const child of childrens) {
+                if (relation.count) {
+                    if (parent[alias] == 0) {
+                        parent[alias] = Number((_b = child === null || child === void 0 ? void 0 : child.aggregate) !== null && _b !== void 0 ? _b : 0);
+                        break;
                     }
-                    const relationIsHasOneOrBelongsTo = [
-                        this.$constants('RELATIONSHIP').hasOne,
-                        this.$constants('RELATIONSHIP').belongsTo
-                    ].some(r => r === relationName);
-                    if (relationIsHasOneOrBelongsTo) {
-                        dataParent[keyTRelationOptions] = dataParent[keyTRelationOptions] || dataChild;
-                        continue;
-                    }
-                    if (dataParent[keyTRelationOptions] == null)
-                        dataParent[keyTRelationOptions] = [];
-                    dataParent[keyTRelationOptions].push(dataChild);
+                    break;
                 }
+                if (relationIsHasOneOrBelongsTo) {
+                    if (parent[alias] == null) {
+                        parent[alias] = child !== null && child !== void 0 ? child : null;
+                        break;
+                    }
+                    break;
+                }
+                parent[alias].push(child);
             }
         }
+        if (this.MODEL['$state'].get('HIDDEN').length)
+            this.MODEL['_hiddenColumnModel'](parents);
         return parents;
     }
     _belongsToMany(parents, relation) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            let { name, foreignKey, localKey, pivot, oldVersion, modelPivot, queryPivot } = this._valueInTRelationOptions(relation);
+            var _a, _b, _c;
+            let { name, foreignKey, localKey, pivot, oldVersion, modelPivot, queryPivot } = this._valueInTRelation(relation);
             const localKeyId = parents.map((parent) => {
                 const data = parent[foreignKey];
                 if (parent.hasOwnProperty(foreignKey))
@@ -509,7 +524,7 @@ class RelationHandler {
                     for (const pivotResult of pivotResults) {
                         if (pivotResult[localKeyPivotTable] !== parent[foreignKey])
                             continue;
-                        parent[name] = (_b = pivotResult.aggregate) !== null && _b !== void 0 ? _b : 0;
+                        parent[name] = Number((_b = pivotResult.aggregate) !== null && _b !== void 0 ? _b : 0);
                     }
                 }
                 if (this.MODEL['$state'].get('HIDDEN').length)
@@ -555,18 +570,28 @@ class RelationHandler {
                     this.MODEL['_hiddenColumnModel'](parents);
                 return parents;
             }
+            const children = [...pivotResults].reduce((prev, curr) => {
+                const key = curr[localKeyPivotTable];
+                if (!prev[key]) {
+                    prev[key] = { [localKeyPivotTable]: key, values: [] };
+                }
+                prev[key].values.push(Object.assign({}, curr));
+                return prev;
+            }, {});
             for (const parent of parents) {
                 if (parent[name] == null)
                     parent[name] = [];
-                for (const pivotResult of pivotResults) {
-                    if (pivotResult[localKeyPivotTable] !== parent[foreignKey])
-                        continue;
-                    const data = relationResults.find(relationResult => relationResult[foreignKey] === pivotResult[localKey]);
+                const match = children[`${parent[foreignKey]}`];
+                if (match == null)
+                    continue;
+                const childrens = (_c = match === null || match === void 0 ? void 0 : match.values) !== null && _c !== void 0 ? _c : [];
+                for (const children of childrens) {
+                    const data = relationResults.find(relationResult => relationResult[foreignKey] === children[localKey]);
                     if (data == null)
                         continue;
                     data.pivot = {
-                        [localKeyPivotTable]: pivotResult[localKeyPivotTable],
-                        [localKey]: pivotResult[localKey],
+                        [localKeyPivotTable]: children[localKeyPivotTable],
+                        [localKey]: children[localKey],
                     };
                     parent[name].push(data);
                 }
@@ -576,7 +601,7 @@ class RelationHandler {
             return parents;
         });
     }
-    _valueInTRelationOptions(relationModel) {
+    _valueInTRelation(relationModel) {
         var _a, _b;
         this._assertError((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Promise, 'The Promise method does not support nested relations.');
         this._assertError(!((relationModel === null || relationModel === void 0 ? void 0 : relationModel.query) instanceof Model_1.Model), 'The callback function only supports instances of the Model class.');

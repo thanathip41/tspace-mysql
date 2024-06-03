@@ -65,6 +65,7 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @returns {Model} instance of the Model
      */
     static get instance(): Model;
+    protected globalScope<T extends Model>(callback: (query: T) => T): this;
     /**
      * The 'define' method is a special method that you can define within a model.
      * @example
@@ -500,6 +501,13 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @param {...string} columns
      * @returns {this} this
      */
+    hidden<K extends Extract<keyof TS, string>>(...columns: K[]): this;
+    /**
+     *
+     * @override
+     * @param {...string} columns
+     * @returns {this} this
+     */
     except<K extends Extract<keyof TS, string> | `${string}.${string}`>(...columns: K[]): this;
     /**
      *
@@ -514,7 +522,7 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @returns {this}
      */
-    orderBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, order?: 'ASC' | 'DESC'): this;
+    orderBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, order?: 'ASC' | 'asc' | 'DESC' | 'desc'): this;
     /**
      *
      * @override
@@ -611,7 +619,9 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @param {string} sql
      * @returns {this} this
      */
-    protected _queryStatement(sql: string): Promise<any[]>;
+    protected _queryStatement(sql: string, { retry }?: {
+        retry?: boolean | undefined;
+    }): Promise<any[]>;
     /**
      *
      * execute the query using raw sql syntax actions for insert update and delete
@@ -626,29 +636,56 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
         returnId?: boolean;
     }): Promise<any>;
     /**
-     * Assign table name
+     * The 'table' method is used to set the table name.
+     *
      * @param {string} table table name
      * @returns {this} this
      */
     table(table: string): this;
     /**
-     * Assign ignore delete_at in model
-     *  @param {boolean} condition
+     * The 'from' method is used to set the table name.
+     *
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    from(table: string): this;
+    /**
+     * The 'disableSoftDelete' method is used to disable the soft delete.
+     *
+     * @param {boolean} condition
      * @returns {this} this
      */
     disableSoftDelete(condition?: boolean): this;
     /**
-     * The 'disableVoid' method is used to ignore void.
+    * The 'ignoreSoftDelete' method is used to disable the soft delete.
+     * @param {boolean} condition
+     * @returns {this} this
+     */
+    ignoreSoftDelete(condition?: boolean): this;
+    /**
+     * The 'disableVoid' method is used to disable void.
      *
      * @returns {this} this
      */
     disableVoid(): this;
     /**
-     * Assign ignore delete_at in model
-     * @param {boolean} condition
+     * The 'ignoreVoid' method is used to ignore void.
+     *
      * @returns {this} this
      */
-    ignoreSoftDelete(condition?: boolean): this;
+    ignoreVoid(): this;
+    /**
+     * The 'disabledGlobalScope' method is used to disable globalScope.
+     *
+     * @returns {this} this
+     */
+    disabledGlobalScope(condition?: boolean): this;
+    /**
+     * The 'ignoreGlobalScope' method is used to disable globalScope.
+     *
+     * @returns {this} this
+     */
+    ignoreGlobalScope(condition?: boolean): this;
     /**
      * Assign build in function to result of data
      * @param {Record} func
@@ -936,12 +973,12 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      *   }
      *
      *   await new User().relations('posts')
-     *   .relationsQuery('posts', (query : Post) => {
+     *   .relationQuery('posts', (query : Post) => {
      *       return query.relations('comments','user')
-     *       .relationsQuery('comments', (query : Comment) => {
+     *       .relationQuery('comments', (query : Comment) => {
      *           return query.relations('user','post')
      *       })
-     *       .relationsQuery('user', (query : User) => {
+     *       .relationQuery('user', (query : User) => {
      *           return query.relations('posts').relationsQuery('posts',(query : Post)=> {
      *               return query.relations('comments','user')
      *               // relation n, n, ...n
@@ -1141,6 +1178,27 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @returns {this}
      */
     orWhere<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, operator?: any, value?: any): this;
+    /**
+     * @override
+     * @param {string} column
+     * @param {number} day
+     * @returns {this}
+     */
+    whereDay<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, day: number): this;
+    /**
+     * @override
+     * @param {string} column
+     * @param {number} month
+     * @returns {this}
+     */
+    whereMonth<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, month: number): this;
+    /**
+     * @override
+     * @param {string} column
+     * @param {number} year
+     * @returns {this}
+     */
+    whereYear<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K, year: number): this;
     /**
      * @override
      * @param {Object} columns
@@ -1369,7 +1427,7 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @override
      * @returns {promise<object | Error>} Record | throw error
     */
-    firstOrError<K>(message: string, options?: Record<string, any>): Promise<TS & K & Partial<TR> & Partial<TRegistry>>;
+    firstOrError<K>(message?: string, options?: Record<string, any>): Promise<TS & K & Partial<TR> & Partial<TRegistry>>;
     /**
      *
      * @override
@@ -1621,7 +1679,7 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
      * @param {Function} callback function will be called data and index
      * @returns {promise<void>}
      */
-    faker(rows: number, callback?: Function): Promise<void>;
+    faker<T extends TS>(rows: number, callback?: (results: T, index: number) => T): Promise<void>;
     /**
      * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
      * @type     {object}  options
@@ -1643,6 +1701,7 @@ declare class Model<TS extends Record<string, any> = any, TR = unknown> extends 
     private _classToTableName;
     private _makeTableName;
     private _handleSoftDelete;
+    private _handleGlobalScope;
     private _handleSelect;
     /**
      *

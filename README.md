@@ -254,8 +254,31 @@ const selectObject = await new DB("posts")
   )
   .findOne();
 
-// SELECT posts.*, JSON_OBJECT('id' , `users`.`id` , 'name' , `users`.`name` , 'email' , `users`.`email`) AS `user`
-// FROM `posts` INNER JOIN `users` ON `posts`.`user_id` = `users`.`id` LIMIT 1;
+/** 
+SELECT 
+  posts.*, JSON_OBJECT('id' , `users`.`id` , 'name' , `users`.`name` , 'email' , `users`.`email`) AS `user`
+FROM `posts` 
+INNER JOIN `users` ON `posts`.`user_id` = `users`.`id` LIMIT 1;
+*/
+
+const selectArray = await new DB("users")
+  .select('id','name','email')
+  .join("users.id", "posts.user_id")
+  .select("posts.*")
+  .selectArray(
+    { id: "posts.id", user_id: "posts.user_id", title: "posts.title" },
+    "posts"
+  )
+  .findOne();
+/** 
+SELECT 
+  `users`.`id`, `users`.`name`, `users`.`email`, 
+  CASE WHEN COUNT(`posts`.`id`) = 0 THEN JSON_ARRAY() 
+  ELSE JSON_ARRAYAGG(JSON_OBJECT('id' , `posts`.`id` , 'user_id' , `posts`.`user_id` , 'email' , `posts`.`title`)) 
+  END AS `posts` 
+FROM `users` 
+INNER JOIN `posts` ON `users`.`id` = `posts`.`user_id` WHERE `users`.`deletedAt` IS NULL GROUP BY `users`.`id` LIMIT 1;
+*/
 
 await new DB("users").except("id").findOne();
 // SELECT `users`.`email`, `users`.`username` FROM `users` LIMIT 1;

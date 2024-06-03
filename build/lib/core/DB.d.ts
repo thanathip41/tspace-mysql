@@ -1,5 +1,6 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
 import type { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery } from '../types';
+import { TConstants } from '../constants';
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name
@@ -31,6 +32,18 @@ declare class DB extends AbstractDB {
      * @returns {promise<any[]>}
      */
     static query(sql: string, parameters?: Record<string, any>): Promise<any[]>;
+    /**
+     * The 'from' method is used to define the from table name.
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    from(table: string): this;
+    /**
+     * The 'from' method is used to define the from table name.
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    static from(table: string): DB;
     /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
@@ -78,14 +91,14 @@ declare class DB extends AbstractDB {
      * @param {string} key
      * @returns {string | object} string || object
      */
-    constants(key?: string): string | Record<string, any>;
+    constants(key?: keyof TConstants): string | object;
     /**
      * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
      * @static
      * @param {string} key
      * @returns {string | object} string || object
      */
-    static constants(key?: string): string | Record<string, any>;
+    static constants(key?: keyof TConstants): string | Record<string, any>;
     /**
      * cases query
      * @param {arrayObject} cases array object {when , then }

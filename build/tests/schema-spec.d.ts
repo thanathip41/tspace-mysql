@@ -1,5 +1,21 @@
-import { Model } from '../../src/lib';
-export declare class User extends Model {
+import { Blueprint, Model, TRelation, TSchema } from '../../src/lib';
+declare const userSchema: {
+    id: Blueprint<number>;
+    uuid: Blueprint<string | null>;
+    email: Blueprint<string | null>;
+    name: Blueprint<string | null>;
+    username: Blueprint<string | null>;
+    password: Blueprint<string | null>;
+    createdAt: Blueprint<string | Date | null>;
+    updatedAt: Blueprint<string | Date | null>;
+    deletedAt: Blueprint<string | Date | null>;
+};
+type TUserSchema = TSchema<typeof userSchema>;
+type TUserRelation = TRelation<{
+    posts: Post[];
+    post: Post;
+}>;
+export declare class User extends Model<TUserSchema, TUserRelation> {
     constructor();
 }
 export declare class Post extends Model {
@@ -36,19 +52,31 @@ export declare const userSchemaObject: {
             type: string;
         };
         createdAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
         updatedAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
         deletedAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
     };
 };
@@ -82,19 +110,31 @@ export declare const userSchemaArray: {
                 type: string;
             };
             createdAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
             updatedAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
             deletedAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
         };
     };
@@ -127,19 +167,31 @@ export declare const postSchemaObject: {
             }[];
         };
         createdAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
         updatedAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
         deletedAt: {
-            anyOf: {
+            anyOf: ({
                 type: string;
-            }[];
+                format?: undefined;
+            } | {
+                type: string;
+                format: string;
+            })[];
         };
     };
 };
@@ -173,20 +225,33 @@ export declare const postSchemaArray: {
                 }[];
             };
             createdAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
             updatedAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
             deletedAt: {
-                anyOf: {
+                anyOf: ({
                     type: string;
-                }[];
+                    format?: undefined;
+                } | {
+                    type: string;
+                    format: string;
+                })[];
             };
         };
     };
 };
+export {};

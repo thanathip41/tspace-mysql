@@ -63,16 +63,18 @@ class PoolConnection extends events_1.EventEmitter {
             pool.getConnection((err, connection) => {
                 if (err == null || !err) {
                     this.emit('CONNECTION', pool);
-                    connection.query(`SHOW VARIABLES LIKE 'version%'`, (err, results) => {
-                        connection.release();
-                        if (err)
-                            return;
-                        const message = [
-                            results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version'),
-                            results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version_comment')
-                        ].map(v => v === null || v === void 0 ? void 0 : v.Value).join(' - ');
-                        console.log(this._messageConnected.bind(this)(`${message}`));
-                    });
+                    if (options_1.default.CONNECTION_SUCCESS) {
+                        connection.query(`SHOW VARIABLES LIKE 'version%'`, (err, results) => {
+                            connection.release();
+                            if (err)
+                                return;
+                            const message = [
+                                results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version'),
+                                results.find(v => (v === null || v === void 0 ? void 0 : v.Variable_name) === 'version_comment')
+                            ].map(v => v === null || v === void 0 ? void 0 : v.Value).join(' - ');
+                            console.log(this._messageConnected.bind(this)(`${message}`));
+                        });
+                    }
                     return;
                 }
                 const message = this._messageError.bind(this);
@@ -82,7 +84,7 @@ class PoolConnection extends events_1.EventEmitter {
                         return process.exit();
                 });
             });
-        }, 1000 * 4);
+        }, 1000 * 2.5);
         pool.on('release', (connection) => {
             this.emit('RELEASE', connection);
         });
@@ -140,22 +142,23 @@ class PoolConnection extends events_1.EventEmitter {
     }
     _detectEventQuery({ start, sql, results }) {
         const duration = Date.now() - start;
-        if (duration > 1000 * 5) {
-            console.log(`\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[30mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`);
+        if (duration > 1000 * 10) {
+            const maxLength = 5000;
+            if (sql.length > maxLength) {
+                sql = `${sql.slice(0, maxLength)}.......`;
+            }
+            console.log(this._messageSlowQuery(duration, sql));
             this.emit('SLOW_QUERY', {
                 sql,
-                results,
                 execution: duration
             });
         }
         this.emit('QUERY', {
             sql,
-            results,
             execution: duration
         });
         this.emit(this._detectQueryType(sql), {
             sql,
-            results,
             execution: duration
         });
     }
@@ -190,6 +193,8 @@ class PoolConnection extends events_1.EventEmitter {
             multipleStatements: Boolean(options_1.default.MULTIPLE_STATEMENTS),
             enableKeepAlive: Boolean(options_1.default.ENABLE_KEEP_ALIVE),
             keepAliveInitialDelay: Number(options_1.default.KEEP_ALIVE_DELAY),
+            supportBigNumbers: true,
+            bigNumberStrings: true
         }));
     }
     _loadOptions() {
@@ -299,6 +304,10 @@ class PoolConnection extends events_1.EventEmitter {
             \x1b[1m\x1b[31mError Message 
             : ${message !== null && message !== void 0 ? message : ''} \x1b[0m
         `;
+    }
+    _messageSlowQuery(duration, sql) {
+        const message = `\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[30mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`;
+        return message;
     }
 }
 exports.PoolConnection = PoolConnection;

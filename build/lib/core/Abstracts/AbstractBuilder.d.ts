@@ -1,11 +1,11 @@
 import { TPagination } from '../../types';
 import { StateHandler } from '../Handlers/State';
+import { TUtils } from '../../utils';
+import { TConstants } from '../../constants';
 declare abstract class AbstractBuilder {
     protected $setters: string[];
-    protected $utils: {
-        [key: string]: Function;
-    };
-    protected $constants: Function;
+    protected $utils: TUtils;
+    protected $constants: (name?: keyof TConstants) => any;
     protected $state: StateHandler;
     protected $pool: {
         query: Function;
@@ -18,9 +18,7 @@ declare abstract class AbstractBuilder {
         reset: () => void;
         check: (value: string) => boolean;
     };
-    protected $attributes: {
-        [key: string]: any;
-    } | null;
+    protected $attributes: Record<string, any> | null;
     abstract void(): this;
     abstract debug(): this;
     abstract dd(): this;

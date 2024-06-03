@@ -96,6 +96,23 @@ class DB extends AbstractDB_1.AbstractDB {
         });
     }
     /**
+     * The 'from' method is used to define the from table name.
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    from(table) {
+        this.$state.set('TABLE_NAME', `\`${table}\``);
+        return this;
+    }
+    /**
+     * The 'from' method is used to define the from table name.
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    static from(table) {
+        return new this().from(table);
+    }
+    /**
      * The 'table' method is used to define the table name.
      * @param {string} table table name
      * @returns {this} this

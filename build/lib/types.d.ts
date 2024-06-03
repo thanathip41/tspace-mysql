@@ -250,9 +250,9 @@ export type TRepositoryDelete<T extends Record<string, any> = any> = {
     transaction?: TConnection | TConnectionTransaction;
 };
 export type TRegistry = {
-    '$save': Function;
-    '$attach': Function;
-    '$detach': Function;
+    '$save'?: Function;
+    '$attach'?: Function;
+    '$detach'?: Function;
 };
 export type TRepositoryRequest<T extends Record<string, any> = any, R = any> = {
     debug?: boolean;

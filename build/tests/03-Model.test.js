@@ -109,21 +109,65 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(createds).to.be.an('array');
         });
     });
+    (0, mocha_1.it)(`Model: User using all where conditions
+    - where 
+    - whereObject
+    - whereIn
+    - whereNotIn
+    - whereBetween
+    - whereNotBetween
+    - whereNull
+    - whereNotNull
+    - whereSubQuery
+    - whereNotSubQuery
+    - whereQuery
+  `, function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            const whereEq = yield new schema_spec_1.User().where("id", 1).first();
+            (0, chai_1.expect)(whereEq).to.be.an('object');
+            (0, chai_1.expect)(whereEq).to.be.jsonSchema(schema_spec_1.userSchemaObject);
+            (0, chai_1.expect)(whereEq === null || whereEq === void 0 ? void 0 : whereEq.id).to.be.equal(1);
+            const whereNotEq = yield new schema_spec_1.User().where("id", '<>', 1).get();
+            (0, chai_1.expect)(whereNotEq).to.be.an('array');
+            (0, chai_1.expect)(whereNotEq).to.be.jsonSchema(schema_spec_1.userSchemaArray);
+            (0, chai_1.expect)(whereNotEq.every(v => (v === null || v === void 0 ? void 0 : v.id) !== 1)).to.be.equal(true);
+            const whereMoreThanOne = yield new schema_spec_1.User().where("id", ">", 1).get();
+            (0, chai_1.expect)(whereMoreThanOne).to.be.an('array');
+            (0, chai_1.expect)(whereMoreThanOne).to.be.jsonSchema(schema_spec_1.userSchemaArray);
+            (0, chai_1.expect)(whereMoreThanOne.every(v => (v === null || v === void 0 ? void 0 : v.id) > 1)).to.be.equal(true);
+            const whereLessThanOne = yield new schema_spec_1.User().where("id", "<", 1).get();
+            (0, chai_1.expect)(whereLessThanOne).to.be.an('array');
+            (0, chai_1.expect)(whereLessThanOne).to.be.jsonSchema(schema_spec_1.userSchemaArray);
+            (0, chai_1.expect)(whereLessThanOne.every(v => (v === null || v === void 0 ? void 0 : v.id) < 1)).to.be.equal(true);
+            const whereUsingObject = yield new schema_spec_1.User().where({ id: 1 }).first();
+            (0, chai_1.expect)(whereUsingObject).to.be.an('object');
+            (0, chai_1.expect)(whereUsingObject).to.be.jsonSchema(schema_spec_1.userSchemaObject);
+            (0, chai_1.expect)(whereUsingObject === null || whereUsingObject === void 0 ? void 0 : whereUsingObject.id).to.be.equal(1);
+            const whereObject = yield new schema_spec_1.User().whereObject({ id: 1 }).first();
+            (0, chai_1.expect)(whereObject).to.be.an('object');
+            (0, chai_1.expect)(whereObject).to.be.jsonSchema(schema_spec_1.userSchemaObject);
+            (0, chai_1.expect)(whereObject === null || whereObject === void 0 ? void 0 : whereObject.id).to.be.equal(1);
+            const whereIn = yield new schema_spec_1.User().whereIn("id", [2, 3, 4, 5]).get();
+            (0, chai_1.expect)(whereIn).to.be.an('array');
+            (0, chai_1.expect)(whereIn).to.be.jsonSchema(schema_spec_1.userSchemaArray);
+            (0, chai_1.expect)(whereIn.every((v, i) => [2, 3, 4, 5].includes(v.id))).to.be.equal(true);
+        });
+    });
     (0, mocha_1.it)(`Relation : 'user' hasOne 'post' 1:1 ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
             const result = yield new schema_spec_1.User().with('post').first();
             (0, chai_1.expect)(result).to.be.an('object');
             (0, chai_1.expect)(result).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             (0, chai_1.expect)(result).to.have.property('post');
-            (0, chai_1.expect)(result.post).to.be.an('object');
-            (0, chai_1.expect)(result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             const results = yield new schema_spec_1.User().with('post').get();
             (0, chai_1.expect)(results).to.be.an('array');
             (0, chai_1.expect)(results).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of results) {
                 (0, chai_1.expect)(result).to.have.property('post');
-                (0, chai_1.expect)(result.post).to.be.an('object');
-                (0, chai_1.expect)(result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             }
             const pagination = yield new schema_spec_1.User().with('post').pagination();
             (0, chai_1.expect)(pagination.meta).to.be.an('object');
@@ -138,27 +182,28 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of pagination.data) {
                 (0, chai_1.expect)(result).to.have.property('post');
-                (0, chai_1.expect)(result.post).to.be.an('object');
-                (0, chai_1.expect)(result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             }
         });
     });
     (0, mocha_1.it)(`Relation : 'user' hasMany 'posts'  1:m ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const result = yield new schema_spec_1.User().with('posts').first();
             (0, chai_1.expect)(result).to.be.an('object');
             (0, chai_1.expect)(result).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             (0, chai_1.expect)(result).to.have.property('posts');
-            (0, chai_1.expect)(result.posts).to.be.an('array');
-            (0, chai_1.expect)(result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.an('array');
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
             const results = yield new schema_spec_1.User().with('posts').get();
             (0, chai_1.expect)(results).to.be.an('array');
             (0, chai_1.expect)(results).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of results) {
                 (0, chai_1.expect)(result).to.have.property('posts');
-                (0, chai_1.expect)(result.posts).to.be.an('array');
-                (0, chai_1.expect)(result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
-                for (const post of result.posts) {
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.an('array');
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
+                for (const post of ((_a = result === null || result === void 0 ? void 0 : result.posts) !== null && _a !== void 0 ? _a : [])) {
                     (0, chai_1.expect)(post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
                 }
             }
@@ -175,9 +220,9 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of pagination.data) {
                 (0, chai_1.expect)(result).to.have.property('posts');
-                (0, chai_1.expect)(result.posts).to.be.an('array');
-                (0, chai_1.expect)(result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
-                for (const post of result.posts) {
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.an('array');
+                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
+                for (const post of ((_b = result === null || result === void 0 ? void 0 : result.posts) !== null && _b !== void 0 ? _b : [])) {
                     (0, chai_1.expect)(post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
                 }
             }
@@ -257,6 +302,7 @@ chai_1.default.use(chai_json_schema_1.default);
     });
     (0, mocha_1.it)(`Relation : nested 'users' hasMany 'posts' 'posts' belongsTo 'users' ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const result = yield new schema_spec_1.User()
                 .with('posts')
                 .withQuery('posts', (query) => {
@@ -267,9 +313,9 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(result).to.be.an('object');
             (0, chai_1.expect)(result).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             (0, chai_1.expect)(result).to.have.property('posts');
-            (0, chai_1.expect)(result.posts).to.be.an('array');
-            (0, chai_1.expect)(result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
-            for (const post of result.posts) {
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.an('array');
+            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.posts).to.be.jsonSchema(schema_spec_1.postSchemaArray);
+            for (const post of ((_a = result === null || result === void 0 ? void 0 : result.posts) !== null && _a !== void 0 ? _a : [])) {
                 (0, chai_1.expect)(post).to.have.property('user');
                 (0, chai_1.expect)(post.user).to.be.an('object');
                 (0, chai_1.expect)(post.user).to.be.jsonSchema(schema_spec_1.userSchemaObject);
