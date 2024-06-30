@@ -38,9 +38,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = __importStar(require("chai"));
 const mocha_1 = require("mocha");
 const chai_json_schema_1 = __importDefault(require("chai-json-schema"));
-const lib_1 = require("../lib");
 const schema_spec_1 = require("./schema-spec");
 const mock_data_spec_1 = require("./mock-data-spec");
+const lib_1 = require("../lib");
 chai_1.default.use(chai_json_schema_1.default);
 (0, mocha_1.describe)('Testing DB', function () {
     /* ##################################################### */
@@ -53,7 +53,8 @@ chai_1.default.use(chai_json_schema_1.default);
     - Delete : new DB('users').where('id',5).delete()
   `, function () {
         return __awaiter(this, void 0, void 0, function* () {
-            yield new lib_1.DB('users').truncate();
+            const truncate = yield new lib_1.DB('users').truncate({ force: true });
+            (0, chai_1.expect)(truncate).to.be.equal(true);
             const created = yield new lib_1.DB('users').create(mock_data_spec_1.userDataObject).save();
             (0, chai_1.expect)(created).to.be.an('object');
             (0, chai_1.expect)(created).to.be.jsonSchema(schema_spec_1.userSchemaObject);

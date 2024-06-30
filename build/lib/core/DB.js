@@ -322,6 +322,25 @@ class DB extends AbstractDB_1.AbstractDB {
         return `${new this().raw(sql)}`;
     }
     /**
+     * The 'freeze' methid is used to freeze the column without any pattern.
+     *
+     * @param {string} column
+     * @returns {string} string
+     */
+    freeze(column) {
+        return `${this.$constants('FREEZE')}${column}`;
+    }
+    /**
+     * The 'freeze' methid is used to freeze the column without any pattern.
+     *
+     * @static
+     * @param {string} column
+     * @returns {string} string
+     */
+    static freeze(column) {
+        return new this().freeze(column);
+    }
+    /**
      * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials
      * @property {string} option.host
@@ -485,7 +504,7 @@ class DB extends AbstractDB_1.AbstractDB {
             const tables = yield this.showTables();
             const backup = yield this._backup({ tables, database });
             yield this._queryStatement(`${this.$constants('CREATE_DATABASE_NOT_EXISTS')} \`${database}\``);
-            const creating = (_b) => __awaiter(this, [_b], void 0, function* ({ table, values }) {
+            const creating = (_a) => __awaiter(this, [_a], void 0, function* ({ table, values }) {
                 try {
                     yield this._queryStatement(table);
                     if (values != null && values !== '')

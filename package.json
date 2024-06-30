@@ -1,12 +1,13 @@
 {
   "name": "tspace-mysql",
-  "version": "1.6.6",
-  "description": "mysql query builder object relational mapping (ORM)",
+  "version": "1.6.9",
+  "description": "Tspace MySQL is a promise-based ORM for Node.js, designed with modern TypeScript and providing type safety for schema databases.",
   "main": "build/lib/index.js",
   "types": "build/lib/index.d.ts",
   "files": [
     "build"
   ],
+  "type": "commonjs",
   "bin": {
     "tspace-mysql": "./build/cli/index.js"
   },
@@ -15,10 +16,12 @@
     "url": "https://github.com/thanathip41/tspace-mysql.git"
   },
   "keywords": [
-    "tspace",
     "tspace-mysql",
+    "tspace",
     "mysql",
+    "mysql2",
     "orm",
+    "ORM",
     "relations",
     "deeply nested relations",
     "object relation model",
@@ -34,12 +37,21 @@
     "blueprint",
     "repository",
     "type safety",
-    "end-to-end-safety"
+    "typescript"
   ],
   "author": "Thanathip (https://github.com/thanathip41)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/thanathip41/tspace-mysql"
+  },
+  "homepage": "https://github.com/thanathip41",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "cross-env NODE_ENV=test ts-mocha './src/tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
+    "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./src/tests/benchmark.test.ts",
+    "release:beta": "npm test && npm run build && npm publish --tag beta",
+    "release": "npm test && npm run build && npm publish"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
@@ -47,26 +59,22 @@
     "pluralize": "^8.0.0",
     "sql-formatter": "^10.7.1"
   },
-  "homepage": "https://github.com/thanathip41",
-  "scripts": {
-    "build": "tsc",
-    "prepare": "npm run build",
-    "test:build": "mocha './build/tests/**/*.test.js' --reporter spec --no-timeouts --recursive   --exit",
-    "test": "cross-env NODE_ENV=test ts-mocha './src/tests/**/*.test.ts' --reporter spec --no-timeouts --recursive   --exit"
-  },
   "devDependencies": {
+    "@types/autocannon": "^7.12.5",
     "@types/chai": "^4.3.11",
     "@types/chai-json-schema": "^1.4.9",
     "@types/debug": "^4.1.12",
     "@types/mocha": "^10.0.6",
     "@types/mysql": "^2.15.19",
     "@types/pluralize": "^0.0.29",
+    "@types/yargs": "^17.0.32",
+    "autocannon": "^7.15.0",
     "chai": "4.3.10",
     "chai-json-schema": "^1.5.1",
     "cross-env": "^7.0.3",
     "mocha": "^10.2.0",
     "mochawesome": "^7.1.3",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.5"
   }
 }

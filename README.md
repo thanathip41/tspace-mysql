@@ -47,6 +47,7 @@ npm install tspace-mysql -g
   - [Delete Statements](#delete-statements)
   - [Hook Statements](#hook-statements)
   - [Faker Statements](#faker-statements)
+  - [Unset Statements](#unset-statements)
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
 - [Connection](#connection)
@@ -63,6 +64,7 @@ npm install tspace-mysql -g
     - [Observer](#observer)
     - [Logger](#logger)
     - [Hooks](#hooks)
+    - [Global Scope](#global-scope)
   - [SoftDelete](#softdelete)
   - [Schema](#schema)
     - [Schema Model](#schema-model)
@@ -76,8 +78,10 @@ npm install tspace-mysql -g
     - [Relation](#relation)
     - [Deeply Nested Relations](#deeply-nested-relations)
     - [Relation Exists](#relation-exists)
+    - [Relation Count](#relation-count)
     - [Relation Trashed](#relation-trashed)
     - [Built in Relation Functions](#built-in-relation-functions)
+  - [Cache](#cache)
   - [Decorator](#decorator)
   - [Type Safety](#type-safety)
     - [Safety Select](#safety-select)
@@ -122,7 +126,7 @@ DB_DATABASE = database;
  *  DB_CONNECTION_LIMIT = 10
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
- *  DB_DATE_STRINGS     = true
+ *  DB_DATE_STRINGS     = false
  */
 ```
 
@@ -310,6 +314,7 @@ const findFullName = await new User()
 .whereRaw(`CONCAT(firstName," ",lastName) LIKE '%${search}%'`)
 .findOne()     
 //  SELECT `users`.`name`, CONCAT(firstName," ",lastName) as fullName FROM `users` WHERE CONCAT(firstName," ",lastName) LIKE '%search%' LIMIT 1;
+
 ```
 
 ## Ordering, Grouping, Limit and Offset
@@ -873,6 +878,29 @@ VALUES
   ('username-5','email-5');
 
  */
+
+// fast to create
+await new DB("users").faker(40_000);
+```
+
+## Unset Statements
+
+```js
+
+const userInstance = new User().where('email','test@gmail.com')
+  
+const exits = await userInstance.exists()
+// SELECT EXISTS (SELECT 1 FROM `users` WHERE `users`.`email` = 'test@gmail.com' LIMIT 1) AS `aggregate`;
+
+const user = await userInstance.orderBy('id').findOne()
+// SELECT * FROM `users` WHERE `users`.`email` = 'test@gmail.com' ORDER BY `users`.`id` DESC LIMIT 1;
+
+const users = await userInstance.select('id').unset({ limit : true }).findMany()
+// SELECT `users`.`id` FROM `users` WHERE `users`.`email` = 'test@gmail.com' ORDER BY `users`.`id` DESC;
+
+const usersUnsetWhereStatement = await userInstance.unset({ select : true, where : true , orderBy : true }).findMany()
+// SELECT * FROM `users` WHERE `users`.`deletedAt` IS NULL;
+
 ```
 
 ## More Methods
@@ -1280,6 +1308,10 @@ const userPhone = await new UserPhone().where('user_id',1).findOne()
 // covert 'user_id' to 'userId'
 // SELECT * FROM `userPhones` WHERE `userPhones`.`userId` = '1' LIMIT 1;
 
+// avoid the pattern CamelCase for the model
+const userPhone = await new UserPhone().where(DB.freeze('user_id'),1).findOne()
+// SELECT * FROM `userPhones` WHERE `userPhones`.`user_id` = '1' LIMIT 1;
+
 ```
 
 #### UUID
@@ -1407,6 +1439,26 @@ class User extends Model {
       ])
   }
 }
+
+```
+
+### Global Scope
+```js
+
+class User extends Model {
+  constructor() {
+    super()
+
+    // Every query will have the global scope applied.
+    this.globalScope((query : User) => {
+      return query.select('id').where('id' , '>' , 10).orderBy('id')
+    })
+  }
+}
+
+const user = await new User().findMany()
+
+// SELECT `users`.`id` FROM `users` WHERE `users`.`id` > '10' ORDER BY `users`.`id` ASC LIMIT 1
 
 ```
 
@@ -1835,7 +1887,7 @@ await new User().relations('posts').findMany()
 
 await new User().relationsExists('posts').findMany()
 // SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL 
-// AND EXISTS (SELECT 1 FROM `posts` WHERE `users`.`id` = `posts`.`user_id` AND `posts`.`deletedA_at` IS NULL );
+// AND EXISTS (SELECT 1 FROM `posts` WHERE `users`.`id` = `posts`.`user_id` AND `posts`.`deletedA_at` IS NULL);
 
 // SELECT * FROM `posts` WHERE `posts`.`user_id` IN (...) AND `posts`.`deleted_at` IS NULL;
 
@@ -1855,6 +1907,66 @@ await new User().relationsExists('posts').findMany()
  *  }
  * ]
  * because posts id 1 and id 3 has been removed from database (using soft delete)
+ */
+
+```
+
+#### Relation Count
+Relationships will retrieving the count of related records without loading the data of related models
+Let's illustrate this with an example of an existence check in relations:
+```js
+
++-------------+--------------+----------------------------+
+|                     table users                         |
++-------------+--------------+----------------------------+
+| id          | username     | email                      |
+|-------------|--------------|----------------------------|
+| 1           | tspace1      | tspace1@gmail.com          |
+| 2           | tspace2      | tspace2@gmail.com          |
++-------------+--------------+----------------------------+
+
++-------------+--------------+----------------------------+
+|                     table posts                         |                    
++-------------+--------------+----------------------------+
+| id          | user_id      | title                      |
+|-------------|--------------|----------------------------|
+| 1           | 1            | posts 1                    |
+| 2           | 1            | posts 2                    |
+| 3           | 2            | posts 3                    |
++-------------+--------------+----------------------------+
+
+import { Model } from 'tspace-mysql'
+
+class User extends Model {
+  constructor(){
+      super()
+      this.hasMany({ name : 'posts' , model : Post })
+      this.useSoftDelete()
+  }
+}
+
+// you also use .withCount()
+await new User().relationsCount('posts').findMany() 
+// SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL;
+
+// SELECT `posts`.`user_id`, COUNT(`user_id`) AS `aggregate` FROM `posts` 
+// WHERE `posts`.`user_id` IN ('1','2') AND `posts`.`deleted_at` IS NULL GROUP BY `posts`.`user_id`;
+
+/*
+ * @returns [
+ *  {
+ *      id : 1,
+ *      username:  "tspace1",
+ *      email : "tspace1@gmail.com",
+ *      posts : 2
+ *  }
+ *  {
+ *      id : 2,
+ *      username:  "tspace2",
+ *      email : "tspace2@gmail.com",
+ *      posts : 1
+ *  }
+ * ]
  */
 
 ```
@@ -1887,11 +1999,11 @@ Let's illustrate this with an example:
 import { Model } from 'tspace-mysql'
 
 class User extends Model {
-    constructor(){
-        super()
-        this.hasMany({ name : 'posts' , model : Post })
-        this.useSoftDelete()
-    }
+  constructor(){
+    super()
+    this.hasMany({ name : 'posts' , model : Post })
+    this.useSoftDelete()
+  }
 }
 
 +--------------------------------------------------------------------------+
@@ -1985,7 +2097,6 @@ await new User().relationsTrashed('posts').trashed().findMany()
 ```
 
 ### Built in Relation Functions
-
 Certainly, let's illustrate the use of a built-in function in the results of relationships:
 
 ```js
@@ -2024,6 +2135,25 @@ const posts = await user.$posts()
 for (const post of posts) {
     const comments = await post.$comments()
 }
+
+```
+
+### Cache
+
+Cache can be used in a Model.
+Let's illustrate this with an example of a cache:
+
+```js
+// set cache in file config  .env , .env.development ... etc
+DB_CACHE = memory // by default, you can set db also
+
+const users = await new User()
+.limit(30_000)
+.cache({
+  key : 'users', // key of the cache
+  expires : 1000 * 60 // cache expires in 60 seconds
+})
+.get()
 
 ```
 

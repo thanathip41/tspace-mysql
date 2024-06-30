@@ -80,7 +80,9 @@ declare abstract class AbstractBuilder {
     abstract except(...columns: string[]): this;
     abstract only(...columns: string[]): this;
     abstract drop(): Promise<any>;
-    abstract truncate(): Promise<any>;
+    abstract truncate({ force }: {
+        force: boolean;
+    }): Promise<any>;
     abstract all(): Promise<any[]>;
     abstract find(id: number): Promise<any>;
     abstract pagination({ limit, page }: {

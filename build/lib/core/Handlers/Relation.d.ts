@@ -7,7 +7,7 @@ declare class RelationHandler {
     constructor(model: Model);
     load(parents: Record<string, any>[], relation: TRelationOptions): Promise<any[]>;
     loadExists(): string;
-    apply(nameRelations: any[], type: 'all' | 'exists' | 'trashed' | 'count' | 'default'): TRelationOptions[];
+    apply(nameRelations: any[], type: 'all' | 'exists' | 'notExists' | 'trashed' | 'count' | 'default'): TRelationOptions[];
     callback(nameRelation: string, cb: Function): void;
     callbackPivot(nameRelation: string, cb: Function): void;
     returnCallback(nameRelation: string): Model<any, any>;
@@ -19,12 +19,12 @@ declare class RelationHandler {
     hasManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, }: TRelationQueryOptions, callback?: Function): this | undefined;
     belongsToBuilder({ name, as, model, localKey, foreignKey, freezeTable, }: TRelationQueryOptions, callback?: Function): this | undefined;
     belongsToManyBuilder({ name, as, model, localKey, foreignKey, freezeTable, pivot }: TRelationQueryOptions, callback?: Function): this | undefined;
-    private _handleTRelationOptionssExists;
+    private _handleRelationExists;
     private _relationBuilder;
     private _functionTRelationOptionsName;
     private _relationMapData;
     private _belongsToMany;
-    private _valueInTRelation;
+    private _valueInRelation;
     protected _valuePattern(value: string): string;
     private _assertError;
 }

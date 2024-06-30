@@ -2,8 +2,10 @@ import { TPattern, TRelationOptions, TRelationQueryOptions, TValidateSchema } fr
 import { Blueprint } from '../Blueprint';
 import { Builder } from '../Builder';
 import { RelationHandler } from '../Handlers/Relation';
+import { Cache } from '../Cache';
 import { Model } from '../Model';
 declare abstract class AbstractModel<T, R> extends Builder {
+    protected $cache: Cache;
     protected $relation: RelationHandler;
     protected $schema: Record<string, Blueprint>;
     protected $validateSchema: TValidateSchema;

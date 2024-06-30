@@ -9,6 +9,27 @@ declare class Builder extends AbstractBuilder {
      */
     static get instance(): Builder;
     /**
+     * The 'unset' method is used to drop a property as desired.
+     *
+     * @returns {this} this
+     */
+    unset(options: {
+        select?: boolean;
+        where?: boolean;
+        join?: boolean;
+        limit?: boolean;
+        offset?: boolean;
+        orderBy?: boolean;
+        groupBy?: boolean;
+        having?: boolean;
+    }): this;
+    /**
+     * The 'getQueries' method is used to retrieve the raw SQL queries that would be executed.
+     *
+     * @returns {string} return sql query
+     */
+    getQueries(): string[];
+    /**
      * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
      *
      * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
@@ -1347,7 +1368,9 @@ declare class Builder extends AbstractBuilder {
      * truncate of table
      * @returns {promise<boolean>}
      */
-    truncate(): Promise<boolean>;
+    truncate({ force }?: {
+        force?: boolean | undefined;
+    }): Promise<boolean>;
     /**
      *
      * drop of table
@@ -1386,6 +1409,7 @@ declare class Builder extends AbstractBuilder {
         any: () => string;
     };
     protected _resultHandler(data: any): any;
+    protected _resultHandlerExists(data: any): any;
     whereReference(tableAndLocalKey: string, tableAndForeignKey?: string): this;
     protected _queryStatement(sql: string): Promise<any[]>;
     protected _actionStatement({ sql, returnId }: {
@@ -1408,7 +1432,6 @@ declare class Builder extends AbstractBuilder {
     private _queryInsert;
     private _queryInsertMultiple;
     protected _valueAndOperator(value: string, operator: string, useDefault?: boolean): string[];
-    protected _valueTrueFalse(value: any): any;
     private _initialConnection;
 }
 export { Builder };

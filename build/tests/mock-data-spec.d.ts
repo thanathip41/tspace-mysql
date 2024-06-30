@@ -34,7 +34,7 @@ export declare const postDataObject: {
 export declare const postDataArray: {
     id: number;
     uuid: string;
-    userId: number;
+    userId: number | null;
     title: string;
     subtitle: string;
     description: string;

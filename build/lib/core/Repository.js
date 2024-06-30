@@ -1009,6 +1009,7 @@ class RepositoryHandler {
             }
         }
         if (where != null) {
+            // @ts-ignore
             instance.whereObject(where);
         }
         if (whereRaw != null) {
@@ -1018,6 +1019,7 @@ class RepositoryHandler {
         }
         if (whereQuery != null) {
             instance.whereQuery((query) => {
+                // @ts-ignore
                 return query.whereObject(whereQuery);
             });
         }

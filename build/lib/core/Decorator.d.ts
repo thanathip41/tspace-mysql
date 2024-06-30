@@ -17,7 +17,7 @@ export declare const Timestamp: (timestampColumns?: {
     updatedAt: string;
 }) => (constructor: Function) => void;
 export declare const SoftDelete: (column?: string) => (constructor: Function) => void;
-export declare const Pattern: (pattern: 'camelCase' | 'snake_case') => (constructor: Function) => void;
+export declare const Pattern: (pattern: "camelCase" | "snake_case") => (constructor: Function) => void;
 export declare const CamelCase: () => (constructor: Function) => void;
 export declare const SnakeCase: () => (constructor: Function) => void;
 export declare const HasOne: ({ name, as, model, localKey, foreignKey, freezeTable }: TRelationQueryOptions) => (target: any, key: string) => void;

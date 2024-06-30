@@ -46,6 +46,7 @@ declare const CONSTANTS: Readonly<{
     KEY: "KEY";
     RAW: "$RAW:";
     OP: "$OP:";
+    FREEZE: "$FREEZE:";
     VALUE: "$VALUE:";
     IGNORE: "$IGNORE";
     WHEN: "WHEN";

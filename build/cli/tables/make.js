@@ -17,7 +17,7 @@ exports.default = (formCommand) => {
         });
     }
     const folderMigrate = dir ? `${cwd}/${dir}/create_${file}_table${type}` : `${cwd}/create_${file}_table${type}`;
-    const table = (0, table_1.default)(file, npm);
+    const table = (0, table_1.default)({ table: file, npm, type });
     fs.writeFile(folderMigrate, table, (err) => {
         if (err)
             console.log(err.message);

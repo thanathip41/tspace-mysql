@@ -36,8 +36,8 @@ const timestamp = (dateString) => {
     ].join(':')}`;
     return `${ymd} ${his}`;
 };
-const date = () => {
-    const d = new Date();
+const date = (value) => {
+    const d = value == null ? new Date() : new Date(value);
     const year = d.getFullYear();
     const month = `0${(d.getMonth() + 1)}`.slice(-2);
     const date = `0${(d.getDate())}`.slice(-2);
@@ -83,23 +83,31 @@ const generateUUID = () => {
     });
 };
 const covertBooleanToNumber = (data) => {
-    if (Object.prototype.toString.apply(data).slice(8, -1) === 'Boolean')
+    if (typeOf(data) === 'boolean')
         return +data;
     return data;
 };
-const covertDataToDateIfDate = (data) => {
-    for (const key in data) {
-        const d = data[key];
-        if (!isDate(d))
-            continue;
-        data[key] = timestamp(d);
+const covertDateToDateString = (data) => {
+    if (typeOf(data) === 'date') {
+        return timestamp(data);
     }
-    return;
+    if (typeOf(data) === 'object') {
+        for (const key in data) {
+            const d = data[key];
+            if (!(typeOf(d) === 'date'))
+                continue;
+            data[key] = timestamp(d);
+        }
+    }
+    return data;
 };
 const snakeCase = (data) => {
     try {
         if (typeof (data) !== "object")
             return data;
+        if (typeof data === 'string') {
+            return String(data).replace(/([A-Z])/g, (str) => `_${str.toLocaleLowerCase()}`);
+        }
         Object.entries(data).forEach(([oldName, _]) => {
             const newName = oldName.replace(/([A-Z])/g, (str) => `_${str.toLocaleLowerCase()}`);
             if (newName !== oldName) {
@@ -119,8 +127,12 @@ const snakeCase = (data) => {
 };
 const camelCase = (data) => {
     try {
-        if (typeof (data) !== "object")
+        if (typeof (data) !== "object") {
             return data;
+        }
+        if (typeof data === 'string') {
+            return String(data).replace(/(.(_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
+        }
         Object.entries(data).forEach(([oldName]) => {
             const newName = oldName.replace(/(.(_|-|\s)+.)/g, (str) => str[0] + (str[str.length - 1].toUpperCase()));
             if (newName !== oldName) {
@@ -229,7 +241,7 @@ const utils = {
     escapeXSS,
     generateUUID,
     covertBooleanToNumber,
-    covertDataToDateIfDate,
+    covertDateToDateString,
     snakeCase,
     camelCase,
     randomString,

@@ -1,5 +1,5 @@
 import { AbstractDB } from './Abstracts/AbstractDB';
-import type { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery } from '../types';
+import type { TBackup, TBackupTableToFile, TBackupToFile, TConnection, TConnectionOptions, TConnectionTransaction, TRawStringQuery, TFreezeStringQuery } from '../types';
 import { TConstants } from '../constants';
 /**
  * 'DB' Class is a component of the database system
@@ -184,6 +184,21 @@ declare class DB extends AbstractDB {
      * @returns {string} string
      */
     static raw(sql: string): TRawStringQuery;
+    /**
+     * The 'freeze' methid is used to freeze the column without any pattern.
+     *
+     * @param {string} column
+     * @returns {string} string
+     */
+    freeze(column: string): TFreezeStringQuery;
+    /**
+     * The 'freeze' methid is used to freeze the column without any pattern.
+     *
+     * @static
+     * @param {string} column
+     * @returns {string} string
+     */
+    static freeze(column: string): TFreezeStringQuery;
     /**
      * The 'getConnection' method is used to get a pool connection.
      * @param {Object} options options for connection database with credentials

@@ -21,7 +21,7 @@ exports.default = (cmd) => {
         }
     }
     const model = dir ? `${cwd}/${dir}/${file}${type}` : `${cwd}/${file}${type}`;
-    const data = (0, model_1.default)(file, npm);
+    const data = (0, model_1.default)({ model: file, npm, type });
     fs.writeFile(model, data, (err) => {
         if (err)
             throw err.message;
@@ -41,7 +41,7 @@ exports.default = (cmd) => {
             });
         }
         const folderMigrate = `${cwd}/${folder}/create_${tableName}_table${type}`;
-        const table = (0, table_1.default)(tableName, npm);
+        const table = (0, table_1.default)({ table: tableName, npm, type });
         fs.writeFile(folderMigrate, table, (err) => {
             if (err)
                 throw err;

@@ -40,6 +40,7 @@ const mocha_1 = require("mocha");
 const chai_json_schema_1 = __importDefault(require("chai-json-schema"));
 const schema_spec_1 = require("./schema-spec");
 const mock_data_spec_1 = require("./mock-data-spec");
+const lib_1 = require("../lib");
 chai_1.default.use(chai_json_schema_1.default);
 (0, mocha_1.describe)('Testing Model', function () {
     /* ##################################################### */
@@ -52,7 +53,8 @@ chai_1.default.use(chai_json_schema_1.default);
     - Delete : new User().where('id',6).delete()
   `, function () {
         return __awaiter(this, void 0, void 0, function* () {
-            yield new schema_spec_1.User().truncate();
+            const truncate = yield new schema_spec_1.User().truncate({ force: true });
+            (0, chai_1.expect)(truncate).to.be.equal(true);
             const created = yield new schema_spec_1.User().create(mock_data_spec_1.userDataObject).save();
             (0, chai_1.expect)(created).to.be.an('object');
             (0, chai_1.expect)(created).to.be.jsonSchema(schema_spec_1.userSchemaObject);
@@ -80,7 +82,8 @@ chai_1.default.use(chai_json_schema_1.default);
     - Delete : new Post().where('id',6).delete()
   `, function () {
         return __awaiter(this, void 0, void 0, function* () {
-            yield new schema_spec_1.Post().truncate();
+            const truncate = yield new schema_spec_1.Post().truncate({ force: true });
+            (0, chai_1.expect)(truncate).to.be.equal(true);
             const created = yield new schema_spec_1.Post().create(mock_data_spec_1.postDataObject).save();
             (0, chai_1.expect)(created).to.be.an('object');
             (0, chai_1.expect)(created).to.be.jsonSchema(schema_spec_1.postSchemaObject);
@@ -104,7 +107,8 @@ chai_1.default.use(chai_json_schema_1.default);
     - CreateMultiple : new PostUser().createMultiple([]).save()
   `, function () {
         return __awaiter(this, void 0, void 0, function* () {
-            yield new schema_spec_1.PostUser().truncate();
+            const truncate = yield new schema_spec_1.PostUser().truncate({ force: true });
+            (0, chai_1.expect)(truncate).to.be.equal(true);
             const createds = yield new schema_spec_1.PostUser().createMultiple([1, 2, 3, 4, 5].map(v => ({ userId: v, postId: v }))).save();
             (0, chai_1.expect)(createds).to.be.an('array');
         });
@@ -153,41 +157,40 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(whereIn.every((v, i) => [2, 3, 4, 5].includes(v.id))).to.be.equal(true);
         });
     });
-    (0, mocha_1.it)(`Relation : 'user' hasOne 'post' 1:1 ?`, function () {
+    (0, mocha_1.it)(`Relation : 1:1 'user' hasOne 'post' ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
             const result = yield new schema_spec_1.User().with('post').first();
             (0, chai_1.expect)(result).to.be.an('object');
             (0, chai_1.expect)(result).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             (0, chai_1.expect)(result).to.have.property('post');
-            (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
             (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             const results = yield new schema_spec_1.User().with('post').get();
-            (0, chai_1.expect)(results).to.be.an('array');
             (0, chai_1.expect)(results).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of results) {
                 (0, chai_1.expect)(result).to.have.property('post');
-                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
+                if ((result === null || result === void 0 ? void 0 : result.post) == null)
+                    continue;
                 (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             }
             const pagination = yield new schema_spec_1.User().with('post').pagination();
             (0, chai_1.expect)(pagination.meta).to.be.an('object');
             (0, chai_1.expect)(pagination.meta).to.have.property('total');
             (0, chai_1.expect)(pagination.meta).to.have.property('limit');
-            (0, chai_1.expect)(pagination.meta).to.have.property('totalPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('currentPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('lastPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('nextPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('prevPage');
-            (0, chai_1.expect)(pagination.data).to.be.an('array');
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'totalPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'currentPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'lastPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'nextPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'prevPage', pattern: schema_spec_1.pattern }));
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of pagination.data) {
                 (0, chai_1.expect)(result).to.have.property('post');
-                (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.an('object');
+                if ((result === null || result === void 0 ? void 0 : result.post) == null)
+                    continue;
                 (0, chai_1.expect)(result === null || result === void 0 ? void 0 : result.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             }
         });
     });
-    (0, mocha_1.it)(`Relation : 'user' hasMany 'posts'  1:m ?`, function () {
+    (0, mocha_1.it)(`Relation : 1:M 'user' hasMany 'posts' ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
             const result = yield new schema_spec_1.User().with('posts').first();
@@ -211,11 +214,11 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(pagination.meta).to.be.an('object');
             (0, chai_1.expect)(pagination.meta).to.have.property('total');
             (0, chai_1.expect)(pagination.meta).to.have.property('limit');
-            (0, chai_1.expect)(pagination.meta).to.have.property('totalPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('currentPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('lastPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('nextPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('prevPage');
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'totalPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'currentPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'lastPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'nextPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'prevPage', pattern: schema_spec_1.pattern }));
             (0, chai_1.expect)(pagination.data).to.be.an('array');
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.userSchemaArray);
             for (const result of pagination.data) {
@@ -228,7 +231,7 @@ chai_1.default.use(chai_json_schema_1.default);
             }
         });
     });
-    (0, mocha_1.it)(`Relation : 'post' belongsTo 'user' 1:1  ?`, function () {
+    (0, mocha_1.it)(`Relation : 1:1 'post' belongsTo 'user'   ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
             const result = yield new schema_spec_1.Post().with('user').first();
             (0, chai_1.expect)(result).to.be.an('object');
@@ -241,6 +244,8 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(results).to.be.jsonSchema(schema_spec_1.postSchemaArray);
             for (const result of results) {
                 (0, chai_1.expect)(result).to.have.property('user');
+                if (result.userId == null && result.user == null)
+                    continue;
                 (0, chai_1.expect)(result.user).to.be.an('object');
                 (0, chai_1.expect)(result.user).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             }
@@ -248,21 +253,23 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(pagination.meta).to.be.an('object');
             (0, chai_1.expect)(pagination.meta).to.have.property('total');
             (0, chai_1.expect)(pagination.meta).to.have.property('limit');
-            (0, chai_1.expect)(pagination.meta).to.have.property('totalPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('currentPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('lastPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('nextPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('prevPage');
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'totalPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'currentPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'lastPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'nextPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'prevPage', pattern: schema_spec_1.pattern }));
             (0, chai_1.expect)(pagination.data).to.be.an('array');
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.postSchemaArray);
             for (const result of pagination.data) {
                 (0, chai_1.expect)(result).to.have.property('user');
+                if (result.userId == null && result.user == null)
+                    continue;
                 (0, chai_1.expect)(result.user).to.be.an('object');
                 (0, chai_1.expect)(result.user).to.be.jsonSchema(schema_spec_1.userSchemaObject);
             }
         });
     });
-    (0, mocha_1.it)(`Relation : 'posts' belongsToMany 'users'  m:m ?`, function () {
+    (0, mocha_1.it)(`Relation : M:M 'posts' belongsToMany 'users' ?`, function () {
         return __awaiter(this, void 0, void 0, function* () {
             const result = yield new schema_spec_1.Post().with('subscribers').first();
             (0, chai_1.expect)(result).to.be.an('object');
@@ -282,11 +289,11 @@ chai_1.default.use(chai_json_schema_1.default);
             (0, chai_1.expect)(pagination.meta).to.be.an('object');
             (0, chai_1.expect)(pagination.meta).to.have.property('total');
             (0, chai_1.expect)(pagination.meta).to.have.property('limit');
-            (0, chai_1.expect)(pagination.meta).to.have.property('totalPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('currentPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('lastPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('nextPage');
-            (0, chai_1.expect)(pagination.meta).to.have.property('prevPage');
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'totalPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'currentPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'lastPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'nextPage', pattern: schema_spec_1.pattern }));
+            (0, chai_1.expect)(pagination.meta).to.have.property(lib_1.Model.formatPattern({ data: 'prevPage', pattern: schema_spec_1.pattern }));
             (0, chai_1.expect)(pagination.data).to.be.an('array');
             (0, chai_1.expect)(pagination.data).to.be.jsonSchema(schema_spec_1.postSchemaArray);
             for (const result of pagination.data) {
@@ -322,6 +329,24 @@ chai_1.default.use(chai_json_schema_1.default);
                 (0, chai_1.expect)(post.user.post).to.be.an('object');
                 (0, chai_1.expect)(post.user.post).to.be.jsonSchema(schema_spec_1.postSchemaObject);
             }
+        });
+    });
+    (0, mocha_1.it)(`Relation : withExists and withNotExists 'users' hasMany 'posts' ?`, function () {
+        return __awaiter(this, void 0, void 0, function* () {
+            const exists = yield new schema_spec_1.User()
+                .withExists('posts')
+                .withQuery('posts', (query) => {
+                return query.where('id', "xxxx");
+            })
+                .first();
+            (0, chai_1.expect)(exists).to.be.equal(null);
+            const notExists = yield new schema_spec_1.User()
+                .withNotExists('posts')
+                .withQuery('posts', (query) => {
+                return query.where('id', "xxxx");
+            })
+                .first();
+            (0, chai_1.expect)(notExists).to.be.not.equal(null);
         });
     });
     /* ###################################################### */

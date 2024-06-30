@@ -31,7 +31,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const mysql2_1 = require("mysql2");
 const events_1 = require("events");
-const options_1 = __importStar(require("./options"));
+const options_1 = __importStar(require("../options"));
 Object.defineProperty(exports, "loadOptionsEnvironment", { enumerable: true, get: function () { return options_1.loadOptionsEnvironment; } });
 class PoolConnection extends events_1.EventEmitter {
     /**
@@ -192,9 +192,7 @@ class PoolConnection extends events_1.EventEmitter {
             password: String(options_1.default.PASSWORD),
             multipleStatements: Boolean(options_1.default.MULTIPLE_STATEMENTS),
             enableKeepAlive: Boolean(options_1.default.ENABLE_KEEP_ALIVE),
-            keepAliveInitialDelay: Number(options_1.default.KEEP_ALIVE_DELAY),
-            supportBigNumbers: true,
-            bigNumberStrings: true
+            keepAliveInitialDelay: Number(options_1.default.KEEP_ALIVE_DELAY)
         }));
     }
     _loadOptions() {
@@ -228,6 +226,9 @@ class PoolConnection extends events_1.EventEmitter {
         catch (e) {
             return this._defaultOptions();
         }
+    }
+    _loadCache() {
+        return options_1.default.CACHE == null ? 'memory' : 'db';
     }
     _convertStringToObject(str, target = 'db') {
         if (str.toLocaleLowerCase().includes('#ignore'))

@@ -11,6 +11,7 @@ export type TRelationOptions<K = any> = {
     queryPivot?: any;
     relation?: Object;
     exists?: boolean;
+    notExists?: boolean;
     all?: boolean;
     trashed?: boolean;
     count?: boolean;
@@ -166,6 +167,7 @@ export type TGlobalSetting = {
     debug?: boolean;
     uuid?: boolean;
     timestamp?: boolean;
+    pattern?: boolean | ('s');
     logger?: {
         selected?: boolean;
         inserted?: boolean;
@@ -203,6 +205,7 @@ export type TOperator = {
 };
 export type TPoolEvent = 'CONNECTION' | 'RELEASE' | 'QUERY' | 'SLOW_QUERY' | 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
 export type TRawStringQuery = `$RAW:${string}`;
+export type TFreezeStringQuery = `$Freeze:${string}`;
 export type TRepositoryCreate<T extends Record<string, any> = any> = {
     data: Partial<{
         [K in keyof T]: T[K];
@@ -248,6 +251,12 @@ export type TRepositoryDelete<T extends Record<string, any> = any> = {
     where: Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : any;
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
+};
+export type TPickColumns<T, K extends keyof T> = {
+    [P in K]: T[P];
+};
+export type TPickRelations<T, K extends keyof T> = {
+    [P in K]: T[P];
 };
 export type TRegistry = {
     '$save'?: Function;

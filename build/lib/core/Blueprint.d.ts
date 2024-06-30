@@ -199,12 +199,12 @@ declare class Blueprint<T = any> {
      * @static
      * @return {Blueprint<T>} Blueprint
      */
-    static json(): Blueprint<string>;
+    static json(): Blueprint<Record<string, any> | string>;
     /**
      * Assign type 'JSON' in table
      * @return {Blueprint<T>} Blueprint
      */
-    json(): Blueprint<string>;
+    json(): Blueprint<Record<string, any> | string>;
     /**
      * Assign type 'MEDIUMTEXT' in table
      * @static
@@ -266,13 +266,13 @@ declare class Blueprint<T = any> {
      * @param {...string} enums n1, n2, n3, ...n
      * @return {Blueprint<T>} Blueprint
      */
-    static enum(...enums: Array<string>): Blueprint<string>;
+    static enum<K extends string[]>(...enums: K): Blueprint<K[number]>;
     /**
      * Assign type 'ENUM'
      * @param {...string} enums n1, n2, n3, ...n
      * @return {Blueprint<T>} Blueprint
      */
-    enum(...enums: Array<string>): Blueprint<string>;
+    enum<K extends string[]>(...enums: K): Blueprint<K[number]>;
     /**
      * Assign type 'DATE' in table
      * @static

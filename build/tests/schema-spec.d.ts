@@ -1,21 +1,6 @@
-import { Blueprint, Model, TRelation, TSchema } from '../../src/lib';
-declare const userSchema: {
-    id: Blueprint<number>;
-    uuid: Blueprint<string | null>;
-    email: Blueprint<string | null>;
-    name: Blueprint<string | null>;
-    username: Blueprint<string | null>;
-    password: Blueprint<string | null>;
-    createdAt: Blueprint<string | Date | null>;
-    updatedAt: Blueprint<string | Date | null>;
-    deletedAt: Blueprint<string | Date | null>;
-};
-type TUserSchema = TSchema<typeof userSchema>;
-type TUserRelation = TRelation<{
-    posts: Post[];
-    post: Post;
-}>;
-export declare class User extends Model<TUserSchema, TUserRelation> {
+import { Model } from '../../src/lib';
+export declare const pattern: 'snake_case' | 'camelCase';
+export declare class User extends Model {
     constructor();
 }
 export declare class Post extends Model {
@@ -151,7 +136,9 @@ export declare const postSchemaObject: {
             }[];
         };
         userId: {
-            type: string;
+            anyOf: {
+                type: string;
+            }[];
         };
         title: {
             type: string;
@@ -209,7 +196,9 @@ export declare const postSchemaArray: {
                 }[];
             };
             userId: {
-                type: string;
+                anyOf: {
+                    type: string;
+                }[];
             };
             title: {
                 type: string;
@@ -254,4 +243,3 @@ export declare const postSchemaArray: {
         };
     };
 };
-export {};

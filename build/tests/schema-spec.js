@@ -1,71 +1,80 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.postSchemaArray = exports.postSchemaObject = exports.userSchemaArray = exports.userSchemaObject = exports.PostUser = exports.Post = exports.User = void 0;
+exports.postSchemaArray = exports.postSchemaObject = exports.userSchemaArray = exports.userSchemaObject = exports.PostUser = exports.Post = exports.User = exports.pattern = void 0;
 const lib_1 = require("../../src/lib");
-const userSchema = {
-    id: new lib_1.Blueprint().int().primary().autoIncrement(),
-    uuid: new lib_1.Blueprint().varchar(50).null(),
-    email: new lib_1.Blueprint().varchar(50).null(),
-    name: new lib_1.Blueprint().varchar(255).null(),
-    username: new lib_1.Blueprint().varchar(255).null(),
-    password: new lib_1.Blueprint().varchar(255).null(),
-    createdAt: new lib_1.Blueprint().timestamp().null(),
-    updatedAt: new lib_1.Blueprint().timestamp().null(),
-    deletedAt: new lib_1.Blueprint().timestamp().null(),
-};
+exports.pattern = 'snake_case';
 class User extends lib_1.Model {
     constructor() {
         super();
-        this.useCamelCase();
+        this.usePattern(exports.pattern);
         this.useUUID();
         this.useTimestamp();
         this.useSoftDelete();
         this.hasMany({ model: Post, name: 'posts' });
         this.hasOne({ model: Post, name: 'post' });
-        this.useSchema(userSchema);
+        this.useSchema(lib_1.Model.formatPattern({
+            data: {
+                id: new lib_1.Blueprint().int().primary().autoIncrement(),
+                uuid: new lib_1.Blueprint().varchar(50).null(),
+                email: new lib_1.Blueprint().varchar(50).null(),
+                name: new lib_1.Blueprint().varchar(255).null(),
+                username: new lib_1.Blueprint().varchar(255).null(),
+                password: new lib_1.Blueprint().varchar(255).null(),
+                createdAt: new lib_1.Blueprint().timestamp().null(),
+                updatedAt: new lib_1.Blueprint().timestamp().null(),
+                deletedAt: new lib_1.Blueprint().timestamp().null(),
+            },
+            pattern: exports.pattern
+        }));
     }
 }
 exports.User = User;
 class Post extends lib_1.Model {
     constructor() {
         super();
+        this.usePattern(exports.pattern);
         this.useUUID();
         this.useTimestamp();
         this.useSoftDelete();
-        this.useCamelCase();
         this.belongsTo({ name: 'user', model: User });
         this.belongsToMany({ name: 'subscribers', model: User, modelPivot: PostUser });
-        this.useSchema({
-            id: new lib_1.Blueprint().int().notNull().primary().autoIncrement(),
-            uuid: new lib_1.Blueprint().varchar(50).null(),
-            userId: new lib_1.Blueprint().int().notNull(),
-            title: new lib_1.Blueprint().varchar(100).notNull(),
-            subtitle: new lib_1.Blueprint().varchar(100).null(),
-            description: new lib_1.Blueprint().varchar(255).null(),
-            createdAt: new lib_1.Blueprint().timestamp().null(),
-            updatedAt: new lib_1.Blueprint().timestamp().null(),
-            deletedAt: new lib_1.Blueprint().timestamp().null()
-        });
+        this.useSchema(lib_1.Model.formatPattern({
+            data: {
+                id: new lib_1.Blueprint().int().notNull().primary().autoIncrement(),
+                uuid: new lib_1.Blueprint().varchar(50).null(),
+                userId: new lib_1.Blueprint().int().null(),
+                title: new lib_1.Blueprint().varchar(100).notNull(),
+                subtitle: new lib_1.Blueprint().varchar(100).null(),
+                description: new lib_1.Blueprint().varchar(255).null(),
+                createdAt: new lib_1.Blueprint().timestamp().null(),
+                updatedAt: new lib_1.Blueprint().timestamp().null(),
+                deletedAt: new lib_1.Blueprint().timestamp().null()
+            },
+            pattern: exports.pattern
+        }));
     }
 }
 exports.Post = Post;
 class PostUser extends lib_1.Model {
     constructor() {
         super();
+        this.usePattern(exports.pattern);
         this.useUUID();
         this.useTimestamp();
         this.useSoftDelete();
-        this.useCamelCase();
         this.useTableSingular();
-        this.useSchema({
-            id: new lib_1.Blueprint().int().notNull().primary().autoIncrement(),
-            uuid: new lib_1.Blueprint().varchar(50).null(),
-            userId: new lib_1.Blueprint().int().notNull(),
-            postId: new lib_1.Blueprint().int().notNull(),
-            createdAt: new lib_1.Blueprint().timestamp().null(),
-            updatedAt: new lib_1.Blueprint().timestamp().null(),
-            deletedAt: new lib_1.Blueprint().timestamp().null()
-        });
+        this.useSchema(lib_1.Model.formatPattern({
+            data: {
+                id: new lib_1.Blueprint().int().notNull().primary().autoIncrement(),
+                uuid: new lib_1.Blueprint().varchar(50).null(),
+                userId: new lib_1.Blueprint().int().notNull(),
+                postId: new lib_1.Blueprint().int().notNull(),
+                createdAt: new lib_1.Blueprint().timestamp().null(),
+                updatedAt: new lib_1.Blueprint().timestamp().null(),
+                deletedAt: new lib_1.Blueprint().timestamp().null()
+            },
+            pattern: exports.pattern
+        }));
     }
 }
 exports.PostUser = PostUser;
@@ -92,7 +101,7 @@ exports.postSchemaObject = {
     properties: {
         id: { type: 'integer' },
         uuid: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-        userId: { type: 'integer' },
+        userId: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
         title: { type: 'string' },
         subtitle: { anyOf: [{ type: 'string' }, { type: 'null' }] },
         description: { anyOf: [{ type: 'string' }, { type: 'null' }] },

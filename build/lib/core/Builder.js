@@ -41,6 +41,38 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return new this();
     }
     /**
+     * The 'unset' method is used to drop a property as desired.
+     *
+     * @returns {this} this
+     */
+    unset(options) {
+        if ((options === null || options === void 0 ? void 0 : options.select) != null && options.select)
+            this.$state.set('SELECT', []);
+        if ((options === null || options === void 0 ? void 0 : options.join) != null && options.join)
+            this.$state.set('JOIN', []);
+        if ((options === null || options === void 0 ? void 0 : options.where) != null && options.where)
+            this.$state.set('WHERE', []);
+        if ((options === null || options === void 0 ? void 0 : options.groupBy) != null && options.groupBy)
+            this.$state.set('GROUP_BY', []);
+        if ((options === null || options === void 0 ? void 0 : options.having) != null && options.having)
+            this.$state.set('HAVING', '');
+        if ((options === null || options === void 0 ? void 0 : options.orderBy) != null && options.orderBy)
+            this.$state.set('ORDER_BY', []);
+        if ((options === null || options === void 0 ? void 0 : options.limit) != null && options.limit)
+            this.$state.set('LIMIT', '');
+        if ((options === null || options === void 0 ? void 0 : options.offset) != null && options.offset)
+            this.$state.set('OFFSET', '');
+        return this;
+    }
+    /**
+     * The 'getQueries' method is used to retrieve the raw SQL queries that would be executed.
+     *
+     * @returns {string} return sql query
+     */
+    getQueries() {
+        return this.$state.get('QUERIES');
+    }
+    /**
      * The 'distinct' method is used to apply the DISTINCT keyword to a database query.
      *
      * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
@@ -298,7 +330,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         }
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         if (value === null) {
             return this.whereNull(column);
         }
@@ -330,7 +362,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhere(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         if (value === null) {
             return this.orWhereNull(column);
         }
@@ -535,7 +567,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      */
     whereJSON(column, { key, value, operator }) {
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1076,7 +1108,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1117,7 +1149,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     orWhereSensitive(column, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -1219,7 +1251,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereAny(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         this.whereQuery((query) => {
             for (const index in columns) {
                 const column = columns[index];
@@ -1247,7 +1279,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     whereAll(columns, operator, value) {
         [value, operator] = this._valueAndOperator(value, operator, arguments.length === 2);
         value = this.$utils.escape(value);
-        value = this._valueTrueFalse(value);
+        value = this.$utils.covertBooleanToNumber(value);
         this.whereQuery((query) => {
             for (const column of columns)
                 query.where(column, operator, value);
@@ -1889,7 +1921,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 throw new Error(`This 'columns' property is missing some properties`);
             const when = Object.entries(c.when).map(([key, value]) => {
                 value = this.$utils.escape(value);
-                value = this._valueTrueFalse(value);
+                value = this.$utils.covertBooleanToNumber(value);
                 return `${this.bindColumn(key)} = '${value}'`;
             });
             for (const [key, value] of Object.entries(c.columns)) {
@@ -2738,9 +2770,11 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
     exists() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            this.limit(1);
-            this.selectRaw('1');
-            const sql = this._queryBuilder().select();
+            const sql = new Builder()
+                .copyBuilder(this, { where: true, limit: true, join: true })
+                .selectRaw('1')
+                .limit(1)
+                .toString();
             const result = yield this._queryStatement([
                 `${this.$constants('SELECT')}`,
                 `${this.$constants('EXISTS')}`,
@@ -3148,7 +3182,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             const raws = yield this._queryStatement(sql);
             return raws.map((r) => {
                 const schema = [];
-                schema.push(`${r.Field}`);
+                schema.push(`\`${r.Field}\``);
                 schema.push(`${r.Type}`);
                 if (r.Null === 'YES') {
                     schema.push(`NULL`);
@@ -3230,15 +3264,16 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             ].join(' ');
             const fields = yield this._queryStatement(sql);
             const fakers = [];
+            const uuid = 'uuid';
+            const passed = (field) => ['id', '_id'].some(p => field === p);
             for (let row = 0; row < rows; row++) {
                 let columnAndValue = {};
                 for (const { Field: field, Type: type } of fields) {
-                    const passed = field.toLowerCase() === 'id' ||
-                        field.toLowerCase() === '_id' ||
-                        field.toLowerCase() === 'uuid';
-                    if (passed)
+                    if (passed(field))
                         continue;
-                    columnAndValue = Object.assign(Object.assign({}, columnAndValue), { [field]: this.$utils.faker(type) });
+                    columnAndValue = Object.assign(Object.assign({}, columnAndValue), { [field]: field === uuid
+                            ? this.$utils.faker('uuid')
+                            : this.$utils.faker(type) });
                 }
                 if (cb) {
                     fakers.push(cb(columnAndValue, row));
@@ -3246,12 +3281,12 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 }
                 fakers.push(columnAndValue);
             }
-            const chunkedData = this.$utils.chunkArray([...fakers], 500);
+            const chunked = this.$utils.chunkArray([...fakers], 500);
             const promises = [];
             const table = this.getTableName();
-            for (const data of chunkedData) {
+            for (const data of chunked) {
                 promises.push(() => {
-                    return new DB_1.DB(table).createMultiple([...data]).void().save();
+                    return new DB_1.DB(table).debug(this.$state.get('DEBUG')).createMultiple([...data]).void().save();
                 });
             }
             yield Promise.allSettled(promises.map((v) => v()));
@@ -3264,11 +3299,15 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
      * @returns {promise<boolean>}
      */
     truncate() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, arguments, void 0, function* ({ force = false } = {}) {
             const sql = [
                 `${this.$constants('TRUNCATE_TABLE')}`,
                 `${this.$state.get('TABLE_NAME')}`
             ].join(' ');
+            if (!force) {
+                console.log(`Truncating will delete all data from the table ${this.$state.get('TABLE_NAME')}. Are you sure you want to proceed? Please confirm if you want to force the operation.`);
+                return false;
+            }
             yield this._queryStatement(sql);
             return true;
         });
@@ -3414,7 +3453,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
                 bindOrderBy(this.$state.get('ORDER_BY')),
                 this.$state.get('LIMIT'),
                 this.$state.get('OFFSET')
-            ]);
+            ]).trimEnd();
         };
         const insert = () => buildSQL([this.$state.get('INSERT')]);
         const update = () => {
@@ -3451,6 +3490,14 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         };
     }
     _resultHandler(data) {
+        if (!this.$state.get('VOID')) {
+            this.$state.set('RESULT', data);
+        }
+        this.$state.reset();
+        this.$logger.reset();
+        return data;
+    }
+    _resultHandlerExists(data) {
         if (!this.$state.get('VOID')) {
             this.$state.set('RESULT', data);
         }
@@ -3722,7 +3769,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return data;
     }
     _queryUpdate(data) {
-        this.$utils.covertDataToDateIfDate(data);
+        this.$utils.covertDateToDateString(data);
         const values = Object.entries(data).map(([column, value]) => {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                 value = this.$utils.escapeActions(value);
@@ -3734,7 +3781,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         return `${this.$constants('SET')} ${values}`;
     }
     _queryInsert(data) {
-        this.$utils.covertDataToDateIfDate(data);
+        data = this.$utils.covertDateToDateString(data);
         const columns = Object.keys(data).map((column) => this.bindColumn(column));
         const values = Object.values(data).map((value) => {
             if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
@@ -3754,7 +3801,7 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
         var _a;
         let values = [];
         for (let objects of data) {
-            this.$utils.covertDataToDateIfDate(objects);
+            this.$utils.covertDateToDateString(objects);
             const vals = Object.values(objects).map((value) => {
                 if (typeof value === 'string' && !(value.includes(this.$constants('RAW')))) {
                     value = this.$utils.escapeActions(value);
@@ -3781,13 +3828,6 @@ class Builder extends AbstractBuilder_1.AbstractBuilder {
             operator = operator.toUpperCase();
         }
         return [value, operator];
-    }
-    _valueTrueFalse(value) {
-        if (value === true)
-            return 1;
-        if (value === false)
-            return 0;
-        return value;
     }
     _initialConnection() {
         this.$utils = utils_1.utils;

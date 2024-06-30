@@ -124,6 +124,9 @@ declare const STATE_MODEL: {
     readonly RETURN_TYPE: null;
     readonly GLOBAL_SCOPE: true;
     readonly GLOBAL_SCOPE_QUERY: null;
+    readonly QUERIES: readonly [];
+    readonly META: "";
+    readonly CACHE: null;
 };
 type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT;
 declare class StateHandler {

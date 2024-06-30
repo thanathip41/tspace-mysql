@@ -48,7 +48,9 @@ class Schema extends Builder_1.Builder {
                 let columns = [];
                 for (const key in schemas) {
                     const data = schemas[key];
-                    const { type, attributes } = data;
+                    const { type, attributes } = this.detectSchema(data);
+                    if (type == null || attributes == null)
+                        continue;
                     columns = [
                         ...columns,
                         `\`${key}\` ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
@@ -71,10 +73,12 @@ class Schema extends Builder_1.Builder {
             let columns = [];
             for (const key in schemas) {
                 const data = schemas[key];
-                const { type, attributes } = data;
+                const { type, attributes } = this.detectSchema(data);
+                if (type == null || attributes == null)
+                    continue;
                 columns = [
                     ...columns,
-                    `\`${key}\` ${type} ${attributes === null || attributes === void 0 ? void 0 : attributes.join(' ')}`
+                    `\`${key}\` ${type} ${(attributes).join(' ')}`
                 ];
             }
             return [
@@ -84,63 +88,93 @@ class Schema extends Builder_1.Builder {
             ].join(' ');
         };
     }
+    detectSchema(schema) {
+        var _a, _b, _c, _d;
+        try {
+            return {
+                type: (_b = (_a = schema === null || schema === void 0 ? void 0 : schema.type) !== null && _a !== void 0 ? _a : schema === null || schema === void 0 ? void 0 : schema._type) !== null && _b !== void 0 ? _b : null,
+                attributes: (_d = (_c = schema === null || schema === void 0 ? void 0 : schema.attributes) !== null && _c !== void 0 ? _c : schema === null || schema === void 0 ? void 0 : schema._attributes) !== null && _d !== void 0 ? _d : null
+            };
+        }
+        catch (e) {
+            return {
+                type: null,
+                attributes: null
+            };
+        }
+    }
+    static detectSchema(schema) {
+        var _a, _b, _c, _d;
+        try {
+            return {
+                type: (_b = (_a = schema === null || schema === void 0 ? void 0 : schema.type) !== null && _a !== void 0 ? _a : schema === null || schema === void 0 ? void 0 : schema._type) !== null && _b !== void 0 ? _b : null,
+                attributes: (_d = (_c = schema === null || schema === void 0 ? void 0 : schema.attributes) !== null && _c !== void 0 ? _c : schema === null || schema === void 0 ? void 0 : schema._attributes) !== null && _d !== void 0 ? _d : null
+            };
+        }
+        catch (e) {
+            return {
+                type: null,
+                attributes: null
+            };
+        }
+    }
     /**
-    *
-    * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
-    *
-    * The schema can define with method 'useSchema'
-    * @param    {string} pathFolders directory to models
-    * @property {boolean} options.force - forec always check all columns if not exists will be created
-    * @property {boolean} options.log   - show log execution with sql statements
-    * @property {boolean} options.foreign - check when has a foreign keys will be created
-    * @property {boolean} options.changed - check when column is changed attribute will be change attribute
-    * @return {Promise<void>}
-    * @example
-    *
-    * - node_modules
-    * - app
-    *   - Models
-    *     - User.ts
-    *     - Post.ts
-    *
-    *  // file User.ts
-    *  class User extends Model {
-    *      constructor(){
-    *          super()
-    *          this.hasMany({ name : 'posts' , model : Post })
-    *          this.useSchema ({
-    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
-    *               uuid        : new Blueprint().varchar(50).null(),
-    *               email       : new Blueprint().int().notNull().unique(),
-    *               name        : new Blueprint().varchar(255).null(),
-    *               created_at  : new Blueprint().timestamp().null(),
-    *               updated_at  : new Blueprint().timestamp().null(),
-    *               deleted_at  : new Blueprint().timestamp().null()
-    *           })
-    *       }
-    *   }
-    *
-    *   // file Post.ts
-    *   class Post extends Model {
-    *      constructor(){
-    *          super()
-    *          this.hasMany({ name : 'comments' , model : Comment })
-    *          this.belongsTo({ name : 'user' , model : User })
-    *          this.useSchema ({
-    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
-    *               uuid        : new Blueprint().varchar(50).null(),
-    *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
-    *               title       : new Blueprint().varchar(255).null(),
-    *               created_at  : new Blueprint().timestamp().null(),
-    *               updated_at  : new Blueprint().timestamp().null(),
-    *               deleted_at  : new Blueprint().timestamp().null()
-    *           })
-    *       }
-    *   }
-    *
-    *
-    *  await new Schema().sync(`app/Models` , { force : true , log = true, foreign = true , changed = true })
-    */
+     *
+     * The 'Sync' method is used to check for create or update table or columns with your schema in your model.
+     *
+     * The schema can define with method 'useSchema'
+     * @param    {string} pathFolders directory to models
+     * @property {boolean} options.force - forec always check all columns if not exists will be created
+     * @property {boolean} options.log   - show log execution with sql statements
+     * @property {boolean} options.foreign - check when has a foreign keys will be created
+     * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+     * @return {Promise<void>}
+     * @example
+     *
+     * - node_modules
+     * - app
+     *   - Models
+     *     - User.ts
+     *     - Post.ts
+     *
+     *  // file User.ts
+     *  class User extends Model {
+     *      constructor(){
+     *          super()
+     *          this.hasMany({ name : 'posts' , model : Post })
+     *          this.useSchema ({
+     *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+     *               uuid        : new Blueprint().varchar(50).null(),
+     *               email       : new Blueprint().int().notNull().unique(),
+     *               name        : new Blueprint().varchar(255).null(),
+     *               created_at  : new Blueprint().timestamp().null(),
+     *               updated_at  : new Blueprint().timestamp().null(),
+     *               deleted_at  : new Blueprint().timestamp().null()
+     *           })
+     *       }
+     *   }
+     *
+     *   // file Post.ts
+     *   class Post extends Model {
+     *      constructor(){
+     *          super()
+     *          this.hasMany({ name : 'comments' , model : Comment })
+     *          this.belongsTo({ name : 'user' , model : User })
+     *          this.useSchema ({
+     *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
+     *               uuid        : new Blueprint().varchar(50).null(),
+     *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
+     *               title       : new Blueprint().varchar(255).null(),
+     *               created_at  : new Blueprint().timestamp().null(),
+     *               updated_at  : new Blueprint().timestamp().null(),
+     *               deleted_at  : new Blueprint().timestamp().null()
+     *           })
+     *       }
+     *   }
+     *
+     *
+     *  await new Schema().sync(`app/Models` , { force : true , log = true, foreign = true , changed = true })
+     */
     sync(pathFolders_1) {
         return __awaiter(this, arguments, void 0, function* (pathFolders, { force = false, log = false, foreign = false, changed = false } = {}) {
             const directories = fs_1.default.readdirSync(pathFolders, { withFileTypes: true });
@@ -237,7 +271,6 @@ class Schema extends Builder_1.Builder {
     }
     _syncExecute(_a) {
         return __awaiter(this, arguments, void 0, function* ({ models, force, log, foreign, changed }) {
-            var _b, _c, _d, _e, _f, _g, _h, _j;
             const checkTables = yield this.rawQuery(this.$constants('SHOW_TABLES'));
             const existsTables = checkTables.map((c) => Object.values(c)[0]);
             for (const model of models) {
@@ -283,8 +316,9 @@ class Schema extends Builder_1.Builder {
                     for (const column of wasChangedColumns) {
                         if (column == null)
                             continue;
-                        const type = (_c = (_b = schemaModel[column]) === null || _b === void 0 ? void 0 : _b.type) !== null && _c !== void 0 ? _c : null;
-                        const attributes = (_e = (_d = schemaModel[column]) === null || _d === void 0 ? void 0 : _d.attributes) !== null && _e !== void 0 ? _e : null;
+                        const { type, attributes } = this.detectSchema(schemaModel[column]);
+                        if (type == null || attributes == null)
+                            continue;
                         const sql = [
                             this.$constants('ALTER_TABLE'),
                             `\`${model.getTableName()}\``,
@@ -302,9 +336,8 @@ class Schema extends Builder_1.Builder {
                 for (const column of missingColumns) {
                     const indexWithColumn = entries.findIndex(([key]) => key === column);
                     const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null;
-                    const type = (_g = (_f = schemaModel[column]) === null || _f === void 0 ? void 0 : _f.type) !== null && _g !== void 0 ? _g : null;
-                    const attributes = (_j = (_h = schemaModel[column]) === null || _h === void 0 ? void 0 : _h.attributes) !== null && _j !== void 0 ? _j : null;
-                    if (findAfterIndex == null || type == null || attributes == null)
+                    const { type, attributes } = this.detectSchema(schemaModel[column]);
+                    if (type == null || attributes == null || findAfterIndex)
                         continue;
                     const sql = [
                         this.$constants('ALTER_TABLE'),

@@ -1,6 +1,5 @@
-/// <reference types="node" />
 import { EventEmitter } from 'events';
-import { loadOptionsEnvironment } from './options';
+import { loadOptionsEnvironment } from '../options';
 import { TConnection, TOptions } from '../types';
 export declare class PoolConnection extends EventEmitter {
     private OPTIONS;
@@ -21,6 +20,7 @@ export declare class PoolConnection extends EventEmitter {
     private _detectQueryType;
     private _defaultOptions;
     private _loadOptions;
+    private _loadCache;
     private _convertStringToObject;
     private _covertKeyTypeToCorrectType;
     private _messageConnected;
