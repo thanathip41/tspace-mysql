@@ -5,9 +5,6 @@ class MemoryCache {
     constructor() {
         this.cache = new Map();
     }
-    all() {
-        return this.cache;
-    }
     set(key, value, ms) {
         const expiredAt = Date.now() + ms;
         this.cache.set(key, { value, expiredAt });

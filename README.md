@@ -2144,8 +2144,11 @@ Cache can be used in a Model.
 Let's illustrate this with an example of a cache:
 
 ```js
+// support memory db and redis
 // set cache in file config  .env , .env.development ... etc
-DB_CACHE = memory // by default, you can set db also
+DB_CACHE = memory // by default
+// for redis
+DB_REDIS_URL = redis://username:password@server:6379
 
 const users = await new User()
 .limit(30_000)
@@ -2153,7 +2156,7 @@ const users = await new User()
   key : 'users', // key of the cache
   expires : 1000 * 60 // cache expires in 60 seconds
 })
-.get()
+.findMany()
 
 ```
 

@@ -1,7 +1,9 @@
 declare class DBCache {
-    private cacheTable;
-    all(): Promise<any[]>;
-    set(key: string, value: any, ms: number): Promise<any[] | Record<string, any> | null | undefined>;
+    private _cacheTable;
+    private _maxAddress;
+    private _maxLength;
+    private _c0x0;
+    set(key: string, value: any, ms: number): Promise<void>;
     get(key: string): Promise<any>;
     clear(): Promise<void>;
     delete(key: string): Promise<void>;

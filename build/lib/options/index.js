@@ -38,7 +38,8 @@ const env = {
     KEEP_ALIVE_DELAY: (_o = ENV.DB_KEEP_ALIVE_DELAY) !== null && _o !== void 0 ? _o : 0,
     ENABLE_KEEP_ALIVE: (_p = ENV.DB_ENABLE_KEEP_ALIVE) !== null && _p !== void 0 ? _p : true,
     MULTIPLE_STATEMENTS: (_q = ENV.DB_MULTIPLE_STATEMENTS) !== null && _q !== void 0 ? _q : false,
-    CACHE: ENV.DB_CACHE
+    CACHE: ENV.DB_CACHE,
+    REDIS_URL: ENV.DB_REDIS_URL
 };
 for (const [key, value] of Object.entries(env)) {
     if (value == null || key == null)

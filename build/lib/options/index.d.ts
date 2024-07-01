@@ -16,6 +16,7 @@ export declare const loadOptionsEnvironment: () => Readonly<{
     ENABLE_KEEP_ALIVE?: string | boolean;
     MULTIPLE_STATEMENTS?: string | boolean;
     CACHE?: string | null;
+    REDIS_URL?: string | null;
 }>;
 declare const _default: Readonly<{
     [x: string]: any;
@@ -35,5 +36,6 @@ declare const _default: Readonly<{
     ENABLE_KEEP_ALIVE?: string | boolean;
     MULTIPLE_STATEMENTS?: string | boolean;
     CACHE?: string | null;
+    REDIS_URL?: string | null;
 }>;
 export default _default;

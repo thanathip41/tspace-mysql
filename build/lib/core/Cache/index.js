@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cache = void 0;
 const MemoryCache_1 = require("./MemoryCache");
 const DBCache_1 = require("./DBCache");
+const RedisCache_1 = require("./RedisCache");
 const options_1 = __importDefault(require("../../options"));
 class Cache {
     constructor() {
@@ -23,28 +24,38 @@ class Cache {
             this._driver = new MemoryCache_1.MemoryCache();
         if (options_1.default.CACHE === 'db')
             this._driver = new DBCache_1.DBCache();
+        if (options_1.default.CACHE === 'redis')
+            this._driver = new RedisCache_1.RedisCache(String(options_1.default.REDIS_URL));
     }
     driver(driver) {
-        this._driver = driver === 'db' ? new DBCache_1.DBCache() : new MemoryCache_1.MemoryCache();
+        if (driver === 'memory' || driver == null)
+            this._driver = new MemoryCache_1.MemoryCache();
+        if (driver === 'db')
+            this._driver = new DBCache_1.DBCache();
+        if (driver === 'redis')
+            this._driver = new RedisCache_1.RedisCache(String(options_1.default.REDIS_URL));
         return this;
-    }
-    all() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield this._driver.all();
-        });
     }
     set(key, value, ms) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this._driver.set(key, value, ms);
-            return;
+            try {
+                yield this._driver.set(key, value, ms);
+            }
+            catch (e) {
+            }
         });
     }
     get(key) {
         return __awaiter(this, void 0, void 0, function* () {
-            const cache = yield this._driver.get(key);
-            if (cache == null)
+            try {
+                const cache = yield this._driver.get(key);
+                if (cache == null || cache === '')
+                    return null;
+                return cache;
+            }
+            catch (e) {
                 return null;
-            return cache;
+            }
         });
     }
     clear() {
