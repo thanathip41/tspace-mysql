@@ -2147,15 +2147,16 @@ Let's illustrate this with an example of a cache:
 // support memory db and redis
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
+
 // for redis
 DB_REDIS_URL = redis://username:password@server:6379
 
 const users = await new User()
-.limit(30_000)
 .cache({
   key : 'users', // key of the cache
   expires : 1000 * 60 // cache expires in 60 seconds
 })
+.sleep(5) // assume the query takes longer than 5 seconds...
 .findMany()
 
 ```
