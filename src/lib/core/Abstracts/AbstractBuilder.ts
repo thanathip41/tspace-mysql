@@ -1,7 +1,7 @@
-import { TPagination } from '../../types'
+import { TPagination }  from '../../types'
 import { StateHandler } from '../Handlers/State'
-import { TUtils } from '../../utils'
-import { TConstants } from '../../constants'
+import { TUtils }       from '../../utils'
+import { TConstants }   from '../../constants'
 
 abstract class AbstractBuilder {
 

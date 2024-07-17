@@ -95,6 +95,5 @@ const CONSTANTS = Object.freeze({
     }
 })
 
-export type TConstants = typeof CONSTANTS
 export { CONSTANTS }
 export default CONSTANTS

@@ -5,6 +5,7 @@ import { proxyHandler }     from './Handlers/Proxy'
 import { PoolConnection }   from '../connection'
 import { StateHandler }     from './Handlers/State'
 import type { 
+    TConstant,
     TBackup,
     TBackupTableToFile,
     TBackupToFile,
@@ -14,7 +15,7 @@ import type {
     TRawStringQuery,
     TFreezeStringQuery
 } from '../types'
-import { TConstants } from '../constants'
+
 
 /**
  * 'DB' Class is a component of the database system
@@ -186,7 +187,7 @@ class DB extends AbstractDB {
      * @param {string} key
      * @returns {string | object} string || object
      */
-    constants (key ?: keyof TConstants): string | object {
+    constants (key ?: keyof TConstant): string | object {
         return this.$constants(key)
     }
 
@@ -196,7 +197,7 @@ class DB extends AbstractDB {
      * @param {string} key
      * @returns {string | object} string || object
      */
-    static constants(key ?: keyof TConstants) : string | Record<string,any> {
+    static constants(key ?: keyof TConstant) : string | Record<string,any> {
         return new this().constants(key)
     }
 

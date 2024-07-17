@@ -1,9 +1,14 @@
-import { TPattern, TRelationOptions, TRelationQueryOptions, TValidateSchema } from '../../types'
-import { Blueprint } from '../Blueprint'
-import { Builder } from '../Builder'
-import { RelationHandler } from '../Handlers/Relation'
-import { TCache } from '../Cache'
-import { Model } from '../Model'
+import { Blueprint }        from '../Blueprint'
+import { Builder }          from '../Builder'
+import { RelationHandler }  from '../Handlers/Relation'
+import { Model }            from '../Model'
+import type { 
+    TPattern, 
+    TRelationOptions, 
+    TRelationQueryOptions, 
+    TValidateSchema , 
+    TCache 
+} from '../../types'
 
 abstract class AbstractModel<T,R> extends Builder {
 

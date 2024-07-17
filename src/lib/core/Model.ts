@@ -7,8 +7,9 @@ import { RelationHandler }  from './Handlers/Relation'
 import { Blueprint }        from './Blueprint'
 import { StateHandler }     from './Handlers/State'
 import { TSchemaModel }     from './UtilityTypes'
-import { Cache, TCache }    from './Cache'
+import { Cache }            from './Cache'
 import type { 
+    TCache,
     TExecute,
     TRelationOptions, 
     TPagination,
@@ -151,15 +152,6 @@ class Model<
     }
 
     /**
-     * The 'cache' method is used get the functions from the Cache 
-     * @returns {TCache} cache
-     */
-    static cache(): TCache {
-
-        return Cache
-    }
-
-    /**
      * The 'instance' method is used get instance.
      * @override
      * @static
@@ -167,6 +159,14 @@ class Model<
      */
     static get instance() : Model {
         return new this()
+    }
+
+    /**
+     * The 'cache' method is used get the functions from the Cache 
+     * @returns {TCache} cache
+     */
+    static get cache(): TCache {
+        return Cache
     }
 
     /**
@@ -3679,6 +3679,30 @@ class Model<
         const toArray : any[] = result.map((data: Record<string,any>)  => data[column])
 
         return this._resultHandler(toArray) 
+    }
+
+    /**
+     * 
+     * @override
+     * @returns {promise<boolean>}
+     */
+    async exists (): Promise<boolean> {
+        
+        const sql = new Model()
+        .copyModel(this , { where : true , limit : true , join : true })
+        .selectRaw('1')
+        .limit(1)
+        .toString()
+
+        const result = await this._queryStatement([
+                `${this.$constants('SELECT')}`,
+                `${this.$constants('EXISTS')}`,
+                `(${sql})`,
+                `${this.$constants('AS')} \`aggregate\``
+            ].join(' ')
+        )
+      
+        return Boolean(this._resultHandler(!!result?.shift()?.aggregate || false))
     }
 
     /**

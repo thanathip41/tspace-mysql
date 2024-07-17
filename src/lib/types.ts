@@ -1,4 +1,10 @@
-import Model from "./core/Model"
+import Model                from "./core/Model"
+import { TCache as Cache }  from './core/Cache'
+import CONSTANTS            from './constants'
+
+export type TCache = Cache
+
+export type TConstant = typeof CONSTANTS
 
 export type TRelationOptions<K = any> = {
     name: K extends void ? never : K;
