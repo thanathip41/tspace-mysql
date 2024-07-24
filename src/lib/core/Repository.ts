@@ -755,7 +755,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.bind(transaction)
         }
 
-        return await instance.createMultiple(data).save() as Promise<T[]>
+        return await instance.createMultiple(data as any[]).save() as Promise<T[]>
     }
 
     /**

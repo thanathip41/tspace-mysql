@@ -1,7 +1,6 @@
-import { TPagination }  from '../../types'
+import { TPagination , TConstant }  from '../../types'
 import { StateHandler } from '../Handlers/State'
 import { TUtils }       from '../../utils'
-import { TConstants }   from '../../constants'
 
 abstract class AbstractBuilder {
 
@@ -17,7 +16,7 @@ abstract class AbstractBuilder {
 
     protected $utils !: TUtils 
     
-    protected $constants !: (name ?: keyof TConstants) => any
+    protected $constants !: (name ?: keyof TConstant) => any
 
     protected $state !: StateHandler
 

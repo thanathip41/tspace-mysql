@@ -1,6 +1,6 @@
 import { AbstractBuilder }  from './Abstracts/AbstractBuilder'
 import { utils }            from '../utils'
-import { CONSTANTS, TConstants }        from '../constants'
+import { CONSTANTS }        from '../constants'
 import { DB }               from './DB'
 import { StateHandler }     from './Handlers/State'
 import { 

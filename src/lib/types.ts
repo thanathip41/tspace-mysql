@@ -236,25 +236,25 @@ export type TRawStringQuery = `$RAW:${string}`
 export type TFreezeStringQuery = `$Freeze:${string}`
 
 export type TRepositoryCreate<T extends Record<string,any> = any> = {
-    data: Partial<{ [K in keyof T]: T[K] }>;
+    data: Partial<{ [K in keyof T]:  T[K] | TRawStringQuery |  TFreezeStringQuery }>;
     debug ?: boolean;
     transaction ?: TConnection | TConnectionTransaction;
 }
 
 export type TRepositoryCreateMultiple<T extends Record<string,any> = any> = {
-    data : Partial<{ [K in keyof T]: T[K] }>[];
+    data : Partial<{ [K in keyof T]: T[K] | TRawStringQuery |  TFreezeStringQuery }>[];
     debug ?: boolean;
     transaction ?: TConnection | TConnectionTransaction;
 }
 
 export type TRepositoryCreateOrThings<T extends Record<string,any> = any> = {
-    data  : Partial<{ [K in keyof T]: T[K] }>;
+    data  : Partial<{ [K in keyof T]: T[K] | TRawStringQuery |  TFreezeStringQuery }>;
     where : Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : unknown;
     debug ?: boolean;
 }
 
 export type TRepositoryUpdate<T extends Record<string,any> = any> = {
-    data  : Partial<{ [K in keyof T]: T[K] }>;
+    data  : Partial<{ [K in keyof T]: T[K] | TRawStringQuery |  TFreezeStringQuery }>;
     where : Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : unknown;
     debug ?: boolean;
     transaction ?: TConnection | TConnectionTransaction;
@@ -262,8 +262,8 @@ export type TRepositoryUpdate<T extends Record<string,any> = any> = {
 
 export type TRepositoryUpdateMultiple<T extends Record<string,any> = any> = {
     cases: { 
-        when : Partial<{ [K in keyof T]: T[K] }>;
-        columns : Partial<{ [K in keyof T]: T[K] }>;
+        when : Partial<{ [K in keyof T]: T[K] | TRawStringQuery |  TFreezeStringQuery }>;
+        columns : Partial<{ [K in keyof T]: T[K] | TRawStringQuery |  TFreezeStringQuery }>;
     }[]
     debug ?: boolean;
     transaction ?: TConnection | TConnectionTransaction;

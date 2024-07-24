@@ -3531,10 +3531,11 @@ class Model<
 
             const sql = new Model()
             .copyModel(this , { where : true , limit : true })
-            .bind(this.$pool.get())
             .update({
                 [deletedAt] : this.$utils.timestamp()
             })
+            .bind(this.$pool.get())
+            .debug(this.$state.get('DEBUG'))
             .toString()
 
             const result = await this._actionStatement({ sql })
@@ -3574,6 +3575,7 @@ class Model<
 
             const sql = new Model()
             .copyModel(this , { where : true , limit : true })
+            .debug(this.$state.get('DEBUG'))
             .bind(this.$pool.get())
             .updateMany({
                 [deletedAt] : this.$utils.timestamp()
@@ -3633,9 +3635,15 @@ class Model<
     /**
      * 
      * @override
+     * @param {object} options
+     * @property {boolean} options.latest
+     * @property {boolean} options.oldest
      * @returns {string} return sql query
      */
-    toString ({ latest = false , oldest = false } = {}): string {
+    toString ({ latest = false , oldest = false } : { 
+        latest?: boolean 
+        oldest ?: boolean 
+    } = {}): string {
 
         if(oldest) {
             const queries = this.getQueries()
@@ -3655,9 +3663,15 @@ class Model<
     /**
      * 
      * @override
+     * @param {object} options
+     * @property {boolean} options.latest
+     * @property {boolean} options.oldest
      * @returns {string} return sql query
      */
-    toSQL ({ latest = false , oldest = false } = {}): string {
+    toSQL ({ latest = false , oldest = false } : { 
+        latest?: boolean 
+        oldest ?: boolean 
+    } = {}): string {
         return this.toString({ latest , oldest })
     }
 
@@ -3884,29 +3898,33 @@ class Model<
     async getGroupBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K): Promise<any[]> {
 
         if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
-          
-        this.selectRaw([
-            `\`${column}\`,`,
-            `${this.$constants('GROUP_CONCAT')}(id)`,
-            `${this.$constants('AS')} \`data\``
-        ].join(' '))
+         
+        const results  = await new Model()
+        .copyModel(this , { 
+            where   : true,
+            limit   : true,
+            orderBy : true
+        })
+        .selectRaw(column,`${this.$constants('GROUP_CONCAT')}(\`id\`) ${this.$constants('AS')} \`aggregate\``)
+        .groupBy(column)
+        .oldest()
+        .bind(this.$pool.get())
+        .debug(this.$state.get('DEBUG'))
+        .get()
 
-        this.groupBy(column as any)
+        let ids: string[] = []
 
-        const sql = this._queryBuilder().select()
-
-        const results = await this._queryStatement(sql)
-
-        let data: string[] = []
-
-        results.forEach((result : { data : string }) => {
-            const splits = result?.data?.split(',') ?? '0'
-            splits.forEach((split:string) => data = [...data , split])
+        results.forEach((result : { aggregate : string }) => {
+            const splits : string[] = result?.aggregate?.split(',') ?? []
+            ids = [...ids , ...splits]
         })
 
         const grouping  = await new Model()
-        .copyModel(this)
-        .whereIn('id',data.map((v: string) => v))
+        .copyModel(this , { 
+            relations : true
+        })
+        .whereIn('id',ids.map((v: string) => v))
+        .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
         .get()
 
@@ -4226,7 +4244,7 @@ class Model<
      * @param {Record<string,any>[]} data create multiple data
      * @returns {this} this this
      */
-    createMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] }> : Record<string,any>)[]): this {
+    createMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
 
         if(!Array.isArray(data) || !data.length) {
             throw this._assertError('This method must require a non-empty array.')
@@ -4253,7 +4271,7 @@ class Model<
      * @param {Record<string,any>[]} data create multiple data
      * @returns {this} this
      */
-    insertMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] }> : Record<string,any>)[]): this {
+    insertMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
         return this.createMultiple(data)
     }
 
@@ -5506,6 +5524,8 @@ class Model<
 
         const format = this.$state.get('TIMESTAMP_FORMAT')
 
+        const newData : Record<string,any>[] = []
+
         for(let objects of data) {
 
             this.$utils.covertDateToDateString(data)
@@ -5540,7 +5560,6 @@ class Model<
                 objects =  { 
                     [uuidFormat] : this.$utils.generateUUID() ,
                     ...objects
-                   
                 }
 
                 columns = [
@@ -5564,7 +5583,11 @@ class Model<
                 ...values,
                 `(${v.join(',')})`
             ]
+
+            newData.push(objects)
         }
+
+        this.$state.set('DATA' , newData)
 
         return [
             `(${[...new Set(columns.map(c => this.bindColumn(c)))].join(',')})`,
@@ -5578,10 +5601,15 @@ class Model<
         this._guardWhereCondition()
         
         const check =  await new Model()
-        .copyModel(this , { where : true , select : true , limit : true })
+        .copyModel(this , { 
+            where : true , 
+            select : true , 
+            limit : true , 
+            relations : true 
+        })
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
-        .exists() || false
+        .exists()
 
         if(check) return this._resultHandler(null)
 
@@ -5595,7 +5623,7 @@ class Model<
         if(!result) return this._resultHandler(null)
 
         const resultData = await new Model()
-        .copyModel(this , { select : true })
+        .copyModel(this , { select : true , relations : true })
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
         .where('id',id)
@@ -5618,7 +5646,7 @@ class Model<
         if(!result) return this._resultHandler(null)
 
         const resultData = await new Model()
-        .copyModel(this , { select : true})
+        .copyModel(this , { select : true , relations : true })
         .where('id',id)
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
@@ -5631,8 +5659,10 @@ class Model<
 
     private async _createMultipleModel () {
 
-        for(const data of this.$state.get('DATA') ?? []) {
-            await this._validateSchema(data,'insert')
+        const data = this.$state.get('DATA') ?? []
+
+        for(const v of data) {
+            await this._validateSchema(v,'insert')
         }
 
         const [result,id] = await this._actionStatement({ 
@@ -5644,20 +5674,28 @@ class Model<
 
         if(!result) return this._resultHandler(null)
 
-        const arrayId = [...Array(result)].map((_,i) => i + id)
-        
-        const data = await new Model()
-        .copyModel(this , { select : true , limit : true })
+        const hasTimestamp = this.$state.get('TIMESTAMP')
+       
+        const ids = [...Array(result)].map((_,i) => i + id)
+
+        const results = await new Model()
+        .copyModel(this , { select : true , relations : true , limit : true })
         .bind(this.$pool.get())
-        .whereIn('id',arrayId)
+        .when(hasTimestamp , (query : Model) => {
+            const uuids : string[] = data.map((v: { uuid: string }) => v?.uuid)
+            const target = uuids.some(v => v == null) ? 'id' : 'uuid'
+            return  query
+            .whereIn(target,target === 'id' ? ids : uuids)
+        })
+        .when(!hasTimestamp , (query : Model) => {
+            return query.whereIn('id',ids)
+        })
         .debug(this.$state.get('DEBUG'))
         .get()
 
-        const resultData =  data || []
+        await this._observer(results , 'created')
 
-        await this._observer(resultData , 'created')
-
-        return this._resultHandler(resultData)
+        return this._resultHandler(results)
     }
 
     private async _updateOrInsertModel () : Promise<{[key :string] :any} | {[key :string] :any}[] | null> {
