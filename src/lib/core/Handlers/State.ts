@@ -63,7 +63,8 @@ const STATE_DB = {
     PAGE: 1,
     PER_PAGE: 1,
     HOOKS : [],
-    RETURN_TYPE : null
+    RETURN_TYPE : null,
+    AFTER_SAVE : 0
 } as const
 
 const STATE_MODEL = {
@@ -128,7 +129,8 @@ const STATE_MODEL = {
     GLOBAL_SCOPE_QUERY : null,
     QUERIES : [],
     META : '',
-    CACHE : null
+    CACHE : null,
+    AFTER_SAVE : 0
 } as const
 
 type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

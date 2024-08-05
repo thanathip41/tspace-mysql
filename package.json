@@ -1,6 +1,6 @@
 {
   "name": "tspace-mysql",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Tspace MySQL is a promise-based ORM for Node.js, designed with modern TypeScript and providing type safety for schema databases.",
   "main": "build/lib/index.js",
   "types": "build/lib/index.d.ts",

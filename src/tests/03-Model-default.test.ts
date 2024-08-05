@@ -251,8 +251,8 @@ describe('Testing Model without Pattern & Schema', function () {
     expect(result).to.be.an('object')
     expect(result).to.be.jsonSchema(postSchemaObject)
     expect(result).to.have.property('user')
-    expect(result.user).to.be.an('object')
-    expect(result.user).to.be.jsonSchema(userSchemaObject)
+    expect(result?.user).to.be.an('object')
+    expect(result?.user).to.be.jsonSchema(userSchemaObject)
 
     const results = await new Post().with('user').get()
 
@@ -291,13 +291,13 @@ describe('Testing Model without Pattern & Schema', function () {
 
   it(`Relation : M:M 'posts' belongsToMany 'users' ?`, 
   async function () {
-    const result = await new Post().with('subscribers').first()
+    const result = await new Post().withExists('subscribers').first()
 
     expect(result).to.be.an('object')
     expect(result).to.be.jsonSchema(postSchemaObject)
     expect(result).to.have.property('subscribers')
-    expect(result.subscribers).to.be.an('array')
-    expect(result.subscribers).to.be.jsonSchema(userSchemaArray)
+    expect(result?.subscribers).to.be.an('array')
+    expect(result?.subscribers).to.be.jsonSchema(userSchemaArray)
 
     const results = await new Post().with('subscribers').get()
 

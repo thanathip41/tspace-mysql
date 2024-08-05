@@ -3540,7 +3540,7 @@ class Model<
 
             const result = await this._actionStatement({ sql })
 
-            const r = Boolean(this._resultHandler(!!result ?? false))
+            const r = Boolean(this._resultHandler(!!result || false))
 
             await this._observer(r ,'updated')
 
@@ -3555,7 +3555,7 @@ class Model<
 
         const result = await this._actionStatement({ sql : this._queryBuilder().delete() })
 
-        const r = Boolean(this._resultHandler(!!result ?? false))
+        const r = Boolean(this._resultHandler(!!result || false))
 
         await this._observer(r ,'deleted')
 
@@ -3584,7 +3584,7 @@ class Model<
 
             const result = await this._actionStatement({ sql })
 
-            const r = Boolean(this._resultHandler(!!result ?? false))
+            const r = Boolean(this._resultHandler(!!result || false))
 
             await this._observer(r ,'updated')
 
@@ -3599,7 +3599,7 @@ class Model<
 
         const result = await this._actionStatement({ sql : this._queryBuilder().delete() })
 
-        const r = Boolean(this._resultHandler(!!result ?? false))
+        const r = Boolean(this._resultHandler(!!result || false))
 
         await this._observer(r ,'deleted')
 
@@ -3627,9 +3627,9 @@ class Model<
 
         const result = await this._actionStatement({ sql : this._queryBuilder().delete() })
 
-        if(result) return Boolean(this._resultHandler(!!result ?? false))
+        if(result) return Boolean(this._resultHandler(!!result || false))
 
-        return Boolean(this._resultHandler(!!result ?? false))
+        return Boolean(this._resultHandler(!!result || false))
     }
 
     /**
@@ -3716,7 +3716,7 @@ class Model<
             ].join(' ')
         )
       
-        return Boolean(this._resultHandler(!!result?.shift()?.aggregate || false))
+        return Boolean(this._resultHandler(!!result[0]?.aggregate || false))
     }
 
     /**
@@ -3725,7 +3725,7 @@ class Model<
      * @param {Function?} cb callback function return query sql
      * @returns {promise<Record<string,any> | null>} Record | null
     */
-    async first<K>(cb ?: Function): Promise<TS & K & Partial<TR extends any ? TS & Partial<TR> : TR> | null> {
+    async first<K>(cb ?: Function):Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>) | null> {
     
         this._validateMethod('first')
 
@@ -3759,7 +3759,7 @@ class Model<
      * @param {Function?} cb callback function return query sql
      * @returns {promise<Record<string,any> | null>} Record | null
     */
-    async findOne<K>(cb ?: Function): Promise<Partial<TS> & K & Partial<TR> | null> {
+    async findOne<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>) | null> {
         return await this.first(cb)
     }
 
@@ -3767,7 +3767,7 @@ class Model<
      * @override
      * @returns {promise<object | Error>} Record | throw error
     */
-    async firstOrError<K>(message ?: string, options ?: Record<string,any> ): Promise<TS & K & Partial<TR>>{
+    async firstOrError<K>(message ?: string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)>{
 
         this._validateMethod('firstOrError')
 
@@ -3792,7 +3792,7 @@ class Model<
      * @override
      * @returns {promise<any>} Record | throw error
     */
-    async findOneOrError<K>(message : string, options ?: Record<string,any> ): Promise<Partial<TS> & K & Partial<TR>>{
+    async findOneOrError<K>(message : string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)>{
         return await this.firstOrError(message , options)
     }
     /**
@@ -3801,7 +3801,7 @@ class Model<
      * @param {Function?} cb callback function return query sql
      * @returns {promise<array>} Array
     */
-    async get<K>(cb ?: Function): Promise<(TS & K & Partial<TR>)[]> {
+    async get<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)[]> {
 
         this._validateMethod('get')
 
@@ -3834,7 +3834,7 @@ class Model<
      * @param {Function?} cb callback function return query sql
      * @returns {promise<array>} Array
     */
-    async findMany<K>(cb ?: Function): Promise<Partial<(TS & K & Partial<TR>)>[]>  {
+    async findMany<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)[]>  {
         return await this.get(cb)
     }
     /**
@@ -3914,7 +3914,7 @@ class Model<
 
         let ids: string[] = []
 
-        results.forEach((result : { aggregate : string }) => {
+        results.forEach((result) => {
             const splits : string[] = result?.aggregate?.split(',') ?? []
             ids = [...ids , ...splits]
         })
@@ -4417,9 +4417,11 @@ class Model<
      * @override
      * @returns {Promise<Record<string,any> | any[] | null | undefined>}
      */
-    async save (): Promise<Record<string,any> | any[] | null | undefined> {
+    async save ({ waitMs = 0 } = {}): Promise<Record<string,any> | any[] | null | undefined> {
  
         this._validateMethod('save')
+
+        this.$state.set('AFTER_SAVE',waitMs)
         
         switch (String(this.$state.get('SAVE'))) {
             case 'INSERT': return await this._insertModel()
@@ -5518,7 +5520,7 @@ class Model<
         
         let values: string[] = []
 
-        let columns:string[] = Object.keys([...data]?.shift()).map((column : string) => column)
+        let columns:string[] = Object.keys([...data][0]).map((column : string) => column)
 
         const hasTimestamp = this.$state.get('TIMESTAMP')
 
@@ -5622,6 +5624,8 @@ class Model<
 
         if(!result) return this._resultHandler(null)
 
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
         const resultData = await new Model()
         .copyModel(this , { select : true , relations : true })
         .bind(this.$pool.get())
@@ -5644,6 +5648,8 @@ class Model<
         if(this.$state.get('VOID')) return this._resultHandler(undefined)
 
         if(!result) return this._resultHandler(null)
+
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
         const resultData = await new Model()
         .copyModel(this , { select : true , relations : true })
@@ -5677,6 +5683,8 @@ class Model<
         const hasTimestamp = this.$state.get('TIMESTAMP')
        
         const ids = [...Array(result)].map((_,i) => i + id)
+        
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
         const results = await new Model()
         .copyModel(this , { select : true , relations : true , limit : true })
@@ -5720,6 +5728,8 @@ class Model<
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
                 const data = await new Model()
                 .copyModel(this , { select : true  })
                 .bind(this.$pool.get())
@@ -5746,6 +5756,8 @@ class Model<
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
                 const data : any[] = await new Model()
                 .copyModel(this, { where : true, select : true, limit : true })
                 .bind(this.$pool.get())
@@ -5762,7 +5774,7 @@ class Model<
                     return r
                 }
 
-                const resultData =  {...data?.shift() , $action : 'update' } || null
+                const resultData =  {...data[0] , $action : 'update' }
 
                 const r = this._resultHandler(resultData)
 
@@ -5794,6 +5806,8 @@ class Model<
                 })
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
+
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
                 const data = await new Model()
                 .copyModel(this , { select : true})
@@ -5831,10 +5845,10 @@ class Model<
                     return data
                 }
 
-                const resultData =  {
-                    ...data?.shift() , 
+                const resultData = {
+                    ...data[0] , 
                     $action : 'select' 
-                } || null
+                }
 
                 return this._resultHandler(resultData)
             }
@@ -5853,8 +5867,10 @@ class Model<
 
         if(this.$state.get('VOID') || !result || result == null) return this._resultHandler(undefined)
 
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
         const data = await new Model()
-        .copyModel(this, { where : true , select : true , limit : true , orderBy : true})
+        .copyModel(this, { where : true , select : true , limit : true , orderBy : true })
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
         .get()
@@ -5867,7 +5883,7 @@ class Model<
             return r
         }
 
-        const resultData = data?.shift() || null
+        const resultData = data[0] || null
 
         const r = this._resultHandler(resultData)
 

@@ -3367,7 +3367,7 @@ class Builder extends AbstractBuilder {
 
         const result = await this._actionStatement({sql : this._queryBuilder().delete()})
 
-        if(result) return Boolean(this._resultHandler(!!result ?? false))
+        if(result) return Boolean(this._resultHandler(!!result || false))
 
         return Boolean(this._resultHandler(false))
     }
@@ -3392,7 +3392,7 @@ class Builder extends AbstractBuilder {
 
         const result = await this._actionStatement({sql : this._queryBuilder().delete()})
 
-        if(result) return Boolean(this._resultHandler(!!result ?? false))
+        if(result) return Boolean(this._resultHandler(!!result || false))
 
         return Boolean(this._resultHandler(false))
     }
@@ -3416,9 +3416,9 @@ class Builder extends AbstractBuilder {
 
         const result = await this._actionStatement({ sql : this._queryBuilder().delete() })
 
-        if(result) return Boolean(this._resultHandler(!!result ?? false))
+        if(result) return Boolean(this._resultHandler(!!result || false))
 
-        return Boolean(this._resultHandler(!!result ?? false))
+        return Boolean(this._resultHandler(!!result || false))
     }
 
     /**
@@ -3495,7 +3495,9 @@ class Builder extends AbstractBuilder {
      * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
      * @returns {Promise<any>} promise
      */
-    async save (): Promise<Record<string,any> | any[] | null | undefined> {
+    async save ({ waitMs = 0 } = {}): Promise<Record<string,any> | any[] | null | undefined> {
+
+        this.$state.set('AFTER_SAVE',waitMs)
         
         switch (this.$state.get('SAVE')) {
             case 'INSERT_MULTIPLE' : return await this._insertMultiple()
@@ -3988,7 +3990,7 @@ class Builder extends AbstractBuilder {
             }
         
             const findIndex = values.indexOf('*')
-    
+
             if (findIndex > -1) {
                 const removed = values.splice(findIndex, 1)
                 values.unshift(removed[0])
@@ -4161,15 +4163,15 @@ class Builder extends AbstractBuilder {
                 })
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
+
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
     
-                const sql = new Builder()
+                const data = await new Builder()
                 .copyBuilder(this , { select : true })
                 .where('id', id)
-                .toString()
+                .first()
 
-                const data = await this._queryStatement(sql)
-
-                return this._resultHandler(data?.shift() || null)
+                return this._resultHandler(data)
             }
 
             default : return this._resultHandler(null)
@@ -4184,16 +4186,14 @@ class Builder extends AbstractBuilder {
 
         if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
-        const sql = new Builder()
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
+        const results =  await new Builder()
         .copyBuilder(this , { select : true })
         .where('id', id)
-        .toString()
+        .first()
 
-        const data = await this._queryStatement(sql)
-        
-        const resultData =  data?.shift() || null
-
-        return this._resultHandler(resultData)
+        return this._resultHandler(results)
     }
 
     protected _checkValueHasRaw (value : any) {
@@ -4238,15 +4238,13 @@ class Builder extends AbstractBuilder {
         if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
         const arrayId = [...Array(result)].map((_,i) => i + id)
+
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
             
-        const sql = new Builder()
-        .copyBuilder(this , { select : true })
+        const resultData =  await new Builder()
+        .copyBuilder(this , { select : true , limit : true })
         .whereIn('id', arrayId)
-        .toString()
-
-        const data = await this._queryStatement(sql)
-
-        const resultData =  data || null
+        .get()
         
         return this._resultHandler(resultData)
     }
@@ -4283,14 +4281,14 @@ class Builder extends AbstractBuilder {
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
-                const sql = new Builder()
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
+                const data = await new Builder()
                 .copyBuilder(this , { select : true })
                 .where('id', id)
-                .toString()
+                .first()
 
-                const data = await this._queryStatement(sql)
-
-                const resultData =  {...data?.shift() , $action : 'insert' } || null
+                const resultData = data == null ? null  :  { ...data,  $action : 'insert' }
 
                 return this._resultHandler(resultData)
                 
@@ -4310,7 +4308,7 @@ class Builder extends AbstractBuilder {
                     return this._resultHandler(data || [])
                 }
 
-                const resultData = {...data?.shift() , $action : 'select' } || null
+                const resultData = {...data[0] , $action : 'select' }
 
                 return this._resultHandler(resultData)
             }
@@ -4351,14 +4349,14 @@ class Builder extends AbstractBuilder {
 
                 if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
 
-                const sql = new Builder()
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
+                const data = await new Builder()
                 .copyBuilder(this , { select : true })
                 .where('id',id)
-                .toString()
+                .first()
 
-                const data = await this._queryStatement(sql)
-
-                const resultData =  {...data?.shift() , $action : 'insert' } || null
+                const resultData =   data == null ? null  :  { ...data,  $action : 'insert' }
 
                 return this._resultHandler(resultData)
 
@@ -4370,6 +4368,8 @@ class Builder extends AbstractBuilder {
 
                 if(this.$state.get('VOID') || !result ) return this._resultHandler(null)
 
+                await this.$utils.wait(this.$state.get('AFTER_SAVE'))
+
                 const data = await this._queryStatement(new Builder().copyBuilder(this , { select : true , where : true }).toString())
 
                 if(data?.length > 1) {
@@ -4379,7 +4379,7 @@ class Builder extends AbstractBuilder {
                     return this._resultHandler(data || [])
                 }
 
-                const resultData =  {...data?.shift() , $action : 'update' } || null
+                const resultData =  {...data[0] , $action : 'update' }
                 
                 return this._resultHandler(resultData)
             }
@@ -4398,6 +4398,8 @@ class Builder extends AbstractBuilder {
         })
 
         if(this.$state.get('VOID') || !result) return this._resultHandler(undefined)
+
+        await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
         const sql : string = this._queryBuilder().select()
 

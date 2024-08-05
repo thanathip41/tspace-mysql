@@ -119,7 +119,7 @@ class RelationHandler  {
             const clone = new Model().clone(query)
 
             const cloneRelations = clone['$state'].get('RELATIONS')
-            
+
             if(cloneRelations.length) {
 
                 for(const r of cloneRelations) {
@@ -175,6 +175,8 @@ class RelationHandler  {
                 }
 
                 this.MODEL['whereExists'](sqlPivot)
+
+                continue
                 
             }
 

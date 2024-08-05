@@ -194,7 +194,7 @@ const consoleDebug  = (sql ?: string , retry = false) => {
 const consoleExec  = (startTime : number , endTime : number) => {
     const diffInMilliseconds = endTime - startTime
     const diffInSeconds = diffInMilliseconds / 1000
-    console.log(`\n\x1b[34mDURATION:\x1b[0m \x1b[32m${diffInSeconds} sec\x1b[0m`)
+    console.log(`\x1b[34mDURATION:\x1b[0m \x1b[32m${diffInSeconds} sec\x1b[0m`)
 }
 
 const randomString = (length = 100) => {
@@ -261,6 +261,10 @@ const chunkArray = <T>(array: T[], length: number): T[][] => {
     return chunks;
 }
 
+const wait = (ms : number) => {
+    return new Promise(ok => setTimeout(ok,Number.isNaN(ms) ? 0 : ms))
+}
+
 const utils = {
     typeOf,
     isDate,
@@ -280,7 +284,8 @@ const utils = {
     camelCase,
     randomString,
     hookHandle,
-    chunkArray
+    chunkArray,
+    wait
 }
 
 export type TUtils = typeof utils
