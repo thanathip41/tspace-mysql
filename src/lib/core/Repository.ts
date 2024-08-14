@@ -65,6 +65,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         if(options.debug != null && options.debug) instance.debug()
         
+        // @ts-ignore
         return await instance.first()
     }
 
@@ -152,15 +153,14 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const users = await userRepository.get()
      */
-    async get<K>(options : TRepositoryRequest<T,R> = {}) : Promise<(T & K & Partial<R>)[]> {
+    async get<K>(options : TRepositoryRequest<T,R>) : Promise<(T & K & Partial<R>)[]> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
 
         if(options.debug != null && options.debug) instance.debug()
-        
-
+        // @ts-ignore
         return await instance.get()
     }
 

@@ -4602,14 +4602,14 @@ class Model<
                 
                 const { type , attributes } = Schema.detectSchema( schemaModel[column]) 
 
-                if(type == null || attributes == null) continue
+                if(type == null) continue
 
                 const sql = [
                     this.$constants('ALTER_TABLE'),
                     `\`${this.getTableName()}\``,
                     this.$constants('CHANGE'),
                     `\`${column}\``,
-                    `\`${column}\` ${type} ${attributes.join(' ')}`,
+                    `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                 ].join(' ')
 
                 await this._queryStatement(sql)
@@ -4628,13 +4628,13 @@ class Model<
           
             const { type , attributes } = Schema.detectSchema( schemaModel[column]) 
 
-            if(findAfterIndex == null || type == null || attributes == null) continue
+            if(findAfterIndex == null || type == null) continue
 
             const sql = [
                 this.$constants('ALTER_TABLE'),
                 `\`${this.getTableName()}\``,
                 this.$constants('ADD'),
-                `\`${column}\` ${type} ${attributes.join(' ')}`,
+               `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                 this.$constants('AFTER'),,
                 `\`${findAfterIndex}\``
             ].join(' ')
@@ -5991,7 +5991,7 @@ class Model<
 
                 const { type , attributes } = Schema.detectSchema(schemaTable[column]) 
 
-                if(type == null || attributes == null) return this._stoppedRetry(e)
+                if(type == null) return this._stoppedRetry(e)
 
                 const entries = Object.entries(schemaTable)
                 const indexWithColumn = entries.findIndex(([key]) => key === column )
@@ -6003,7 +6003,7 @@ class Model<
                     `${this.$constants('ALTER_TABLE')}`,
                     `${this.$state.get('TABLE_NAME')}`,
                     `${this.$constants('ADD')}`,
-                    `\`${column}\` ${type} ${attributes.join(' ')}`,
+                    `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                     `${this.$constants('AFTER')}`,
                     `\`${findAfterIndex ?? ''}\``
                 ].join(' ')

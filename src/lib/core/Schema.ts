@@ -14,11 +14,11 @@ class Schema extends Builder {
 
                 const { type , attributes } =  this.detectSchema(data) 
 
-                if(type == null || attributes == null)  continue 
+                if(type == null)  continue 
 
                 columns = [
                     ...columns ,
-                    `\`${key}\` ${type} ${attributes?.join(' ')}`
+                    `\`${key}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`
                 ]
             }
             
@@ -331,14 +331,14 @@ class Schema extends Builder {
 
                     const { type , attributes } = this.detectSchema(schemaModel[column]) 
 
-                    if(type == null || attributes == null)  continue 
+                    if(type == null)  continue 
                     
                     const sql = [
                         this.$constants('ALTER_TABLE'),
                         `\`${model.getTableName()}\``,
                         this.$constants('CHANGE'),
                         `\`${column}\``,
-                        `\`${column}\` ${type} ${attributes.join(' ')}`,
+                        `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                     ].join(' ')
     
                     await this.debug(log).rawQuery(sql)
@@ -359,13 +359,13 @@ class Schema extends Builder {
              
                 const { type , attributes } = this.detectSchema(schemaModel[column]) 
 
-                if(type == null || attributes == null || findAfterIndex)  continue 
+                if(type == null || findAfterIndex == null)  continue 
 
                 const sql = [
                     this.$constants('ALTER_TABLE'),
                     `\`${model.getTableName()}\``,
                     this.$constants('ADD'),
-                    `\`${column}\` ${type} ${attributes.join(' ')}`,
+                    `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                     this.$constants('AFTER'),
                     `\`${findAfterIndex}\``
                 ].join(' ')
