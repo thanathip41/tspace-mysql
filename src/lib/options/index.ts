@@ -1,7 +1,6 @@
 import dotenv   from 'dotenv'
 import path     from 'path'
 import fs       from 'fs'
-
 interface IEnvironment {
     HOST                 ?: string | null,
     PORT                 ?: string | number,

@@ -118,14 +118,14 @@ export type TPoolCallback = {
 
 export type TConnectionTransaction = {
     on : (event : TPoolEvent , data : any) => void;
-    query: (sql: string) => Promise<any>;
-    startTransaction : () => Promise<any>;
-    commit : () => Promise<any>;
-    rollback : () => Promise<any>
+    query: (sql: string) => Promise<any[]>;
+    startTransaction : () => Promise<void>;
+    commit : () => Promise<void>;
+    rollback : () => Promise<void>
 }
 
 export type TConnection = {
-    on : (event : TPoolEvent , data : any) => void
+    on : (event : TPoolEvent , data : (r : any) => any) => void
     query: (sql: string) => Promise<any>
     connection : () => Promise<TConnectionTransaction>
 }
@@ -229,7 +229,7 @@ export type TOperator = {
     '|query' : string
 }
 
-export type TPoolEvent = 'CONNECTION' | 'RELEASE' | 'QUERY' | 'SLOW_QUERY' | 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE'
+export type TPoolEvent = 'connected' | 'release' | 'query' | 'slowQuery' | 'select' | 'insert' | 'update' | 'delete'
 
 export type TRawStringQuery = `$RAW:${string}`
 

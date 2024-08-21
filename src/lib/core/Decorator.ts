@@ -2,14 +2,33 @@ import pluralize from "pluralize"
 import { TRelationQueryOptions, TValidateSchemaDecorator } from "../types"
 import { Blueprint } from "./Blueprint"
 
-export const Table = (name : string) => {
+/**
+ * 
+ * @param   {string} name 
+ * @returns {Function}
+ * 
+ * @example
+ * 
+ * @Table('users')
+ * class User extends Model {}
+ */
+export const Table = (name : string): Function => {
   return (constructor: Function) => {
     if(constructor.prototype == null) return
     constructor.prototype.$table = name
   }
 }
 
-export const TableSingular = () => {
+/**
+ * 
+ * @returns {Function}
+ * 
+ * @example
+ * 
+ * @TableSingular()
+ * class User extends Model {}
+ */
+export const TableSingular = (): Function => {
   return (constructor: Function) => {
     if(constructor.prototype == null) return
     const name = String(constructor.name).replace(/([A-Z])/g, ( str:string ) => `_${str.toLowerCase()}`).slice(1)
@@ -17,7 +36,16 @@ export const TableSingular = () => {
   }
 }
 
-export const TablePlural = () => {
+/**
+ * 
+ * @returns {Function}
+ * 
+ * @example
+ * 
+ * @TablePlural()
+ * class User extends Model {}
+ */
+export const TablePlural = (): Function => {
   return (constructor: Function) => {
     if(constructor.prototype == null) return
     const name = constructor.name.replace(/([A-Z])/g, ( str:string ) => `_${str.toLowerCase()}`).slice(1)
@@ -25,7 +53,23 @@ export const TablePlural = () => {
   }
 }
 
-export const Column = (blueprint: () => Blueprint) => {
+/**
+ * 
+ * @param   {Blueprint}  blueprint
+ * @returns {Function}
+ * 
+ * @example
+ * 
+ * class User extends Model {
+ * 
+ *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+ *   public id!: number
+ * 
+ *   @Column(() => Blueprint.varchar(50).null())
+ *   public uuid!: string
+ * }
+ */
+export const Column = (blueprint: () => Blueprint): Function => {
   return (target: any, key: string) => {
     if(!(blueprint() instanceof Blueprint)) return
     if (target.$schema == null) target.$schema = {}
@@ -36,7 +80,35 @@ export const Column = (blueprint: () => Blueprint) => {
   }
 }
 
-export const Validate = (validate : TValidateSchemaDecorator) => {
+/**
+ * 
+ * @param   {TValidateSchemaDecorator}  validate
+ * @returns {Function}
+ * 
+ * @example
+ * 
+ * class User extends Model {
+ * 
+ *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+ *   public id!: number
+ *    
+ *   
+ *   @Column(() => Blueprint.varchar(50).null())
+ *   public uuid!: string
+ * 
+ *   @Column(() => Blueprint.varchar(50).null())
+ *   @Validate({
+ *         type : String,
+ *         require : true,
+ *         length : 50,
+ *         match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+ *         unique : true,
+ *         fn : (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+ *    })
+ *    public email!: string
+ * }
+ */
+export const Validate = (validate : TValidateSchemaDecorator): Function => {
   return (target: any, key: string) => {
     if (target.$validateSchema == null) target.$validateSchema = {}
     target.$validateSchema = {

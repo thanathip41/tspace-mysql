@@ -1,17 +1,20 @@
-import fs      from 'fs'
-import path    from 'path'
+import fs               from 'fs'
+import path             from 'path'
+import { EventEmitter } from 'events'
 import { 
     createPool, 
-    Pool,
-    PoolConnection as TPoolConnection,
+    type Pool as TPool,
+    type PoolConnection as TPoolConnection,
     QueryError
 } from 'mysql2'
-import { EventEmitter } from 'events'
-import options , { loadOptionsEnvironment } from '../options'
-import { 
+
+import options , { 
+    loadOptionsEnvironment 
+} from '../options'
+
+import type { 
     TConnection, 
-    TOptions, 
-    TPoolCallback,
+    TOptions,
     TPoolEvent
 } from '../types'
 
@@ -41,49 +44,19 @@ export class PoolConnection extends EventEmitter {
      * @property {Function} Connection.query
      * @property {Function} Connection.connection
      */
-    public connection () : TConnection {
+    public init () : TConnection {
 
-        const pool : Pool = createPool(Object.fromEntries(this.OPTIONS))
+        const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
 
         /**
          * After the server is listening, verify that the pool has successfully connected to the database.
-         * @protected {Pool} pool
+         * @param {Pool} pool
          * @returns {void}
          */
-        setTimeout(() => {
-            pool.getConnection((err : any , connection : TPoolConnection) : void => {
-
-                if(err == null || !err) {
-
-                    this.emit('CONNECTION' , pool)
-
-                    if(options.CONNECTION_SUCCESS) {
-                        connection.query(`SHOW VARIABLES LIKE 'version%'`, (err, results : any[]) => {
-                            connection.release()
-                            if (err) return
-                            const message = [
-                                results.find(v => v?.Variable_name === 'version'),
-                                results.find(v => v?.Variable_name === 'version_comment')   
-                            ].map(v => v?.Value).join(' - ')
-    
-                            console.log(this._messageConnected.bind(this)(`${message}`))
-                        })
-                    }
-                   
-                    return
-                }
-    
-                const message = this._messageError.bind(this)
-    
-                process.nextTick(() => {
-                    console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
-                    if(options.CONNECTION_ERROR) return process.exit()
-                })
-            })
-        },1_000 * 2.5)
-
+        this._onPoolConnect(pool)
+        
         pool.on('release', (connection) => {
-            this.emit('RELEASE', connection)
+            this.emit('release', connection)
         })
 
         return {
@@ -93,6 +66,11 @@ export class PoolConnection extends EventEmitter {
             query : (sql : string) => {
                 return new Promise<any[]>((resolve, reject)=>{
                     const start : number = Date.now()
+                    /**
+                     * 
+                     * The pool does not need to be manually released,
+                     * because the mysql2 automatically handles the release when a query is successful.
+                     */
                     pool.query(sql , (err : QueryError, results: any[]) => {   
                                   
                         if(err) return reject(err)
@@ -108,32 +86,51 @@ export class PoolConnection extends EventEmitter {
                 })
             },
             connection : () =>  {
+
+                const transaction = this._transaction()
+
                 return new Promise((resolve, reject) => {
-                    pool.getConnection((err, connection: TPoolCallback) => {
+                    pool.getConnection((err, connection : TPoolConnection) => {
 
                         if (err) return reject(err)
 
-                        const query = (sql: string) => {
+                        const query = (sql: string , { release = false } = {}) => {
                             const start : number = Date.now()
                             return new Promise<any[]>((resolve, reject) => {
+                                
                                 connection.query(sql, (err : QueryError, results: any[]) => {
+                                    
+                                    if(release || !transaction.state) connection.release()
+
                                     if (err)  return reject(err)
 
-                                    this._detectEventQuery({start , sql , results })
+                                    this._detectEventQuery({ start , sql , results })
 
                                     return resolve(results)
                                 })
                             })
                         }
 
-                        const startTransaction = () => query('START TRANSACTION')
-                        const commit = () => query('COMMIT')
-                        const rollback = () => query('ROLLBACK')
-                     
+                        const startTransaction = async () => {
+                            transaction.start()
+                            await query('START TRANSACTION')
+                            return
+                        }
+
+                        const commit = async () => {
+                            transaction.close()
+                            await query('COMMIT', { release : true  })
+                            return
+                        }
+
+                        const rollback = async () => {
+                            transaction.close()
+                            await query('ROLLBACK', { release : true  })
+                            return
+                        }
+                        
                         return resolve({ 
-                            on : (event : TPoolEvent , data : any) => {
-                                return this.on(event,data)
-                            },
+                            on : (event : TPoolEvent , data : any) => this.on(event,data),
                             query,
                             startTransaction, 
                             commit, 
@@ -143,6 +140,27 @@ export class PoolConnection extends EventEmitter {
                 })
             }
         }
+    }
+
+    private _transaction () {
+        class Transaction {
+            private on : boolean =  false
+
+            state () {
+
+                return this.on
+            }
+
+            start() {
+                this.on = true
+            }
+
+            close () {
+                this.on = false
+            }
+        }
+
+        return new Transaction()
     }
 
     private _detectEventQuery ({ start , sql , results  }:{ start : number , sql : string , results : any[] }) {
@@ -157,13 +175,13 @@ export class PoolConnection extends EventEmitter {
 
             console.log(this._messageSlowQuery(duration , sql))   
         
-            this.emit('SLOW_QUERY', {
+            this.emit('slowQuery', {
                 sql,
                 execution : duration
             })
         }
 
-        this.emit('QUERY', {
+        this.emit('query', {
             sql,
             execution : duration
         })
@@ -180,12 +198,12 @@ export class PoolConnection extends EventEmitter {
         const insertRegex = /^INSERT\b/i
         const deleteRegex = /^DELETE\b/i
       
-        if (selectRegex.test(query))  return 'SELECT'
-        if (updateRegex.test(query))  return 'UPDATE' 
-        if (insertRegex.test(query))  return 'INSERT' 
-        if (deleteRegex.test(query))  return 'DELETE'
+        if (selectRegex.test(query))  return 'select'
+        if (updateRegex.test(query))  return 'update' 
+        if (insertRegex.test(query))  return 'insert' 
+        if (deleteRegex.test(query))  return 'delete'
         
-        return 'UNKNOWN'
+        return ''
       }
 
     private _defaultOptions () {
@@ -293,6 +311,44 @@ export class PoolConnection extends EventEmitter {
         return data
     }
 
+    private _onPoolConnect (pool : TPool) : void {
+
+        const delay = 1000 * 5
+       
+        setTimeout(() => {
+            pool.getConnection((err : any , connection : TPoolConnection) : void => {
+
+                if(err) {
+                    const message = this._messageError.bind(this)
+    
+                    process.nextTick(() => {
+                        console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
+                        if(options.CONNECTION_ERROR) return process.exit()
+                    })
+
+                    return
+                }
+
+                this.emit('connected', connection)
+                
+                if(options.CONNECTION_SUCCESS) {
+                    connection.query(`SHOW VARIABLES LIKE 'version%'`, (err, results : any[]) => {
+                        connection.release()
+                        if (err) return
+                        const message = [
+                            results.find(v => v?.Variable_name === 'version'),
+                            results.find(v => v?.Variable_name === 'version_comment')   
+                        ].map(v => v?.Value).join(' - ')
+
+                        console.log(this._messageConnected.bind(this)(`${message}`))
+                    })
+                }
+            })
+        }, delay)
+
+        return
+    }
+
     private _messageConnected (message:string) : string {   
         return `
             \x1b[1m\x1b[32m
@@ -335,11 +391,12 @@ export class PoolConnection extends EventEmitter {
 /**
  * 
  * Connection to database when service is started
- * @return {Connection} Connection
- * @property {Function} Connection.query
- * @property {Function} Connection.connection
+ * 
+ * @returns   {Connection} Connection
+ * @property  {Function} Connection.query
+ * @property  {Function} Connection.connection
  */
-const pool = new PoolConnection().connection()
+const pool = new PoolConnection().init()
 
 export { loadOptionsEnvironment }
 export { pool as Pool }

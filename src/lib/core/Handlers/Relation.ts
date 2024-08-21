@@ -5,7 +5,7 @@ import { Blueprint } from "../Blueprint";
 
 class RelationHandler  {
 
-    private MODEL : Model
+    private $model : Model
     private $constants : Function
     private $logger : { 
         get: Function; 
@@ -15,9 +15,9 @@ class RelationHandler  {
     };
 
     constructor(model : Model) {
-        this.MODEL = model
-        this.$constants = this.MODEL["$constants"]
-        this.$logger = this.MODEL["$logger"]
+        this.$model = model
+        this.$constants = this.$model["$constants"]
+        this.$logger = this.$model["$logger"]
     }
 
     async load (parents: Record<string,any>[] , relation: TRelationOptions) {
@@ -59,10 +59,10 @@ class RelationHandler  {
             .whereIn(foreignKey,parentIds)
             .select(foreignKey)
             .selectRaw(`${this.$constants('COUNT')}(\`${foreignKey}\`) ${this.$constants('AS')} \`aggregate\``)
-            .debug(this.MODEL['$state'].get('DEBUG'))
+            .debug(this.$model['$state'].get('DEBUG'))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
-            .bind(this.MODEL['$pool'].get())
+            .bind(this.$model['$pool'].get())
             .groupBy(foreignKey)
             .get() 
 
@@ -76,15 +76,15 @@ class RelationHandler  {
         const childs = await query
         .meta('SUBORDINATE')
         .whereIn(foreignKey,parentIds)
-        .debug(this.MODEL['$state'].get('DEBUG'))
+        .debug(this.$model['$state'].get('DEBUG'))
         .when(relation.trashed, (query : Model) => query.onlyTrashed())
         .when(relation.all, (query : Model) => query.disableSoftDelete())
-        .bind(this.MODEL['$pool'].get())
+        .bind(this.$model['$pool'].get())
         .get()
 
-        if(this.MODEL['$state'].get('DEBUG')) {
-            this.MODEL['$state'].set('QUERIES',[
-                ...this.MODEL['$state'].get('QUERIES'),
+        if(this.$model['$state'].get('DEBUG')) {
+            this.$model['$state'].set('QUERIES',[
+                ...this.$model['$state'].get('QUERIES'),
                 query.toString()
             ])
         }
@@ -98,7 +98,7 @@ class RelationHandler  {
 
     loadExists () : string {
 
-        const relations = this.MODEL['$state'].get('RELATIONS')
+        const relations = this.$model['$state'].get('RELATIONS')
 
         for(const index in relations) {
 
@@ -146,7 +146,7 @@ class RelationHandler  {
                 : new Model().table(String(pivot))
              
                 const sql = clone
-                .bind(this.MODEL['$pool'].get())
+                .bind(this.$model['$pool'].get())
                 .selectRaw("1")
                 .whereReference(
                     `\`${query.getTableName()}\`.\`${foreignKey}\``,
@@ -161,43 +161,43 @@ class RelationHandler  {
                 }
 
                 const sqlPivot = thisPivot
-                .bind(this.MODEL['$pool'].get())
+                .bind(this.$model['$pool'].get())
                 .selectRaw("1")
                 .whereReference(
-                    `\`${this.MODEL['getTableName']()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.MODEL['getTableName']()),foreignKey].join("_"))}\``
+                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
+                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
                 )
                 .toString()
                
                 if(relation.notExists) {
-                    this.MODEL['whereNotExists'](sqlPivot)
+                    this.$model['whereNotExists'](sqlPivot)
                     continue
                 }
 
-                this.MODEL['whereExists'](sqlPivot)
+                this.$model['whereExists'](sqlPivot)
 
                 continue
                 
             }
 
             const sql = clone
-            .bind(this.MODEL['$pool'].get())
+            .bind(this.$model['$pool'].get())
             .selectRaw("1")
             .whereReference(
-                `\`${this.MODEL.getTableName()}\`.\`${localKey}\``,
+                `\`${this.$model.getTableName()}\`.\`${localKey}\``,
                 `\`${query.getTableName()}\`.\`${foreignKey}\``
             )
             .toString()
 
             if(relation.notExists) {
-                this.MODEL['whereNotExists'](sql)
+                this.$model['whereNotExists'](sql)
                 continue
             }
 
-            this.MODEL['whereExists'](sql)
+            this.$model['whereExists'](sql)
         }
 
-        const sql = this.MODEL['_queryBuilder']().select()
+        const sql = this.$model['_queryBuilder']().select()
 
         return sql
     }
@@ -206,11 +206,11 @@ class RelationHandler  {
 
         const relations =  nameRelations.map((name: string) => {
 
-            const relation : TRelationOptions = this.MODEL['$state'].get('RELATION')?.find((data: { name: string }) => data.name === name)
+            const relation : TRelationOptions = this.$model['$state'].get('RELATION')?.find((data: { name: string }) => data.name === name)
 
             if(relation == null) {
                 throw this._assertError(
-                    `This name relation '${name}' not be register in Model '${this.MODEL.constructor?.name}.'`
+                    `This name relation '${name}' not be register in Model '${this.$model.constructor?.name}.'`
                 )
             }
 
@@ -236,23 +236,23 @@ class RelationHandler  {
             relation[type] = true
         }
        
-        return this.MODEL['$state'].get('RELATIONS').length 
+        return this.$model['$state'].get('RELATIONS').length 
         ? [...relations.map((w: { name : string }) => {
-            const exists = this.MODEL['$state'].get('RELATIONS').find((r : { name : string}) =>  r.name === w.name)
+            const exists = this.$model['$state'].get('RELATIONS').find((r : { name : string}) =>  r.name === w.name)
                 if(exists) return null
                 return w
             }).filter((d) => d != null), 
-            ...this.MODEL['$state'].get('RELATIONS')]
+            ...this.$model['$state'].get('RELATIONS')]
         : relations    
     }
 
     callback (nameRelation: string , cb : Function) {
         
-        const relation : TRelationOptions = this.MODEL['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) {
             throw this._assertError(
-                `This name relation '${nameRelation}' not be register in Model '${this.MODEL.constructor?.name}.'`
+                `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}.'`
             )
         }
 
@@ -275,11 +275,11 @@ class RelationHandler  {
 
     callbackPivot (nameRelation: string , cb : Function) {
         
-        const relation : TRelationOptions = this.MODEL['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) {
             throw this._assertError(
-                `This name relation '${nameRelation}' not be register in Model '${this.MODEL.constructor?.name}'`
+                `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}'`
             )
         }
     
@@ -308,11 +308,11 @@ class RelationHandler  {
 
     returnCallback (nameRelation: string) {
         
-        const relation : TRelationOptions = this.MODEL['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) {
             throw this._assertError(
-                `This name relation '${nameRelation}' not be register in Model '${this.MODEL.constructor?.name}'`
+                `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}'`
             )
         }
     
@@ -338,7 +338,7 @@ class RelationHandler  {
             freezeTable,
             query : null
         }
-        return  this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION') , relation])
+        return  this.$model['$state'].set('RELATION', [...this.$model['$state'].get('RELATION') , relation])
     }
 
     hasMany ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
@@ -352,7 +352,7 @@ class RelationHandler  {
             freezeTable,
             query : null
         }
-        return  this.MODEL['$state'].set('RELATION', [...this.MODEL['$state'].get('RELATION') , relation])
+        return  this.$model['$state'].set('RELATION', [...this.$model['$state'].get('RELATION') , relation])
     }
 
     belongsTo ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
@@ -367,9 +367,9 @@ class RelationHandler  {
             query : null
         }
 
-        return  this.MODEL['$state']
+        return  this.$model['$state']
         .set('RELATION', [
-            ...this.MODEL['$state'].get('RELATION') , 
+            ...this.$model['$state'].get('RELATION') , 
             relation
         ])
     }
@@ -390,9 +390,9 @@ class RelationHandler  {
             modelPivot
         }
 
-        return this.MODEL['$state']
+        return this.$model['$state']
         .set('RELATION', [
-            ...this.MODEL['$state'].get('RELATION'),
+            ...this.$model['$state'].get('RELATION'),
             relation
         ])
     }
@@ -584,12 +584,12 @@ class RelationHandler  {
                     const thisPivot =  modelPivot == null && pivot == null
                     ?   new Model().table(`${this._valuePattern([
                             pluralize.singular(clone.getTableName()),
-                            pluralize.singular(this.MODEL['getTableName']())
+                            pluralize.singular(this.$model['getTableName']())
                         ].join("_"))}`)
                     :  modelPivot ? new modelPivot as Model : new Model().table(`${pivot}`)
 
                     const sql = clone
-                    .bind(this.MODEL['$pool'].get())
+                    .bind(this.$model['$pool'].get())
                     .selectRaw("1")
                     .whereReference(
                         `\`${clone.getTableName()}\`.\`${foreignKey}\``,
@@ -603,11 +603,11 @@ class RelationHandler  {
                     thisPivot.whereExists(sql)
 
                     const sqlPivot = thisPivot
-                    .bind(this.MODEL['$pool'].get())
+                    .bind(this.$model['$pool'].get())
                     .selectRaw("1")
                     .whereReference(
-                        `\`${this.MODEL['getTableName']()}\`.\`${foreignKey}\``,
-                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.MODEL['getTableName']()),foreignKey].join("_"))}\``
+                        `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
+                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
                     )
                     .toString()
 
@@ -630,10 +630,10 @@ class RelationHandler  {
         }
 
         const sql = clone
-        .bind(this.MODEL['$pool'].get())
+        .bind(this.$model['$pool'].get())
         .selectRaw("1")
         .whereReference(
-            `\`${this.MODEL['getTableName']()}\`.\`${localKey}\``,
+            `\`${this.$model['getTableName']()}\`.\`${localKey}\``,
             `\`${clone.getTableName()}\`.\`${foreignKey}\``
         )
         .toString()
@@ -643,13 +643,13 @@ class RelationHandler  {
 
     private _relationBuilder (nameRelation:string , relation : TRelationOptions) : TRelationOptions {
 
-        this.MODEL['$state'].set('RELATION' , [...this.MODEL['$state'].get('RELATION') , relation])
+        this.$model['$state'].set('RELATION' , [...this.$model['$state'].get('RELATION') , relation])
 
-        this.MODEL['with'](nameRelation)
+        this.$model['with'](nameRelation)
 
-        const r : TRelationOptions = this.MODEL['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const r : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
-        this._assertError(relation == null , `The relation '${nameRelation}' is not registered in the model '${this.MODEL.constructor?.name}'.`)
+        this._assertError(relation == null , `The relation '${nameRelation}' is not registered in the model '${this.$model.constructor?.name}'.`)
 
         return r
     }
@@ -729,7 +729,7 @@ class RelationHandler  {
 
         }
 
-        if(this.MODEL['$state'].get('HIDDEN').length) this.MODEL['_hiddenColumnModel'](parents)
+        if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
 
         return parents
     }
@@ -756,13 +756,13 @@ class RelationHandler  {
 
         const modelRelation : Model = relation.query == null ? new relation.model() : relation.query
  
-        const relationColumn : string = this.MODEL['_classToTableName'](modelRelation.constructor.name , { singular : true })
+        const relationColumn : string = this.$model['_classToTableName'](modelRelation.constructor.name , { singular : true })
 
         const mainlocalKey : string = 'id'
 
         const relationForeignKey : string = this._valuePattern(`${relationColumn}Id`)
 
-        const localKeyPivotTable = this._valuePattern([pluralize.singular(this.MODEL['getTableName']()),foreignKey].join("_"))
+        const localKeyPivotTable = this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))
 
         const pivotTable : string = String((relation.pivot ?? pivot))
 
@@ -792,8 +792,8 @@ class RelationHandler  {
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
             .groupBy(localKeyPivotTable)
-            .bind(this.MODEL['$pool'].get())
-            .debug(this.MODEL['$state'].get('DEBUG'))
+            .bind(this.$model['$pool'].get())
+            .debug(this.$model['$state'].get('DEBUG'))
             .get()
 
             for(const parent of parents) {
@@ -804,7 +804,7 @@ class RelationHandler  {
                 }
             }
 
-            if(this.MODEL['$state'].get('HIDDEN').length) this.MODEL['_hiddenColumnModel'](parents)
+            if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
 
             return parents
         }
@@ -816,8 +816,8 @@ class RelationHandler  {
         .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))
         .when(relation.trashed, (query : Model) => query.onlyTrashed())
         .when(relation.all, (query : Model) => query.disableSoftDelete())
-        .bind(this.MODEL['$pool'].get())
-        .debug(this.MODEL['$state'].get('DEBUG'))
+        .bind(this.$model['$pool'].get())
+        .debug(this.$model['$state'].get('DEBUG'))
         .get()
 
         const relationIds: number[] = Array.from(
@@ -832,8 +832,8 @@ class RelationHandler  {
         .meta('SUBORDINATE')
         .whereIn(mainlocalKey ,relationIds)
         .when(relation.trashed , (query : Model) => query.disableSoftDelete())
-        .bind(this.MODEL['$pool'].get())
-        .debug(this.MODEL['$state'].get('DEBUG'))
+        .bind(this.$model['$pool'].get())
+        .debug(this.$model['$state'].get('DEBUG'))
         .get()
         
         if(oldVersion) {
@@ -852,7 +852,7 @@ class RelationHandler  {
                 }
             }
            
-            if(this.MODEL['$state'].get('HIDDEN').length) this.MODEL['_hiddenColumnModel'](parents)
+            if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
 
             return parents
         }
@@ -895,7 +895,7 @@ class RelationHandler  {
             }
         }
 
-        if(this.MODEL['$state'].get('HIDDEN').length) this.MODEL['_hiddenColumnModel'](parents)
+        if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
 
         return parents
     } 
@@ -932,14 +932,14 @@ class RelationHandler  {
         let localKey = this._valuePattern(
             relationModel.localKey 
             ? relationModel.localKey 
-            : this.MODEL['$state'].get('PRIMARY_KEY')
+            : this.$model['$state'].get('PRIMARY_KEY')
         )
 
         let foreignKey = relationModel.foreignKey 
             ? relationModel.foreignKey 
             : this._valuePattern([
-                `${pluralize.singular(this.MODEL['getTableName']())}`,
-                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
+                `${pluralize.singular(this.$model['getTableName']())}`,
+                `${this.$model['$state'].get('PRIMARY_KEY')}`
             ].join('_'))
 
         const checkTRelationOptionsIsBelongsTo = [
@@ -952,7 +952,7 @@ class RelationHandler  {
             foreignKey = this._valuePattern(localKey)
             localKey =  this._valuePattern([
                 `${pluralize.singular(table ?? '')}`,
-                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
+                `${this.$model['$state'].get('PRIMARY_KEY')}`
             ].join('_'))
         }
 
@@ -965,16 +965,23 @@ class RelationHandler  {
         if(checkTRelationOptionsIsBelongsToMany) {
             localKey = this._valuePattern([
                 `${pluralize.singular(table ?? '')}`,
-                `${this.MODEL['$state'].get('PRIMARY_KEY')}`
+                `${this.$model['$state'].get('PRIMARY_KEY')}`
             ].join('_'))
 
             foreignKey = 'id'
 
-            const pivotModel = relationModel.query as Model
-            pivot = relationModel.pivot ?? this._valuePattern([
-                pluralize.singular(this.MODEL['getTableName']()),
-                pluralize.singular(pivotModel.getTableName())
+            const query = relationModel.query as Model
+
+            const defaultPivot = this._valuePattern([
+                pluralize.singular(this.$model['getTableName']()),
+                pluralize.singular(query.getTableName())
             ].sort().join('_'))
+
+            pivot = relationModel.pivot 
+            ?? modelPivot == null 
+                ? defaultPivot 
+                : new modelPivot().getTableName()
+            ?? defaultPivot
         }
 
         return { 
@@ -995,13 +1002,13 @@ class RelationHandler  {
 
     protected _valuePattern (value : string) : string{
         
-        const schema : Record<string,Blueprint> | null = this.MODEL['$state'].get('SCHEMA_TABLE')
+        const schema : Record<string,Blueprint> | null = this.$model['$state'].get('SCHEMA_TABLE')
 
         const snakeCase = (str : string) => str.replace(/([A-Z])/g, (v) => `_${v.toLowerCase()}`)
 
         const camelCase = (str : string) => str.replace(/(.(_|-|\s)+.)/g, (v) => `${v[0]}${v[v.length-1].toUpperCase()}`)
 
-        switch (this.MODEL['$state'].get('PATTERN')) {
+        switch (this.$model['$state'].get('PATTERN')) {
 
             case this.$constants('PATTERN').snake_case : {
 

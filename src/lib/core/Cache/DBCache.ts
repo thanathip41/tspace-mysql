@@ -1,4 +1,4 @@
-import { DB , Blueprint, Schema } from '../'
+import { DB , Blueprint, Schema } from '..'
 import utils  from '../../utils'
 import CONSTANTS from '../../constants'
 

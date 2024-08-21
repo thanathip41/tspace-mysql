@@ -399,7 +399,7 @@ class DB extends AbstractDB {
             ...others
         })
 
-        return pool.connection()
+        return pool.init()
     }
 
       /**

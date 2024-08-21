@@ -2696,7 +2696,7 @@ class Builder extends AbstractBuilder {
             ...others
         })
 
-        this.$pool.set(pool.connection())
+        this.$pool.set(pool.init())
 
         return this
     }
@@ -2719,7 +2719,7 @@ class Builder extends AbstractBuilder {
             password    : String(options.password)
         })
 
-        this.$pool.set(pool.connection())
+        this.$pool.set(pool.init())
 
         return this
 

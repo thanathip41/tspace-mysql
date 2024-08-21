@@ -1070,6 +1070,7 @@ try {
    * @commit commit transaction to database
    */
   await connection.commit();
+  
 } catch (err) {
   /**
    *
@@ -2269,7 +2270,7 @@ const schema = {
 
 
 // make type in TS
-type TSchemaUser = TSchema<typeof Schema>
+type TS = TSchema<typeof Schema>
 
 // the TSchemaUser will be created like that
 /**
@@ -2285,8 +2286,7 @@ type TSchemaUser = TSchema<typeof Schema>
 */
 
 
-class User extends Model
-<TSchemaUser>  // use the schema for this User model
+class User extends Model<TS>  // use the schema for this User model
 {
   constructor() {
     super();

@@ -1,4 +1,4 @@
-import { Tools } from '../Tools'
+import { Tools } from '../../tools'
 
 class RedisCache {
     private _redis : { createClient : Function }  = Tools.import('redis')
