@@ -143,12 +143,27 @@ class Builder extends AbstractBuilder {
             return column
         })
 
-        if(this.$state.get('DISTINCT') && select.length) {
-            this.$state.set('SELECT',  select)
-            return this
-        }
+        select = [...this.$state.get('SELECT') , ...select]
 
-        this.$state.set('SELECT',  [...this.$state.get('SELECT') , ...select])
+        if(this.$state.get('DISTINCT') && select.length) {
+            select[0] = String(select[0]).includes(this.$constants('DISTINCT')) 
+            ? select[0] 
+            : `${this.$constants('DISTINCT')} ${select[0]}`
+        }
+        
+        this.$state.set('SELECT', select)
+
+        return this
+    }
+
+    /**
+     * The 'select1' method is used to select 1 from database table.  
+     * 
+     * @returns {this} this
+     */
+    select1 (): this {
+
+        this.$state.set('SELECT',  [..."1"])
 
         return this
     }

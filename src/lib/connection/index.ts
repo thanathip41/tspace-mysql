@@ -74,7 +74,7 @@ export class PoolConnection extends EventEmitter {
                     pool.query(sql , (err : QueryError, results: any[]) => {   
                                   
                         if(err) return reject(err)
-                        
+
                         this._detectEventQuery({
                             start, 
                             sql,
@@ -94,13 +94,17 @@ export class PoolConnection extends EventEmitter {
 
                         if (err) return reject(err)
 
-                        const query = (sql: string , { release = false } = {}) => {
+                        const query = (sql: string) => {
                             const start : number = Date.now()
                             return new Promise<any[]>((resolve, reject) => {
-                                
+
+                                if(!transaction.state()) {  
+                                    return reject(new Error('The transaction has either been closed or has not started.'))
+                                }
+ 
                                 connection.query(sql, (err : QueryError, results: any[]) => {
-                                    
-                                    if(release || !transaction.state) connection.release()
+            
+                                    connection.release()
 
                                     if (err)  return reject(err)
 
@@ -117,15 +121,20 @@ export class PoolConnection extends EventEmitter {
                             return
                         }
 
+                       
                         const commit = async () => {
+                           
+                            await query('COMMIT')
                             transaction.close()
-                            await query('COMMIT', { release : true  })
+                            
                             return
                         }
 
                         const rollback = async () => {
+                            
+                            await query('ROLLBACK')
                             transaction.close()
-                            await query('ROLLBACK', { release : true  })
+                            
                             return
                         }
                         

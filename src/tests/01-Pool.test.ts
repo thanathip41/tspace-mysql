@@ -20,12 +20,14 @@ describe('Testing Pool', function () {
 
     const connect = await Pool.connection()
 
+    await connect.startTransaction()
+
     expect(connect).to.be.an('object')
     expect(connect).to.have.property('query')
     expect(connect).to.have.property('startTransaction')
     expect(connect).to.have.property('commit')
     expect(connect).to.have.property('rollback')
-  
+
     expect(connect.startTransaction).to.be.a('function')
     expect(connect.commit).to.be.a('function')
     expect(connect.rollback).to.be.a('function')
@@ -35,6 +37,8 @@ describe('Testing Pool', function () {
 
     expect(connectQuery).to.be.an('array')
     expect(connectQuery[0].ping).to.be.equal(1)
+
+    await connect.commit()
 
   })
   /* ###################################################### */

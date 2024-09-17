@@ -152,7 +152,7 @@ class Schema extends Builder {
      * 
      *  await new Schema().sync(`app/Models` , { force : true , log = true, foreign = true , changed = true })
      */
-    async sync (pathFolders : string, { force = false, log = false, foreign = false , changed = false } = {}) : Promise<void> {
+    async sync (pathFolders : string, { force = false, log = false, foreign = false , changed = false , index = false } = {}) : Promise<void> {
 
         const directories = fs.readdirSync(pathFolders, { withFileTypes: true })
             
@@ -170,7 +170,7 @@ class Schema extends Builder {
 
         if(!models.length) return
 
-        await this._syncExecute({ models , force , log , foreign , changed })
+        await this._syncExecute({ models , force , log , foreign , changed , index })
 
         return 
     }
@@ -186,6 +186,7 @@ class Schema extends Builder {
      * @property {boolean} options.log   - show log execution with sql statements
      * @property {boolean} options.foreign - check when has a foreign keys will be created
      * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+     * @property {boolean} options.index - add columns to index
      * @return {Promise<void>}
      * @example
      * 
@@ -233,8 +234,8 @@ class Schema extends Builder {
      * 
      *  await Schema.sync(`app/Models` , { force : true })
      */
-    static async sync (pathFolders : string, { force = false, log = false, foreign = false , changed = false } = {}) : Promise<void> {
-        return new this().sync(pathFolders, { force, log, foreign, changed })
+    static async sync (pathFolders : string, { force = false, log = false, foreign = false , changed = false , index = false } = {}) : Promise<void> {
+        return new this().sync(pathFolders, { force, log, foreign, changed , index })
     }
 
     private async _import (pathModel : string) {
@@ -255,12 +256,13 @@ class Schema extends Builder {
         }
     }
 
-    private async _syncExecute ({ models , force , log , foreign , changed } : { 
+    private async _syncExecute ({ models , force , log , foreign , changed , index } : { 
             models : (Model | null)[];
             force : boolean;
             log : boolean;
             foreign : boolean;
             changed : boolean;
+            index   : boolean;
         }
     ){
 
@@ -299,6 +301,14 @@ class Schema extends Builder {
 
             if(foreign) {
                 await this._syncForeignKey({
+                    schemaModel,
+                    model,
+                    log
+                })
+            }
+
+            if(index) {
+                await this._syncIndex({
                     schemaModel,
                     model,
                     log
@@ -385,7 +395,9 @@ class Schema extends Builder {
     }
 
     private async _syncForeignKey ({
-        schemaModel , model , log
+        schemaModel , 
+        model , 
+        log
     }: { schemaModel : Record<string,any> , model : Model , log : boolean}) {
 
         for(const key in schemaModel) {
@@ -425,6 +437,48 @@ class Schema extends Builder {
                 await this.debug(log).rawQuery(sql).catch(e => console.log(e))
                 continue
             }
+        }
+    }
+
+    private async _syncIndex ({
+        schemaModel, 
+        model, 
+        log
+    }: { schemaModel : Record<string,any> , model : Model , log : boolean}) {
+
+        for(const key in schemaModel) {
+            
+            const name = schemaModel[key]?.indexKey
+                
+            if(name == null) continue
+
+            const table = model.getTableName()
+
+            const index = name == '' 
+            ? `\`idx_${table}_${key}\``
+            : `\`${name}\``
+
+            const sql = [
+                `${this.$constants('CREATE_INDEX')}`,
+                `${index}`,
+                `${this.$constants('ON')}`,
+                `${table}(\`${key}\`)`
+            ].join(' ')
+
+            try {
+
+                await this.debug(log).rawQuery(sql)
+
+            } catch (err:any) {
+
+                if(String(err.message).includes("Duplicate key name")) continue
+
+                const tableSql = this.createTable(`\`${table}\``,schemaModel)
+                await this.debug(log).rawQuery(tableSql).catch(e => console.log(e))
+                await this.debug(log).rawQuery(sql).catch(e => console.log(e))
+                continue
+            }
+
         }
     }
 }

@@ -2260,7 +2260,7 @@ import { Model, Blueprint , TSchema } from "tspace-mysql";
 
 const schema = {
   id: Blueprint.int().notNull().primary().autoIncrement(),
-  uuid: Blueprint.varchar(50).null(),
+  uuid: Blueprint.varchar(50).null().index(),
   name: Blueprint.varchar(191).notNull(),
   email: Blueprint.varchar(191).notNull(),
   createdAt: Blueprint.timestamp().null().bindColumn('created_at'),
@@ -3099,6 +3099,12 @@ autoIncrement()
  *  @ForeginKey
  */
 foreign({ references : ${COLUMN} , on : ${TABLE-NAME OR MODEL CLASSES} })
+
+/**
+ *  To add a index key to the column
+ *  @indexKey
+ */
+index()
 ```
 
 ## Cli

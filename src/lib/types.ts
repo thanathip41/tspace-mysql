@@ -51,7 +51,7 @@ export type TRelationShip = {
     belongsToMany: string,
 } 
 
-export type TPagination<K = any[]> = {
+export type TPagination<K = any> = {
     meta: {
         total: number,
         limit: number,
@@ -61,7 +61,7 @@ export type TPagination<K = any[]> = {
         next_page: number,
         prev_page: number,
     },
-    data : K
+    data : K[]
 }
 
 export type TBackup = { 
@@ -119,8 +119,21 @@ export type TPoolCallback = {
 export type TConnectionTransaction = {
     on : (event : TPoolEvent , data : any) => void;
     query: (sql: string) => Promise<any[]>;
+
+    /**
+     * The 'startTransaction' method is used when need to started the transaction
+     * @returns {Promise<void>}
+     */
     startTransaction : () => Promise<void>;
+    /**
+     * The 'commit' method is used to when need to commit the transactions is successfully
+     * @returns {Promise<void>}
+     */
     commit : () => Promise<void>;
+    /**
+     * The 'rollback ' method is used to when the transaction is failed
+     * @returns {Promise<void>}
+     */
     rollback : () => Promise<void>
 }
 
@@ -308,6 +321,16 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
     relationsExists ?: R extends object ? (keyof R)[] : string[];
     relationQuery ?: { name : R extends object ? (keyof R) : string, callback :() => TRepositoryRequest<any,any> }
 }
+
+export type TWhereColumn<T> = TSchemaKeys<T> | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+
+export type TSchemaKeys<T> = keyof {
+    [K in keyof T as string extends K ? never : K]: T[K]
+} extends never 
+    ? string 
+    : keyof {
+        [K in keyof T as string extends K ? never : K]: T[K]
+    };
 
 export type TRepositoryRequestHandler<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R> & { instance ?: Model }>
 

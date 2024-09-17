@@ -3,8 +3,7 @@ import { Blueprint } from "./Blueprint";
 import { Model } from "./Model";
 
 /**
- * The 'TSchemaWeak' type is used to specify the type of the schema.
- * allowed to additional any key and value.
+ * The 'TSchemaStrict' type is used to specify the type of the schema.
  * 
  * @param {type} T typeof the schema
  * @param {type} S override type in the schema
@@ -21,7 +20,7 @@ import { Model } from "./Model";
  *    updatedAt :new Blueprint().timestamp().null()
  *   }
  *
- *   type TSchemaUser = TSchemaWeak<typeof schemaUser , { 
+ *   type TSchemaUser = TSchemaStrict<typeof schemaUser , { 
  *      id : number,
  *      uuid : string,
  *      ........
@@ -29,13 +28,12 @@ import { Model } from "./Model";
  *   
  *   class User<TSchemaUser> {}
  */
-export type TSchemaWeak<T, S = {}> = {
+export type TSchemaStrict<T, S = {}> = {
     [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U  : any
-} & { [key : string] : any }
+}
 
 /**
- * The 'TSchemaWeak' type is used to specify the type of the schema.
- * allowed to additional any key and value.
+ * The 'TSchemaStrict' type is used to specify the type of the schema.
  * 
  * @param {type} T typeof the schema
  * @param {type} S override type in the schema
@@ -52,7 +50,7 @@ export type TSchemaWeak<T, S = {}> = {
  *    updatedAt :new Blueprint().timestamp().null()
  *   }
  *
- *   type TSchemaUser = TSchemaWeak<typeof schemaUser , { 
+ *   type TSchemaUser = TSchemaStrict<typeof schemaUser , { 
  *      id : number,
  *      uuid : string,
  *      ........
@@ -60,12 +58,15 @@ export type TSchemaWeak<T, S = {}> = {
  *   
  *   class User<TSchemaUser> {}
  */
-export type SchemaTypeWeak<T, S = {}> = {
+export type SchemaTypeStrict<T, S = {}> = {
     [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U : any
-} & { [key : string] : any };
+}
 
 /**
  * The 'TSchema' type is used to specify the type of the schema.
+ * 
+ * allowed to additional any key and value.
+ * 
  * @param {type} T typeof the schema
  * @param {type} S override type in the schema
  * @example 
@@ -91,14 +92,17 @@ export type SchemaTypeWeak<T, S = {}> = {
  */
 export type TSchema<T, S = {}> = {
     [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U  : any
-}
+} & { [key : string] : any };
 
 /**
- * The 'TSchema' type is used to specify the type of the schema.
+ * The 'SchemaType' type is used to specify the type of the schema.
+ * 
+ * allowed to additional any key and value.
+ * 
  * @param {type} T typeof the schema
  * @param {type} S override type in the schema
  * @example 
- * import { Blueprint , TSchema , Model } from 'tspace-mysql'
+ * import { Blueprint , SchemaType , Model } from 'tspace-mysql'
  * const schemaUser = {
  *    id :new Blueprint().int().notNull().primary().autoIncrement(),
  *    uuid :new Blueprint().varchar(50).null(),
@@ -110,7 +114,7 @@ export type TSchema<T, S = {}> = {
  *    updatedAt :new Blueprint().timestamp().null()
  *   }
  *
- *   type TSchemaUser = TSchema<typeof schemaUser , { 
+ *   type TSchemaUser = SchemaType<typeof schemaUser , { 
  *      id : number,
  *      uuid : string,
  *      ........

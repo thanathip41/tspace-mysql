@@ -6,20 +6,21 @@ import { Model } from "./Model"
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
  *   await new Schema().table('users',{ 
- *      id          : new Blueprint().int().notNull().primary().autoIncrement(),
- *      name        : new Blueprint().varchar(255).default('my name'),
- *      email       : new Blueprint().varchar(255).unique(),
- *      json        : new Blueprint().json().null(),
- *      verify      : new Blueprint().tinyInt(1).notNull(),
- *      created_at  : new Blueprint().timestamp().null(),
- *      updated_at  : new Blueprint().timestamp().null(),
- *      deleted_at  : new Blueprint().timestamp().null()
+ *      id          : Blueprint.int().notNull().primary().autoIncrement(),
+ *      name        : Blueprint.varchar(255).default('my name'),
+ *      email       : Blueprint.varchar(255).unique(),
+ *      json        : Blueprint.json().null(),
+ *      verify      : Blueprint.tinyInt(1).notNull(),
+ *      created_at  : Blueprint.timestamp().null(),
+ *      updated_at  : Blueprint.timestamp().null(),
+ *      deleted_at  : Blueprint.timestamp().null()
  *   })
  */
 class Blueprint<T = any> {
     private _type : string = 'INT'
     private _attributes : string[] = []
     private _foreignKey : Record<string,any> | null = null
+    private _index : string | null = null
     private _column : string | null = null
     private _valueType !: NumberConstructor | StringConstructor | DateConstructor
 
@@ -827,6 +828,16 @@ class Blueprint<T = any> {
         return this
     }
 
+    /**
+     * Assign attributes 'index' in table
+     * @param {string} name of index
+     * @return {Blueprint<T>} Blueprint
+     */
+    index (name : string = '') : Blueprint<T>{
+        this._index = name
+        return this
+    }
+
     bindColumn (column : string) {
         this._column = column
         return  this
@@ -848,6 +859,9 @@ class Blueprint<T = any> {
         return this._foreignKey
     }
 
+    get indexKey () {
+        return this._index
+    }
     get valueType () {
         return this._valueType
     }

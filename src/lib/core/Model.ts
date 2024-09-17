@@ -18,7 +18,9 @@ import type {
     TGlobalSetting,
     TRawStringQuery,
     TFreezeStringQuery,
-    TPattern
+    TPattern,
+    TSchemaKeys,
+    TWhereColumn
 } from '../types'
 
 let globalSettings : TGlobalSetting = {
@@ -114,7 +116,12 @@ class Model<
      * Model.column<User>('id') 
      * @returns {string} column
      */
-    static column<T extends Model>(column : keyof TSchemaModel<T> | `${string}.${string}`): string {
+    static column<T extends Model>(column : keyof TSchemaModel<T> | `${string}.${string}` , { table = false } = {}): string {
+
+        if(table) {
+            return new this().bindColumn(String(column))
+        }
+        
         return column as string
     }
 
@@ -901,7 +908,7 @@ class Model<
     cache ({ key , expires } : { key : string, expires : number }): this {
 
         this.$state.set('CACHE', {
-            key,
+            key : `${this.bindColumn(key)}`,
             expires
         })
 
@@ -914,7 +921,7 @@ class Model<
      * @param {string[]} ...columns
      * @returns {this} this
      */
-    select<K extends Extract<keyof TS, string> | `${string}.${string}` | TRawStringQuery | '*'>(...columns: K[]): this {
+    select<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}` | TRawStringQuery | '*'>(...columns: K[]): this {
 
         if(!columns.length) {
             this.$state.set('SELECT', ['*'])
@@ -947,7 +954,7 @@ class Model<
      * @param {...string} columns
      * @returns {this} this
      */
-    hidden<K extends Extract<keyof TS, string>>(...columns: K[]) : this {
+    hidden<K extends Extract<TSchemaKeys<TS>, string>>(...columns: K[]) : this {
         this.$state.set('HIDDEN' , columns)
         return this
     }
@@ -958,7 +965,7 @@ class Model<
      * @param {...string} columns
      * @returns {this} this
      */
-    except<K extends Extract<keyof TS, string> | `${string}.${string}`>(...columns: K[]): this {
+    except<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(...columns: K[]): this {
 
         if(!columns.length) return this
 
@@ -1015,9 +1022,9 @@ class Model<
      * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
      * @returns {this}
      */
-    orderBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K , order : 'ASC' | 'asc' | 'DESC' | 'desc' = 'ASC'): this {
+    orderBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K , order : 'ASC' | 'asc' | 'DESC' | 'desc' = 'ASC'): this {
 
-        const orderBy = [column].map(c => {
+        const orderBy = [column].map((c : string) => {
             if(/\./.test(c)) return this.bindColumn(c.replace(/'/g,''))
             if(c.includes(this.$constants('RAW'))) return c?.replace(this.$constants('RAW'),'')
             return this.bindColumn(c)
@@ -1037,12 +1044,12 @@ class Model<
      * @param {string?} columns [column=id]
      * @returns {this}
      */
-    latest<K extends Extract<keyof TS, string> | `${string}.${string}`>(...columns: K[]): this {
+    latest<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(...columns: K[]): this {
 
         let orderBy = '`id`'
 
         if(columns?.length) {
-            orderBy = columns.map(c => {
+            orderBy = columns.map((c:string) => {
                 if(/\./.test(c)) return this.bindColumn(c.replace(/'/g,''))
                 if(c.includes(this.$constants('RAW'))) return c?.replace(this.$constants('RAW'),'')
                 return this.bindColumn(c)
@@ -1063,11 +1070,11 @@ class Model<
      * @param {string?} columns [column=id]
      * @returns {this}
      */
-    oldest<K extends Extract<keyof TS, string> | `${string}.${string}`>(...columns: K[]): this {
+    oldest<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(...columns: K[]): this {
         let orderBy = '`id`'
 
         if(columns?.length) {
-            orderBy = columns.map(c => {
+            orderBy = columns.map((c: string) => {
                 if(/\./.test(c)) return this.bindColumn(c.replace(/'/g,''))
                 if(c.includes(this.$constants('RAW'))) return c?.replace(this.$constants('RAW'),'')
                 return this.bindColumn(c)
@@ -1088,12 +1095,12 @@ class Model<
      * @param {string?} columns [column=id]
      * @returns {this}
      */
-    groupBy<K extends Extract<keyof TS,string> | `${string}.${string}`>(...columns: K[]): this {
+    groupBy<K extends Extract<TSchemaKeys<TS>,string> | `${string}.${string}`>(...columns: K[]): this {
 
         let groupBy = 'id' 
         
         if(columns?.length) {
-            groupBy = columns.map(c => {
+            groupBy = columns.map((c: string) => {
                 if(/\./.test(c)) return this.bindColumn(c.replace(/'/g,''))
                 if(c.includes(this.$constants('RAW'))) return c?.replace(this.$constants('RAW'),'')
                 return this.bindColumn(c)
@@ -1113,11 +1120,11 @@ class Model<
      * @param {string} column
      * @returns {string} return table.column
      */
-    bindColumn (column: string , pattern  = true) : string {
+    bindColumn(column: string , pattern  = true) : string {
 
         if(!/\./.test(column)) {
-            column = pattern ? this._valuePattern(column) : column
-            return `\`${this.getTableName().replace(/`/g,'')}\`.\`${column.replace(/`/g,'')}\``
+            const c = pattern ? this._valuePattern(column) : column
+            return `\`${this.getTableName().replace(/`/g,'')}\`.\`${c.replace(/`/g,'')}\``
         }
 
         let [table, c ] = column.split('.')
@@ -2111,8 +2118,10 @@ class Model<
      *  .findMany()
      * @returns {this} this
      */
-    withQuery<K extends TR extends object ? keyof TR : string,M extends Model>
-    (nameRelation: K, callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
+    withQuery<
+        K extends TR extends object ? keyof TR : string, 
+        M extends Model
+    >(nameRelation: K, callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
 
         this.with(nameRelation)
 
@@ -2175,8 +2184,11 @@ class Model<
      *  .findMany()
      * @returns {this} this
      */
-    relationQuery<K extends TR extends object ? keyof TR : string,T extends Model>
-    (nameRelation: K , callback : (query : T) => T , options : { pivot : boolean } = { pivot: false }) : this {
+    relationQuery<
+        K extends TR extends object ? keyof TR : string,
+        M extends Model
+    >
+    (nameRelation: K , callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
         return this.withQuery(nameRelation, callback , options)
     }
 
@@ -2578,10 +2590,10 @@ class Model<
      * @param {any?} value
      * @returns {this} this
      */
-    where<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K | Record<string,any>, operator?: any , value?: any): this {
+    where<K extends TWhereColumn<TS>>(column: K | Record<string,any>, operator?: any , value?: any): this {
 
         if(typeof column === 'object') {
-            return this.whereObject(column as K extends keyof TS ? { [P in K]: TS[K] } : { [P in K]: any })
+            return this.whereObject(column as K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any })
         }
 
         [value , operator] = this._valueAndOperator( value, operator, arguments.length === 2 )
@@ -2620,7 +2632,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    orWhere<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , operator?: any , value?: any): this {
+    orWhere<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
        
         [value , operator] = this._valueAndOperator(value, operator, arguments.length === 2)
 
@@ -2657,7 +2669,7 @@ class Model<
      * @param {number} day 
      * @returns {this}
      */
-    whereDay<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column : K , day : number): this {
+    whereDay<K extends TWhereColumn<TS>>(column : K , day : number): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2678,7 +2690,7 @@ class Model<
      * @param {number} month
      * @returns {this}
      */
-    whereMonth<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column : K , month : number): this {
+    whereMonth<K extends TWhereColumn<TS>>(column : K , month : number): this {
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -2698,7 +2710,7 @@ class Model<
      * @param {number} year
      * @returns {this}
      */
-    whereYear<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column : K , year : number): this {
+    whereYear<K extends TWhereColumn<TS>>(column : K , year : number): this {
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -2717,7 +2729,7 @@ class Model<
      * @param {Object} columns
      * @returns {this}
      */
-    whereObject<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(columns : K extends keyof TS ? { [P in K]: TS[K] } : { [P in K]: any }): this {
+    whereObject<K extends TWhereColumn<TS>>(columns : K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }): this {
        
         for(let column in columns) {
             
@@ -2814,7 +2826,7 @@ class Model<
      * @property {string?} property.operator
      * @returns   {this}
      */
-     whereJSON<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
+     whereJSON<K extends TWhereColumn<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
 
         value = this.$utils.escape(value)
 
@@ -2842,7 +2854,7 @@ class Model<
      * @property {string?} property.operator
      * @returns   {this}
      */
-    whereJson<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
+    whereJson<K extends TWhereColumn<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
         return this.whereJSON(column, { key , value , operator})
     }
 
@@ -2871,7 +2883,7 @@ class Model<
      * @param {array} array 
      * @returns {this}
      */
-    whereIn<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array: any[]): this {
+    whereIn<K extends TWhereColumn<TS>>(column: K , array: any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2900,7 +2912,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    orWhereIn<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array: any[]): this {
+    orWhereIn<K extends TWhereColumn<TS>>(column: K , array: any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2929,7 +2941,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    whereNotIn<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    whereNotIn<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
         
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2958,7 +2970,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    orWhereNotIn<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    orWhereNotIn<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             this._assertError(`This 'orWhereNotIn' method is required array only`)
@@ -2987,7 +2999,7 @@ class Model<
      * @param {string} subQuery
      * @returns {this}
      */
-    whereSubQuery<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , subQuery: string) : this {
+    whereSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string) : this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3008,7 +3020,7 @@ class Model<
      * @param {string} subQuery
      * @returns {this}
      */
-    whereNotSubQuery<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , subQuery: string): this {
+    whereNotSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3029,7 +3041,7 @@ class Model<
      * @param {string} subQuery
      * @returns {this}
      */
-    orWhereSubQuery<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K, subQuery: string): this {
+    orWhereSubQuery<K extends TWhereColumn<TS>>(column: K, subQuery: string): this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3052,7 +3064,7 @@ class Model<
      * @param {string} subQuery
      * @returns {this}
      */
-    orWhereNotSubQuery<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , subQuery: string): this {
+    orWhereNotSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string): this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3075,7 +3087,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    whereBetween<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    whereBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3121,7 +3133,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    orWhereBetween<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    orWhereBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3167,7 +3179,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    whereNotBetween<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    whereNotBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3213,7 +3225,7 @@ class Model<
      * @param {array} array
      * @returns {this}
      */
-    orWhereNotBetween<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , array : any[]): this {
+    orWhereNotBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3258,7 +3270,7 @@ class Model<
      * @param {string} column
      * @returns {this}
      */
-    whereNull<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K): this {
+    whereNull<K extends TWhereColumn<TS>>(column: K): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3277,7 +3289,7 @@ class Model<
      * @param {string} column
      * @returns {this}
      */
-    orWhereNull<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K): this {
+    orWhereNull<K extends TWhereColumn<TS>>(column: K): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3296,7 +3308,7 @@ class Model<
      * @param {string} column
      * @returns {this}
      */
-    whereNotNull<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K): this {
+    whereNotNull<K extends TWhereColumn<TS>>(column: K): this {
  
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3315,7 +3327,7 @@ class Model<
      * @param {string} column
      * @returns {this}
      */
-    orWhereNotNull<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K): this {
+    orWhereNotNull<K extends TWhereColumn<TS>>(column: K): this {
  
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3336,7 +3348,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    whereSensitive<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , operator?: any , value?: any): this {
+    whereSensitive<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
@@ -3367,7 +3379,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    whereStrict<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , operator?: any , value?: any): this {
+    whereStrict<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
         )
@@ -3396,7 +3408,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    orWhereSensitive<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(column: K , operator?: any , value?: any): this {
+    orWhereSensitive<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
@@ -3460,7 +3472,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    whereAny<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(columns: K[], operator?: any , value?: any): this {
+    whereAny<K extends TWhereColumn<TS>>(columns: K[], operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator( value, operator, arguments.length === 2 )
 
@@ -3496,7 +3508,7 @@ class Model<
      * @param {any?} value
      * @returns {this}
      */
-    whereAll<K extends keyof TS | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery>(columns: K[], operator?: any , value?: any): this {
+    whereAll<K extends TWhereColumn<TS>>(columns: K[], operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator( value, operator, arguments.length === 2 )
 
@@ -3680,11 +3692,11 @@ class Model<
      * @param {string=} column [column=id]
      * @returns {promise<Array>}
      */
-    async toArray<K extends Extract<keyof TS,string> | 'id'>(column?: K ): Promise<any[]> {
+    async toArray<K extends Extract<TSchemaKeys<TS>,string> | 'id'>(column?: K ): Promise<any[]> {
 
         if(column == null) column = 'id' as K
 
-        this.selectRaw(`${this.bindColumn(column)}`)
+        this.selectRaw(`${this.bindColumn(column as string)}`)
 
         const sql: string = this._queryBuilder().select()
         
@@ -3839,12 +3851,12 @@ class Model<
     }
     /**
      * @override
-     * @param {object?} paginationOptions by default page = 1 , limit = 15
+     * @param    {object?} paginationOptions by default page = 1 , limit = 15
      * @property {number} paginationOptions.limit
      * @property {number} paginationOptions.page
-     * @returns {promise<Pagination>} Pagination
+     * @returns  {promise<Pagination>} Pagination
      */
-    async pagination<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<Partial<(TS & K & Partial<TR>)>[]>> {
+    async pagination<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<(TS & K & TR)>> {
 
         this._validateMethod('pagination')
 
@@ -3881,12 +3893,12 @@ class Model<
      /**
      * 
      * @override
-     * @param    {?object} paginationOptions by default page = 1 , limit = 15
-     * @property {number}  paginationOptions.limit
-     * @property {number}  paginationOptions.page
+     * @param     {?object} paginationOptions by default page = 1 , limit = 15
+     * @property  {number}  paginationOptions.limit
+     * @property  {number}  paginationOptions.page
      * @returns   {promise<Pagination>} Pagination
      */
-    async paginate<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<Partial<(TS & K & Partial<TR>)>[]>> {
+    async paginate<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<(TS & K & TR)>> {
         return await this.pagination(paginationOptions)
     }
 
@@ -3895,7 +3907,7 @@ class Model<
      * @param {string} column
      * @returns {Promise<array>} Array
      */
-    async getGroupBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K): Promise<any[]> {
+    async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<any[]> {
 
         if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
          
@@ -3905,7 +3917,7 @@ class Model<
             limit   : true,
             orderBy : true
         })
-        .selectRaw(column,`${this.$constants('GROUP_CONCAT')}(\`id\`) ${this.$constants('AS')} \`aggregate\``)
+        .selectRaw(column as string,`${this.$constants('GROUP_CONCAT')}(\`id\`) ${this.$constants('AS')} \`aggregate\``)
         .groupBy(column)
         .oldest()
         .bind(this.$pool.get())
@@ -3944,7 +3956,7 @@ class Model<
      * @param {string} column
      * @returns {Promise<array>} Array
      */
-    async findGroupBy<K extends Extract<keyof TS, string> | `${string}.${string}`>(column: K): Promise<any[]> {
+    async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<any[]> {
         return this.getGroupBy(column)
     }
 
@@ -3953,7 +3965,7 @@ class Model<
      * @param {object} data for insert
      * @returns {this} this
      */
-    insert<K extends keyof TS>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    insert<K extends TSchemaKeys<TS>>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
     
         if(!Object.keys(data).length) {
             throw this._assertError('This method must require at least 1 argument.')
@@ -3979,7 +3991,7 @@ class Model<
      * @param {object} data for insert
      * @returns {this} this
      */
-    create<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] } : { [P in K]: any }) : this {
+    create<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }) : this {
         return this.insert(data as any)
     }
 
@@ -3989,7 +4001,7 @@ class Model<
      * @param {array?} updateNotExists options for except update some records in your ${data}
      * @returns {this} this
      */
-    update<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any } , updateNotExists : string[] = []) : this {
+    update<K extends TSchemaKeys<TS>| TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any } , updateNotExists : string[] = []) : this {
 
         if(!Object.keys(data).length) {
             throw this._assertError('This method must require at least 1 argument.')
@@ -4034,7 +4046,7 @@ class Model<
      * @param {array?} updateNotExists options for except update some records in your ${data}
      * @returns {this} this
      */
-    updateMany<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any } , updateNotExists : string[] = []) : this {
+    updateMany<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any } , updateNotExists : string[] = []) : this {
 
         if(!Object.keys(data).length) {
             throw this._assertError('This method must require at least 1 argument.')
@@ -4074,7 +4086,7 @@ class Model<
      * @param {object} data
      * @returns {this} this
      */
-    updateNotExists<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    updateNotExists<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
         
         this.limit(1)
 
@@ -4110,7 +4122,7 @@ class Model<
      * @param {object} data for update or create
      * @returns {this} this
      */
-    updateOrCreate<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    updateOrCreate<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
 
         this.limit(1)
 
@@ -4146,7 +4158,7 @@ class Model<
      * @param {object} data for update or create
      * @returns {this} this
      */
-    updateOrInsert<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }): this {
+    updateOrInsert<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }): this {
         return this.updateOrCreate(data)
     }
 
@@ -4155,7 +4167,7 @@ class Model<
      * @param {object} data for update or create
      * @returns {this} this
      */
-    insertOrUpdate<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    insertOrUpdate<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
         return  this.updateOrCreate(data)
     }
 
@@ -4164,7 +4176,7 @@ class Model<
      * @param {object} data for update or create
      * @returns {this} this
      */
-    createOrUpdate<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    createOrUpdate<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
         return this.updateOrCreate(data)
     }
 
@@ -4173,7 +4185,7 @@ class Model<
      * @param {object} data for create
      * @returns {this} this
      */
-    createOrSelect<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    createOrSelect<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
 
         if(!Object.keys(data).length) {
             throw this._assertError('This method must require at least 1 argument.')
@@ -4199,7 +4211,7 @@ class Model<
      * @param {object} data for update or create
      * @returns {this} this
      */
-    insertOrSelect<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    insertOrSelect<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
         return this.createOrSelect(data)
     }
 
@@ -4209,7 +4221,7 @@ class Model<
      * @param {object} data create not exists data
      * @returns {this} this
      */
-    createNotExists<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    createNotExists<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
 
         if(!Object.keys(data).length) {
             throw this._assertError('This method must require at least 1 argument.')
@@ -4235,7 +4247,7 @@ class Model<
      * @param {object} data create not exists data
      * @returns {this} this this
      */
-    insertNotExists<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: K extends keyof TS ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
+    insertNotExists<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] | TRawStringQuery } : { [P in K]: any }) : this {
         return this.createNotExists(data)
     }
 
@@ -4244,7 +4256,7 @@ class Model<
      * @param {Record<string,any>[]} data create multiple data
      * @returns {this} this this
      */
-    createMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
+    createMultiple<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: (K extends TSchemaKeys<TS> ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
 
         if(!Array.isArray(data) || !data.length) {
             throw this._assertError('This method must require a non-empty array.')
@@ -4271,7 +4283,7 @@ class Model<
      * @param {Record<string,any>[]} data create multiple data
      * @returns {this} this
      */
-    insertMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(data: (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
+    insertMultiple<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(data: (K extends TSchemaKeys<TS> ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery }> : { [P in K]: any })[]): this {
         return this.createMultiple(data)
     }
 
@@ -4283,9 +4295,9 @@ class Model<
      * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
      * @returns {this} this
      */
-    updateMultiple<K extends keyof TS | TRawStringQuery | TFreezeStringQuery>(
-        cases: { when : (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] }> : Record<string,any>) , 
-        columns : (K extends keyof TS ? Partial<{ [K in keyof TS]: TS[K] }> : Record<string,any>) }[]
+    updateMultiple<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(
+        cases: { when : (K extends TSchemaKeys<TS> ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] }> : { [P in K]: any }) , 
+        columns : (K extends TSchemaKeys<TS> ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] }> : Record<string,any>) }[]
     ): this {
 
         if(!cases.length) {
@@ -4514,9 +4526,10 @@ class Model<
      * @property {boolean} options.log   - show log execution with sql statements
      * @property {boolean} options.foreign - check when has a foreign keys will be created
      * @property {boolean} options.changed - check when column is changed attribute will be change attribute
+     * @property {boolean} options.index - add columns to index
      * @returns {Promise<void>}
      */
-     async sync ({ force = false, foreign = false , changed = false } = {}): Promise<void> {
+     async sync ({ force = false, foreign = false , changed = false , index = false } = {}): Promise<void> {
 
         const checkTables = await this._queryStatement(`${this.$constants('SHOW_TABLES')} ${this.$constants('LIKE')} '${this.getTableName()}'`)
 
@@ -4531,8 +4544,11 @@ class Model<
         const syncForeignKey = async ({schemaModel , model }: { schemaModel : Record<string,any> , model : Model }) =>{
             for(const key in schemaModel) {
                 if(schemaModel[key]?.foreignKey == null) continue
+
                 const foreign = schemaModel[key].foreignKey
+
                 const table = typeof foreign.on === "string" ? foreign.on : foreign.on.getTableName()
+
                 const sql = [
                     this.$constants('ALTER_TABLE'),
                     `\`${model.getTableName()}\``,
@@ -4565,6 +4581,42 @@ class Model<
             }
         }
 
+        const syncIndex = async ({schemaModel , model }: { schemaModel : Record<string,any> , model : Model }) =>{
+    
+            for(const key in schemaModel) {
+                const name = schemaModel[key]?.indexKey
+
+                if(name == null) continue
+    
+                const table = model.getTableName()
+                const index = name == '' 
+                ? `\`idx_${table}_${key}\``
+                : `\`${name}\``
+
+                const sql = [
+                    `${this.$constants('CREATE_INDEX')}`,
+                    `${index}`,
+                    `${this.$constants('ON')}`,
+                    `${table}(\`${key}\`)`
+                ].join(' ')
+    
+                try {
+    
+                    await model._queryStatement(sql)
+    
+                } catch (err:any) {
+    
+                    if(String(err.message).includes("Duplicate key name")) continue
+    
+                    const tableSql = new Schema().createTable(`\`${table}\``,schemaModel)
+                    await model._queryStatement(tableSql).catch(e => console.log(e))
+                    await model._queryStatement(sql).catch(e => console.log(e))
+                    continue
+                }
+    
+            }
+        }
+
         if(!checkTableIsExists) {
             const sql = new Schema().createTable(`\`${this.getTableName()}\``,schemaModel)
             await this._queryStatement(sql)
@@ -4573,6 +4625,11 @@ class Model<
 
         if(foreign) {
             await syncForeignKey({ schemaModel , model : this})
+            return
+        }
+
+        if(index) {
+            await syncIndex({ schemaModel , model : this})
             return
         }
 

@@ -262,6 +262,7 @@ const chunkArray = <T>(array: T[], length: number): T[][] => {
 }
 
 const wait = (ms : number) => {
+    if(ms === 0) return
     return new Promise(ok => setTimeout(ok,Number.isNaN(ms) ? 0 : ms))
 }
 
