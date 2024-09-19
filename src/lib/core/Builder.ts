@@ -3,6 +3,7 @@ import { utils }            from '../utils'
 import { CONSTANTS }        from '../constants'
 import { DB }               from './DB'
 import { StateHandler }     from './Handlers/State'
+import { Join }             from './Join'
 import { 
     Pool, 
     PoolConnection,
@@ -14,6 +15,7 @@ import {
     TConnection,
     TConnectionTransaction,
 } from '../types'
+
 
 
 class Builder extends AbstractBuilder {
@@ -65,6 +67,23 @@ class Builder extends AbstractBuilder {
         if(options?.limit   != null && options.limit) this.$state.set('LIMIT','')
         if(options?.offset  != null && options.offset) this.$state.set('OFFSET','')
        
+        return this
+    }
+
+    /**
+     * The 'cte' method is used to create common table expressions(CTEs). 
+     * 
+     * @returns {string} return sql query
+     */
+    CTEs (as : string , callback : (query : Builder) => Builder) : this {
+        
+        const query = callback(new DB().table(this.getTableName()))
+
+        this.$state.set('CTE',[
+            ...this.$state.get('CTE'),
+            `${as} AS (${query.toSQL()})`
+        ])
+
         return this
     }
 
@@ -122,6 +141,7 @@ class Builder extends AbstractBuilder {
 
         return this
     }
+    
 
     /**
      * The 'selectRaw' method is used to specify which columns you want to retrieve from a database table. 
@@ -372,7 +392,7 @@ class Builder extends AbstractBuilder {
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @returns {this} this
      */
-    when (condition : string | number | undefined | null | Boolean, callback : Function): this  {
+    when (condition : string | number | undefined | null | Boolean, callback : (query : Builder) => Builder): this  {
 
         if(!condition) return this
 
@@ -1663,16 +1683,29 @@ class Builder extends AbstractBuilder {
      * .get()
      * @returns {this}
      */
-    join (localKey: `${string}.${string}` , referenceKey: `${string}.${string}`): this {
+    join (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey ?: `${string}.${string}`): this {
 
-        const table = referenceKey.split('.')?.shift()
+        if(typeof localKey === 'function') {
+          
+            const callback = localKey(new Join(this,'INNER_JOIN'))
+
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+
+            return this
+        }
+
+        const table = referenceKey?.split('.')?.shift()
 
         this.$state.set('JOIN', [
                 ...this.$state.get('JOIN'),  
                 [
                     `${this.$constants('INNER_JOIN')}`,
                     `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
+                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
                 ].join(' ')
             ]
         )
@@ -1680,7 +1713,126 @@ class Builder extends AbstractBuilder {
         return this
     }
 
-     /**
+    /**
+     * The 'rightJoin' method is used to perform a right join operation between two database tables.
+     * 
+     * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table. 
+     * 
+     * If there is no match in the left table, NULL values are returned for columns from the left table
+     * @param {string} localKey local key in current table
+     * @param {string} referenceKey reference key in next table
+     * @returns {this}
+     */
+    rightJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey?: `${string}.${string}`): this {
+
+        if(typeof localKey === 'function') {
+          
+            const callback = localKey(new Join(this,'RIGHT_JOIN'))
+
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+
+            return this
+        }
+
+        const table = referenceKey?.split('.')?.shift()
+        
+        this.$state.set('JOIN', [
+                ...this.$state.get('JOIN'),  
+                [
+                    `${this.$constants('RIGHT_JOIN')}`,
+                    `\`${table}\` ${this.$constants('ON')}`,
+                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
+                ].join(' ')
+            ]
+        )
+  
+        return this
+    }
+
+    /**
+     * The 'leftJoin' method is used to perform a left join operation between two database tables.
+     * 
+     * A left join retrieves all rows from the left table and the matching rows from the right table. 
+     * 
+     * If there is no match in the right table, NULL values are returned for columns from the right table.
+     * @param {string} localKey local key in current table
+     * @param {string} referenceKey reference key in next table
+     * @returns {this}
+     */
+    leftJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey?: `${string}.${string}`): this {
+
+        if(typeof localKey === 'function') {
+          
+            const callback = localKey(new Join(this,'LEFT_JOIN'))
+
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+
+            return this
+        }
+
+        const table = referenceKey?.split('.')?.shift()
+
+        this.$state.set('JOIN', 
+            [
+                ...this.$state.get('JOIN'),  
+                [
+                    `${this.$constants('LEFT_JOIN')}`,
+                    `\`${table}\` ${this.$constants('ON')}`,
+                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
+                ].join(' ')
+            ]
+        )
+
+        return this
+    }
+
+    /**
+     * The 'crossJoin' method performs a cross join operation between two or more tables. 
+     * 
+     * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
+     * @param {string} localKey local key in current table
+     * @param {string} referenceKey reference key in next table
+     * @returns {this}
+     */
+    crossJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey ?: `${string}.${string}`): this {
+
+        if(typeof localKey === 'function') {
+          
+            const callback = localKey(new Join(this,'CROSS_JOIN'))
+
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+
+            return this
+        }
+
+        const table = referenceKey?.split('.')?.shift()
+
+        this.$state.set('JOIN', [
+                ...this.$state.get('JOIN'),  
+                [
+                    `${this.$constants('CROSS_JOIN')}`,
+                    `\`${table}\` ${this.$constants('ON')}`,
+                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
+                ].join(' ')
+            ]
+        )
+
+        return this
+    }
+
+    /**
      * The 'joinSubQuery' method is used to perform various types of SQL joins between two or more database tables. 
      * 
      * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
@@ -1714,83 +1866,6 @@ class Builder extends AbstractBuilder {
         return this
     }
     
-    /**
-     * The 'rightJoin' method is used to perform a right join operation between two database tables.
-     * 
-     * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table. 
-     * 
-     * If there is no match in the left table, NULL values are returned for columns from the left table
-     * @param {string} localKey local key in current table
-     * @param {string} referenceKey reference key in next table
-     * @returns {this}
-     */
-    rightJoin (localKey: `${string}.${string}` , referenceKey: `${string}.${string}`): this {
-        const table = referenceKey.split('.')?.shift()
-        
-        this.$state.set('JOIN', [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('RIGHT_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
-                ].join(' ')
-            ]
-        )
-  
-        return this
-    }
-
-    /**
-     * The 'leftJoin' method is used to perform a left join operation between two database tables.
-     * 
-     * A left join retrieves all rows from the left table and the matching rows from the right table. 
-     * 
-     * If there is no match in the right table, NULL values are returned for columns from the right table.
-     * @param {string} localKey local key in current table
-     * @param {string} referenceKey reference key in next table
-     * @returns {this}
-     */
-    leftJoin (localKey: `${string}.${string}` , referenceKey: `${string}.${string}`): this {
-        const table = referenceKey.split('.')?.shift()
-
-        this.$state.set('JOIN', 
-            [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('LEFT_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
-                ].join(' ')
-            ]
-        )
-
-        return this
-    }
-
-    /**
-     * The 'crossJoin' method performs a cross join operation between two or more tables. 
-     * 
-     * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
-     * @param {string} localKey local key in current table
-     * @param {string} referenceKey reference key in next table
-     * @returns {this}
-     */
-    crossJoin (localKey: `${string}.${string}` , referenceKey: `${string}.${string}`): this {
-        const table = referenceKey.split('.')?.shift()
-
-        this.$state.set('JOIN', [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('CROSS_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(referenceKey)}`
-                ].join(' ')
-            ]
-        )
-
-        return this
-    }
-
     /**
      * The 'orderBy' method is used to specify the order in which the results of a database query should be sorted. 
      * 
@@ -4043,7 +4118,7 @@ class Builder extends AbstractBuilder {
         }
 
         const select =  () => {
-            return buildSQL([
+            const sql = buildSQL([
                 bindSelect(this.$state.get('SELECT')),
                 this.$state.get('FROM'),
                 this.$state.get('TABLE_NAME'),
@@ -4055,6 +4130,14 @@ class Builder extends AbstractBuilder {
                 this.$state.get('LIMIT'),
                 this.$state.get('OFFSET')
             ]).trimEnd()
+
+            if(this.$state.get('CTE').length) {
+
+
+                return `WITH ${this.$state.get('CTE')} ${sql}`
+            }
+
+            return sql
         }
 
         const insert = () => buildSQL([this.$state.get('INSERT')])

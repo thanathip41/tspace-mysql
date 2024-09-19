@@ -1428,16 +1428,16 @@ class Model<
 
             return result
 
-        } catch (error : unknown) {
+        } catch (error : any) {
 
             if(this.$state.get('JOIN')?.length) throw error
 
             const retry = Number(this.$state.get('RETRY'))
 
-            await this._checkSchemaOrNextError(error,retry)
+            await this._checkSchemaOrNextError(error,retry, error)
 
             this.$state.set('RETRY', retry + 1)
-
+            
             return await this._queryStatement(sql , { retry : true })
         }
     }
@@ -1649,6 +1649,24 @@ class Model<
         this.$state.set('TABLE_NAME', `\`${table}\``)
         return this
     } 
+
+    /**
+     * The 'cte' method is used to create common table expressions(CTEs). 
+     * 
+     * @override
+     * @returns {string} return sql query
+     */
+    CTEs (as : string , callback : (query : Model) => Model) : this {
+        
+        const query = callback(new Model().from(this.getTableName()))
+
+        this.$state.set('CTE',[
+            ...this.$state.get('CTE'),
+            `${as} AS (${query.toSQL()})`
+        ])
+
+        return this
+    }
 
     /**
      * The 'disableSoftDelete' method is used to disable the soft delete.
@@ -3524,6 +3542,24 @@ class Model<
             return query
         })
         
+        return this
+    }
+
+    /**
+     * The 'when' method is used to specify if condition should be true will be next to the actions
+     * 
+     * @override
+     * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
+     * @returns {this} this
+     */
+    when (condition : string | number | undefined | null | Boolean, callback : (query : Model) => Model): this  {
+
+        if(!condition) return this
+
+        const cb =  callback(this)
+        
+        if(cb instanceof Promise) throw new Error("'when' is not supported a Promise")
+    
         return this
     }
 
@@ -6024,16 +6060,17 @@ class Model<
         }
     }
 
-    private async _checkSchemaOrNextError (e: unknown, retry = 1) : Promise<void> {
+    private async _checkSchemaOrNextError (e: unknown, retry = 1 , originError ?:any) : Promise<void> {
+        const throwError = originError == null ? e : originError
         try {
 
-            if(retry >= 3 || this.$state.get('RETRY') >= 3) throw e
+            if(retry > 3 || this.$state.get('RETRY') > 3) throw throwError
 
             const schemaTable = this.getSchemaModel()
 
-            if(schemaTable == null) return this._stoppedRetry(e)
+            if(schemaTable == null) return this._stoppedRetry(throwError)
 
-            if(!(e instanceof Error)) return this._stoppedRetry(e)
+            if(!(e instanceof Error)) return this._stoppedRetry(throwError)
 
             const errorMessage = e?.message ?? ''
 
@@ -6044,17 +6081,17 @@ class Model<
                 ? String(Array.isArray(isPattern) ? isPattern[0] : '').replace(/'/g,'').split('.').pop() 
                 : null
 
-                if(column == null) return this._stoppedRetry(e)
+                if(column == null) return this._stoppedRetry(throwError)
 
                 const { type , attributes } = Schema.detectSchema(schemaTable[column]) 
 
-                if(type == null) return this._stoppedRetry(e)
+                if(type == null) return this._stoppedRetry(throwError)
 
                 const entries = Object.entries(schemaTable)
                 const indexWithColumn = entries.findIndex(([key]) => key === column )
                 const findAfterIndex = indexWithColumn ? entries[indexWithColumn - 1][0] : null
 
-                if(findAfterIndex == null) return this._stoppedRetry(e)
+                if(findAfterIndex == null) return this._stoppedRetry(throwError)
 
                 const sql = [
                     `${this.$constants('ALTER_TABLE')}`,
@@ -6084,9 +6121,12 @@ class Model<
 
         } catch (e : unknown) {
 
-            if(retry >= 3) throw e
+            if(retry > 3) {
 
-            await this._checkSchemaOrNextError(e , retry + 1)
+                throw throwError
+            }
+
+            await this._checkSchemaOrNextError(e , retry + 1, originError)
         }
     }
 

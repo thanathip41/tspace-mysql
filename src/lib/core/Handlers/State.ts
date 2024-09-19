@@ -34,6 +34,7 @@ const STATE_DEFAULT = {
 
 const STATE_DB = {
     PRIMARY_KEY : 'id',
+    CTE : [],
     VOID : false,
     RESULT : null,
     DISTINCT : false,
@@ -70,6 +71,7 @@ const STATE_DB = {
 const STATE_MODEL = {
     MODEL_NAME : 'MODEL',
     PRIMARY_KEY : 'id',
+    CTE : [],
     VOID : false,
     SELECT : [],
     DELETE : '',

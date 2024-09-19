@@ -138,7 +138,7 @@ class RelationHandler  {
                     clone.whereExists(sql)
                 }
             }
-
+            
             if(relation.relation === this.$constants('RELATIONSHIP').belongsToMany) {
 
                 const thisPivot =  modelPivot
@@ -168,6 +168,8 @@ class RelationHandler  {
                     `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
                 )
                 .toString()
+
+               
                
                 if(relation.notExists) {
                     this.$model['whereNotExists'](sqlPivot)
@@ -601,11 +603,8 @@ class RelationHandler  {
                     .bind(this.$model['$pool'].get())
                     .select1()
                     .whereReference(
-                        `\`${clone.getTableName()}\`.\`${foreignKey}\``,
-                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([
-                            pluralize.singular(clone.getTableName()),
-                            localKey
-                        ].join('_'))}\``
+                        `\`${clone['getTableName']()}\`.\`${foreignKey}\``,
+                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(clone['getTableName']()),foreignKey].join("_"))}\``
                     )
                     .unset({
                         orderBy : true,
@@ -643,6 +642,73 @@ class RelationHandler  {
                 }
 
                 clone.whereExists(sql)
+            }
+        }
+
+        if(relation.relation === this.$constants('RELATIONSHIP').belongsToMany) {
+              
+            const data = clone['$relation']?._valueInRelation(relation)
+
+            if(data != null) {
+
+                const { modelPivot , pivot, foreignKey } = data
+            
+                const thisPivot =  modelPivot == null && pivot == null
+                ?   new Model().table(
+                        this._valuePattern([
+                            pluralize.singular(clone.getTableName()),
+                            pluralize.singular(this.$model['getTableName']())
+                            ].join("_")
+                        )
+                    )
+                :  modelPivot != null 
+                    ? new modelPivot as Model 
+                    : new Model().table(`${pivot}`)
+    
+                const sql = clone
+                .bind(this.$model['$pool'].get())
+                .select1()
+                .whereReference(
+                    `\`${clone['getTableName']()}\`.\`${foreignKey}\``,
+                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(clone['getTableName']()),foreignKey].join("_"))}\``
+                )
+                .unset({
+                    orderBy : true,
+                    limit   : true
+                })
+                .toString()
+
+                thisPivot.whereExists(sql)
+    
+                const sqlPivot = thisPivot
+                .bind(this.$model['$pool'].get())
+                .select1()
+                .whereReference(
+                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
+                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
+                )
+                .unset({
+                    orderBy : true,
+                    limit   : true
+                })
+                .toString()
+
+                clone.whereExists(sqlPivot)
+
+                const sqlBelongsMany = clone
+                .bind(this.$model['$pool'].get())
+                .select1()
+                .whereReference(
+                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
+                    `\`${thisPivot['getTableName']()}\`.\`${foreignKey}\``
+                )
+                .unset({
+                    orderBy : true,
+                    limit   : true
+                })
+                .toString()
+
+                return sqlBelongsMany
             }
         }
 

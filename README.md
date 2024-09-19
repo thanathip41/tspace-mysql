@@ -48,6 +48,7 @@ npm install tspace-mysql -g
   - [Hook Statements](#hook-statements)
   - [Faker Statements](#faker-statements)
   - [Unset Statements](#unset-statements)
+  - [Common Table Expressions](#common-table-expressions)
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
 - [Connection](#connection)
@@ -900,6 +901,30 @@ const users = await userInstance.select('id').unset({ limit : true }).findMany()
 
 const usersUnsetWhereStatement = await userInstance.unset({ select : true, where : true , orderBy : true }).findMany()
 // SELECT * FROM `users` WHERE `users`.`deletedAt` IS NULL;
+
+```
+
+## Common Table Expressions
+
+```js
+
+const user = await new User()
+.CTEs('v', (query) => {
+  return query
+  .from('posts')
+})
+.CTEs('x', (query) => {
+  return query
+  .from('post_user')
+})
+.select('users.*','x.*','v.*')
+.join('users.id','x.user_id')
+.join('users.id','v.user_id')
+.findOne()
+
+// WITH z AS (SELECT posts.* FROM `posts`), 
+// x AS (SELECT * FROM `post_user`) 
+// SELECT users.*, z.*, x.* FROM `users` INNER JOIN `x` ON `users`.`id` = `x`.`user_id` INNER JOIN `z` ON `users`.`id` = `z`.`user_id` WHERE `users`.`deleted_at` IS NULL LIMIT 1;
 
 ```
 

@@ -1,6 +1,7 @@
 import { TPagination , TConstant }  from '../../types'
 import { StateHandler } from '../Handlers/State'
 import { TUtils }       from '../../utils'
+import { Join } from '../Join'
 
 abstract class AbstractBuilder {
 
@@ -61,10 +62,11 @@ abstract class AbstractBuilder {
     abstract whereNotBetween (column: string , arrayValue: any[]): this
     abstract having (condition: string) : this
     abstract havingRaw (condition: string) : this
-    abstract join (pk: string , fk: string): this
-    abstract rightJoin (pk: string , fk: string): this
-    abstract leftJoin (pk: string , fk: string): this
-    abstract crossJoin (pk: string , fk: string): this
+    abstract join (pk: string | ((join: Join) => Join) , fk?: string): this
+    abstract rightJoin (pk: string | ((join: Join) => Join) , fk?: string): this
+    abstract leftJoin (pk: string | ((join: Join) => Join) , fk?: string): this
+    abstract crossJoin (pk: string | ((join: Join) => Join) , fk?: string): this
+    abstract joinSubQuery ({ localKey , foreignKey , sql } : { localKey : string; foreignKey : string , sql : string }): this
     abstract orderBy (column: string , order: 'ASC' | 'DESC'): this
     abstract orderByRaw (column: string , order: string): this
     abstract latest (...columns: string[]): this
