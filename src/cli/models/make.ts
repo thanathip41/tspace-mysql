@@ -52,7 +52,9 @@ export default (cmd : { [x: string]: any }) => {
     const table = Table({ table : tableName , npm , type });
     fs.writeFile(folderMigrate, table, (err:any) => {
       if (err) throw err;
+      console.log(`Migration : '${tableName}' created successfully`)
+      process.exit(0);
     });
-    console.log(`Migration : '${tableName}' created successfully`)
+    
   }
 }

@@ -72,6 +72,10 @@ try {
         return data?.includes('--table=')
     })?.replace('--table=','') ?? null
 
+    const filename = process.argv.slice(2)?.find(data => {
+        return data?.includes('--filename=')
+    })?.replace('--filename=','') ?? null
+
     let type = (process.argv.slice(2)?.find(data => {
         return data?.includes('--type=')
     })?.replace('--type=','.') ?? '.ts')
@@ -117,5 +121,8 @@ try {
     commands[process.argv[2]](cmd)
     
 } catch (err) {
+
+    console.log(err)
+    console.log('##############################################################')
     console.log("The input command failed. Please try again using 'tspace-mysql lists'")
 }

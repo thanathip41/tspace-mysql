@@ -108,7 +108,7 @@ npm install tspace-mysql -g
   - [Query](#query)
   - [Dump](#dump)
   - [Generate Models](#generate-models)
-  - [Migration Models](#migrate-models)
+  - [Migration Models](#migration-models)
   - [Migration DB](#migration-db)
 
 ## Configuration
@@ -3239,9 +3239,9 @@ tspace-mysql query "SELECT * FROM users"
 The command will dump the database or table into a file.
 
 ```sh
-tspace-mysql dump:db "database" --values // backup with values in the tables
+tspace-mysql dump:db --dir=<folder for dump> --values // backup with values in the tables
 
-tspace-mysql dump:table "table" --values // backup with values in the table
+tspace-mysql dump:table "table_name" --dir=<folder for dump> --values // backup with values in the table
 
 ```
 
@@ -3286,10 +3286,10 @@ can also push the migration files to the database.
   * @arg --push will push the migration files to the database
   * @arg --generate will generate the migration files
   */
-tspace-mysql migrations:db --dir=<path-to-migration> --generate --db=<db-name>
+tspace-mysql migrations:db --dir=<path-to-migration> --generate --env=<YOUR_ENV> -filename=<YOUR_FILENAME>
 tspace-mysql migrations:db --dir=<path-to-migration> --push
 
-tspace-mysql migrations:db --dir=migrations --generate --db=db-migratons
-tspace-mysql migrations:db --dir=migrations --push
+tspace-mysql migrations:db --dir=migrations --generate --filename=dump.sql --env=development
+tspace-mysql migrations:db --dir=migrations --push --filename=dump.sql --env=development
 
 ```

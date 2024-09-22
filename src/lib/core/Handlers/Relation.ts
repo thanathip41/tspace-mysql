@@ -128,7 +128,9 @@ class RelationHandler  {
 
                     if(r.exists == null && r.notExists) continue
 
-                    const sql =  clone['$relation']?._handleRelationExists(r)
+                    const sql = clone['$relation']?._handleRelationExists(r)
+
+                    if(sql == null || sql === '') continue
 
                     if(r.notExists) {
                         clone.whereNotExists(sql)
@@ -169,8 +171,6 @@ class RelationHandler  {
                 )
                 .toString()
 
-               
-               
                 if(relation.notExists) {
                     this.$model['whereNotExists'](sqlPivot)
                     continue
@@ -558,6 +558,8 @@ class RelationHandler  {
         if(!Object.keys(relation)?.length) {
             throw this._assertError(`Unknown the relation`)
         }
+
+        if(relation.exists == null && relation.notExists == null) return ''
        
         const { localKey, foreignKey } = this._valueInRelation(relation)    
 
@@ -599,21 +601,6 @@ class RelationHandler  {
                         ? new modelPivot as Model 
                         : new Model().table(`${pivot}`)
 
-                    const sql = clone
-                    .bind(this.$model['$pool'].get())
-                    .select1()
-                    .whereReference(
-                        `\`${clone['getTableName']()}\`.\`${foreignKey}\``,
-                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(clone['getTableName']()),foreignKey].join("_"))}\``
-                    )
-                    .unset({
-                        orderBy : true,
-                        limit   : true
-                    })
-                    .toString()
-
-                    thisPivot.whereExists(sql)
-
                     const sqlPivot = thisPivot
                     .bind(this.$model['$pool'].get())
                     .select1()
@@ -628,13 +615,19 @@ class RelationHandler  {
                     .toString()
 
                     clone.whereExists(sqlPivot)
+
+                    if(r.notExists) {
+                        thisPivot.whereNotExists(sqlPivot)
+                    } else {
+                        thisPivot.whereExists(sqlPivot)
+                    }
     
                     continue
                 }
 
                 const sql =  clone['$relation']?._handleRelationExists(r) ?? null
 
-                if(sql == null) continue
+                if(sql == null || sql === '') continue
 
                 if(r.notExists) {
                     clone.whereNotExists(sql)
@@ -678,8 +671,12 @@ class RelationHandler  {
                 })
                 .toString()
 
-                thisPivot.whereExists(sql)
-    
+                if(relation.notExists) {
+                    thisPivot.whereNotExists(sql)
+                } else {
+                    thisPivot.whereExists(sql)
+                }
+                
                 const sqlPivot = thisPivot
                 .bind(this.$model['$pool'].get())
                 .select1()
@@ -693,24 +690,18 @@ class RelationHandler  {
                 })
                 .toString()
 
-                clone.whereExists(sqlPivot)
+                if(relation.notExists) {
+                    clone.whereNotExists(sqlPivot)
+                } else {
+                    clone.whereExists(sqlPivot)
+                }
 
-                const sqlBelongsMany = clone
-                .bind(this.$model['$pool'].get())
-                .select1()
-                .whereReference(
-                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot['getTableName']()}\`.\`${foreignKey}\``
-                )
-                .unset({
-                    orderBy : true,
-                    limit   : true
-                })
-                .toString()
-
-                return sqlBelongsMany
+                return sqlPivot
+   
             }
         }
+
+         if(relation.exists == null && relation.notExists == null) return ''
 
         const sql = clone
         .bind(this.$model['$pool'].get())
@@ -973,11 +964,6 @@ class RelationHandler  {
 
                 if(data == null) continue
              
-                data.pivot = { 
-                    [localKeyPivotTable] : children[localKeyPivotTable],
-                    [localKey] : children[localKey],
-                }
-          
                 parent[name].push(data)
             }
         }

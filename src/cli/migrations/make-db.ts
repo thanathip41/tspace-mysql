@@ -6,9 +6,9 @@ export default (cmd : { [x: string]: any }) => {
     cwd,
     fs,
     env,
-    db,
     push,
-    generate
+    generate,
+    filename
   } = cmd
 
     if(dir) {
@@ -23,8 +23,12 @@ export default (cmd : { [x: string]: any }) => {
         }
     }
 
+    if(push == null && generate == null) {
+        throw new Error("Do you want to generate or push changes ? use '--generate' or '--push")
+    }
+
     if(push) {
-        const filePath = `${cwd}/${dir}/migrations.sql`
+        const filePath = `${cwd}/${dir}/${filename ?? 'migrations.sql' }`
 
         const sqlString = fs.readFileSync(filePath, 'utf8')
 
@@ -111,21 +115,21 @@ export default (cmd : { [x: string]: any }) => {
         .then(_ => console.log(`Migrations are migrating successfully`))
         .catch(e => console.log(`Failed to migrate errors: '${e.message}'`))
         .finally(() => process.exit(0))
+
+        return
     }
 
     if(generate) {
-        const directory = `${cwd}/${dir}/migrations.sql`
+        const directory = `${cwd}/${dir}/${filename ?? 'migrations.sql' }`
         new DB()
         .loadEnv(env)
         .backupToFile({
-            filePath : directory,
-            database : db != null && db != '' ? db : 'db-name'
+            filePath : directory
         })
         .then(_ => console.log(`Migrations are migrating successfully`))
         .catch(e => console.log(`Failed to migrate errors: '${e.message}'`))
         .finally(() => process.exit(0))
-    }
 
-    throw new Error("Do you want to generate or push changes ? use '--generate' or '--push")
-   
+        return
+    }
 }

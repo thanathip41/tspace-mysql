@@ -1,6 +1,7 @@
 import Model     from './model'
 import ModelDecorator from './modelDecorator'
 import pluralize from 'pluralize'
+import fsSystem from 'fs'
 import { DB }    from '../../lib'
 
 const snakeCaseToPascal = (data: string ) => {
@@ -113,61 +114,73 @@ export default (cmd : { [x: string]: any }) => {
             console.log('\nGenerate Models has completed')
         })
         .catch(err => console.log(err))
-        .finally(() => process.exit(0))
-
+       
         return
     }
-  
-    new DB()
-    .loadEnv(env)
-    .rawQuery('SHOW TABLES')
-    .then(tables => {
+
+
+    const generateModel = async () => {
+
+        const tables = await new DB()
+        .loadEnv(env)
+        .rawQuery('SHOW TABLES')
+    
         for(let i = 0; i < tables.length; i++) {
+
             const table : string = String(Object.values(tables[i])?.shift())
             const model = snakeCaseToPascal(pluralize.singular(table))
-            new DB().loadEnv(env).rawQuery(`SHOW COLUMNS FROM \`${table}\``).then(raws => {
 
-            let schema : any[] = []
-            for(const index in raws) {
-                const raw = raws[index]
-                const str = [
-                    `${raw.Field} : `,
-                    `new Blueprint().${/^[^()]*$/.test(raw.Type) 
-                        ? raw.Type === raw.Type.includes('unsigned') 
-                            ? 'int().unsigned()'
-                            : `${raw.Type.toLocaleLowerCase()}()` 
-                        : raw.Type.toLocaleLowerCase()
-                    }`,
-                    `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
-                    raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-                    raw.Default != null ? `.default('${raw.Default}')`  : '',
-                    `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''},`
-                ].join('')
+            try {
 
-                const isLast = Number(index) + 1 === raws.length
+               
+                const raws = await new DB().loadEnv(env).rawQuery(`SHOW COLUMNS FROM \`${table}\``)
 
-                schema.push(isLast ? str.replace(/,\s*$/, "") : str)
-            }
+                let schema : any[] = []
 
-            const formattedSchema = formatSchema(schema);
+                for(const index in raws) {
+                    const raw = raws[index]
+                    const str = [
+                        `${raw.Field} : `,
+                        `new Blueprint().${/^[^()]*$/.test(raw.Type) 
+                            ? raw.Type === raw.Type.includes('unsigned') 
+                                ? 'int().unsigned()'
+                                : `${raw.Type.toLocaleLowerCase()}()` 
+                            : raw.Type.toLocaleLowerCase()
+                        }`,
+                        `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+                        raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+                        raw.Default != null ? `.default('${raw.Default}')`  : '',
+                        `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''},`
+                    ].join('')
         
-            let str = "this.useSchema({\n"
-            for(const formatKey in formattedSchema) {
-            str += `          ${formatKey} : ${formattedSchema[formatKey]} \n`
+                    const isLast = Number(index) + 1 === raws.length
+        
+                    schema.push(isLast ? str.replace(/,\s*$/, "") : str)
+                }
+        
+                const formattedSchema = formatSchema(schema);
+            
+                let str = "this.useSchema({\n"
+                for(const formatKey in formattedSchema) {
+                str += `       ${formatKey} : ${formattedSchema[formatKey]} \n`
+                }
+                str += "     })"
+        
+                const data = Model(model,npm,`${str}`)
+        
+                fs.writeFileSync(`${cwd}/${dir}/${model}${type ?? '.ts'}`, data)
+
+                console.log(`Model : '${model}' created successfully`)
+
+            } catch (err : any) {
+                console.log(`Model : '${model}' failed to create message: ${err.message}`)
             }
-            str += "        })"
-
-            const data = Model(model,npm,`${str}`)
-
-            fs.writeFile(`${cwd}/${dir}/${model}${type ?? '.ts'}`, data, (err:any) => {
-                if (err) throw err
-            })
-            console.log(`Model : '${model}' created successfully`)
-        })
-            .catch(err => console.log(err))
+            
         }
-        console.log('\nGenerate Models has completed')
-    })
+    }
+
+    generateModel()
+    .then(_ => console.log('\nGenerate Models has completed'))
     .catch(err => console.log(err))
     .finally(() => process.exit(0))
 }

@@ -631,7 +631,7 @@ class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @returns {Promise<void>}
      */
-    async backupToFile({ filePath, database = 'db-backup' , connection } : TBackupToFile ): Promise<void> {
+    async backupToFile({ filePath, database = `dump_${+new Date()}` , connection } : TBackupToFile ): Promise<void> {
         
         const tables = await this.showTables()
 
@@ -670,7 +670,6 @@ class DB extends AbstractDB {
             `-- Generation Time: ${new Date()}\n`,
             `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
             `START TRANSACTION;`,
-            `SET time_zone = "+00:00";\n`,
             `--`,
             `-- Database: '${database}'`,
             `--\n`,
@@ -724,7 +723,7 @@ class DB extends AbstractDB {
      * @property {string} backup.connection.password
      * @returns {Promise<void>}
      */
-    async backupSchemaToFile ({ filePath, database = 'db-backup' , connection } : TBackupToFile ): Promise<void> {
+    async backupSchemaToFile ({ filePath, database = `dump_${+new Date()}` , connection } : TBackupToFile ): Promise<void> {
         
         if(connection != null && Object.keys(connection)?.length) this.connection(connection)
 

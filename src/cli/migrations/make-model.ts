@@ -11,7 +11,8 @@ export default (cmd : Record<string,any>) => {
       generate,
       push,
       models,
-      env
+      env,
+      filename
     } = cmd
   
     if(models == null) throw new Error("Cannot find directory to your models please specify the directory : '--models=src/app/models'")
@@ -141,6 +142,7 @@ export default (cmd : Record<string,any>) => {
     
             if(createDatabase) {
                 const result = await new DB()
+                .loadEnv(env)
                 .rawQuery(createDatabase)
                 .catch(e => console.log(`Failed to push changes errors: '${e.message}'`))
 
@@ -186,6 +188,7 @@ export default (cmd : Record<string,any>) => {
     
         for(const c of createTables) {
             const result = await new DB()
+            .loadEnv(env)
             .rawQuery(c.sql)
             .catch(e => console.log(`Failed to push changes errors: '${e.message}'`))
 
@@ -196,6 +199,7 @@ export default (cmd : Record<string,any>) => {
 
         for(const c of inserts) {
             const result = await new DB()
+            .loadEnv(env)
             .rawQuery(c.sql)
             .catch(e => console.log(`Failed to push changes errors: '${e.message}'`))
 
@@ -249,8 +253,12 @@ export default (cmd : Record<string,any>) => {
         }
     }
 
+    if(push == null && generate == null) {
+        throw new Error("Do you want to generate or push changes ? use '--generate' or '--push")
+    }
+
     if(push) {
-        const filePath = `${cwd}/${dir}/migrations.sql`
+        const filePath = `${cwd}/${dir}/${filename ?? 'migrations.sql' }`
 
         const sqlString = fs.readFileSync(filePath, 'utf8')
 
@@ -260,6 +268,8 @@ export default (cmd : Record<string,any>) => {
         .then(_ => console.log(`Migrations are migrating successfully`))
         .catch(e => console.log(`Failed to migrate errors: '${e.message}'`))
         .finally(() => process.exit(0))
+
+        return
     }
 
     if(generate) {
@@ -269,10 +279,6 @@ export default (cmd : Record<string,any>) => {
         .catch(e => console.log(`Failed to migrate errors: '${e.message}'`))
         .finally(() => process.exit(0))
 
-        return process.exit(0)
-
+        return
     }
-
-    throw new Error("Do you want to generate or push changes ? use '--generate' or '--push")
-
 }

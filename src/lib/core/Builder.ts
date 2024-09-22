@@ -3834,7 +3834,11 @@ class Builder extends AbstractBuilder {
 
         const values = raw.map((value : any) => {
             return `(${Object.values(value).map((v : any) => {
-                if(typeof v === 'object' && v != null && !Array.isArray(v)) return `'${JSON.stringify(v)}'`
+
+                if(this.$utils.typeOf(v) === 'date') return `'${this.$utils.timestamp(v)}'`
+
+                if(this.$utils.typeOf(v) === 'object' && v != null && !Array.isArray(v)) return `'${JSON.stringify(v)}'`
+
                 return  v == null ? this.$constants('NULL') : `'${v}'`
             }).join(', ')})`
         })
@@ -3903,7 +3907,10 @@ class Builder extends AbstractBuilder {
 
         for(const data of chunked) {
             promises.push(() => {
-                return new DB(table).debug(this.$state.get('DEBUG')).createMultiple([...data]).void().save()
+                return new DB(table)
+                .debug(this.$state.get('DEBUG'))
+                .createMultiple([...data]).void()
+                .save()
             })
         }
         

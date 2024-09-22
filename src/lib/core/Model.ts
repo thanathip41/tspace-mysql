@@ -3456,9 +3456,9 @@ class Model<
      */
     whereQuery<T extends Model>(callback : (query : T) => T) : this {
 
-        const db = new Model().copyModel(this) as T
+        const copy = new Model().copyModel(this) as T
 
-        const repository : Model = callback(db)
+        const repository : Model = callback(copy)
 
         if(repository instanceof Promise) throw this._assertError('The "whereQuery" method is not supported a Promise')
 
@@ -4546,7 +4546,12 @@ class Model<
 
         for(const data of chunkedData) {
             promises.push(() => {
-                return new Model().table(table).debug(this.$state.get('DEBUG')).createMultiple([...data]).void().save()
+                return new Model()
+                .from(table)
+                .debug(this.$state.get('DEBUG'))
+                .createMultiple([...data])
+                .void()
+                .save()
             })
         }
 
