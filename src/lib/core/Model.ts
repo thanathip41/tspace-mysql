@@ -8,6 +8,7 @@ import { Blueprint }        from './Blueprint'
 import { StateHandler }     from './Handlers/State'
 import { TSchemaModel }     from './UtilityTypes'
 import { Cache }            from './Cache'
+import { JoinModel }        from './JoinModel'
 import type { 
     TCache,
     TExecute,
@@ -20,8 +21,10 @@ import type {
     TFreezeStringQuery,
     TPattern,
     TSchemaKeys,
-    TWhereColumn
+    TWhereColumn,
+    TModelConstructorOrObject
 } from '../types'
+
 
 let globalSettings : TGlobalSetting = {
     softDelete : false,
@@ -116,7 +119,7 @@ class Model<
      * Model.column<User>('id') 
      * @returns {string} column
      */
-    static column<T extends Model>(column : keyof TSchemaModel<T> | `${string}.${string}` , { table = false } = {}): string {
+    static column<M extends Model>(column : TWhereColumn<TSchemaModel<M>> | `${string}.${string}` , { table = false } = {}): string {
 
         if(table) {
             return new this().bindColumn(String(column))
@@ -124,6 +127,16 @@ class Model<
         
         return column as string
     }
+
+    /**
+     * The 'table' method is used get table name.
+     * @static
+     * @returns {string} name of the table
+     */
+    static get table (): string {
+        return new this().getTableName()
+    }
+
 
     /**
      * The 'formatPattern' method is used to change the format of the pattern. 
@@ -930,8 +943,11 @@ class Model<
 
         let select : string[] = columns.map((c) => {
             const column = String(c)
-            if(column === '*' || (column.includes('*') && /\./.test(column))) return column
-            if(column.includes(this.$constants('RAW'))) return column?.replace(this.$constants('RAW'),'').replace(/'/g,'')
+
+            if(column.includes(this.$constants('RAW'))) {
+                return column?.replace(this.$constants('RAW'),'').replace(/'/g,'')
+            }
+
             return this.bindColumn(column)
         })
 
@@ -1123,13 +1139,28 @@ class Model<
     bindColumn(column: string , pattern  = true) : string {
 
         if(!/\./.test(column)) {
+
+            if(column === '*') return '*'
+
             const c = pattern ? this._valuePattern(column) : column
-            return `\`${this.getTableName().replace(/`/g,'')}\`.\`${c.replace(/`/g,'')}\``
+            const alias = this.$state.get('ALIAS')
+            return [
+                alias == null 
+                    ? `\`${this.getTableName().replace(/`/g,'')}\``
+                    : `\`${alias.replace(/`/g,'')}\``
+                ,
+                '.',
+                `\`${c.replace(/`/g,'')}\``
+            ].join('')
         }
 
         let [table, c ] = column.split('.')
         
         c = pattern ? this._valuePattern(c) : c
+
+        if(c === '*') {
+            return `\`${table.replace(/`/g,'')}\`.*`
+        }
         
         return `\`${table.replace(/`/g,'')}\`.\`${c.replace(/`/g,'')}\``
     }
@@ -1629,34 +1660,12 @@ class Model<
     }
 
     /**
-     * The 'table' method is used to set the table name.
-     * 
-     * @param {string} table table name
-     * @returns {this} this
-     */
-    table (table: string) : this {
-        this.$state.set('TABLE_NAME', `\`${table}\``)
-        return this
-    } 
-
-    /**
-     * The 'from' method is used to set the table name.
-     * 
-     * @param {string} table table name
-     * @returns {this} this
-     */
-    from (table: string) : this {
-        this.$state.set('TABLE_NAME', `\`${table}\``)
-        return this
-    } 
-
-    /**
-     * The 'cte' method is used to create common table expressions(CTEs). 
+     * The 'CTEs' method is used to create common table expressions(CTEs). 
      * 
      * @override
      * @returns {string} return sql query
      */
-    CTEs (as : string , callback : (query : Model) => Model) : this {
+    CTEs (as : string , callback : (query : Model<any,any>) => Model) : this {
         
         const query = callback(new Model().from(this.getTableName()))
 
@@ -1918,6 +1927,7 @@ class Model<
      * @returns {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
+import { alias } from 'yargs';
      *   import { pattern } from '../../tests/schema-spec';
      *   import { TRelationOptions } from '../types';
      *   class User extends Model {
@@ -2637,7 +2647,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(value)}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2675,7 +2685,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(value)}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
     
         return this
@@ -2696,7 +2706,7 @@ class Model<
                 `DAY(${this.bindColumn(String(column))})`,
                 `=`,
                 `'${`00${this.$utils.escape(day)}`.slice(-2)}'`   
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2716,7 +2726,7 @@ class Model<
                 `MONTH(${this.bindColumn(String(column))})`,
                 `=`,
                 `'${`00${this.$utils.escape(month)}`.slice(-2)}'`   
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2736,7 +2746,7 @@ class Model<
                 `YEAR(${this.bindColumn(String(column))})`,
                 `=`,
                 `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`   
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2857,7 +2867,7 @@ class Model<
                 `${this.bindColumn(String(column))}->>'$.${key}'`,
                 `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
                 `${this._checkValueHasRaw(value)}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2889,7 +2899,7 @@ class Model<
             [
                 this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2918,7 +2928,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IN')}`,
                 `(${values})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -2947,7 +2957,7 @@ class Model<
                     `${this.bindColumn(String(column))}`,
                     `${this.$constants('IN')}`,
                     `(${values})`
-                ].join(' ')
+                ].join(' ').replace(/^\s+/, '')
             ])
 
         return this
@@ -2976,7 +2986,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${values})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3005,7 +3015,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${values})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3026,7 +3036,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IN')}`,
                 `(${subQuery})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3047,7 +3057,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${subQuery})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3070,7 +3080,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IN')}`,
                 `(${subQuery})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3093,7 +3103,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('NOT_IN')}`,
                 `(${subQuery})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3122,7 +3132,7 @@ class Model<
                     `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
                     `${this.$constants(this.$constants('NULL'))}`
-                ].join(' ')
+                ].join(' ').replace(/^\s+/, '')
             ])
 
             return this
@@ -3139,7 +3149,7 @@ class Model<
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
                 `${this.$constants('AND')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value2))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3168,7 +3178,7 @@ class Model<
                     `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
                     `${this.$constants(this.$constants('NULL'))}`
-                ].join(' ')
+                ].join(' ').replace(/^\s+/, '')
             ])
 
             return this
@@ -3185,7 +3195,7 @@ class Model<
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
                 `${this.$constants('AND')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value2))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3214,7 +3224,7 @@ class Model<
                     `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
                     `${this.$constants(this.$constants('NULL'))}`
-                ].join(' ')
+                ].join(' ').replace(/^\s+/, '')
             ])
 
             return this
@@ -3231,7 +3241,7 @@ class Model<
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
                 `${this.$constants('AND')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value2))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3260,7 +3270,7 @@ class Model<
                     `${this.$constants(this.$constants('NULL'))}`,
                     `${this.$constants('AND')}`,
                     `${this.$constants(this.$constants('NULL'))}`
-                ].join(' ')
+                ].join(' ').replace(/^\s+/, '')
             ])
 
             return this
@@ -3277,7 +3287,7 @@ class Model<
                 `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
                 `${this.$constants('AND')}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value2))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
         
         return this
@@ -3296,7 +3306,7 @@ class Model<
                 this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IS_NULL')}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3315,7 +3325,7 @@ class Model<
                 this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IS_NULL')}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3334,7 +3344,7 @@ class Model<
                 this.$state.get('WHERE').length ? `${this.$constants('AND')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IS_NOT_NULL')}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3353,7 +3363,7 @@ class Model<
                 this.$state.get('WHERE').length ? `${this.$constants('OR')}` : '',
                 `${this.bindColumn(String(column))}`,
                 `${this.$constants('IS_NOT_NULL')}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3384,7 +3394,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3413,7 +3423,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3443,7 +3453,7 @@ class Model<
                 `${this.bindColumn(String(column))}`,
                 `${operator}`,
                 `${this._checkValueHasRaw(this.$utils.escape(value))}`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3477,7 +3487,7 @@ class Model<
                 ? `${this.$constants('AND')}` 
                 : '',
                 `(${query})`
-            ].join(' ')
+            ].join(' ').replace(/^\s+/, '')
         ])
 
         return this
@@ -3552,7 +3562,7 @@ class Model<
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @returns {this} this
      */
-    when (condition : string | number | undefined | null | Boolean, callback : (query : Model) => Model): this  {
+    when(condition : string | number | undefined | null | Boolean, callback : (query : Model<any,any>) => Model): this  {
 
         if(!condition) return this
 
@@ -3563,6 +3573,285 @@ class Model<
         return this
     }
 
+    /**
+     * The 'joinModel' method is used to perform a join operation between two Models.
+     * 
+     * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query. 
+     * 
+     * @param   {TModelConstructorOrObject} m1  main Model
+     * @param   {TModelConstructorOrObject} m2 reference Model
+     * @returns {this}
+     */
+    joinModel( 
+        m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel), 
+        m2 ?: TModelConstructorOrObject
+    ): this {
+
+        if(typeof m1 === 'function' && !this._isModel(m1)) {
+
+            const cb = m1 as unknown as Function
+
+            const callback = cb(new JoinModel(this, 'INNER_JOIN'))
+    
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+    
+            return this
+        }
+
+        if(m2 == null) return this
+
+        const {
+            alias1,
+            alias2,
+            table1,
+            table2,
+            model1,
+            model2,
+            localKey,
+            foreignKey
+        } = this._handleJoinModel(m1 as unknown as TModelConstructorOrObject , m2 as unknown as TModelConstructorOrObject )
+
+        this.join(
+            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
+            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
+        )
+    
+        if (model1['$state'].get('MODEL_NAME') !== this['$state'].get('MODEL_NAME')) {
+            this.whereNull(`${alias1 === '' ? table1 : alias1}.${model1['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        if (model2['$state'].get('SOFT_DELETE')) {
+            this.whereNull(`${alias2 === '' ? table2 : alias2}.${model2['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        return this;
+    }
+
+    /**
+     * The 'rightJoinModel' method is used to perform a join operation between two Models.
+     * 
+     * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table. 
+     * 
+     * If there is no match in the left table, NULL values are returned for columns from the left table
+     * @param   {TModelConstructorOrObject} m1  main Model
+     * @param   {TModelConstructorOrObject} m2  reference Model
+     * @returns {this}
+     */
+    rightJoinModel(
+        m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelConstructorOrObject
+    ): this {
+
+        if(typeof m1 === 'function' && !this._isModel(m1)) {
+
+            const cb = m1 as unknown as Function
+
+            const callback = cb(new JoinModel(this, 'RIGHT_JOIN'))
+    
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+    
+            return this
+        }
+
+        if(m2 == null) return this
+
+        const {
+            alias1,
+            alias2,
+            table1,
+            table2,
+            model1,
+            model2,
+            localKey,
+            foreignKey
+        } = this._handleJoinModel(m1 as unknown as TModelConstructorOrObject , m2 as unknown as TModelConstructorOrObject )
+
+        this.rightJoin(
+            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
+            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
+        )
+    
+        if (model1['$state'].get('MODEL_NAME') !== this['$state'].get('MODEL_NAME')) {
+            this.whereNull(`${alias1 === '' ? table1 : alias1}.${model1['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        if (model2['$state'].get('SOFT_DELETE')) {
+            this.whereNull(`${alias2 === '' ? table2 : alias2}.${model2['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        return this;
+    }
+
+    /**
+     * The 'leftJoinModel' method is used to perform a left join operation between two database tables.
+     * 
+     * A left join retrieves all rows from the left table and the matching rows from the right table. 
+     * 
+     * If there is no match in the right table, NULL values are returned for columns from the right table.
+     * @param   {TModelConstructorOrObject} m1  main Model
+     * @param   {TModelConstructorOrObject} m2  reference Model
+     * @returns {this}
+     */
+    leftJoinModel(
+        m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelConstructorOrObject
+    ): this {
+
+        if(typeof m1 === 'function' && !this._isModel(m1)) {
+
+            const cb = m1 as unknown as Function
+
+            const callback = cb(new JoinModel(this, 'LEFT_JOIN'))
+    
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+    
+            return this
+        }
+
+        if(m2 == null) return this
+        
+        const {
+            alias1,
+            alias2,
+            table1,
+            table2,
+            model1,
+            model2,
+            localKey,
+            foreignKey
+        } = this._handleJoinModel(m1 as unknown as TModelConstructorOrObject , m2 as unknown as TModelConstructorOrObject )
+
+        this.leftJoin(
+            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
+            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
+        )
+    
+        if (model1['$state'].get('MODEL_NAME') !== this['$state'].get('MODEL_NAME')) {
+            this.whereNull(`${alias1 === '' ? table1 : alias1}.${model1['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        if (model2['$state'].get('SOFT_DELETE')) {
+            this.whereNull(`${alias2 === '' ? table2 : alias2}.${model2['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        return this;
+    }
+
+    /**
+     * The 'crossJoinModel' method performs a cross join operation between two or more tables. 
+     * 
+     * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
+     * 
+     * @param   {TModelConstructorOrObject} m1  main Model
+     * @param   {TModelConstructorOrObject} m2  reference Model
+     * @returns {this}
+     */
+    crossJoinModel(
+        m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelConstructorOrObject
+    ): this {
+
+        if(typeof m1 === 'function' && !this._isModel(m1)) {
+
+            const cb = m1 as unknown as Function
+
+            const callback = cb(new JoinModel(this, 'CROSS_JOIN'))
+    
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+    
+            return this
+        }
+
+        if(m2 == null) return this
+        
+        const {
+            alias1,
+            alias2,
+            table1,
+            table2,
+            model1,
+            model2,
+            localKey,
+            foreignKey
+        } = this._handleJoinModel(m1 as unknown as TModelConstructorOrObject , m2 as unknown as TModelConstructorOrObject )
+
+        this.crossJoin(
+            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
+            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
+        )
+    
+        if (model1['$state'].get('MODEL_NAME') !== this['$state'].get('MODEL_NAME')) {
+            this.whereNull(`${alias1 === '' ? table1 : alias1}.${model1['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        if (model2['$state'].get('SOFT_DELETE')) {
+            this.whereNull(`${alias2 === '' ? table2 : alias2}.${model2['$state'].get('SOFT_DELETE_FORMAT')}`)
+        }
+    
+        return this;
+    }
+
+    private _handleJoinModel ( 
+        m1: TModelConstructorOrObject,
+        m2: TModelConstructorOrObject
+    ) {
+
+        let model1      : Model  = typeof m1 === 'object' ? new m1.model() : new m1()
+        let model2      : Model  = typeof m2 === 'object' ? new m2.model() : new m2()
+        let localKey    : string = typeof m1 === 'object' ? m1.key != null && m1.key !== '' ? String(m1.key) : '' : ''
+        let foreignKey  : string = typeof m2 === 'object' ? m2.key != null && m2.key !== '' ? String(m2.key) : '' : ''
+        let alias1      : string = typeof m1 === 'object' ? m1.alias != null && m1.alias !== '' ? m1.alias : '' : ''
+        let alias2      : string = typeof m2 === 'object' ? m2.alias != null && m2.alias !== '' ? m2.alias : '' : ''
+    
+        if(alias1 !== '') {
+            if (model1['$state'].get('MODEL_NAME') === this['$state'].get('MODEL_NAME')) {
+                this.alias(alias1)
+            }
+            model1.alias(alias1)
+        }
+
+        if(alias2 !== '') {
+            model2.alias(alias2)
+        }
+
+        const table1 = model1.getTableName()
+        const table2 = model2.getTableName()
+
+        localKey   = ( localKey === '' || localKey == null ) 
+            ? 'id' 
+            : localKey
+
+        foreignKey = ( foreignKey === '' || foreignKey == null ) 
+            ? model2['_valuePattern'](`${pluralize.singular(table1)}_id`) 
+            : foreignKey
+
+        return {
+            table1,
+            table2,
+            model1,
+            model2,
+            alias1,
+            alias2,
+            localKey,
+            foreignKey
+        }
+    }
     
     /**
      * @override
@@ -3907,8 +4196,6 @@ class Model<
         if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
       
         const offset = ( page - 1 ) * limit
-
-        this.$state.set('PER_PAGE', limit)
 
         this.$state.set('PAGE', page)
 
@@ -4834,7 +5121,7 @@ class Model<
         ].join(' ')
 
         if(!wheres.some((where: string) => where.includes(softDeleteIsNull))) {
-            this.whereNull(deletedAt as any)
+            this.whereNull(deletedAt)
             return this
         }
 
@@ -4854,13 +5141,17 @@ class Model<
         return this
     }
 
-    private _handleSelect () {
+    /**
+     * @override
+     * @return {this}
+     */
+    protected _handleSelect () {
 
         const selects = this.$state.get('SELECT') as string[]
 
         const hasStart = selects?.some(s => s.includes('*'))
        
-        if(selects.length || hasStart ) return this
+        if(selects.length || hasStart) return this
 
         const schemaColumns = this.getSchemaModel()
 
@@ -5082,7 +5373,7 @@ class Model<
 
         const currentPage: number = +(this.$state.get('PAGE'))
 
-        const limit: number = Number(this.$state.get('PER_PAGE'))
+        const limit: number = Number(this.$state.get('LIMIT'))
 
         if(limit < 1) {
             throw this._assertError("This pagination needed limit minimun less 1 for limit")
@@ -5191,7 +5482,7 @@ class Model<
                 emptyData = {
                     meta : {
                         total : 0,
-                        limit : Number(this.$state.get('PER_PAGE')),
+                        limit : Number(this.$state.get('LIMIT')),
                         totalPage : 0, 
                         currentPage : Number(this.$state.get('PAGE')), 
                         lastPage : 0,
@@ -6209,6 +6500,15 @@ class Model<
             if(wheres.some((where: string) => where.includes(softDeleteIsNull))) {
                 throw this._assertError(`The statement is not allowed to use the '${deletedAt}' column as a condition for any action`)
             }
+        }
+    }
+
+    private _isModel(maybeModel : any) : boolean {
+        try {
+            new maybeModel()
+            return true
+        } catch (error) {
+            return false
         }
     }
  

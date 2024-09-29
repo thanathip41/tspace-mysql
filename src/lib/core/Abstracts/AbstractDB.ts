@@ -6,7 +6,6 @@ import {
 
 abstract class AbstractDB extends Builder {
 
-    abstract table (name: string) : this
     abstract beginTransaction (): Promise<any>
     abstract generateUUID () : string
     abstract raw (sql : string) : string

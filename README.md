@@ -18,6 +18,7 @@ npm install tspace-mysql -g
 
 - [Configuration](#configuration)
 - [Query Builder](#query-builder)
+  - [Table Name & Alias Name](#table-name--alias-name)
   - [Returning Results](#returning-results)
   - [Query Statement](#query-statements)
   - [Select Statements](#select-statements)
@@ -66,11 +67,15 @@ npm install tspace-mysql -g
     - [Logger](#logger)
     - [Hooks](#hooks)
     - [Global Scope](#global-scope)
-  - [SoftDelete](#softdelete)
   - [Schema](#schema)
     - [Schema Model](#schema-model)
     - [Validation](#validation)
     - [Sync](#sync)
+  - [SoftDelete](#softdelete)
+  - [Joins Model](#joins-model)
+    - [Inner Join Model Clause](#inner-join-model-clause)
+    - [Left Join , Right Join Model Clause](#left-join-right-join-model-clause)
+    - [Cross Join Model Clause](#cross-join-model-clause)
   - [Relationships](#relationships)
     - [One To One](#one-to-one)
     - [One To Many](#one-to-many)
@@ -173,6 +178,27 @@ How a database query builder works with a simple example using the following:
 | 1           | 1            | posts tspace               |
 | 2           | 2            | posts tspace2              |
 +-------------+--------------+----------------------------+
+
+```
+
+### Table Name & Alias Name
+
+```js
+
+await new DB().from('users').find(1)
+// SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
+
+await new DB().table('users').find(1)
+// SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
+
+await new DB().table('users').alias('u').find(1)
+// SELECT * FROM `users` AS `u` WHERE `u`.`id` = '1' LIMIT 1;
+
+await new DB().fromRaw('u',new DB('users').select('*').limit(1).toString()).find(1)
+// SELECT * FROM ( SELECT * FROM `users` LIMIT 1 ) AS `u` WHERE `u`.`id` = '1' LIMIT 1;
+
+await new DB().alias('u',new DB('users').select('*').limit(1).toString()).find(1)
+// SELECT * FROM ( SELECT * FROM `users` LIMIT 1 ) AS `u` WHERE `u`.`id` = '1' LIMIT 1;
 
 ```
 
@@ -362,6 +388,9 @@ await new DB("users")
 await new DB("users").limit(5).findMany();
 // SELECT * FROM `users` LIMIT 5;
 
+await new DB("users").limit(-1).findMany();
+// SELECT * FROM `users` LIMIT 2147483647; // int-32  2**31 - 1
+
 await new DB("users").offset(1).findOne();
 // SELECT * FROM `users` LIMIT 1 OFFSET 1;
 ```
@@ -373,6 +402,19 @@ await new DB("users").offset(1).findOne();
 ```js
 await new DB("posts").join("posts.user_id", "users.id").findMany();
 // SELECT * FROM `posts` INNER JOIN `users` ON `posts`.`user_id` = `users`.`id`;
+
+await new DB("posts")
+.join((join) => {
+  return join
+  .on('posts.user_id','users.id')
+  .on('users.id','post_user.user_id')
+  .and('users.id','posts.user_id')
+})
+.findMany();
+
+// SELECT * FROM `posts` 
+// INNER JOIN `users` ON `posts`.`user_id` = `users`.`id` 
+// INNER JOIN `post_user` ON `users`.`id` = `post_user`.`user_id` AND `users`.`id` = `posts`.`user_id`;
 ```
 
 ### Left Join, Right Join Clause
@@ -1488,29 +1530,59 @@ const user = await new User().findMany()
 
 ```
 
-### SoftDelete
+## Joins Model
+
+### Inner Join Model Clause
 
 ```js
+await new User().joinModel(User, Post).findMany();
+// SELECT `users`.`id`, `users`.`email`, `users`.`username` FROM `users` INNER JOIN `posts` ON `users`.`id` = `posts`.`user_id`;
 
-import { Model } from 'tspace-mysql'
-class User extends Model {
-    constructor() {
-      super()
-      this.useSoftDelete() // All query will be where 'deleted_at' is null
+// if the model use soft delete
+await new User().joinModel(User, Post).findMany();
+// SELECT `users`.`id`, `users`.`email`, `users`.`username` FROM `users` 
+// INNER JOIN `posts` ON `users`.`id` = `posts`.`user_id` 
+// WHERE `posts`.`deleted_at` IS NULL AND `users`.`deleted_at` IS NULL;
 
-      // You can also use patterns camelCase to covert the 'deleted_at' to 'deletedAt'
-      // You can also customize the  column 'deleted_at'
-      this.useSoftDelete('deletedAtCustom')
-    }
-}
+await new User().select(`${User.table}.*`,`${Post.table}.*`).joinModel(User, Post).findMany();
+// SELECT users.*, posts.* FROM `users` 
+// INNER JOIN `posts` ON `users`.`id` = `posts`.`user_id` 
+// WHERE `posts`.`deleted_at` IS NULL AND `users`.`deleted_at` IS NULL;
 
-const user = await new User().where('user_id',1).findOne()
-// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NULL LIMIT 1;
+await new User().select('u.*','p.*')
+.joinModel({ model : User , key : 'id' , alias : 'u' }, { model : Post , key : 'user_id', alias : 'p'})
+.findMany();
+// SELECT u.*, p.* FROM `users` AS `u` 
+// INNER JOIN `posts` AS `p` ON `u`.`id` = `p`.`user_id` 
+// WHERE `p`.`deleted_at` IS NULL AND `u`.`deleted_at` IS NULL;
 
-// find in trashed
-const user = await new User().trashed().findMany()
-// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NOT NULL;
+await new DB("posts")
+.join((join) => {
+  return join
+  .on('posts.user_id','users.id')
+  .on('users.id','post_user.user_id')
+  .and('users.id','posts.user_id')
+})
+.findMany()
+//  SELECT * FROM `posts` 
+// INNER JOIN `users` ON `posts`.`user_id` = `users`.`id` 
+// INNER JOIN `post_user` ON `users`.`id` = `post_user`.`user_id` AND `users`.`id` = `posts`.`user_id`;
+```
+### Left Join, Right Join Model Clause
 
+```js
+await new User().leftJoinModel(User, Post).findMany();
+//  SELECT `users`.`id`, `users`.`email`, `users`.`username` FROM `users` LEFT JOIN `posts` ON `users`.`id` = `posts`.`user_id`;
+
+await new User().rightJoinModel(User, Post).findMany();
+//  SELECT `users`.`id`, `users`.`email`, `users`.`username` FROM `users` RIGHT JOIN `posts` ON `users`.`id` = `posts`.`user_id`;
+```
+
+### Cross Join Model Clause
+
+```js
+await new User().crossJoinModel(User, Post).findMany();
+//  SELECT `users`.`id`, `users`.`email`, `users`.`username` FROM `users` CROSS JOIN `posts` ON `users`.`id` = `posts`.`user_id`;
 ```
 
 ### Relationships
@@ -2452,6 +2524,31 @@ await Schema.sync(`/src/Models`, {
 
 // You can also synchronize using the Model.
 await new User().sync({ force: true, foreign: true, changed: true });
+```
+
+### SoftDelete
+
+```js
+
+import { Model } from 'tspace-mysql'
+class User extends Model {
+    constructor() {
+      super()
+      this.useSoftDelete() // All query will be where 'deleted_at' is null
+
+      // You can also use patterns camelCase to covert the 'deleted_at' to 'deletedAt'
+      // You can also customize the  column 'deleted_at'
+      this.useSoftDelete('deletedAtCustom')
+    }
+}
+
+const user = await new User().where('user_id',1).findOne()
+// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NULL LIMIT 1;
+
+// find in trashed
+const user = await new User().trashed().findMany()
+// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NOT NULL;
+
 ```
 
 ### Type Safety

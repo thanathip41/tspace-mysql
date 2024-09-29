@@ -60,7 +60,7 @@ export class PoolConnection extends EventEmitter {
         })
 
         return {
-            on : (event : TPoolEvent , data : any) => {
+            on : (event : TPoolEvent , data) => {
                 return this.on(event,data)
             },
             query : (sql : string) => {
@@ -176,7 +176,7 @@ export class PoolConnection extends EventEmitter {
         const duration = Date.now() - start
         
         if (duration > 1000 * 10) {
-            const maxLength = 5_000
+            const maxLength = 8_000
 
             if (sql.length > maxLength) {
                 sql = `${sql.slice(0, maxLength)}.......`
@@ -322,7 +322,7 @@ export class PoolConnection extends EventEmitter {
 
     private _onPoolConnect (pool : TPool) : void {
 
-        const delay = 1000 * 5
+        const delay = 1000 * 6.5
        
         setTimeout(() => {
             pool.getConnection((err : any , connection : TPoolConnection) : void => {

@@ -1,6 +1,7 @@
-import Model                from "./core/Model"
+import { Model}             from "./core/Model"
 import { TCache as Cache }  from './core/Cache'
-import CONSTANTS            from './constants'
+import { CONSTANTS }        from './constants'
+import { Join }             from "./core/Join"
 
 export type TCache = Cache
 
@@ -60,6 +61,11 @@ export type TPagination<K = any> = {
         last_page: number,
         next_page: number,
         prev_page: number,
+        totalPage: number,
+        currentPage: number,
+        lastPage: number,
+        nextPage: number,
+        prevPage: number,
     },
     data : K[]
 }
@@ -337,3 +343,10 @@ export type TRepositoryRequestHandler<T extends Record<string, any> = any,R = an
 export type TRepositoryRequestPagination<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R>> & { page ?: number }
 
 export type TRepositoryRequestAggregate<T extends Record<string, any> = any,R = any> = Partial<Omit<TRepositoryRequest<T,R>,'relations' | 'relationQuery'>>
+
+export type TModelConstructorOrObject= { 
+    model: new () => Model<any, any>
+    alias ?: string
+    key?: string
+    join  ?: Join
+} | (new () => Model<any, any>)

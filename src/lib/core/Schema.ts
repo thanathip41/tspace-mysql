@@ -2,9 +2,8 @@ import { Builder } from "./Builder"
 import { Model } from "./Model"
 import fs from 'fs'
 import path from 'path'
-
 class Schema extends Builder {
-
+    //@ts-ignore
     public table = async (table :string , schemas: Record<string,any>) : Promise<void> => {
         try {
             let columns: Array<any> = []

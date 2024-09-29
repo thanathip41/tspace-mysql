@@ -16,7 +16,6 @@ import type {
     TFreezeStringQuery
 } from '../types'
 
-
 /**
  * 'DB' Class is a component of the database system
  * @param {string?} table table name
@@ -93,38 +92,29 @@ class DB extends AbstractDB {
      * @param {string} table table name
      * @returns {this} this
      */
-    from (table: string) : this {
-        this.$state.set('TABLE_NAME', `\`${table}\``)
-        return this
-    }  
-
-    /**
-     * The 'from' method is used to define the from table name.
-     * @param {string} table table name
-     * @returns {this} this
-     */
     static from (table: string) : DB {
         return new this().from(table)
     }  
 
     /**
      * The 'table' method is used to define the table name.
-     * @param {string} table table name
-     * @returns {this} this
-     */
-    table (table: string) : this {
-        this.$state.set('TABLE_NAME', `\`${table}\``)
-        return this
-    }  
-
-    /**
-     * The 'table' method is used to define the table name.
-     * @param {string} table table name
+     * @param   {string} table table name
      * @returns {DB} DB
      */
     static table(table: string) : DB {
        return new this().table(table)
     }
+
+    /**
+     * The 'alias' method is used to set the table name.
+     * 
+     * @param   {string} sql raw sql from make a new alias for this table
+     * @param   {string} alias alias name
+     * @returns {DB} DB
+     */
+    static alias (sql : string , alias : string) : DB {
+        return new this().alias(sql, alias)
+    }  
 
     /**
      * The 'jsonObject' method is used to specify select data to JSON objects.

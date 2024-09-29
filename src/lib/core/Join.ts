@@ -1,5 +1,4 @@
 import { Builder } from "./Builder"
-
 class Join {
     private join : string[] = []
 
@@ -10,19 +9,6 @@ class Join {
 
     on (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
        
-
-        if(this.join.length) {
-
-            const join = [
-                `${this.self['$constants']('AND')}`,
-                `${this.self.bindColumn(localKey)} = ${this.self.bindColumn(String(referenceKey))}`
-            ].join(' ')
-
-            this.join.push(join)
-
-            return this
-        }
-
         const table = referenceKey?.split('.')?.shift()
 
         const join = [
@@ -36,26 +22,32 @@ class Join {
         return this
     }
 
-    or (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
+    and (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
+
+        if(!this.join.length) {
+
+            return this.on(localKey, referenceKey)
+        }
        
+        const join = [
+            `${this.self['$constants']('AND')}`,
+            `${this.self.bindColumn(localKey)} = ${this.self.bindColumn(String(referenceKey))}`
+        ].join(' ')
 
-        if(this.join.length) {
+        this.join.push(join)
 
-            const join = [
-                `${this.self['$constants']('OR')}`,
-                `${this.self.bindColumn(localKey)} = ${this.self.bindColumn(String(referenceKey))}`
-            ].join(' ')
+        return this
+    }
 
-            this.join.push(join)
+    or (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
 
-            return this
+        if(!this.join.length) {
+
+            return this.on(localKey, referenceKey)
         }
 
-        const table = referenceKey?.split('.')?.shift()
-
         const join = [
-            `${this.self['$constants'](this.type)}`,
-            `\`${table}\` ${this.self['$constants']('ON')}`,
+            `${this.self['$constants']('OR')}`,
             `${this.self.bindColumn(localKey)} = ${this.self.bindColumn(String(referenceKey))}`
         ].join(' ')
 

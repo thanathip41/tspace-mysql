@@ -16,8 +16,6 @@ import {
     TConnectionTransaction,
 } from '../types'
 
-
-
 class Builder extends AbstractBuilder {
 
     constructor() {
@@ -71,13 +69,13 @@ class Builder extends AbstractBuilder {
     }
 
     /**
-     * The 'cte' method is used to create common table expressions(CTEs). 
+     * The 'CTEs' method is used to create common table expressions(CTEs). 
      * 
      * @returns {string} return sql query
      */
     CTEs (as : string , callback : (query : Builder) => Builder) : this {
         
-        const query = callback(new DB().table(this.getTableName()))
+        const query = callback(new DB().from(this.getTableName()))
 
         this.$state.set('CTE',[
             ...this.$state.get('CTE'),
@@ -124,8 +122,11 @@ class Builder extends AbstractBuilder {
         }
 
         let select : string[] = columns.map((column : string) => {
-            if(column === '*' || (column.includes('*') && /\./.test(column))) return column
-            if(column.includes(this.$constants('RAW'))) return column?.replace(this.$constants('RAW'),'').replace(/'/g,'')
+            
+            if(column.includes(this.$constants('RAW'))) {
+                return column?.replace(this.$constants('RAW'),'').replace(/'/g,'')
+            }
+
             return this.bindColumn(column)
         })
 
@@ -207,6 +208,7 @@ class Builder extends AbstractBuilder {
                 maping = [...maping , `'${key}'`, `\`${table}\`.\`${c}\``]
                 continue
             }
+            
             maping = [...maping , `'${key}'`, `\`${this.getTableName()}\`.\`${value}\``]
         }
 
@@ -263,6 +265,79 @@ class Builder extends AbstractBuilder {
     }
 
     /**
+     * The 'table' method is used to set the table name.
+     * 
+     * @param   {string} table table name
+     * @returns {this} this
+     */
+    table (table: string) : this {
+        this.$state.set('TABLE_NAME', `\`${table}\``)
+        return this
+    } 
+
+    /**
+     * The 'from' method is used to set the table name.
+     * 
+     * @param {string} table table name
+     * @returns {this} this
+     */
+    from (table: string) : this {
+        this.$state.set('TABLE_NAME', `\`${table}\``)
+        return this
+    } 
+
+    /**
+     * The 'fromRaw' method is used to set the table name.
+     * 
+     * @param   {string} alias alias name
+     * @param   {string} from from sql raw sql from make a new alias for this table
+     * @returns {this} this
+     */
+    fromRaw (alias : string, from ?: string) : this {
+        this.$state.set('ALIAS', alias)
+        
+        if(from) {
+            this.$state.set('RAW_ALIAS',from)
+        }
+       
+        return this
+    } 
+
+    /**
+     * The 'alias' method is used to set the table name.
+     * 
+     * @param   {string} alias alias name
+     * @param   {string} from from sql raw sql from make a new alias for this table
+     * @returns {this} this
+     */
+    alias (alias : string, from ?: string) : this {
+        this.$state.set('ALIAS', alias)
+
+        if(from) {
+            this.$state.set('RAW_ALIAS',from)
+        }
+       
+        return this
+    } 
+
+    /**
+     * The 'as' method is used to set the table name.
+     * 
+     * @param   {string} alias alias name
+     * @param   {string} from from sql raw sql from make a new alias for this table
+     * @returns {this} this
+     */
+    as (alias : string, from ?: string) : this {
+        this.$state.set('ALIAS', alias)
+
+        if(from) {
+            this.$state.set('RAW_ALIAS',from)
+        }
+       
+        return this
+    } 
+
+    /**
      * The 'sleep' method is used to delay the query. 
      * 
      * @param {number} second - The number of seconds to sleep
@@ -270,12 +345,12 @@ class Builder extends AbstractBuilder {
      */
     sleep (second : number): this {
 
-        const sql  = `SELECT SLEEP(${second}) as sleep`
+        const sql  = `(SELECT SLEEP(${second}) as sleep)`
 
         this.$state.set('JOIN', [
             ...this.$state.get('JOIN'), [
                 `${this.$constants('INNER_JOIN')}`,
-                `(${sql}) ${this.$constants('AS')} temp`,
+                `${sql} ${this.$constants('AS')} temp`,
                 `${this.$constants('ON')}`,
                 `1=1`
             ]
@@ -1685,32 +1760,44 @@ class Builder extends AbstractBuilder {
      */
     join (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey ?: `${string}.${string}`): this {
 
-        if(typeof localKey === 'function') {
-          
-            const callback = localKey(new Join(this,'INNER_JOIN'))
-
-            this.$state.set('JOIN', [
-                    ...this.$state.get('JOIN'),  
-                    callback['toString']()
-                ]
-            )   
-
-            return this
-        }
-
-        const table = referenceKey?.split('.')?.shift()
-
-        this.$state.set('JOIN', [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('INNER_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
-                ].join(' ')
-            ]
-        )
+        this._handleJoin('INNER_JOIN' , localKey , referenceKey)
 
         return this
+          
+        //     const callback = localKey(new Join(this,'INNER_JOIN'))
+
+        //     this.$state.set('JOIN', [
+        //             ...this.$state.get('JOIN'),  
+        //             callback['toString']()
+        //         ]
+        //     )   
+
+        //     return this
+        // }
+
+        // let table = referenceKey?.split('.')?.shift()
+        // const alias = table?.split('|')?.pop()
+
+        // if(alias != null) {
+        //     table = table?.split('|')?.shift()
+        //     referenceKey =  String(referenceKey?.split('|')?.pop() ?? referenceKey) as `${string}.${string}`
+        // }
+        
+        // this.$state.set('JOIN', [
+        //         ...this.$state.get('JOIN'),  
+        //         [
+        //             `${this.$constants('INNER_JOIN')}`,
+        //             alias == null 
+        //                 ? `\`${table}\`` 
+        //                 : `\`${table}\` ${this.$constants('AS')} \`${alias}\``
+        //             ,
+        //             `${this.$constants('ON')}`,
+        //             `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
+        //         ].join(' ')
+        //     ]
+        // )
+
+        // return this
     }
 
     /**
@@ -1725,31 +1812,8 @@ class Builder extends AbstractBuilder {
      */
     rightJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey?: `${string}.${string}`): this {
 
-        if(typeof localKey === 'function') {
-          
-            const callback = localKey(new Join(this,'RIGHT_JOIN'))
+        this._handleJoin('RIGHT_JOIN' , localKey , referenceKey)
 
-            this.$state.set('JOIN', [
-                    ...this.$state.get('JOIN'),  
-                    callback['toString']()
-                ]
-            )   
-
-            return this
-        }
-
-        const table = referenceKey?.split('.')?.shift()
-        
-        this.$state.set('JOIN', [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('RIGHT_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
-                ].join(' ')
-            ]
-        )
-  
         return this
     }
 
@@ -1765,31 +1829,7 @@ class Builder extends AbstractBuilder {
      */
     leftJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey?: `${string}.${string}`): this {
 
-        if(typeof localKey === 'function') {
-          
-            const callback = localKey(new Join(this,'LEFT_JOIN'))
-
-            this.$state.set('JOIN', [
-                    ...this.$state.get('JOIN'),  
-                    callback['toString']()
-                ]
-            )   
-
-            return this
-        }
-
-        const table = referenceKey?.split('.')?.shift()
-
-        this.$state.set('JOIN', 
-            [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('LEFT_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
-                ].join(' ')
-            ]
-        )
+        this._handleJoin('LEFT_JOIN' , localKey , referenceKey)
 
         return this
     }
@@ -1804,30 +1844,7 @@ class Builder extends AbstractBuilder {
      */
     crossJoin (localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey ?: `${string}.${string}`): this {
 
-        if(typeof localKey === 'function') {
-          
-            const callback = localKey(new Join(this,'CROSS_JOIN'))
-
-            this.$state.set('JOIN', [
-                    ...this.$state.get('JOIN'),  
-                    callback['toString']()
-                ]
-            )   
-
-            return this
-        }
-
-        const table = referenceKey?.split('.')?.shift()
-
-        this.$state.set('JOIN', [
-                ...this.$state.get('JOIN'),  
-                [
-                    `${this.$constants('CROSS_JOIN')}`,
-                    `\`${table}\` ${this.$constants('ON')}`,
-                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
-                ].join(' ')
-            ]
-        )
+        this._handleJoin('CROSS_JOIN' , localKey , referenceKey)
 
         return this
     }
@@ -2153,7 +2170,11 @@ class Builder extends AbstractBuilder {
      */
     limit (number: number = 1): this {
 
-        this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`)
+        if(number === -1) number = 2**31 - 1 // int 32 bit
+       
+        if(number < 0 || number === -0) number = 0
+
+        this.$state.set('LIMIT', number)
     
         return this
     }
@@ -2178,9 +2199,11 @@ class Builder extends AbstractBuilder {
      */
     offset (number: number = 1) : this {
 
+        if(number < 0 || number === -0) number = 0
+
         this.$state.set('OFFSET' , `${this.$constants('OFFSET')} ${number}`)
 
-        if(!this.$state.get('LIMIT')) this.$state.set('LIMIT', `${this.$constants('LIMIT')} ${number}`)
+        if(!this.$state.get('LIMIT')) this.$state.set('LIMIT', number)
 
         return this
     }
@@ -2703,10 +2726,25 @@ class Builder extends AbstractBuilder {
     bindColumn (column: string) : string {
 
         if(!/\./.test(column)) {
-            return `\`${this.getTableName().replace(/`/g,'')}\`.\`${column.replace(/`/g,'')}\``
+
+            if(column === '*') return '*'
+
+            const alias = this.$state.get('ALIAS')
+            return [
+                alias == null 
+                    ? `\`${this.getTableName().replace(/`/g,'')}\``
+                    : `\`${alias.replace(/`/g,'')}\``
+                ,
+                '.',
+                `\`${column.replace(/`/g,'')}\``
+            ].join('')
         }
 
         const [table, c ] = column.split('.')
+
+        if(c === '*') {
+            return `\`${table.replace(/`/g,'')}\`.*`
+        }
         
         return `\`${table.replace(/`/g,'')}\`.\`${c.replace(/`/g,'')}\``
         
@@ -2934,14 +2972,10 @@ class Builder extends AbstractBuilder {
      * @returns {promise<any>}
      */
     async find(id : number): Promise<Record<string,any> | null>{
-        const result = await this._queryStatement([
-            `${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$constants('FROM')}`,
-            `${this.$state.get('TABLE_NAME')}`,
-            `${this.$constants('WHERE')} id = ${id}`
-        ].join(' '))
-        return result?.shift() || null
+       
+        this.where('id',id)
+
+        return await this.first()
     }
 
     /**
@@ -2979,6 +3013,7 @@ class Builder extends AbstractBuilder {
         if(this.$state.get('HIDDEN')?.length) this._hiddenColumn(result)
 
         if(!result.length) return {
+            //@ts-ignore
             meta : {
                 total : 0,
                 limit,
@@ -3003,6 +3038,7 @@ class Builder extends AbstractBuilder {
         const totalPage = result?.length ?? 0
 
         return {
+            //@ts-ignore
             meta : {
                 total        : total, 
                 limit        : limit,
@@ -3121,12 +3157,10 @@ class Builder extends AbstractBuilder {
 
         if(this.$state.get('EXCEPTS')?.length ) this.select(...await this.exceptColumns())
 
+        this.limit(1)
+
         let sql: string = this._queryBuilder().select()
 
-        if(!sql.includes(this.$constants('LIMIT')))  sql = `${sql} ${this.$constants('LIMIT')} 1` 
-
-        else sql =  sql.replace(this.$state.get('LIMIT') ,`${this.$constants('LIMIT')} 1`)
-        
         const result :any[] = await this._queryStatement(sql)
         
         if(this.$state.get('HIDDEN')?.length) this._hiddenColumn(result)
@@ -4069,32 +4103,15 @@ class Builder extends AbstractBuilder {
         return newInstance
     }
 
+
     protected _queryBuilder ()  {
+
         return this._buildQueryStatement()
     }
 
     protected _buildQueryStatement () {
 
         const buildSQL = (sql : (string | null)[]) => sql.filter(s => s !== '' || s == null).join(' ').replace(/\s+/g, ' ');
-
-        const bindSelect = (values : string[]) => {
-     
-            if(!values.length) {
-
-                if(!this.$state.get('DISTINCT')) return `${this.$constants('SELECT')} *`
-                
-                return `${this.$constants('SELECT')} ${this.$constants('DISTINCT')} *`
-            }
-        
-            const findIndex = values.indexOf('*')
-
-            if (findIndex > -1) {
-                const removed = values.splice(findIndex, 1)
-                values.unshift(removed[0])
-            }
-            
-            return `${this.$constants('SELECT')} ${values.join(', ')}`
-        }
 
         const bindJoin = (values : string[]) => {
 
@@ -4124,17 +4141,69 @@ class Builder extends AbstractBuilder {
             return `${this.$constants('GROUP_BY')} ${values.map(v => v.replace(/^\s/, '').replace(/\s+/g, ' ')).join(', ')}`
         }
 
+        const bindSelect = (values : string[]) => {
+     
+            if(!values.length) {
+
+                if(!this.$state.get('DISTINCT')) return `${this.$constants('SELECT')} *`
+                
+                return `${this.$constants('SELECT')} ${this.$constants('DISTINCT')} *`
+            }
+        
+            const findIndex = values.indexOf('*')
+
+            if (findIndex > -1) {
+                const removed = values.splice(findIndex, 1)
+                values.unshift(removed[0])
+            }
+            
+            return `${this.$constants('SELECT')} ${values.join(', ')}`
+        }
+
+
+        const bindFrom = ({ from , table , alias ,rawAlias } : {
+            from : string 
+            table : string  
+            alias : string | null
+            rawAlias: string | null 
+        }) => {
+
+            if(alias != null) {
+
+                if(rawAlias != null) {
+                    const alias = rawAlias.replace(/^\(\s*|\s*\)$/g, '').trim()
+                    const normalizedRawAlias = alias.startsWith('(') && alias.endsWith(')') ? alias.slice(1, -1) : alias
+                    return `${from} (${normalizedRawAlias}) ${this.$constants('AS')} \`${alias}\``
+                }
+
+                return `${from} ${table} ${this.$constants('AS')} \`${alias}\``
+            }
+
+            return `${from} ${table}`
+
+        }
+
+        const bindLimit = (limit : string | number) => {
+            if(limit === '' || limit == null ) return ''
+            
+            return `${this.$constants('LIMIT')} ${limit}`
+        }
+
         const select =  () => {
             const sql = buildSQL([
                 bindSelect(this.$state.get('SELECT')),
-                this.$state.get('FROM'),
-                this.$state.get('TABLE_NAME'),
+                bindFrom({
+                    from : this.$state.get('FROM'),
+                    table : this.$state.get('TABLE_NAME'),
+                    alias : this.$state.get('ALIAS'),
+                    rawAlias : this.$state.get('RAW_ALIAS')
+                }),
                 bindJoin(this.$state.get('JOIN')),
                 bindWhere(this.$state.get('WHERE')),
                 bindGroupBy(this.$state.get('GROUP_BY')),
                 this.$state.get('HAVING'),
                 bindOrderBy(this.$state.get('ORDER_BY')),
-                this.$state.get('LIMIT'),
+                bindLimit(this.$state.get('LIMIT')),
                 this.$state.get('OFFSET')
             ]).trimEnd()
 
@@ -4154,7 +4223,8 @@ class Builder extends AbstractBuilder {
                 this.$state.get('UPDATE') , 
                 bindWhere(this.$state.get('WHERE')) , 
                 bindOrderBy(this.$state.get('ORDER_BY')), 
-                this.$state.get('LIMIT')])
+                bindLimit(this.$state.get('LIMIT'))
+            ])
         }
            
         const remove = () => {
@@ -4162,7 +4232,7 @@ class Builder extends AbstractBuilder {
                 this.$state.get('DELETE') , 
                 bindWhere(this.$state.get('WHERE')) , 
                 bindOrderBy(this.$state.get('ORDER_BY')) , 
-                this.$state.get('LIMIT')
+                bindLimit(this.$state.get('LIMIT'))
             ])
         }
 
@@ -4608,6 +4678,54 @@ class Builder extends AbstractBuilder {
         }
       
         return [value, operator]
+    }
+
+    private _handleJoin (type : 'INNER_JOIN' | 'LEFT_JOIN' | 'RIGHT_JOIN' | 'CROSS_JOIN' = 'INNER_JOIN' ,localKey: `${string}.${string}` | ((join: Join) => Join) , referenceKey ?: `${string}.${string}`): this {
+
+        if(typeof localKey === 'function') {
+          
+            const callback = localKey(new Join(this,type))
+
+            this.$state.set('JOIN', [
+                    ...this.$state.get('JOIN'),  
+                    callback['toString']()
+                ]
+            )   
+
+            return this
+        }
+
+        let table = referenceKey?.split('.')?.shift()
+
+        const aliasRef = /\|/.test(String(table))
+
+        if(aliasRef) {
+
+            const tableRef = table?.split('|')?.shift()
+
+            table = `\`${tableRef}\` ${this.$constants('AS')} \`${table?.split('|')?.pop()}\``
+
+            referenceKey =  String(referenceKey?.split('|')?.pop() ?? referenceKey) as `${string}.${string}`
+        }
+
+        const alias = /\|/.test(String(localKey))
+
+        if(alias) {
+            localKey = String(localKey?.split('|')?.pop() ?? localKey) as `${string}.${string}`
+        }
+
+        this.$state.set('JOIN', [
+                ...this.$state.get('JOIN'),  
+                [
+                    `${this.$constants(type)}`,
+                    aliasRef ? `${table}` : `\`${table}\`` ,
+                    `${this.$constants('ON')}`,
+                    `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
+                ].join(' ')
+            ]
+        )
+
+        return this
     }
 
     private _initialConnection () {
