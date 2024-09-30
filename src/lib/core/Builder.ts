@@ -4171,8 +4171,8 @@ class Builder extends AbstractBuilder {
             if(alias != null) {
 
                 if(rawAlias != null) {
-                    const alias = rawAlias.replace(/^\(\s*|\s*\)$/g, '').trim()
-                    const normalizedRawAlias = alias.startsWith('(') && alias.endsWith(')') ? alias.slice(1, -1) : alias
+                    const raw = String(rawAlias).replace(/^\(\s*|\s*\)$/g, '').trim()
+                    const normalizedRawAlias = raw.startsWith('(') && raw.endsWith(')') ? raw.slice(1, -1) : raw
                     return `${from} (${normalizedRawAlias}) ${this.$constants('AS')} \`${alias}\``
                 }
 

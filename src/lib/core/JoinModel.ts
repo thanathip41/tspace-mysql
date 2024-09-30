@@ -26,7 +26,14 @@ class JoinModel {
         const copy = new Model()
         .copyModel(this.model)
 
-        copy.join(
+        const joinMethod = {
+            'INNER_JOIN' : 'join',
+            'LEFT_JOIN'  : 'leftJoin',
+            'RIGHT_JOIN' : 'rightJoin',
+            'CROSS_JOIN' : 'crossJoin',
+        }[this.type] as 'join' | 'leftJoin' | 'rightJoin' | 'crossJoin'
+
+        copy[joinMethod](
             `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
             `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
         )
