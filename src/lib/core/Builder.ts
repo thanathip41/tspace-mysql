@@ -54,6 +54,7 @@ class Builder extends AbstractBuilder {
         orderBy ?: boolean
         groupBy ?: boolean
         having  ?: boolean
+        alias   ?: boolean
     }) : this {
 
         if(options?.select  != null && options.select) this.$state.set('SELECT',[])
@@ -64,6 +65,7 @@ class Builder extends AbstractBuilder {
         if(options?.orderBy != null && options.orderBy) this.$state.set('ORDER_BY',[])
         if(options?.limit   != null && options.limit) this.$state.set('LIMIT','')
         if(options?.offset  != null && options.offset) this.$state.set('OFFSET','')
+        if(options?.alias   != null && options.alias) this.$state.set('RAW_ALIAS','')
        
         return this
     }
@@ -2730,8 +2732,9 @@ class Builder extends AbstractBuilder {
             if(column === '*') return '*'
 
             const alias = this.$state.get('ALIAS')
+           
             return [
-                alias == null 
+                alias == null || alias === ''
                     ? `\`${this.getTableName().replace(/`/g,'')}\``
                     : `\`${alias.replace(/`/g,'')}\``
                 ,
@@ -2988,7 +2991,7 @@ class Builder extends AbstractBuilder {
      * @param {number} paginationOptions.page default 1
      * @returns {promise<Pagination>}
      */
-    async pagination(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination>{
+    async pagination(paginationOptions ?: { limit ?: number , page ?: number  }) : Promise<TPagination>{
         
         let limit = 15
         let page = 1
@@ -3030,6 +3033,7 @@ class Builder extends AbstractBuilder {
         .copyBuilder(this , { where : true , join : true })
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
+        .unset({ alias : true })
         .count()
 
         let lastPage:number = Math.ceil(total / limit) || 0
@@ -3485,7 +3489,7 @@ class Builder extends AbstractBuilder {
 
         this.$state.set('DELETE',[
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
         ].join(' '))
 
@@ -3510,7 +3514,7 @@ class Builder extends AbstractBuilder {
         
         this.$state.set('DELETE',[
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
         ].join(' '))
 
@@ -3534,7 +3538,7 @@ class Builder extends AbstractBuilder {
         
         this.$state.set('DELETE' , [
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`
         ].join(' '))
 
@@ -4160,7 +4164,6 @@ class Builder extends AbstractBuilder {
             return `${this.$constants('SELECT')} ${values.join(', ')}`
         }
 
-
         const bindFrom = ({ from , table , alias ,rawAlias } : {
             from : string 
             table : string  
@@ -4168,9 +4171,9 @@ class Builder extends AbstractBuilder {
             rawAlias: string | null 
         }) => {
 
-            if(alias != null) {
+            if(alias != null && alias !== '') {
 
-                if(rawAlias != null) {
+                if(rawAlias != null && rawAlias !== '') {
                     const raw = String(rawAlias).replace(/^\(\s*|\s*\)$/g, '').trim()
                     const normalizedRawAlias = raw.startsWith('(') && raw.endsWith(')') ? raw.slice(1, -1) : raw
                     return `${from} (${normalizedRawAlias}) ${this.$constants('AS')} \`${alias}\``
@@ -4193,7 +4196,7 @@ class Builder extends AbstractBuilder {
             const sql = buildSQL([
                 bindSelect(this.$state.get('SELECT')),
                 bindFrom({
-                    from : this.$state.get('FROM'),
+                    from : this.$constants('FROM'),
                     table : this.$state.get('TABLE_NAME'),
                     alias : this.$state.get('ALIAS'),
                     rawAlias : this.$state.get('RAW_ALIAS')
@@ -4319,7 +4322,7 @@ class Builder extends AbstractBuilder {
             `${this.$constants('SELECT')}`,
             `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
             `*`,
-            `${this.$state.get('FROM')}`, 
+            `${this.$constants('FROM')}`, 
             `${this.$state.get('TABLE_NAME')}`, 
             `${this._queryBuilder().where()}`, 
             `${this.$constants('LIMIT')} 1)`, 
@@ -4434,7 +4437,7 @@ class Builder extends AbstractBuilder {
             `${this.$constants('SELECT')}`,
             `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
             `1`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
             `${this._queryBuilder().where()}`,
             `${this.$constants('LIMIT')} 1)`,
@@ -4502,7 +4505,7 @@ class Builder extends AbstractBuilder {
             `${this.$constants('SELECT')}`,
             `${this.$constants('EXISTS')}(${this.$constants('SELECT')}`,
             `1`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
             `${this._queryBuilder().where()}`,
             `${this.$constants('LIMIT')} 1)`,

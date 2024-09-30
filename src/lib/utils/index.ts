@@ -174,14 +174,6 @@ const camelCase = (data : any) => {
 const consoleDebug  = (sql ?: string , retry = false) => {
     if(typeof sql !== "string" || sql == null) return
 
-    const maxLength = 5_000
-    
-    sql = sql?.replace(/(\r\n|\n|\r|\t)/gm,"")
-
-    if (sql.length > maxLength) {
-        sql = `${sql.slice(0, maxLength)}.....`
-    }
-
     if(!retry) { 
         console.log(`\n\x1b[34mQUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`) 
         return 

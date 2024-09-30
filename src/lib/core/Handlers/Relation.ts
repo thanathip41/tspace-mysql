@@ -32,7 +32,7 @@ class RelationHandler  {
 
         const { localKey, foreignKey } = this._valueInRelation(relation)    
 
-        const parentIds: number[] = parents
+        let parentIds: number[] = parents
         .map((parent: Record<string,any>) => {
             const key = parent[localKey]
             
@@ -45,7 +45,9 @@ class RelationHandler  {
             return key
         })
         .filter(d => d != null)
-        
+
+        parentIds = Array.from(new Set(parentIds))
+      
         const query = relation.query as Model
 
         if(query == null) {

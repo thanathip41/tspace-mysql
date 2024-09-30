@@ -186,17 +186,20 @@ export class PoolConnection extends EventEmitter {
         
             this.emit('slowQuery', {
                 sql,
+                results,
                 execution : duration
             })
         }
 
         this.emit('query', {
             sql,
+            results,
             execution : duration
         })
 
         this.emit(this._detectQueryType(sql), {
             sql,
+            results,
             execution : duration
         })
     }

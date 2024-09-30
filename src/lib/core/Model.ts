@@ -1144,8 +1144,9 @@ class Model<
 
             const c = pattern ? this._valuePattern(column) : column
             const alias = this.$state.get('ALIAS')
+
             return [
-                alias == null 
+                alias == null || alias === ''
                     ? `\`${this.getTableName().replace(/`/g,'')}\``
                     : `\`${alias.replace(/`/g,'')}\``
                 ,
@@ -1155,7 +1156,7 @@ class Model<
         }
 
         let [table, c ] = column.split('.')
-        
+
         c = pattern ? this._valuePattern(c) : c
 
         if(c === '*') {
@@ -3886,7 +3887,7 @@ import { alias } from 'yargs';
 
         this.$state.set('DELETE',[
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
         ].join(' '))
 
@@ -3930,7 +3931,7 @@ import { alias } from 'yargs';
 
         this.$state.set('DELETE',[
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`,
         ].join(' '))
 
@@ -3958,7 +3959,7 @@ import { alias } from 'yargs';
         
         this.$state.set('DELETE' , [
             `${this.$constants('DELETE')}`,
-            `${this.$state.get('FROM')}`,
+            `${this.$constants('FROM')}`,
             `${this.$state.get('TABLE_NAME')}`
         ].join(' '))
 
@@ -4181,7 +4182,7 @@ import { alias } from 'yargs';
      * @property {number} paginationOptions.page
      * @returns  {promise<Pagination>} Pagination
      */
-    async pagination<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<(TS & K & TR)>> {
+    async pagination<K>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & TR)>> {
 
         this._validateMethod('pagination')
 
@@ -4221,7 +4222,7 @@ import { alias } from 'yargs';
      * @property  {number}  paginationOptions.page
      * @returns   {promise<Pagination>} Pagination
      */
-    async paginate<K>(paginationOptions ?: { limit ?: number , page ?: number }) : Promise<TPagination<(TS & K & TR)>> {
+    async paginate<K>(paginationOptions ?: { limit ?: number , page ?: number , alias ?: boolean }) : Promise<TPagination<(TS & K & TR)>> {
         return await this.pagination(paginationOptions)
     }
 
@@ -5383,6 +5384,7 @@ import { alias } from 'yargs';
         .copyModel(this , { where : true , join : true })
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
+        .unset({ alias : true })
         .count(this.$state.get('PRIMARY_KEY'))
 
         let lastPage: number = Math.ceil(total / limit) || 0
