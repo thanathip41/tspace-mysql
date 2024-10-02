@@ -3558,54 +3558,30 @@ class Builder extends AbstractBuilder {
      * @param {string} column
      * @returns {promise<Array>}
      */
-    async getGroupBy (column: string): Promise<any[]> {
+    async getGroupBy (column: string): Promise<Record<string,any[] | null>> {
 
-        this.selectRaw([
-            `\`${column}\`,`,
-            `${this.$constants('GROUP_CONCAT')}(id)`,
-            `${this.$constants('AS')} \`data\``
-        ].join(' '))
+        const results = await this.get()
 
-        this.groupBy(column)
+        const mapping : Record<string , any[]> = [...results]
+        .reduce((prev, curr) => {
 
-        const sql = this._queryBuilder().select()
+            const key = +curr[column]
 
-        const results = await this._queryStatement(sql)
+            if (!prev[key]) {
+              prev[key] = []
+            }
 
-        let data: string[] = []
+            prev[key].push({ ...curr })
 
-        results.forEach((result : { data : string }) => {
-            const splits = result?.data?.split(',') ?? '0'
-            splits.forEach((split:string) => data = [...data , split])
-        })
-        
-        const sqlGroups : string = [
-            `${this.$constants('SELECT')}`,
-            `*`,
-            `${this.$constants('FROM')}`,
-            `${this.$state.get('TABLE_NAME')}`,
-            `${this.$constants('WHERE')} id`,
-            `${this.$constants('IN')}`,
-            `(${data.map((a: any) => `'${a}'`).join(',') || ['0']})`
-        ].join(' ')
-
-        const groups = await this._queryStatement(sqlGroups)
-
-        const resultData = results.map((result: Record<string,any>) => {
-            const id = result[column]
-            const newData = groups.filter((data: Record<string,any>)=> data[column] === id )
-            return ({
-                [column] : id,
-                data : newData
-            })
-        })
-
-        return this._resultHandler(resultData)
+            return prev
+        }, {} as Record<string,any[]>)
+ 
+        return this._resultHandler(mapping)
     }
 
     /**
      * 
-     * The 'getGroupBy' method is used to execute a database query and retrieve the result set that matches the query conditions. 
+     * The 'findGroupBy' method is used to execute a database query and retrieve the result set that matches the query conditions. 
      * 
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      * 
@@ -3613,7 +3589,7 @@ class Builder extends AbstractBuilder {
      * @param {string} column
      * @returns {promise<Array>}
      */
-    async findGroupBy (column: string ): Promise<any[]> {
+    async findGroupBy (column: string ): Promise<Record<string,any[] | null>> {
         return await this.getGroupBy(column)
     }
 

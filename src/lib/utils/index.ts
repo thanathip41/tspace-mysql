@@ -218,7 +218,7 @@ const faker = (value : string) => {
 
     if(!value.search('text')) return randomString(500)
 
-    if(!value.search('int')) return Number(Math.floor(Math.random() * 1000))
+    if(!value.search('int')) return Number(Math.floor((Math.random() * 999) + 1))
 
     if(!value.search('float')) return Number((Math.random() * 100).toFixed(2))
 

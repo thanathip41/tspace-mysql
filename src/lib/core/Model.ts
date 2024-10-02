@@ -203,9 +203,9 @@ class Model<
      *  }
      * @returns {void} void
      */
-    protected globalScope <T extends Model>(callback : (query : T) => T) : this {
+    protected globalScope <M extends Model>(callback : (query : M) => M) : this {
 
-        const model = new Model().table(this.getTableName()) as T
+        const model = new Model().table(this.getTableName()) as M
 
         const repository : Model = callback(model)
 
@@ -3465,9 +3465,9 @@ import { alias } from 'yargs';
      * @param {Function} callback callback query
      * @returns {this}
      */
-    whereQuery<T extends Model>(callback : (query : T) => T) : this {
+    whereQuery<M extends Model>(callback : (query : M) => M) : this {
 
-        const copy = new Model().copyModel(this) as T
+        const copy = new Model().copyModel(this) as M
 
         const repository : Model = callback(copy)
 
@@ -3563,11 +3563,11 @@ import { alias } from 'yargs';
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @returns {this} this
      */
-    when(condition : string | number | undefined | null | Boolean, callback : (query : Model<any,any>) => Model): this  {
+    when<M extends Model>(condition : string | number | undefined | null | Boolean, callback : (query : M) => M): this  {
 
         if(!condition) return this
 
-        const cb =  callback(this)
+        const cb = callback(this as unknown as M)
         
         if(cb instanceof Promise) throw new Error("'when' is not supported a Promise")
     
@@ -4231,48 +4231,29 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {Promise<array>} Array
      */
-    async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<any[]> {
+    async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<
+    (unknown extends TS 
+        ? Record<`${string}`, any[] | null> 
+        : Record<`${string}`, (TS & Partial<TR extends any ? TS & Partial<TR> : TR>)[] | null>)
+    > {
 
-        if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
-         
-        const results  = await new Model()
-        .copyModel(this , { 
-            where   : true,
-            limit   : true,
-            orderBy : true
-        })
-        .selectRaw(column as string,`${this.$constants('GROUP_CONCAT')}(\`id\`) ${this.$constants('AS')} \`aggregate\``)
-        .groupBy(column)
-        .oldest()
-        .bind(this.$pool.get())
-        .debug(this.$state.get('DEBUG'))
-        .get()
+        const results = await this.get()
 
-        let ids: string[] = []
+        const mapping : Record<string , any[]> = results
+        .reduce((prev, curr) => {
 
-        results.forEach((result) => {
-            const splits : string[] = result?.aggregate?.split(',') ?? []
-            ids = [...ids , ...splits]
-        })
+            const key = +curr[column]
 
-        const grouping  = await new Model()
-        .copyModel(this , { 
-            relations : true
-        })
-        .whereIn('id',ids.map((v: string) => v))
-        .bind(this.$pool.get())
-        .debug(this.$state.get('DEBUG'))
-        .get()
+            if (!prev[key]) {
+              prev[key] = []
+            }
 
-        const result = results.map((result: Record<string,any> ) => {
-            const id = result[column]
-            const newData = grouping.filter((data :Record<string,any>)=> data[column] === id )
-            return ({
-                [column] : id,
-                data : newData
-            })
-        })
-        return this._resultHandler(result)
+            prev[key].push({ ...curr })
+
+            return prev
+        }, {} as Record<string, any[]>)
+
+        return this._resultHandler(mapping)
     }
 
     /**
@@ -4280,8 +4261,12 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {Promise<array>} Array
      */
-    async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<any[]> {
-        return this.getGroupBy(column)
+    async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K) : Promise<
+    (unknown extends TS 
+        ? Record<string, any[] | null> 
+        : Record<string, (TS & Partial<TR extends any ? TS & Partial<TR> : TR>)[] | null>)
+    > {
+        return await this.getGroupBy(column)
     }
 
     /**
