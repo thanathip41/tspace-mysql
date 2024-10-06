@@ -311,16 +311,16 @@ export type TRegistry = {
 export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
     debug ?: boolean
     when ?: {condition : boolean , callback : () => TRepositoryRequest<T,R>}
-    select ?: '*' | (keyof Partial<T> | `${string}.${string}` | TRawStringQuery | '*')[]
+    select ?: '*' | (Partial<TSchemaColumns<T>> | `${string}.${string}` | TRawStringQuery | '*')[]
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     leftJoin?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
-    where?: Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : unknown;
+    where?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>> extends infer K ? K : unknown;
     whereRaw ?: string[],
-    whereQuery ?: Partial<Record<keyof T | `${string}.${string}`, any>> extends infer K ? K : unknown;
+    whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>> extends infer K ? K : unknown;
     groupBy?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery)[] extends infer K ? K : unknown;
     having ?: string,
-    orderBy?: Partial<Record<keyof T | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
+    orderBy?: Partial<Record<TSchemaColumns<T> | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
     limit ?: number;
     offset ?: number;
     relations ?: R extends object ? (keyof R)[] : string[];
@@ -328,7 +328,7 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
     relationQuery ?: { name : R extends object ? (keyof R) : string, callback :() => TRepositoryRequest<any,any> }
 }
 
-export type TWhereColumn<T> = TSchemaKeys<T> | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+export type TSchemaColumns<T> = TSchemaKeys<T> | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
 
 export type TSchemaKeys<T> = keyof {
     [K in keyof T as string extends K ? never : K]: T[K]

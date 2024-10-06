@@ -29,7 +29,9 @@ export default (cmd : { [x: string]: any }) => {
 
     if(!values) {
         const directory = `${cwd}/${dir}/dump-schema_${+new Date()}.sql`
-        new DB().loadEnv(env).backupSchemaToFile({
+        new DB()
+        .loadEnv(env)
+        .backupSchemaToFile({
             filePath : directory,
             database : database
         })
@@ -41,7 +43,8 @@ export default (cmd : { [x: string]: any }) => {
     }
      
     const directory = `${cwd}/${dir}/dump_${+new Date()}.sql`
-    new DB().loadEnv(env)
+    new DB()
+    .loadEnv(env)
     .backupToFile({
         filePath : directory,
         database : database

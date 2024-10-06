@@ -474,18 +474,6 @@ const users = await new DB("users")
 // AND
 // ( `users`.`id` <> '2' OR `users`.`username` = 'try to find' OR `users`.`email` = 'find@example.com');
 
-const users = await new DB("users")
-  .where("id", 1)
-  .orWhereQuery((query) => {
-    return query
-      .where("id", "<>", 2)
-      .where("username", "try to find")
-      .where("email", "find@example.com");
-  })
-  .findMany();
-// SELECT * FROM `users` WHERE `users`.`id` = '1'
-// OR
-// ( `users`.`id` <> '2' AND `users`.`username` = 'try to find' AND `users`.`email` = 'find@example.com');
 ```
 
 ### Where Object Clauses

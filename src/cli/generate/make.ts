@@ -1,7 +1,6 @@
 import Model     from './model'
 import ModelDecorator from './modelDecorator'
 import pluralize from 'pluralize'
-import fsSystem from 'fs'
 import { DB }    from '../../lib'
 
 const snakeCaseToPascal = (data: string ) => {
@@ -50,68 +49,69 @@ export default (cmd : { [x: string]: any }) => {
         .loadEnv(env)
         .rawQuery('SHOW TABLES')
         .then(tables => {
-        for(let i = 0; i < tables.length; i++) {
-            const table : string = String(Object.values(tables[i])?.shift())
-            const model = snakeCaseToPascal(pluralize.singular(table))
-            new DB().loadEnv(env).rawQuery(`SHOW COLUMNS FROM \`${table}\``).then(raws => {
+            for(let i = 0; i < tables.length; i++) {
+                const table : string = String(Object.values(tables[i])?.shift())
+                const model = snakeCaseToPascal(pluralize.singular(table))
+                new DB().loadEnv(env).rawQuery(`SHOW COLUMNS FROM \`${table}\``).then(raws => {
 
-            let schema : any[] = []
-            for(const raw of raws) {
+                let schema : any[] = []
+                for(const raw of raws) {
 
-                const schemaColumn = [
-                    `@Column(() => `,
-                    `new Blueprint().${/^[^()]*$/.test(raw.Type) 
-                        ? raw.Type === raw.Type.includes('unsigned') 
-                            ? 'int().unsigned()'
-                            : `${raw.Type.toLocaleLowerCase()}()` 
-                        : raw.Type.toLocaleLowerCase()
-                    }`,
-                    `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
-                    raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-                    raw.Default != null ? `.default('${raw.Default}')`  : '',
-                    `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
-                    `)`
-                ] .join('')
+                    const schemaColumn = [
+                        `@Column(() => `,
+                        `new Blueprint().${/^[^()]*$/.test(raw.Type) 
+                            ? raw.Type === raw.Type.includes('unsigned') 
+                                ? 'int().unsigned()'
+                                : `${raw.Type.toLocaleLowerCase()}()` 
+                            : raw.Type.toLocaleLowerCase()
+                        }`,
+                        `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+                        raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+                        raw.Default != null ? `.default('${raw.Default}')`  : '',
+                        `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
+                        `)`
+                    ] .join('')
 
-                const detectType = (type : string) => {
-                    const t = type.toLowerCase()
-                    const typeForNumber = ['INT','TINYINT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
-                    const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
+                    const detectType = (type : string) => {
+                        const t = type.toLowerCase()
+                        const typeForNumber = ['INT','TINYINT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
+                        const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
 
-                    if (typeForNumber.some(v => t.includes(v))) return 'number'
-                    if (typeForDate.some(v => t.includes(v))) return 'Date'
+                        if (typeForNumber.some(v => t.includes(v))) return 'number'
+                        if (typeForDate.some(v => t.includes(v))) return 'Date'
 
-                    return 'string'
+                        return 'string'
+                    }
+
+                    const publicColumn =  `public ${raw.Field} !: ${detectType(raw.Type)}`
+
+                    schema.push({
+                        schemaColumn,
+                        publicColumn
+                    })
                 }
 
-                const publicColumn =  `public ${raw.Field} !: ${detectType(raw.Type)}`
+                let str : string= ''
 
-                schema.push({
-                    schemaColumn,
-                    publicColumn
-                })
+                for(const i in schema) {
+                    const s = schema[i]
+
+                    const isLast = +i === schema.length -1
+
+                    str += `    ${s.schemaColumn} \n`
+                    str += `    ${s.publicColumn} ${isLast ? '' : '\n\n' }`
+                }
+
+                const data = ModelDecorator(model,npm,str)
+
+                fs.writeFile(`${cwd}/${dir}/${model}${type ?? '.ts'}`, data, (err:any) => {
+                    if (err) throw err
+                    console.log(`Model : '${model}' created successfully`)
+                    })
+            
+                }).catch(err => console.log(err))
             }
-
-            let str : string= ''
-
-            for(const i in schema) {
-                const s = schema[i]
-
-                const isLast = +i === schema.length -1
-
-                str += `    ${s.schemaColumn} \n`
-                str += `    ${s.publicColumn} ${isLast ? '' : '\n\n' }`
-            }
-
-            const data = ModelDecorator(model,npm,str)
-
-            fs.writeFile(`${cwd}/${dir}/${model}${type ?? '.ts'}`, data, (err:any) => {
-                if (err) throw err
-            })
-            console.log(`Model : '${model}' created successfully`)
-            }).catch(err => console.log(err))
-        }
-            console.log('\nGenerate Models has completed')
+                console.log('\nGenerate Models has completed')
         })
         .catch(err => console.log(err))
        
@@ -160,11 +160,11 @@ export default (cmd : { [x: string]: any }) => {
         
                 const formattedSchema = formatSchema(schema);
             
-                let str = "this.useSchema({\n"
+                let str = "{\n"
                 for(const formatKey in formattedSchema) {
-                str += `       ${formatKey} : ${formattedSchema[formatKey]} \n`
+                str += `    ${formatKey} : ${formattedSchema[formatKey]} \n`
                 }
-                str += "     })"
+                str += "  }"
         
                 const data = Model(model,npm,`${str}`)
         

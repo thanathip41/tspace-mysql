@@ -1175,6 +1175,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         if(orderBy != null) {
             for(const column  in orderBy) {
+                //@ts-ignore
                 const orderby = orderBy[column]
                 instance.orderBy(column , orderby)
             }

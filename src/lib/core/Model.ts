@@ -21,7 +21,7 @@ import type {
     TFreezeStringQuery,
     TPattern,
     TSchemaKeys,
-    TWhereColumn,
+    TSchemaColumns,
     TModelConstructorOrObject
 } from '../types'
 
@@ -119,7 +119,7 @@ class Model<
      * Model.column<User>('id') 
      * @returns {string} column
      */
-    static column<M extends Model>(column : TWhereColumn<TSchemaModel<M>> | `${string}.${string}` , { table = false } = {}): string {
+    static column<M extends Model>(column : TSchemaColumns<TSchemaModel<M>> | `${string}.${string}` , { table = false } = {}): string {
 
         if(table) {
             return new this().bindColumn(String(column))
@@ -2619,7 +2619,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this} this
      */
-    where<K extends TWhereColumn<TS>>(column: K | Record<string,any>, operator?: any , value?: any): this {
+    where<K extends TSchemaColumns<TS>>(column: K | Record<string,any>, operator?: any , value?: any): this {
 
         if(typeof column === 'object') {
             return this.whereObject(column as K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any })
@@ -2661,7 +2661,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    orWhere<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
+    orWhere<K extends TSchemaColumns<TS>>(column: K , operator?: any , value?: any): this {
        
         [value , operator] = this._valueAndOperator(value, operator, arguments.length === 2)
 
@@ -2698,7 +2698,7 @@ import { alias } from 'yargs';
      * @param {number} day 
      * @returns {this}
      */
-    whereDay<K extends TWhereColumn<TS>>(column : K , day : number): this {
+    whereDay<K extends TSchemaColumns<TS>>(column : K , day : number): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -2719,7 +2719,7 @@ import { alias } from 'yargs';
      * @param {number} month
      * @returns {this}
      */
-    whereMonth<K extends TWhereColumn<TS>>(column : K , month : number): this {
+    whereMonth<K extends TSchemaColumns<TS>>(column : K , month : number): this {
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -2739,7 +2739,7 @@ import { alias } from 'yargs';
      * @param {number} year
      * @returns {this}
      */
-    whereYear<K extends TWhereColumn<TS>>(column : K , year : number): this {
+    whereYear<K extends TSchemaColumns<TS>>(column : K , year : number): this {
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -2758,7 +2758,7 @@ import { alias } from 'yargs';
      * @param {Object} columns
      * @returns {this}
      */
-    whereObject<K extends TWhereColumn<TS>>(columns : K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }): this {
+    whereObject<K extends TSchemaColumns<TS>>(columns : K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }): this {
        
         for(let column in columns) {
             
@@ -2855,7 +2855,7 @@ import { alias } from 'yargs';
      * @property {string?} property.operator
      * @returns   {this}
      */
-     whereJSON<K extends TWhereColumn<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
+     whereJSON<K extends TSchemaColumns<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
 
         value = this.$utils.escape(value)
 
@@ -2883,7 +2883,7 @@ import { alias } from 'yargs';
      * @property {string?} property.operator
      * @returns   {this}
      */
-    whereJson<K extends TWhereColumn<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
+    whereJson<K extends TSchemaColumns<TS>>(column : K , { key, value , operator } : { key : string, value : string , operator ?:string }): this {
         return this.whereJSON(column, { key , value , operator})
     }
 
@@ -2912,7 +2912,7 @@ import { alias } from 'yargs';
      * @param {array} array 
      * @returns {this}
      */
-    whereIn<K extends TWhereColumn<TS>>(column: K , array: any[]): this {
+    whereIn<K extends TSchemaColumns<TS>>(column: K , array: any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2941,7 +2941,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    orWhereIn<K extends TWhereColumn<TS>>(column: K , array: any[]): this {
+    orWhereIn<K extends TSchemaColumns<TS>>(column: K , array: any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2970,7 +2970,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    whereNotIn<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    whereNotIn<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
         
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -2999,7 +2999,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    orWhereNotIn<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    orWhereNotIn<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             this._assertError(`This 'orWhereNotIn' method is required array only`)
@@ -3028,7 +3028,7 @@ import { alias } from 'yargs';
      * @param {string} subQuery
      * @returns {this}
      */
-    whereSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string) : this {
+    whereSubQuery<K extends TSchemaColumns<TS>>(column: K , subQuery: string) : this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3049,7 +3049,7 @@ import { alias } from 'yargs';
      * @param {string} subQuery
      * @returns {this}
      */
-    whereNotSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string): this {
+    whereNotSubQuery<K extends TSchemaColumns<TS>>(column: K , subQuery: string): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3070,7 +3070,7 @@ import { alias } from 'yargs';
      * @param {string} subQuery
      * @returns {this}
      */
-    orWhereSubQuery<K extends TWhereColumn<TS>>(column: K, subQuery: string): this {
+    orWhereSubQuery<K extends TSchemaColumns<TS>>(column: K, subQuery: string): this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3093,7 +3093,7 @@ import { alias } from 'yargs';
      * @param {string} subQuery
      * @returns {this}
      */
-    orWhereNotSubQuery<K extends TWhereColumn<TS>>(column: K , subQuery: string): this {
+    orWhereNotSubQuery<K extends TSchemaColumns<TS>>(column: K , subQuery: string): this {
         
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3116,7 +3116,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    whereBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    whereBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3162,7 +3162,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    orWhereBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    orWhereBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3208,7 +3208,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    whereNotBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    whereNotBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3254,7 +3254,7 @@ import { alias } from 'yargs';
      * @param {array} array
      * @returns {this}
      */
-    orWhereNotBetween<K extends TWhereColumn<TS>>(column: K , array : any[]): this {
+    orWhereNotBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
         if(!Array.isArray(array)) {
             throw this._assertError("This method must require the value to be an array only.")
@@ -3299,7 +3299,7 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {this}
      */
-    whereNull<K extends TWhereColumn<TS>>(column: K): this {
+    whereNull<K extends TSchemaColumns<TS>>(column: K): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3318,7 +3318,7 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {this}
      */
-    orWhereNull<K extends TWhereColumn<TS>>(column: K): this {
+    orWhereNull<K extends TSchemaColumns<TS>>(column: K): this {
 
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3337,7 +3337,7 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {this}
      */
-    whereNotNull<K extends TWhereColumn<TS>>(column: K): this {
+    whereNotNull<K extends TSchemaColumns<TS>>(column: K): this {
  
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3356,7 +3356,7 @@ import { alias } from 'yargs';
      * @param {string} column
      * @returns {this}
      */
-    orWhereNotNull<K extends TWhereColumn<TS>>(column: K): this {
+    orWhereNotNull<K extends TSchemaColumns<TS>>(column: K): this {
  
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
@@ -3377,7 +3377,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    whereSensitive<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
+    whereSensitive<K extends TSchemaColumns<TS>>(column: K , operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
@@ -3408,7 +3408,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    whereStrict<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
+    whereStrict<K extends TSchemaColumns<TS>>(column: K , operator?: any , value?: any): this {
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
         )
@@ -3437,7 +3437,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    orWhereSensitive<K extends TWhereColumn<TS>>(column: K , operator?: any , value?: any): this {
+    orWhereSensitive<K extends TSchemaColumns<TS>>(column: K , operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator(
             value, operator, arguments.length === 2
@@ -3501,7 +3501,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    whereAny<K extends TWhereColumn<TS>>(columns: K[], operator?: any , value?: any): this {
+    whereAny<K extends TSchemaColumns<TS>>(columns: K[], operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator( value, operator, arguments.length === 2 )
 
@@ -3537,7 +3537,7 @@ import { alias } from 'yargs';
      * @param {any?} value
      * @returns {this}
      */
-    whereAll<K extends TWhereColumn<TS>>(columns: K[], operator?: any , value?: any): this {
+    whereAll<K extends TSchemaColumns<TS>>(columns: K[], operator?: any , value?: any): this {
 
         [value , operator] = this._valueAndOperator( value, operator, arguments.length === 2 )
 

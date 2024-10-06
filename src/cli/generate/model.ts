@@ -1,6 +1,15 @@
 const Model = (model: string, npm: string, schema : string) => {
-return `import { Model , Blueprint } from '${npm}'
-class ${model} extends Model {
+return `import { Model , Blueprint , TSchema , TRelation } from '${npm}'
+
+const schema = ${schema}
+
+type TS = TSchema<typeof schema>
+
+type TR = TRelation<{
+  // ... name your relationship
+}>
+
+class ${model} extends Model<TS,TR> {
   constructor(){
     super()
     /**
@@ -8,9 +17,10 @@ class ${model} extends Model {
      * @Schema table
      *  
      */
-    ${schema}
+    this.useSchema(schema)
   }
 }
+
 export { ${model} }
 export default ${model}
 `

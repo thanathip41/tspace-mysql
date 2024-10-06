@@ -623,6 +623,8 @@ class DB extends AbstractDB {
      */
     async backupToFile({ filePath, database = `dump_${+new Date()}` , connection } : TBackupToFile ): Promise<void> {
         
+        await this.$utils.wait(1000 * 3)
+
         const tables = await this.showTables()
 
         const backup = (await this._backup({ tables , database }))
@@ -717,6 +719,8 @@ class DB extends AbstractDB {
         
         if(connection != null && Object.keys(connection)?.length) this.connection(connection)
 
+        await this.$utils.wait(1000 * 3)
+
         const tables = await this.showTables()
     
         const backup = (await this._backup({ tables , database }))
@@ -780,6 +784,8 @@ class DB extends AbstractDB {
     async backupTableToFile({ filePath, table, connection } : TBackupTableToFile ): Promise<void> {
         
         if(connection != null && Object.keys(connection)?.length) this.connection(connection)
+
+        await this.$utils.wait(1000 * 3)
 
         const schemas =  await this.showSchema(table)
 
@@ -851,6 +857,9 @@ class DB extends AbstractDB {
      * @returns {Promise<void>}
      */
     async backupTableSchemaToFile({ filePath, table, connection } : TBackupTableToFile ): Promise<void> {
+
+        await this.$utils.wait(1000 * 3)
+
         const schemas =  await this.showSchema(table)
         const createTableSQL : string[] = [
             `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
