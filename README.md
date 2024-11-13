@@ -5,6 +5,26 @@
 
 tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamlessly in Node.js and is fully compatible with TypeScript. It consistently supports the latest features in both TypeScript and JavaScript, providing additional functionalities to enhance your development experience.
 
+## Feature
+
+| **Feature**                   | **Description**                                                                                          |
+|-------------------------------|----------------------------------------------------------------------------------------------------------|
+| **Query Builder**              | Create flexible queries like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. You can also use raw SQL.      |
+| **Join Clauses**               | Use `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, and `CROSS JOIN` to combine data from multiple tables.     |
+| **Model**                      | Provides a way to interact with database records as objects in code. You can perform create, read, update, and delete (CRUD) operations. Models also support soft deletes and relationship methods. |
+| **Schema**                     | Allows you to define and manage the structure of MySQL tables, including data types and relationships. Supports migrations and validation. |
+| **Validation**                 | Automatically checks data against defined rules before saving it to the database, ensuring data integrity and correctness. |
+| **Sync**                       | Synchronizes the model structure with the database, updating the schema to match the model definitions automatically. |
+| **Soft Deletes**               | Marks records as deleted without removing them from the database. This allows for recovery and auditing later. |
+| **Relationships**              | Set up connections between models, such as one-to-one, one-to-many, belongs-to, and many-to-many. Supports nested relationships and checks. |
+| **Type Safety**                | Ensures that queries are safer by checking the types of statements like `SELECT`, `ORDER BY`, `GROUP BY`, and `WHERE`. |
+| **Repository**                 | Follows a pattern for managing database operations like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. It helps keep the code organized. |
+| **Decorators**                 | Use decorators to add extra functionality or information to model classes and methods, making the code easier to read. |
+| **Caching**                    | Improves performance by storing frequently requested data. Supports in-memory caching (like memory DB) and Redis for distributed caching. |
+| **Migrations**                 | Use CLI commands to create models, make migrations, and apply changes to the database structure.          |
+| **Blueprints**                 | Create a clear layout of the database structure and how models and tables relate to each other.          |
+| **CLI**                        | A Command Line Interface for managing models, running migrations, executing queries, and performing other tasks using commands (like `make:model`, `migrate`, and `query`). |
+
 ## Install
 
 Install with [npm](https://www.npmjs.com/):
@@ -939,7 +959,7 @@ const usersUnsetWhereStatement = await userInstance.unset({ select : true, where
 ```js
 
 const user = await new User()
-.CTEs('v', (query) => {
+.CTEs('z', (query) => {
   return query
   .from('posts')
 })
@@ -947,9 +967,9 @@ const user = await new User()
   return query
   .from('post_user')
 })
-.select('users.*','x.*','v.*')
+.select('users.*','x.*','z.*')
 .join('users.id','x.user_id')
-.join('users.id','v.user_id')
+.join('users.id','z.user_id')
 .findOne()
 
 // WITH z AS (SELECT posts.* FROM `posts`), 
@@ -2458,7 +2478,7 @@ class User extends Model {
     this.hasMany({ name: "posts", model: Post });
 
     // if you need to initialize data when creating the table, you can use the following.
-    this.beforeCreatingTable(async () => {
+    this.whenCreatingTable(async () => {
       return await new User()
         .create({
           ...columns,
@@ -2545,7 +2565,7 @@ Type safety still works when you add additional types to your model, using the f
 
 ```js
 // in file User.ts
-import { Model , Blueprint , TSchema } from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TSchemaStatic } from 'tspace-mysql'
 import Phone  from '../Phone'
 
 const schemaUser = {
@@ -2560,6 +2580,8 @@ const schemaUser = {
 }
 
 type TSchemaUser = TSchema<typeof schemaUser>
+// TSchemaUser = TSchemaStatic<typeof schemaUser>
+// TSchemaStatic not allowed to set any new keys without in the schema to results
 
 class User extends Model<TSchemaUser>  { // Add this '<TSchemaUser>' to activate the type for the Model.
   constructor() {
@@ -2576,7 +2598,7 @@ export default User
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , TSchema } from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TSchemaStatic } from 'tspace-mysql'
 import { User } from './User.ts'
 const schemaPhone = {
     id :Blueprint.int().notNull().primary().autoIncrement(),
@@ -2588,6 +2610,8 @@ const schemaPhone = {
 }
 
 type TSchemaPhone = TSchema<typeof schemaPhone>
+// TSchemaPhone = TSchemaStatic<typeof schemaPhone>
+// TSchemaStatic not allowed to set any new keys without in the schema to results
 
 class Phone extends Model<TSchemaPhone>  {
   constructor() {
@@ -2609,12 +2633,18 @@ export default Phone
 import { User  } from './User.ts'
 import { Phone } from './Phone.ts'
 
-const users = await new User().select('id','username').findMany() ✅
-const users = await new User().select('idx','username').findMany() ❌
+const user = await new User().select('id','username').findOne() ✅
+const user = await new User().select('idx','username').findOne() ❌
 
-const users = await new User().except('id','username').findMany() ✅
-const users = await new User().except('idx','username').findMany() ❌
+const user = await new User().except('id','username').findOne() ✅
+const user = await new User().except('idx','username').findOne() ❌
 
+// TSchemaStatic not allowed to set any new keys without in the schema to results
+user.withoutSchema = 1 ✅ // TSchema<User>
+user.withoutSchema = 1 ❌ // TSchemaStatic<User>
+// But can you make like this for cases
+const user = await new User().except('idx','username').findOne<{ withoutSchema : number }>()
+user.withoutSchema = 1 ✅
 ```
 
 ### Safety OrderBy

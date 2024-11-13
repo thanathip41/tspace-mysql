@@ -308,6 +308,28 @@ export type TRegistry = {
     '$detach' ?: Function
 }
 
+export type TSchemaColumns<T> = TSchemaKeys<T> | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+
+export type TSchemaKeys<T> = keyof {
+    [K in keyof T as string extends K ? never : K]: T[K]
+} extends never 
+    ? string 
+    : keyof {
+        [K in keyof T as string extends K ? never : K]: T[K]
+    };
+
+export type TRelationResults<T> = T extends Array<infer U>
+    ? TRelationResults<U>[] 
+    : T extends object
+        ? { 
+            [K in keyof T as K extends `$${string}` ? never : K] : TRelationResults<T[K]>
+        }
+        : T;
+
+export type TRelationKeys<T> = keyof {
+    [K in keyof T as K extends `$${string}` ? never : K]: T[K];
+}
+
 export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
     debug ?: boolean
     when ?: {condition : boolean , callback : () => TRepositoryRequest<T,R>}
@@ -323,20 +345,10 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
     orderBy?: Partial<Record<TSchemaColumns<T> | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
     limit ?: number;
     offset ?: number;
-    relations ?: R extends object ? (keyof R)[] : string[];
-    relationsExists ?: R extends object ? (keyof R)[] : string[];
-    relationQuery ?: { name : R extends object ? (keyof R) : string, callback :() => TRepositoryRequest<any,any> }
+    relations ?: R extends object ? (TRelationKeys<R>)[] : string[];
+    relationsExists ?: R extends object ? (TRelationKeys<R>)[] : string[];
+    relationQuery ?: { name : R extends object ? (TRelationKeys<R>) : string, callback :() => TRepositoryRequest<any,any> }
 }
-
-export type TSchemaColumns<T> = TSchemaKeys<T> | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
-
-export type TSchemaKeys<T> = keyof {
-    [K in keyof T as string extends K ? never : K]: T[K]
-} extends never 
-    ? string 
-    : keyof {
-        [K in keyof T as string extends K ? never : K]: T[K]
-    };
 
 export type TRepositoryRequestHandler<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R> & { instance ?: Model }>
 

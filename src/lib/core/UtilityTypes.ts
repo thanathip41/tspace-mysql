@@ -168,7 +168,10 @@ export type TRelation<R> = {
     : R[K] extends Model
       ? TSchemaModel<R[K]> & TRelationModel<R[K]>
       : R[K]
+} & {
+    [K in keyof R as `$${K & string}`]: R[K];
 };
+
 /**
  * The 'TRelation' type is used to specify the type of the relation.
  * @generic {type} R relationships type
@@ -289,3 +292,17 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  * @generic {Model} M Model
  */
 export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M> , TRelationModel<M>>;
+
+/**
+ * The 'TSchemaKeyOf' type is used to get keyof type TSchemaModel<Model>
+ * @generic {Model} M Model
+ */
+export type TSchemaKeyOf<
+    M extends Model , T = TSchemaModel<M>
+> = keyof {
+    [K in keyof T as string extends K ? never : K]: T[K]
+} extends never 
+    ? string 
+    : keyof {
+        [K in keyof T as string extends K ? never : K]: T[K]
+    }

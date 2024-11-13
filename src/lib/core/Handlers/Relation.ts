@@ -405,6 +405,29 @@ class RelationHandler  {
         ])
     }
 
+    manyToMany({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+        
+        const relation = {
+            name,
+            model,
+            as,
+            relation: this.$constants('RELATIONSHIP').belongsToMany,
+            localKey,
+            foreignKey,
+            freezeTable,
+            pivot,
+            oldVersion,
+            query : null,
+            modelPivot
+        }
+
+        return this.$model['$state']
+        .set('RELATION', [
+            ...this.$model['$state'].get('RELATION'),
+            relation
+        ])
+    }
+
     hasOneBuilder ({ 
         name, 
         as, 

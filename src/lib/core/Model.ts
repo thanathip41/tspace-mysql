@@ -22,7 +22,9 @@ import type {
     TPattern,
     TSchemaKeys,
     TSchemaColumns,
-    TModelConstructorOrObject
+    TModelConstructorOrObject,
+    TRelationResults,
+    TRelationKeys
 } from '../types'
 
 
@@ -800,6 +802,32 @@ class Model<
     }
 
     /**
+     * The "whenCreatingTable" method is used exection function when creating the table.
+     * @param {Function} fn functions for executing when creating the table
+     * @returns {this} this
+     * @example
+     * class User extends Model {
+     *   constructor() {
+     *     this.whenCreatingTable(async () => {
+     *         await new User()
+     *          .create({
+     *            ...columns
+     *          })
+     *          .save()
+     *      })
+     *   }
+     * }
+    */
+    protected whenCreatingTable (fn : () => Promise<any>): this {
+
+        if(!(fn instanceof Function)) throw this._assertError(`This '${fn}' is not a function.`)
+
+        this.$state.set('BEFORE_CREATING_TABLE',fn)
+
+        return this
+    }
+
+    /**
      * exceptColumns for method except
      * @override
      * @returns {promise<string>} string
@@ -864,7 +892,7 @@ class Model<
      * @param    {Function} callback query callback
      * @returns   {this}   this
      */
-    protected buildMethodRelation<K extends TR extends object ? keyof TR : string>(name: K , callback?: Function): this {
+    protected buildMethodRelation<K extends TR extends object ? TRelationKeys<TR> : string>(name: K , callback?: Function): this {
 
         this.relations(name)
         
@@ -1784,7 +1812,7 @@ class Model<
      *  await new User().with('posts').findMany()
      * 
      */
-    with<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    with<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
         
@@ -1821,7 +1849,7 @@ class Model<
      *  await new User().relations('posts').findMany()
      * 
      */
-    relations<K extends TR extends object ? keyof TR : string>(...nameRelations:K[]): this {
+    relations<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations:K[]): this {
         return this.with(...nameRelations)
     }
 
@@ -1833,7 +1861,7 @@ class Model<
      * @param {...string} nameRelations if data exists return empty
      * @returns {this} this
      */
-    withAll<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    withAll<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -1851,7 +1879,7 @@ class Model<
      * @param {...string} nameRelations if data exists return empty
      * @returns {this} this
      */
-    relationsAll<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    relationsAll<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         return this.withAll(...nameRelations)
     }
@@ -1863,7 +1891,7 @@ class Model<
      * @param {...string} nameRelations if data exists return 0
      * @returns {this} this
      */
-    withCount<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    withCount<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -1878,7 +1906,7 @@ class Model<
      * @param {...string} nameRelations if data exists return 0
      * @returns {this} this
      */
-    relationsCount<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    relationsCount<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -1896,7 +1924,7 @@ class Model<
      * @param {...string} nameRelations if data exists return blank
      * @returns {this} this
      */
-    withTrashed<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    withTrashed<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -1914,7 +1942,7 @@ class Model<
      * @param {...string} nameRelations if data exists return blank
      * @returns {this} this
      */
-    relationsTrashed<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    relationsTrashed<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         return this.withTrashed(...nameRelations)
     }
@@ -1948,7 +1976,7 @@ import { alias } from 'yargs';
      *  // use with for results of relationship if relations is exists
      *  await new User().withExists('posts').findMany()
      */
-    withExists<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    withExists<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -1987,7 +2015,7 @@ import { alias } from 'yargs';
      *  // use with for results of relationship if relations is exists
      *  await new User().relationsExists('posts').findMany()
      */
-    relationsExists<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    relationsExists<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
         return this.withExists(...nameRelations)
     }
 
@@ -2018,7 +2046,7 @@ import { alias } from 'yargs';
      *  // use with for results of relationship if relations is exists
      *  await new User().has('posts').findMany()
      */
-    has<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    has<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
         return  this.withExists(...nameRelations)
     }
 
@@ -2049,7 +2077,7 @@ import { alias } from 'yargs';
      *  // use with for results of relationship if relations is exists
      *  await new User().withNotExists('posts').findMany()
      */
-    withNotExists<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    withNotExists<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -2087,7 +2115,7 @@ import { alias } from 'yargs';
      *  // use with for results of relationship if relations is exists
      *  await new User().relationsNotExists('posts').findMany()
      */
-    relationsNotExists<K extends TR extends object ? keyof TR : string>(...nameRelations: K[]): this {
+    relationsNotExists<K extends TR extends object ? TRelationKeys<TR> : string>(...nameRelations: K[]): this {
 
         if(!nameRelations.length) return this
 
@@ -2148,8 +2176,12 @@ import { alias } from 'yargs';
      * @returns {this} this
      */
     withQuery<
-        K extends TR extends object ? keyof TR : string, 
-        M extends Model
+        K extends TR extends object ? TRelationKeys<TR> : string, 
+        M = `$${K & string}` extends keyof TR 
+        ? TR[`$${K & string}`] extends (infer T)[]
+            ? T
+            : TR[`$${K & string}`]
+        : Model
     >(nameRelation: K, callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
 
         this.with(nameRelation)
@@ -2214,8 +2246,12 @@ import { alias } from 'yargs';
      * @returns {this} this
      */
     relationQuery<
-        K extends TR extends object ? keyof TR : string,
-        M extends Model
+        K extends TR extends object ? TRelationKeys<TR> : string,
+        M = `$${K & string}` extends keyof TR 
+        ? TR[`$${K & string}`] extends (infer T)[]
+            ? T
+            : TR[`$${K & string}`]
+        : Model
     >
     (nameRelation: K , callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
         return this.withQuery(nameRelation, callback , options)
@@ -2228,7 +2264,7 @@ import { alias } from 'yargs';
      * @param {string} name name relation in registry in your model
      * @returns {Model} model instance
      */
-    findWithQuery<K extends TR extends object ? keyof TR : string>(name: K): Model | null {
+    findWithQuery<K extends TR extends object ? TRelationKeys<TR> : string>(name: K): Model | null {
 
         const instance = this.$relation.returnCallback(String(name))
 
@@ -2251,7 +2287,7 @@ import { alias } from 'yargs';
      * @property {string} relation.freezeTable
      * @returns  {this}   this
      */
-    protected hasOne<K extends TR extends object ? keyof TR : string>({ 
+    protected hasOne<K extends TR extends object ? TRelationKeys<TR> : string>({ 
         name , 
         as , 
         model, 
@@ -2288,7 +2324,7 @@ import { alias } from 'yargs';
      * @property {string} relation.freezeTable
      * @returns   {this}   this
      */
-    protected hasMany<K extends TR extends object ? keyof TR : string>({ 
+    protected hasMany<K extends TR extends object ? TRelationKeys<TR> : string>({ 
         name, 
         as, 
         model, 
@@ -2325,7 +2361,7 @@ import { alias } from 'yargs';
      * @property {string} relation.freezeTable
      * @returns   {this}   this
      */
-    protected belongsTo<K extends TR extends object ? keyof TR : string>({ 
+    protected belongsTo<K extends TR extends object ? TRelationKeys<TR> : string>({ 
         name , 
         as , 
         model  , 
@@ -2365,7 +2401,7 @@ import { alias } from 'yargs';
      * @property {class?} relation.modelPivot model for pivot
      * @returns  {this}   this
      */
-    protected belongsToMany<K extends TR extends object ? keyof TR : string>({ 
+    protected belongsToMany<K extends TR extends object ? TRelationKeys<TR> : string>({ 
         name , 
         as, 
         model  , 
@@ -2914,9 +2950,7 @@ import { alias } from 'yargs';
      */
     whereIn<K extends TSchemaColumns<TS>>(column: K , array: any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         const values = array.length 
             ?`${array.map((value:string) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -2943,9 +2977,7 @@ import { alias } from 'yargs';
      */
     orWhereIn<K extends TSchemaColumns<TS>>(column: K , array: any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         const values = array.length 
             ?`${array.map((value:string) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -2972,9 +3004,7 @@ import { alias } from 'yargs';
      */
     whereNotIn<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
         
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) return this
 
@@ -3001,9 +3031,7 @@ import { alias } from 'yargs';
      */
     orWhereNotIn<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
-        if(!Array.isArray(array)) {
-            this._assertError(`This 'orWhereNotIn' method is required array only`)
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) return this
 
@@ -3118,9 +3146,7 @@ import { alias } from 'yargs';
      */
     whereBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) {
 
@@ -3164,9 +3190,7 @@ import { alias } from 'yargs';
      */
     orWhereBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) {
             
@@ -3210,9 +3234,7 @@ import { alias } from 'yargs';
      */
     whereNotBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) {
             
@@ -3256,9 +3278,7 @@ import { alias } from 'yargs';
      */
     orWhereNotBetween<K extends TSchemaColumns<TS>>(column: K , array : any[]): this {
 
-        if(!Array.isArray(array)) {
-            throw this._assertError("This method must require the value to be an array only.")
-        }
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) {
            
@@ -3386,7 +3406,7 @@ import { alias } from 'yargs';
         value = this.$utils.escape(value)
 
         value = this.$utils.covertBooleanToNumber(value)
-       
+
         this.$state.set('WHERE', [
             ...this.$state.get('WHERE'),
             [
@@ -4063,7 +4083,9 @@ import { alias } from 'yargs';
      * @param {Function?} cb callback function return query sql
      * @returns {promise<Record<string,any> | null>} Record | null
     */
-    async first<K>(cb ?: Function):Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>) | null> {
+    async first<K , R = TRelationResults<TR>>(cb ?: Function): Promise<
+        (unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null
+    > {
     
         this._validateMethod('first')
 
@@ -4189,9 +4211,9 @@ import { alias } from 'yargs';
         let limit = 15
         let page = 1
         
-        if(paginationOptions != null) {
-           limit = (paginationOptions?.limit || limit)
-           page = paginationOptions?.page || page
+        if(paginationOptions != null){
+            limit = this.$utils.softNumber(paginationOptions?.limit || limit)
+            page = this.$utils.softNumber(paginationOptions?.page || page)
         }
 
         if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
@@ -6027,12 +6049,24 @@ import { alias } from 'yargs';
 
         await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
-        const resultData = await new Model()
+        let resultData = await new Model()
         .copyModel(this , { select : true , relations : true })
         .where('id',id)
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
         .first()
+
+        if(resultData == null) {
+
+            await this.$utils.wait(300)
+
+            resultData = await new Model()
+            .copyModel(this , { select : true , relations : true })
+            .where('id',id)
+            .bind(this.$pool.get())
+            .debug(this.$state.get('DEBUG'))
+            .first()
+        }
 
         await this._observer(resultData , 'created')
         
@@ -6106,12 +6140,25 @@ import { alias } from 'yargs';
 
                 await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
-                const data = await new Model()
+                let data = await new Model()
                 .copyModel(this , { select : true  })
                 .bind(this.$pool.get())
                 .where('id',id)
                 .debug(this.$state.get('DEBUG'))
                 .first()
+
+                if(data == null) {
+
+                    await this.$utils.wait(300)
+                    
+                    data = await new Model()
+                    .copyModel(this , { select : true  })
+                    .bind(this.$pool.get())
+                    .where('id',id)
+                    .debug(this.$state.get('DEBUG'))
+                    .first()
+                }
+        
 
                 const resultData = data == null ? null  :  { ...data,  $action : 'insert' }
 
@@ -6185,12 +6232,23 @@ import { alias } from 'yargs';
 
                 await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
-                const data = await new Model()
+                let data = await new Model()
                 .copyModel(this , { select : true})
                 .bind(this.$pool.get())
                 .where('id',id)
                 .debug(this.$state.get('DEBUG'))
                 .first()
+
+                if(data == null) {
+                    await this.$utils.wait(300)
+                    
+                    data = await new Model()
+                    .copyModel(this , { select : true})
+                    .bind(this.$pool.get())
+                    .where('id',id)
+                    .debug(this.$state.get('DEBUG'))
+                    .first()
+                }
 
                 const resultData = data == null 
                 ? null 
@@ -6427,7 +6485,7 @@ import { alias } from 'yargs';
         await ob[type](result) 
     }
 
-    private _makeRelations<K extends TR extends object ? keyof TR : string>() : this{
+    private _makeRelations<K extends TR extends object ? TRelationKeys<TR> : string>() : this{
 
         if(this.$hasOne != null) {
             for(const hasOne of this.$hasOne) {
@@ -6503,6 +6561,8 @@ import { alias } from 'yargs';
        
         this.$state = new StateHandler('model')
 
+        this.meta('MAIN')
+
         if(this.$pattern != null) this.usePattern(this.$pattern)
 
         this._makeTableName()
@@ -6539,8 +6599,6 @@ import { alias } from 'yargs';
         if(this.$validateSchema != null) this.useValidateSchema(this.$validateSchema)
 
         if(this.$observer != null) this.useObserver(this.$observer)
-
-        this.meta('MAIN')
 
         return this
     }

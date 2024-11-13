@@ -258,6 +258,15 @@ const wait = (ms : number) => {
     return new Promise(ok => setTimeout(ok,Number.isNaN(ms) ? 0 : ms))
 }
 
+const softNumber = (n : any) : number =>  {
+    if(typeof n !== 'number' || Number.isNaN(n)) {
+        return 0
+    }
+
+    return Number(n)
+}
+
+
 const utils = {
     typeOf,
     isDate,
@@ -278,7 +287,8 @@ const utils = {
     randomString,
     hookHandle,
     chunkArray,
-    wait
+    wait,
+    softNumber
 }
 
 export type TUtils = typeof utils

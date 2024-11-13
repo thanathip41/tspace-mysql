@@ -87,8 +87,6 @@ export class PoolConnection extends EventEmitter {
             },
             connection : () =>  {
 
-                const transaction = this._transaction()
-
                 return new Promise((resolve, reject) => {
                     pool.getConnection((err, connection : TPoolConnection) => {
 
@@ -96,45 +94,45 @@ export class PoolConnection extends EventEmitter {
 
                         const query = (sql: string) => {
                             const start : number = Date.now()
-                            return new Promise<any[]>((resolve, reject) => {
+                            return new Promise<any[]>((resolveQ, rejectQ) => {
 
-                                if(!transaction.state()) {  
-                                    return reject(new Error('The transaction has either been closed or has not started.'))
-                                }
- 
                                 connection.query(sql, (err : QueryError, results: any[]) => {
             
                                     connection.release()
-
-                                    if (err)  return reject(err)
+                                   
+                                    if (err) {
+                                        return rejectQ(err)
+                                    }
 
                                     this._detectEventQuery({ start , sql , results })
 
-                                    return resolve(results)
+                                    return resolveQ(results)
                                 })
                             })
                         }
 
                         const startTransaction = async () => {
-                            transaction.start()
-                            await query('START TRANSACTION')
+                            
+                            // don't use await as it blocks all connection pools. and ignore the .bind(...) method.
+                            query('START TRANSACTION')
+                            .catch(err => reject(err))
+                            
                             return
                         }
 
-                       
                         const commit = async () => {
                            
-                            await query('COMMIT')
-                            transaction.close()
-                            
+                           await query('COMMIT')
+                           .catch(err => reject(err))
+
                             return
                         }
 
                         const rollback = async () => {
                             
                             await query('ROLLBACK')
-                            transaction.close()
-                            
+                            .catch(err => reject(err))
+
                             return
                         }
                         
@@ -149,27 +147,6 @@ export class PoolConnection extends EventEmitter {
                 })
             }
         }
-    }
-
-    private _transaction () {
-        class Transaction {
-            private on : boolean =  false
-
-            state () {
-
-                return this.on
-            }
-
-            start() {
-                this.on = true
-            }
-
-            close () {
-                this.on = false
-            }
-        }
-
-        return new Transaction()
     }
 
     private _detectEventQuery ({ start , sql , results  }:{ start : number , sql : string , results : any[] }) {

@@ -164,3 +164,5 @@ export class Operator {
         return Operator._handlerResult('|query', value)
     } 
 }
+
+export class OP extends Operator {}

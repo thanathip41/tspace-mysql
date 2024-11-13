@@ -913,7 +913,7 @@ class Builder extends AbstractBuilder {
      */
     whereIn (column: string , array: any[]): this {
 
-        if(!Array.isArray(array)) throw new Error(`This 'whereIn' method is required array only`);
+        if(!Array.isArray(array)) array = [array];
 
         const values = array.length 
             ?`${array.map((value:string) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -942,7 +942,7 @@ class Builder extends AbstractBuilder {
      */
     orWhereIn (column: string , array: any[]): this {
 
-        if(!Array.isArray(array)) throw new Error(`This 'orWhereIn' method is required array only`);
+        if(!Array.isArray(array)) array = [array];
 
         const values = array.length 
             ?`${array.map((value:string) => this._checkValueHasRaw(this.$utils.escape(value))).join(',')}`
@@ -971,7 +971,7 @@ class Builder extends AbstractBuilder {
      */
     whereNotIn (column: string , array : any[]): this {
         
-        if(!Array.isArray(array)) throw new Error(`This 'whereNotIn' method is required array only`);
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) return this
 
@@ -1000,7 +1000,7 @@ class Builder extends AbstractBuilder {
      */
     orWhereNotIn (column: string , array : any[]): this {
 
-        if(!Array.isArray(array)) throw new Error(`This 'orWhereNotIn' method is required array only`)
+        if(!Array.isArray(array)) array = [array];
 
         if(!array.length) return this
 
@@ -2172,6 +2172,8 @@ class Builder extends AbstractBuilder {
      */
     limit (number: number = 1): this {
 
+        number = this.$utils.softNumber(number)
+
         if(number === -1) number = 2**31 - 1 // int 32 bit
        
         if(number < 0 || number === -0) number = 0
@@ -2201,6 +2203,8 @@ class Builder extends AbstractBuilder {
      */
     offset (number: number = 1) : this {
 
+        number = this.$utils.softNumber(number)
+        
         if(number < 0 || number === -0) number = 0
 
         this.$state.set('OFFSET' , `${this.$constants('OFFSET')} ${number}`)
@@ -3604,9 +3608,9 @@ class Builder extends AbstractBuilder {
         this.$state.set('AFTER_SAVE',waitMs)
         
         switch (this.$state.get('SAVE')) {
-            case 'INSERT_MULTIPLE' : return await this._insertMultiple()
             case 'INSERT': return await this._insert()
             case 'UPDATE': return await this._update()
+            case 'INSERT_MULTIPLE' : return await this._insertMultiple()
             case 'INSERT_NOT_EXISTS': return await this._insertNotExists()
             case 'UPDATE_OR_INSERT': return await this._updateOrInsert()
             case 'INSERT_OR_SELECT': return await this._insertOrSelect()
@@ -4647,10 +4651,12 @@ class Builder extends AbstractBuilder {
         ].join(' ')
     }
 
-    protected _valueAndOperator (value :string, operator :string , useDefault = false) : string[] {
+    protected _valueAndOperator (value :string, operator :string , useDefault = false) : any[] {
         if (useDefault) return [operator, '=']
 
-        if(operator == null) throw new Error(`The arguments are required. Please check the your arguments in method 'where' or etc methods.`)
+        if(operator == null) {
+            return [[],'=']
+        }
 
         if(operator.toUpperCase() === this.$constants('LIKE')) {
             operator = operator.toUpperCase()
