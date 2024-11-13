@@ -2579,8 +2579,10 @@ const schemaUser = {
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaUser = TSchema<typeof schemaUser>
-// TSchemaUser = TSchemaStatic<typeof schemaUser>
+type TSchemaUser = TSchemaStatic<typeof schemaUser>
+// TSchemaUser = TSchema<typeof schemaUser>
+
+// TSchema allowed to set any new keys without in the schema to results
 // TSchemaStatic not allowed to set any new keys without in the schema to results
 
 class User extends Model<TSchemaUser>  { // Add this '<TSchemaUser>' to activate the type for the Model.
@@ -2609,9 +2611,7 @@ const schemaPhone = {
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaPhone = TSchema<typeof schemaPhone>
-// TSchemaPhone = TSchemaStatic<typeof schemaPhone>
-// TSchemaStatic not allowed to set any new keys without in the schema to results
+type TSchemaPhone = TSchemaStatic<typeof schemaPhone>
 
 class Phone extends Model<TSchemaPhone>  {
   constructor() {
@@ -2848,7 +2848,7 @@ for(const user of users) {
 +--------------------------------------------------------------------------+
 // If you don't want to set types for every returning method such as 'findOne', 'findMany', and so on...
 
-import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
+import { Model , Blueprint , TSchema , TSchemaStatic , TRelation } from 'tspace-mysql'
 import { Phone }  from '../Phone'
 
 const schemaUser = {
@@ -2862,7 +2862,7 @@ const schemaUser = {
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaUser = TSchema<typeof schemaUser>
+type TSchemaUser = TSchemaStatic<typeof schemaUser>
 
 type TRelationUser =  TRelation<{
   phones : Phone[]
