@@ -3583,11 +3583,14 @@ import { alias } from 'yargs';
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @returns {this} this
      */
-    when<M extends Model>(condition : string | number | undefined | null | Boolean, callback : (query : M) => M): this  {
+    when<M extends unknown>(
+        condition : string | number | undefined | null | Boolean, 
+        callback: (query: M extends Model ? M : this) => M extends Model ? M : this
+    ): this {
 
         if(!condition) return this
 
-        const cb = callback(this as unknown as M)
+        const cb = callback(this as M extends Model ? M : this)
         
         if(cb instanceof Promise) throw new Error("'when' is not supported a Promise")
     
