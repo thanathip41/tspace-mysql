@@ -234,7 +234,7 @@ class RelationHandler  {
                 throw this._assertError(`Model for the relationship is unknown.`)
             }
 
-            if(relation.query == null) relation.query = new relation.model()
+            relation.query = relation.query == null ? new relation.model() : relation.query
 
             return relation
         })
@@ -276,7 +276,7 @@ class RelationHandler  {
             throw this._assertError(`Model for the relationship is unknown.`)
         }
 
-        relation.query = cb(new relation.model())
+        relation.query = cb(relation.query == null ? new relation.model() : relation.query)
 
         return
     }
@@ -309,7 +309,7 @@ class RelationHandler  {
             throw this._assertError(`Model pivot for the relationship is unknown`)
         }
 
-        relation.queryPivot = cb(new relation.modelPivot())
+        relation.queryPivot = cb(relation.queryPivot == null ? new relation.modelPivot() : relation.queryPivot)
 
         return
     }
@@ -332,7 +332,7 @@ class RelationHandler  {
             )
         }
 
-        return new relation.model()
+        return relation.query == null ? new relation.model() : relation.query
     }
 
     hasOne ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {

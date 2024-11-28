@@ -330,14 +330,20 @@ export type TRelationKeys<T> = keyof {
     [K in keyof T as K extends `$${string}` ? never : K]: T[K];
 }
 
-export type TRepositoryRequest<T extends Record<string, any> = any,R = any> = {
+export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
     debug ?: boolean
     when ?: {condition : boolean , callback : () => TRepositoryRequest<T,R>}
     select ?: '*' | (Partial<TSchemaColumns<T>> | `${string}.${string}` | TRawStringQuery | '*')[]
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     leftJoin?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
-    where?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>> extends infer K ? K : unknown;
+    where?: Partial<
+        Record<
+            R extends object ? TRelationKeys<R> | TSchemaKeys<T> : TSchemaKeys<T> | `${string}.${string}`, 
+            // any
+            K extends keyof R ? R[K] : (K extends keyof T ? any : never)
+        >
+    > extends infer K ? K : unknown;
     whereRaw ?: string[],
     whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>> extends infer K ? K : unknown;
     groupBy?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery)[] extends infer K ? K : unknown;

@@ -2246,7 +2246,7 @@ import { alias } from 'yargs';
      * @returns {this} this
      */
     relationQuery<
-        K extends TR extends object ? TRelationKeys<TR> : string,
+        K extends TR extends object ? TRelationKeys<TR> : string, 
         M = `$${K & string}` extends keyof TR 
         ? TR[`$${K & string}`] extends (infer T)[]
             ? T
@@ -3485,11 +3485,13 @@ import { alias } from 'yargs';
      * @param {Function} callback callback query
      * @returns {this}
      */
-    whereQuery<M extends Model>(callback : (query : M) => M) : this {
+    whereQuery<T extends Model | unknown , M = T extends this ? this : T extends Model ? T : this>(
+        callback: (query: M) => M
+    ) : this {
 
         const copy = new Model().copyModel(this) as M
 
-        const repository : Model = callback(copy)
+        const repository = callback(copy)
 
         if(repository instanceof Promise) throw this._assertError('The "whereQuery" method is not supported a Promise')
 
@@ -3583,18 +3585,17 @@ import { alias } from 'yargs';
      * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
      * @returns {this} this
      */
-    when<M extends unknown>(
-        condition : string | number | undefined | null | Boolean, 
-        callback: (query: M extends Model ? M : this) => M extends Model ? M : this
+    when<T extends Model | unknown , M = T extends this ? this : T extends Model ? T : this>(
+        condition: string | number | undefined | null | boolean, 
+        callback: (query: M) => M
     ): this {
-
-        if(!condition) return this
-
-        const cb = callback(this as M extends Model ? M : this)
-        
-        if(cb instanceof Promise) throw new Error("'when' is not supported a Promise")
+        if (!condition) return this;
     
-        return this
+        const cb = callback(this as unknown as M)
+    
+        if (cb instanceof Promise) throw new Error("'when' does not support Promises");
+
+        return this;
     }
 
     /**
@@ -4035,6 +4036,7 @@ import { alias } from 'yargs';
     } = {}): string {
         return this.toString({ latest , oldest })
     }
+    
 
     /**
      * @override
@@ -4122,7 +4124,7 @@ import { alias } from 'yargs';
      * @param {Function?} cb callback function return query sql
      * @returns {promise<Record<string,any> | null>} Record | null
     */
-    async findOne<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>) | null> {
+    async findOne<K, R = TRelationResults<TR>>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
         return await this.first(cb)
     }
 
@@ -4130,7 +4132,7 @@ import { alias } from 'yargs';
      * @override
      * @returns {promise<object | Error>} Record | throw error
     */
-    async firstOrError<K>(message ?: string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)>{
+    async firstOrError<K, R = TRelationResults<TR>>(message ?: string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>)>{
 
         this._validateMethod('firstOrError')
 
@@ -4155,7 +4157,7 @@ import { alias } from 'yargs';
      * @override
      * @returns {promise<any>} Record | throw error
     */
-    async findOneOrError<K>(message : string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)>{
+    async findOneOrError<K, R = TRelationResults<TR>>(message ?: string, options ?: Record<string,any> ): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>)>{
         return await this.firstOrError(message , options)
     }
     /**
@@ -4164,7 +4166,7 @@ import { alias } from 'yargs';
      * @param {Function?} cb callback function return query sql
      * @returns {promise<array>} Array
     */
-    async get<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)[]> {
+    async get<K,R = TRelationResults<TR>>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
 
         this._validateMethod('get')
 
@@ -4197,7 +4199,7 @@ import { alias } from 'yargs';
      * @param {Function?} cb callback function return query sql
      * @returns {promise<array>} Array
     */
-    async findMany<K>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<TR> : TR>)[]>  {
+    async findMany<K,R = TRelationResults<TR>>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
         return await this.get(cb)
     }
     /**
@@ -4207,7 +4209,7 @@ import { alias } from 'yargs';
      * @property {number} paginationOptions.page
      * @returns  {promise<Pagination>} Pagination
      */
-    async pagination<K>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & TR)>> {
+    async pagination<K,R = TRelationResults<TR>>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
 
         this._validateMethod('pagination')
 
@@ -4247,19 +4249,19 @@ import { alias } from 'yargs';
      * @property  {number}  paginationOptions.page
      * @returns   {promise<Pagination>} Pagination
      */
-    async paginate<K>(paginationOptions ?: { limit ?: number , page ?: number , alias ?: boolean }) : Promise<TPagination<(TS & K & TR)>> {
+    async paginate<K,R = TRelationResults<TR>>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
         return await this.pagination(paginationOptions)
     }
 
     /**
      * @override
      * @param {string} column
-     * @returns {Promise<array>} Array
+     * @returns {Promise<object>} Object binding with your column pairs
      */
-    async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K): Promise<
+    async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,R = TRelationResults<TR>>(column: K): Promise<
     (unknown extends TS 
         ? Record<`${string}`, any[] | null> 
-        : Record<`${string}`, (TS & Partial<TR extends any ? TS & Partial<TR> : TR>)[] | null>)
+        : Record<`${string}`, (TS & Partial<R extends any ? TS & Partial<R> : R>)[] | null>)
     > {
 
         const results = await this.get()
@@ -4267,7 +4269,7 @@ import { alias } from 'yargs';
         const mapping : Record<string , any[]> = results
         .reduce((prev, curr) => {
 
-            const key = +curr[column]
+            const key = String(curr[column])
 
             if (!prev[key]) {
               prev[key] = []
@@ -4284,12 +4286,12 @@ import { alias } from 'yargs';
     /**
      * @override
      * @param {string} column
-     * @returns {Promise<array>} Array
+     * @returns {Promise<object>} Object binding with your column pairs
      */
-    async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(column: K) : Promise<
+    async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,R = TRelationResults<TR>>(column: K): Promise<
     (unknown extends TS 
-        ? Record<string, any[] | null> 
-        : Record<string, (TS & Partial<TR extends any ? TS & Partial<TR> : TR>)[] | null>)
+        ? Record<`${string}`, any[] | null> 
+        : Record<`${string}`, (TS & Partial<R extends any ? TS & Partial<R> : R>)[] | null>)
     > {
         return await this.getGroupBy(column)
     }
@@ -6027,12 +6029,24 @@ import { alias } from 'yargs';
 
         await this.$utils.wait(this.$state.get('AFTER_SAVE'))
 
-        const resultData = await new Model()
+        let resultData = await new Model()
         .copyModel(this , { select : true , relations : true })
+        .where('id',id)
         .bind(this.$pool.get())
         .debug(this.$state.get('DEBUG'))
-        .where('id',id)
         .first()
+
+        if(resultData == null) {
+
+            await this.$utils.wait(500)
+
+            resultData = await new Model()
+            .copyModel(this , { select : true , relations : true })
+            .where('id',id)
+            .bind(this.$pool.get())
+            .debug(this.$state.get('DEBUG'))
+            .first()
+        }
 
         return this._resultHandler(resultData)
     }
@@ -6061,7 +6075,7 @@ import { alias } from 'yargs';
 
         if(resultData == null) {
 
-            await this.$utils.wait(300)
+            await this.$utils.wait(500)
 
             resultData = await new Model()
             .copyModel(this , { select : true , relations : true })
@@ -6559,7 +6573,7 @@ import { alias } from 'yargs';
             return false
         }
     }
- 
+
     private _initialModel() : this {
        
         this.$state = new StateHandler('model')

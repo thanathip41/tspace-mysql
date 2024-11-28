@@ -3307,6 +3307,7 @@ class Builder extends AbstractBuilder {
      */
     async toJSON (): Promise<string> {
 
+        console.log('async toJSON')
         const sql :string = this._queryBuilder().select()
            
         const result: any[] = await this._queryStatement(sql)
