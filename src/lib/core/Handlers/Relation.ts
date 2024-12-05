@@ -316,13 +316,9 @@ class RelationHandler  {
 
     returnCallback (nameRelation: string) {
         
-        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation : TRelationOptions = this.$model['$state'].get('RELATION').find((data: { name: string }) => data.name === nameRelation)
 
-        if(relation == null) {
-            throw this._assertError(
-                `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}'`
-            )
-        }
+        if(relation == null) return null
     
         const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
 

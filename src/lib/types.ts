@@ -2,6 +2,7 @@ import { Model}             from "./core/Model"
 import { TCache as Cache }  from './core/Cache'
 import { CONSTANTS }        from './constants'
 import { Join }             from "./core/Join"
+import { TRelationModel, TSchema, TSchemaModel } from "./core"
 
 export type TCache = Cache
 
@@ -330,30 +331,87 @@ export type TRelationKeys<T> = keyof {
     [K in keyof T as K extends `$${string}` ? never : K]: T[K];
 }
 
+
+type TRepositoryWhere<T extends Record<string, any> = any,R = unknown> = Partial<{
+    [K in TSchemaKeys<T> | TRelationKeys<R> | `${string}.${string}` | TRawStringQuery]: K extends TRelationKeys<R>
+    ? K extends `$${string & K}`
+        ? R extends Record<string, any>
+            ? R[K]
+            : never
+        : R extends Record<string, any>
+        ?  R[`$${string & K}`] extends (infer U)[]
+            ? U extends Model 
+                ? TRepositoryWhere<TSchemaModel<U> , TRelationModel<U>> 
+                : never
+            : R[`$${K & string}`] extends Model
+                ? TRepositoryWhere<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
+                :  never
+        : never
+    : K extends keyof T
+        ? T[K]
+        : never;
+}>;
+
+type TRepositorySelect<T extends Record<string, any> = any,R = unknown> = Partial<{
+    [K in TSchemaKeys<T> | TRelationKeys<R>]: K extends TRelationKeys<R>
+    ? K extends TRawStringQuery
+        ? boolean
+        : K extends `${string}.${string}`
+            ? boolean
+            : K extends `$${string & K}`
+                ? R extends Record<string, any>
+                    ? boolean
+                    : never
+                : R extends Record<string, any>
+                    ?  R[`$${string & K}`] extends (infer U)[]
+                        ? U extends Model 
+                            ? '*' |  TRepositorySelect<TSchemaModel<U> , TRelationModel<U>> 
+                            : never
+                        : R[`$${K & string}`] extends Model
+                            ? '*' |  TRepositorySelect<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
+                            :  never
+                    : never
+    : K extends keyof T
+        ? boolean
+        : never;
+}>
+
+
+type TRepositoryRelation<R = unknown> = Partial<{
+    [K in TRelationKeys<R>]: K extends TRelationKeys<R>
+    ? K extends `$${string & K}`
+        ? R extends Record<string, any>
+            ? boolean
+            : never
+        : R extends Record<string, any>
+        ?  R[`$${string & K}`] extends (infer U)[]
+            ? U extends Model 
+                ? boolean | TRepositoryRequest<TSchemaModel<U> , TRelationModel<U>> 
+                : never
+            : R[`$${K & string}`] extends Model
+                ? boolean | TRepositoryRequest<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
+                :  never
+        : never
+    : never;
+}>
+
 export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
     debug ?: boolean
-    when ?: {condition : boolean , callback : () => TRepositoryRequest<T,R>}
-    select ?: '*' | (Partial<TSchemaColumns<T>> | `${string}.${string}` | TRawStringQuery | '*')[]
+    when ?: {condition : boolean , query : () => TRepositoryRequest<T,R>}
+    select?: '*' |  TRepositorySelect<T,R>
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     leftJoin?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
-    where?: Partial<
-        Record<
-            R extends object ? TRelationKeys<R> | TSchemaKeys<T> : TSchemaKeys<T> | `${string}.${string}`, 
-            // any
-            K extends keyof R ? R[K] : (K extends keyof T ? any : never)
-        >
-    > extends infer K ? K : unknown;
+    where ?: TRepositoryWhere<T,R>,
     whereRaw ?: string[],
-    whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>> extends infer K ? K : unknown;
-    groupBy?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery)[] extends infer K ? K : unknown;
+    whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>>
+    groupBy?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery)[]
     having ?: string,
     orderBy?: Partial<Record<TSchemaColumns<T> | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
     limit ?: number;
     offset ?: number;
-    relations ?: R extends object ? (TRelationKeys<R>)[] : string[];
-    relationsExists ?: R extends object ? (TRelationKeys<R>)[] : string[];
-    relationQuery ?: { name : R extends object ? (TRelationKeys<R>) : string, callback :() => TRepositoryRequest<any,any> }
+    relations ?: TRepositoryRelation<R>;
+    relationsExists ?: TRepositoryRelation<R>;
 }
 
 export type TRepositoryRequestHandler<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R> & { instance ?: Model }>

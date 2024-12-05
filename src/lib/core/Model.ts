@@ -3589,6 +3589,7 @@ import { alias } from 'yargs';
         condition: string | number | undefined | null | boolean, 
         callback: (query: M) => M
     ): this {
+        
         if (!condition) return this;
     
         const cb = callback(this as unknown as M)

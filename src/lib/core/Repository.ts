@@ -1100,6 +1100,40 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         return await instance.deleteMany()
     }
 
+    private _handleRelationQuery ({ instance , name , options } : { instance : Model , name : string , options : any }) {
+        
+        const cbRelation = instance.findWithQuery(name)
+    
+        if(cbRelation == null) return null
+
+        if(options == null) {
+
+            const instanceRelation = this._handlerRequest({
+                instance : cbRelation
+            })
+
+            if(instanceRelation == null) return null
+
+            instance.relationQuery(name, () => instanceRelation)
+
+            return cbRelation
+    
+        }
+
+        const instanceRelation = this._handlerRequest({
+            ...options,
+            instance : cbRelation
+        })
+
+    
+        if(instanceRelation == null) return null
+
+        instance.relationQuery(name, () => instanceRelation)
+
+        return cbRelation
+        
+    }
+
     private _handlerRequest (options : TRepositoryRequestHandler<T,R>) {
 
         let {
@@ -1117,16 +1151,91 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             offset,
             relations,
             relationsExists,
-            relationQuery,
             when,
             instance
         } = options
 
-        instance = instance == null ? new this._model() as Model : instance
+        instance = (instance == null ? new this._model() as Model : instance) as Model
+
+        if(relations != null) {
+            const filterRelations : string[] = []
+
+            for(const name in relations) {
+
+                const value = relations[name]
+               
+                if(typeof value === 'boolean') {
+
+                    if(value) {
+                        filterRelations.push(name)
+                    }
+                    continue
+                }
+
+                this._handleRelationQuery({
+                    instance,
+                    name,
+                    options : value
+                })
+            }
+
+            instance.relations(...filterRelations as any[])
+        }
+
+        if(relationsExists != null) {
+            
+            const filterRelations : string[] = []
+
+            for(const name in relationsExists) {
+
+                const value = relationsExists[name]
+               
+                if(typeof value === 'boolean') {
+
+                    if(value) {
+                        filterRelations.push(name)
+                    }
+                    continue
+                }
+
+                this._handleRelationQuery({
+                    instance,
+                    name,
+                    options : value
+                })
+            }
+
+            instance.relationsExists(...filterRelations as any[])
+        }
 
         if(select != null) {
-            if(select === '*')  instance.select(select)
-            else instance.select(...select as string[])
+            if(select === '*') {
+                //@ts-ignore
+                instance.select(select)
+            }
+            else {
+                const selects : string[] = []
+
+                for(const column in select) {
+    
+                    //@ts-ignore
+                    const value = select[column]
+                    
+                    const cbRelation = this._handleRelationQuery({
+                        instance,
+                        name : column,
+                        options : { select: value }
+                    })
+
+                    if(cbRelation == null) {
+                        selects.push(column)
+                        continue
+                    }
+                }
+    
+                console.log(selects)
+                instance.select(...selects)
+            }
         }
 
         if(join != null) {
@@ -1148,7 +1257,26 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         }
 
         if(where != null) {
-            // @ts-ignore
+
+            for(const column in where) {
+
+                //@ts-ignore
+                const value = where[column]
+      
+                const cbRelation = this._handleRelationQuery({
+                    instance,
+                    name : column,
+                    options : { where: value }
+                })
+
+                if(cbRelation == null) {
+                    continue
+                }
+
+                //@ts-ignore
+                delete where[column]
+            }
+
             instance.whereObject(where)
         }
 
@@ -1189,59 +1317,6 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.offset(offset)
         }
 
-        if(relations != null) {
-            instance.with(...relations as any[])
-        }
-
-        if(relationsExists != null) {
-            instance.withExists(...relationsExists as any[])
-        }
-
-        if(relationQuery != null && relationQuery.name) {
-            const cbRelation = instance.findWithQuery(relationQuery.name as any) as Model
-
-            if(cbRelation != null) {
-                
-                const { 
-                    select,
-                    join,
-                    leftJoin,
-                    rightJoin,
-                    where,
-                    whereQuery,
-                    groupBy,
-                    having,
-                    orderBy,
-                    limit,
-                    offset,
-                    relations,
-                    when
-                } = relationQuery.callback() as any
-    
-                const instanceRelation = this._handlerRequest({
-                    select,
-                    join,
-                    leftJoin,
-                    rightJoin,
-                    where,
-                    whereQuery,
-                    groupBy,
-                    having,
-                    orderBy,
-                    limit,
-                    offset,
-                    relations,
-                    when,
-                    instance : cbRelation
-                })
-
-                if(instanceRelation != null) {
-                    instance.withQuery(relationQuery.name as any , () => instanceRelation)
-                }
-            }
-            
-        }
-
         if(when != null && when.condition) {
 
             const { 
@@ -1257,9 +1332,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
                 limit,
                 offset,
                 relations,
-                relationQuery,
                 when : whenCb
-            } = when.callback()
+            } = when.query()
 
             instance = this._handlerRequest({
                 select,
@@ -1274,7 +1348,6 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
                 limit,
                 offset,
                 relations,
-                relationQuery,
                 when : whenCb,
                 instance
             }) as any

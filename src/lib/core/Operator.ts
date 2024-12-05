@@ -112,6 +112,10 @@ export class Operator {
         return Operator._handlerResult('query', value)
     } 
 
+    static subQuery (value : string) {
+        return Operator._handlerResult('query', value)
+    } 
+
     static orEq (value : string | number | boolean) {
         return Operator._handlerResult('|eq', value)
     } 

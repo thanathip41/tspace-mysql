@@ -2973,20 +2973,42 @@ import { User } from '../Models/User'
 const userRepository = Repository.bind(User)
 const needPhone = true
 const user = await userRepository.findOne({
-  select : ['id','name','username'],
+  select : {
+    id : true,
+    name : true,
+    username : true,
+  },
   where : {
     id: 1
   },
   when : {
     condition : `${needPhone}`,
-    callback: () => ({
-      relations : ['phone']
+    query: () => ({
+      relations : {
+        phone : true
+        /** 
+         You can also specify the phone with any method of the repository
+        phone : {
+          where : {
+            id : 41
+          },
+          select : {
+            id : true,
+            user_id : true
+          }
+        }
+        */
+      }
     })
   }
 })
 
 const users = await userRepository.findMany({
-  select : ['id','name','username'],
+  select : {
+    id : true,
+    name : true,
+    username : true,
+  },
   limit : 3,
   orderBy : {
     id : 'ASC',
@@ -2999,7 +3021,11 @@ const users = await userRepository.findMany({
 })
 
 const userPaginate = await userRepository.pagination({
-  select : ['id','name','username'],
+  select : {
+    id : true,
+    name : true,
+    username : true,
+  },
   page : 1,
   limit : 3,
   where : {
