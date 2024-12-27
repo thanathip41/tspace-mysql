@@ -11,19 +11,21 @@ import type {
     TRepositoryCreate, 
     TRepositoryDelete, 
     TRepositoryUpdate,
-    TRepositoryUpdateMultiple
+    TRepositoryUpdateMultiple,
+    TRelationResults
 } from "../types"
 
-class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
+class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
 
-    constructor(private _model: { new(): Model<T, R> }) {}
+    constructor(private _model: { new(): Model<TS, TR> }) {}
     /**
      * 
      * The 'first' method is used to retrieve the first record that matches the query conditions. 
      * 
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @type     {?Object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -57,7 +59,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const user = await userRepository.findOne()
      */
-    async first<K>(options : TRepositoryRequest<T,R> = {}) : Promise<T & K & Partial<R extends any ? T & R : R> | null> {
+    async first<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
 
         const instance = this._handlerRequest(options)
 
@@ -75,7 +77,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @type     {?Object}  options
-     * @property {?string[]} options.select
+      * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -109,7 +112,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const user = await userRepository.findOne()
      */
-    async findOne<K>(options : TRepositoryRequest<T,R> = {}) : Promise<T & K & Partial<R extends any ? T & R : R> | null> {
+    async findOne<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
         return await this.first(options)
     }
 
@@ -119,7 +122,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @type     {?Object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -153,7 +157,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const users = await userRepository.get()
      */
-    async get<K>(options : TRepositoryRequest<T,R>) : Promise<(T & K & Partial<R>)[]> {
+    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR>) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
 
         const instance = this._handlerRequest(options)
 
@@ -170,7 +174,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * It allows you to retrieve a single record from a database table that meets the specified criteria.
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -204,8 +209,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const users = await userRepository.findMany()
      */
-    async findMany<K>(options : TRepositoryRequest<T,R> = {}) : Promise<(T & K & Partial<R>)[]> {
-        return await  this.get(options)
+    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR>) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+        return await this.get(options)
     }
 
     /**
@@ -215,7 +220,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It allows you to split a large set of query results into smaller, more manageable pages, 
      * making it easier to display data in a web application and improve user experience.
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -250,7 +256,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
      */
-    async pagination<K>(options : TRepositoryRequestPagination<T,R> = {}) : Promise<TPagination<Partial<(T & K & Partial<R>)>[]>> {
+    async pagination<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
 
         const instance = this._handlerRequest(options)
 
@@ -271,7 +277,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It allows you to split a large set of query results into smaller, more manageable pages, 
      * making it easier to display data in a web application and improve user experience
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -306,7 +313,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
      */
-    async paginate<K> (options : TRepositoryRequestPagination<T,R> = {}) : Promise<TPagination<Partial<(T & K & Partial<R>)>[]>> {
+    async paginate<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
         return await this.pagination(options)
     }
 
@@ -315,7 +322,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * It returns a boolean value indicating whether there are any matching records.
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -331,7 +339,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?boolean} options.debug
      * @property {?number} options.page
      */
-    async exists (options : TRepositoryRequestAggregate<T,R> = {}) : Promise<boolean> {
+    async exists (options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<boolean> {
 
         const instance = this._handlerRequest(options)
 
@@ -347,7 +355,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -364,7 +373,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @returns {string}
      */
-    toString (options : TRepositoryRequestAggregate<T,R> = {}) : string {
+    toString (options : TRepositoryRequestAggregate<TS,TR> = {}) : string {
 
         const instance = this._handlerRequest(options)
 
@@ -382,7 +391,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * 
      * It returns a JSON formatted.
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -399,7 +409,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @returns {string} json
      */
-    async toJSON (options : TRepositoryRequestAggregate<T,R> = {}) : Promise<string> {
+    async toJSON (options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<string> {
 
         const instance = this._handlerRequest(options)
 
@@ -418,7 +428,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It returns an array formatted.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -435,7 +446,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async toArray (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<(any)[]> {
+    async toArray (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<(any)[]> {
 
         const instance = this._handlerRequest(options)
 
@@ -452,7 +463,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It returns an integer representing the count of records.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -469,7 +481,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async count (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<number> {
+    async count (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<number> {
 
         const instance = this._handlerRequest(options)
 
@@ -486,7 +498,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It returns an integer representing the avg of records.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -503,7 +516,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async avg (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<number> {
+    async avg (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<number> {
 
         const instance = this._handlerRequest(options)
 
@@ -520,7 +533,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It returns an integer representing the sum of records.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -537,7 +551,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async sum (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<Number> {
+    async sum (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
 
         const instance = this._handlerRequest(options)
 
@@ -554,7 +568,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It finds the highest value in the specified column among all records that match the query conditions and returns that value.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -571,7 +586,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async max (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<Number> {
+    async max (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
 
         const instance = this._handlerRequest(options)
 
@@ -588,7 +603,8 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * It finds the smallest value in the specified column among all records that match the query conditions and returns that value.
      * @param    {string} column
      * @type     {?object}  options
-     * @property {?string[]} options.select
+     * @property {?object} options.select
+     * @property {?object} options.omit
      * @property {?object[]} options.orderBy
      * @property {?string[]} options.groupBy
      * @property {?string} options.having
@@ -605,7 +621,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async min (column : (keyof Partial<T> | `${string}.${string}`), options : TRepositoryRequestAggregate<T,R> = {}) : Promise<Number> {
+    async min (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
 
         const instance = this._handlerRequest(options)
 
@@ -624,13 +640,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.data
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async create ({
         data,
         debug,
         transaction
-    } : TRepositoryCreate<T>): Promise<T> {
+    } : TRepositoryCreate<TS>): Promise<TS> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -644,7 +660,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.bind(transaction)
         }
 
-        return await instance.create(data as Record<string,any>).save() as Promise<T>
+        return await instance.create(data as Record<string,any>).save() as Promise<TS>
     }
 
     /**
@@ -655,12 +671,12 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.data
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async insert ({
         data,
         debug,
-    } : TRepositoryCreate<T>): Promise<T> {
+    } : TRepositoryCreate<TS>): Promise<TS> {
         return await this.create({
             data,
             debug
@@ -684,7 +700,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T | null> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS | null> {
 
         let instance = new this._model() as Model
 
@@ -696,7 +712,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         instance.where(where)
 
-        return await instance.createNotExists(data as Record<string,any>).save() as Promise<T | null>
+        return await instance.createNotExists(data as Record<string,any>).save() as Promise<TS | null>
 
     }
 
@@ -717,7 +733,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T | null> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS | null> {
 
         return await this.createNotExists({
             data,
@@ -735,13 +751,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object[]} options.data
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T[]>}
+     * @return {promise<TS[]>}
      */
     async createMultiple ({
         data,
         debug,
         transaction
-    } : TRepositoryCreateMultiple<T>): Promise<T[]> {
+    } : TRepositoryCreateMultiple<TS>): Promise<TS[]> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -755,7 +771,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.bind(transaction)
         }
 
-        return await instance.createMultiple(data as any[]).save() as Promise<T[]>
+        return await instance.createMultiple(data as any[]).save() as Promise<TS[]>
     }
 
     /**
@@ -766,12 +782,12 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object[]} options.data
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T[]>}
+     * @return {promise<TS[]>}
      */
     async insertMultiple ({
         data,
         debug,
-    } : TRepositoryCreateMultiple<T>): Promise<T[]> {
+    } : TRepositoryCreateMultiple<TS>): Promise<TS[]> {
 
         return await this.createMultiple({
             data,
@@ -789,13 +805,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.data
      * @property {object} options.where
      * @property {?boolean} options.debug
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async createOrUpdate ({
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
         let instance = new this._model() as Model
 
@@ -807,7 +823,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         instance.where(where)
 
-        return await instance.createOrUpdate(data as Record<string,any>).save() as Promise<T>
+        return await instance.createOrUpdate(data as Record<string,any>).save() as Promise<TS>
 
     }
 
@@ -821,13 +837,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.data
      * @property {object} options.where
      * @property {?boolean} options.debug
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async insertOrUpdate ({
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
         return await this.createOrUpdate({
             data,
@@ -847,13 +863,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.data
      * @property {object} options.where
      * @property {?boolean} options.debug
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async createOrSelect ({
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
         let instance = new this._model() as Model
 
@@ -865,7 +881,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         instance.where(where)
 
-        return await instance.createOrSelect(data as Record<string,any>).save() as Promise<T>
+        return await instance.createOrSelect(data as Record<string,any>).save() as Promise<TS>
 
     }
 
@@ -880,13 +896,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.where
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async insertOrSelect ({
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<T>): Promise<T> {
+    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
         return await this.createOrSelect({
             data,
@@ -907,14 +923,14 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.where
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async update ({
         data,
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<T>): Promise<T> {
+    } : TRepositoryUpdate<TS>): Promise<TS> {
 
         if(where == null || !Object.keys(where).length) throw new Error("The method update can't use without where condition")
 
@@ -930,7 +946,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         instance.where(where)
 
-        return await instance.update(data as Record<string,any>).save() as Promise<T>
+        return await instance.update(data as Record<string,any>).save() as Promise<TS>
 
     }
 
@@ -945,14 +961,14 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.where
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T>}
+     * @return {promise<TS>}
      */
     async updateMany ({
         data,
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<T>): Promise<T[]> {
+    } : TRepositoryUpdate<TS>): Promise<TS[]> {
 
         if(where == null  || !Object.keys(where).length) throw new Error("The method updateMany can't use without where condition")
 
@@ -968,7 +984,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
 
         instance.where(where)
 
-        return await instance.updateMany(data as Record<string,any>).save() as Promise<T[]>
+        return await instance.updateMany(data as Record<string,any>).save() as Promise<TS[]>
 
     }
 
@@ -983,7 +999,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
      * @property {object} options.where
      * @property {?boolean} options.debug
      * @property {?transaction} options.transaction
-     * @return {promise<T[]>}
+     * @return {promise<TS[]>}
      * @example
      * const saveUpdateMultiple = await userRepository.updateMultiple({
      *   cases : [
@@ -1014,7 +1030,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         cases,
         debug,
         transaction
-    } : TRepositoryUpdateMultiple<T>): Promise<T[]> {
+    } : TRepositoryUpdateMultiple<TS>): Promise<TS[]> {
 
         if(!cases.length) throw new Error("The method updateMultiple can't use without cases condition")
 
@@ -1028,7 +1044,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.bind(transaction)
         }
 
-        return await instance.updateMultiple(cases as any).save() as Promise<T[]>
+        return await instance.updateMultiple(cases as any).save() as Promise<TS[]>
 
     }
 
@@ -1047,7 +1063,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         where,
         debug,
         transaction
-    } : TRepositoryDelete<T>): Promise<boolean> {
+    } : TRepositoryDelete<TS>): Promise<boolean> {
 
         if(where == null  || !Object.keys(where).length) throw new Error("The method delete can't use without where condition")
 
@@ -1081,7 +1097,7 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         where,
         debug,
         transaction
-    } : TRepositoryDelete<T>): Promise<boolean> {
+    } : TRepositoryDelete<TS>): Promise<boolean> {
 
         if(where == null  || !Object.keys(where).length) throw new Error("The method deleteMany can't use without where condition")
 
@@ -1134,10 +1150,12 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
         
     }
 
-    private _handlerRequest (options : TRepositoryRequestHandler<T,R>) {
+    private _handlerRequest (options : TRepositoryRequestHandler<TS,TR>) {
 
         let {
+            cache,
             select,
+            omit,
             join,
             leftJoin,
             rightJoin,
@@ -1208,6 +1226,13 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
             instance.relationsExists(...filterRelations as any[])
         }
 
+        if(cache != null) {
+            instance.cache({
+                key : cache.key,
+                expires: cache.expires
+            })
+        }
+
         if(select != null) {
             if(select === '*') {
                 //@ts-ignore
@@ -1232,10 +1257,31 @@ class RepositoryHandler<T extends Record<string,any> = any, R = unknown> {
                         continue
                     }
                 }
-    
-                console.log(selects)
                 instance.select(...selects)
             }
+        }
+
+        if(omit != null) {
+            const omits : string[] = []
+
+            for(const column in omit) {
+
+                //@ts-ignore
+                const value = omit[column]
+                
+                const cbRelation = this._handleRelationQuery({
+                    instance,
+                    name : column,
+                    options : { omit: value }
+                })
+
+                if(cbRelation == null) {
+                    omits.push(column)
+                    continue
+                }
+            }
+
+            instance.except(...omits)
         }
 
         if(join != null) {

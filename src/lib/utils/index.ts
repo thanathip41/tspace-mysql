@@ -189,6 +189,10 @@ const consoleExec  = (startTime : number , endTime : number) => {
     console.log(`\x1b[34mDURATION:\x1b[0m \x1b[32m${diffInSeconds} sec\x1b[0m`)
 }
 
+const consoleCache  = (provider : string) => {
+    console.log(`\x1b[34mCACHE:\x1b[0m \x1b[33m${provider}\x1b[0m\n`)
+}
+
 const randomString = (length = 100) => {
     let str = ''
     const salt = 3
@@ -254,16 +258,21 @@ const chunkArray = <T>(array: T[], length: number): T[][] => {
 }
 
 const wait = (ms : number) => {
+    
     if(ms === 0) return
+
     return new Promise(ok => setTimeout(ok,Number.isNaN(ms) ? 0 : ms))
 }
 
 const softNumber = (n : any) : number =>  {
-    if(typeof n !== 'number' || Number.isNaN(n)) {
-        return 0
+
+    const number = Number(n)
+
+    if(Number.isNaN(number)) {
+        return -1
     }
 
-    return Number(n)
+    return number
 }
 
 
@@ -272,6 +281,7 @@ const utils = {
     isDate,
     consoleDebug,
     consoleExec,
+    consoleCache,
     faker,
     columnRelation,
     timestamp,

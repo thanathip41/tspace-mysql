@@ -17,8 +17,7 @@ interface IEnvironment {
     KEEP_ALIVE_DELAY     ?: string | number,
     ENABLE_KEEP_ALIVE    ?: string | boolean,
     MULTIPLE_STATEMENTS  ?: string | boolean,
-    CACHE                ?: string | null,
-    REDIS_URL            ?: string | null,
+    CACHE                ?: string | null
 }
 
 const environment = () : string => {
@@ -52,8 +51,7 @@ const env: IEnvironment & Record<string,any> =  {
     KEEP_ALIVE_DELAY        : ENV.DB_KEEP_ALIVE_DELAY ??  0,
     ENABLE_KEEP_ALIVE       : ENV.DB_ENABLE_KEEP_ALIVE ?? true,
     MULTIPLE_STATEMENTS     : ENV.DB_MULTIPLE_STATEMENTS ??  false,
-    CACHE                   : ENV.DB_CACHE,
-    REDIS_URL               : ENV.DB_REDIS_URL
+    CACHE                   : ENV.DB_CACHE
 }
 
 for(const [key, value] of Object.entries(env)) {

@@ -2,7 +2,7 @@ import { Model}             from "./core/Model"
 import { TCache as Cache }  from './core/Cache'
 import { CONSTANTS }        from './constants'
 import { Join }             from "./core/Join"
-import { TRelationModel, TSchema, TSchemaModel } from "./core"
+import { TRelationModel, TSchemaModel } from "./core"
 
 export type TCache = Cache
 
@@ -397,15 +397,17 @@ type TRepositoryRelation<R = unknown> = Partial<{
 
 export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
     debug ?: boolean
+    cache ?: { key : string, expires : number },
     when ?: {condition : boolean , query : () => TRepositoryRequest<T,R>}
     select?: '*' |  TRepositorySelect<T,R>
+    omit ?: TRepositorySelect<T,R>
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     leftJoin?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     where ?: TRepositoryWhere<T,R>,
     whereRaw ?: string[],
     whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>>
-    groupBy?: (keyof Partial<T> | `${string}.${string}` | TRawStringQuery)[]
+    groupBy?: (Partial<TSchemaColumns<T>> | `${string}.${string}` | TRawStringQuery)[]
     having ?: string,
     orderBy?: Partial<Record<TSchemaColumns<T> | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
     limit ?: number;

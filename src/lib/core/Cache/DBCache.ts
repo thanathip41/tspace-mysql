@@ -10,6 +10,10 @@ class DBCache {
     private _maxLength    = 100
     private _db           = () => new DB(this._cacheTable)
 
+    provider () {
+        return 'db'
+    }
+
     async all () {
         
         const cacheds = await this._db().get()

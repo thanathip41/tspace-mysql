@@ -14,6 +14,10 @@ class Cache {
         return this
     }
 
+    provider () {
+        return this._driver.provider()
+    }
+
     /**
      * The 'driver' method is used to pick a driver for the cache
      * 
@@ -115,23 +119,18 @@ class Cache {
 
     private _chooseDriver (driver: 'db' | 'memory' | 'redis') {
 
-        switch(driver) {
-            case 'db' : {
-                this._driver = new DBCache()
-                break
-            }
-
-            case 'redis' : {
-                this._driver = new RedisCache(String(options.REDIS_URL))
-                break
-            }
-
-            default: {
-                this._driver = new MemoryCache()
-                break
-            }
+        if(driver === 'db') {
+            this._driver = new DBCache()
+            return this
+        } 
+        
+        if(driver.includes('redis')) {
+            this._driver = new RedisCache(String(options.CACHE))
+            return this
         }
-
+       
+        this._driver = new MemoryCache()
+    
         return this
     }
 }

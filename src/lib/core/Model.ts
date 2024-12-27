@@ -5344,7 +5344,15 @@ import { alias } from 'yargs';
         const findCache = await this.$cache.get(cache.key)
 
         if(findCache == null) return
-            
+
+        if(this.$state.get('DEBUG')) {
+            this.$utils.consoleCache(JSON.stringify({
+                driver : this.$cache.provider(),
+                key : cache.key,
+                expires : cache.expires
+            },null,2))
+        }
+  
         return findCache
     }
 
@@ -5367,7 +5375,9 @@ import { alias } from 'yargs';
 
         const cache = await this._getCache()
         
-        if(cache != null) return cache
+        if(cache != null) {
+            return cache
+        }
 
         let result = await this._queryStatement(sql)
 

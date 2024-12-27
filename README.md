@@ -499,13 +499,13 @@ const users = await new DB("users")
 ### Where Object Clauses
 
 ```js
-import { Operator } from 'tspace-mysql'
+import { OP } from 'tspace-mysql'
 
 const whereObject = await new DB("users")
   .whereObject({
-    id :  Operator.notEq(1),
-    username :  Operator.in(['user1','user2']),
-    name :  Operator.like('%value%')
+    id :  OP.notEq(1),
+    username :  OP.in(['user1','user2']),
+    name :  OP.like('%value%')
   })
   .findMany();
 
@@ -981,8 +981,8 @@ const user = await new User()
 ## More Methods
 
 ```js
-where(column , operator , value)
-whereSensitive(column , operator , value)
+where(column , OP , value)
+whereSensitive(column , OP , value)
 whereId(id)
 whereUser(userId)
 whereEmail(value)
@@ -992,12 +992,12 @@ whereNull(column)
 whereNotNull(column)
 whereBetween (column , [value1 , value2])
 whereQuery(callback)
-whereJson(column, { targetKey, value , operator })
+whereJson(column, { targetKey, value , OP })
 whereRaw(sql)
 whereExists(sql)
 whereSubQuery(colmn , rawSQL)
 whereNotSubQuery(colmn , rawSQL)
-orWhere(column , operator , value)
+orWhere(column , OP , value)
 orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
@@ -2254,8 +2254,11 @@ Let's illustrate this with an example of a cache:
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
 
+// for db
+DB_CACHE = db
+
 // for redis
-DB_REDIS_URL = redis://username:password@server:6379
+DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()
 .cache({
@@ -2967,7 +2970,7 @@ It provides methods for querying, inserting, updating, and deleting records in t
 ```
 ### Repository Select Statements
 ```js
-import { Repository , TRepository , Operator } from 'tspace-mysql'
+import { Repository , TRepository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 
 const userRepository = Repository.bind(User)
@@ -2977,6 +2980,11 @@ const user = await userRepository.findOne({
     id : true,
     name : true,
     username : true,
+    phone : {
+      id : true,
+      name : true,
+      user_id : true,
+    }
   },
   where : {
     id: 1
@@ -3016,7 +3024,7 @@ const users = await userRepository.findMany({
   }
   groupBy : ['id'],
   where : {
-    id: Operator.in([1,2,3])
+    id: OP.in([1,2,3])
   }
 })
 
@@ -3029,12 +3037,15 @@ const userPaginate = await userRepository.pagination({
   page : 1,
   limit : 3,
   where : {
-    id:  Operator.in([1,2,3])
+    id:  OP.in([1,2,3])
   }
 })
 
 const findFullName = await userRepository.findOne({
-  select : ['name',`${DB.raw('CONCAT(firstName," ",lastName) as fullName')}`],
+  select : {
+    name : true,
+    [`${DB.raw('CONCAT(firstName," ",lastName) as fullName')}`]: true
+  }
   whereRaw : [
     `CONCAT(firstName," ",lastName) LIKE '%${search}%'`
   ]
@@ -3163,7 +3174,7 @@ try {
 
 ### Repository Relations
 ```js
-import { Repository , TRepository , Operator } from 'tspace-mysql'
+import { Repository , TRepository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 import { Phone } from '../Models/Phone'
 

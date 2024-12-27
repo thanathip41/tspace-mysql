@@ -5,57 +5,69 @@ class MemoryCache {
         this.cache = new Map()
     }
 
-    all () {
-        const values : any[] = []
-
-        for (const value of this.cache.values()) {
-            values.push(value)
-        }
-
-        return values
+    provider () {
+        return 'memory'
     }
 
-    exists (key : string) {
-        const cached = this.cache.get(key)
-        return cached != null
+    async all  () : Promise<any[]> {
+        return new Promise((resolve) => {
+            const values : any[] = []
+
+            for (const value of this.cache.values()) {
+                values.push(value)
+            }
+
+            return resolve(values)
+        })
     }
 
-    get(key: string) {
-
-        const cached = this.cache.get(key)
-
-        if (!cached) return null
-
-        if (Date.now() > cached.expiredAt) {
-            this.cache.delete(key)
-            return null
-        }
-
-        return cached.value
+    exists(key: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const cached = this.cache.get(key)
+            return resolve(cached != null)
+        });
     }
 
-    set(key: string, value: any, ms: number) {
-        
-        const expiredAt = Date.now() + ms
-
-        this.cache.set(key, { value, expiredAt })
-
-        return
+    get(key: string): Promise<any> {
+        return new Promise((resolve) => {
+            const cached = this.cache.get(key);
+    
+            if (!cached) {
+                return resolve(null);
+            }
+    
+            if (Date.now() > cached.expiredAt) {
+                this.cache.delete(key);
+                return resolve(null);
+            }
+    
+            return resolve(cached.value);
+        });
     }
-
-    clear() {
-
-        this.cache.clear()
-
-        return
+    
+    set(key: string, value: any, ms: number): Promise<void> {
+        return new Promise((resolve) => {
+            const expiredAt = Date.now() + ms;
+    
+            this.cache.set(key, { value, expiredAt });
+    
+            return resolve()
+        });
     }
-
-    delete(key: string) {
-
-        this.cache.delete(key)
-
-        return
+    
+    clear(): Promise<void> {
+        return new Promise((resolve) => {
+            this.cache.clear();
+            return resolve()
+        });
     }
+    
+    delete(key: string): Promise<void> {
+        return new Promise((resolve) => {
+            this.cache.delete(key);
+            return resolve()
+        })
+    }    
 }
 
 export { MemoryCache }

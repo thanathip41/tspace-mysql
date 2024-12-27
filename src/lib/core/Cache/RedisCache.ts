@@ -30,6 +30,10 @@ class RedisCache {
 
     }
 
+    provider () {
+        return 'redis'
+    }
+
     async all () {
 
         const cacheds = await this.client.keys('*')
