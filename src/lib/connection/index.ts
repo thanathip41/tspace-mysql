@@ -1,5 +1,3 @@
-import fs               from 'fs'
-import path             from 'path'
 import { EventEmitter } from 'events'
 import { 
     createPool, 
@@ -7,7 +5,7 @@ import {
     type PoolConnection as TPoolConnection,
     QueryError
 } from 'mysql2'
-
+import { Tool } from '../tools'
 import options , { 
     loadOptionsEnvironment 
 } from '../options'
@@ -234,12 +232,12 @@ export class PoolConnection extends EventEmitter {
              *       charset            =
              *   }
              */
-            const dbOptionsPath = path.join(path.resolve() ,'db.tspace')
-            const dbOptionsExists = fs.existsSync(dbOptionsPath)
+            const dbOptionsPath = Tool.path.join(Tool.path.resolve() ,'db.tspace')
+            const dbOptionsExists = Tool.fs.existsSync(dbOptionsPath)
 
             if(!dbOptionsExists) return this._defaultOptions()
 
-            const dbOptions : string = fs.readFileSync(dbOptionsPath,'utf8')
+            const dbOptions : string = Tool.fs.readFileSync(dbOptionsPath,'utf8')
 
             const options = this._convertStringToObject(dbOptions)
 

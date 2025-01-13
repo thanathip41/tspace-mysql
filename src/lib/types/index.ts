@@ -1,8 +1,8 @@
-import { Model}             from "./core/Model"
-import { TCache as Cache }  from './core/Cache'
-import { CONSTANTS }        from './constants'
-import { Join }             from "./core/Join"
-import { TRelationModel, TSchemaModel } from "./core"
+import { Model}             from "../core/Model"
+import { TCache as Cache }  from '../core/Cache'
+import { CONSTANTS }        from '../constants'
+import { Join }             from "../core/Join"
+import { TRelationModel, TSchemaModel } from "../core"
 
 export type TCache = Cache
 

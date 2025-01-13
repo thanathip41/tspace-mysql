@@ -67,8 +67,8 @@ abstract class AbstractBuilder {
     abstract leftJoin (pk: string | ((join: Join) => Join) , fk?: string): this
     abstract crossJoin (pk: string | ((join: Join) => Join) , fk?: string): this
     abstract joinSubQuery ({ localKey , foreignKey , sql } : { localKey : string; foreignKey : string , sql : string }): this
-    abstract orderBy (column: string , order: 'ASC' | 'DESC'): this
-    abstract orderByRaw (column: string , order: string): this
+    abstract orderBy (column: string , order : 'ASC' | 'asc' | 'DESC' | 'desc' ): this
+    abstract orderByRaw (column: string , order : 'ASC' | 'asc' | 'DESC' | 'desc' ): this
     abstract latest (...columns: string[]): this
     abstract latestRaw (...columns: string[]): this
     abstract oldest (...columns: string[]): this

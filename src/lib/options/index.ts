@@ -1,6 +1,4 @@
-import dotenv   from 'dotenv'
-import path     from 'path'
-import fs       from 'fs'
+import { Tool } from '../tools'
 interface IEnvironment {
     HOST                 ?: string | null,
     PORT                 ?: string | number,
@@ -22,15 +20,16 @@ interface IEnvironment {
 
 const environment = () : string => {
     const NODE_ENV = process.env?.NODE_ENV
-    const env = path.join(path.resolve(), '.env')
+    const env = Tool.path.join(Tool.path.resolve(), '.env')
+    
     if(NODE_ENV == null)  return env
-    const envWithEnviroment = path.join(path.resolve() , `.env.${NODE_ENV}`)
-    if (fs.existsSync(envWithEnviroment)) return envWithEnviroment
+    const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`)
+    if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment
 
     return env
 }
 
-dotenv.config({ path : environment() })
+Tool.dotenv.config({ path : environment() })
 
 const ENV = process.env
 
@@ -51,7 +50,7 @@ const env: IEnvironment & Record<string,any> =  {
     KEEP_ALIVE_DELAY        : ENV.DB_KEEP_ALIVE_DELAY ??  0,
     ENABLE_KEEP_ALIVE       : ENV.DB_ENABLE_KEEP_ALIVE ?? true,
     MULTIPLE_STATEMENTS     : ENV.DB_MULTIPLE_STATEMENTS ??  false,
-    CACHE                   : ENV.DB_CACHE
+    CACHE                   : ENV.DB_CACHE ?? 'db'
 }
 
 for(const [key, value] of Object.entries(env)) {
@@ -66,17 +65,18 @@ for(const [key, value] of Object.entries(env)) {
 export const loadOptionsEnvironment = () => {
     const environment = () : string => {
         const NODE_ENV = process.env?.NODE_ENV
-        
-        const env = path.join(path.resolve(), '.env')
-        
+        const env = Tool.path.join(Tool.path.resolve(), '.env')
+
         if(NODE_ENV == null)  return env
-        const envWithEnviroment = path.join(path.resolve() , `.env.${NODE_ENV}`)
-        if (fs.existsSync(envWithEnviroment)) return envWithEnviroment
+
+        const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`)
+
+        if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment
     
         return env
     }
 
-    const ENV = dotenv.config({ path : environment() }).parsed
+    const ENV = Tool.dotenv.config({ path : environment() }).parsed
  
     const env: IEnvironment & Record<string,any> =  {
         host                 : ENV?.DB_HOST || ENV?.TSPACE_HOST,

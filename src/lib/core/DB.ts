@@ -1,9 +1,9 @@
-import fs                   from 'fs'
 import { format }           from 'sql-formatter'
 import { AbstractDB }       from './Abstracts/AbstractDB'
 import { proxyHandler }     from './Handlers/Proxy'
 import { PoolConnection }   from '../connection'
 import { StateHandler }     from './Handlers/State'
+import { Tool }            from '../tools'
 import type { 
     TConstant,
     TBackup,
@@ -677,7 +677,7 @@ class DB extends AbstractDB {
             }
         }
 
-        fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
+        Tool.fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
 
         return
     }
@@ -744,7 +744,7 @@ class DB extends AbstractDB {
 
         for (const b of backup) sql = [...sql, b.table]
 
-        fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
+        Tool.fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
 
         return
     }
@@ -752,6 +752,7 @@ class DB extends AbstractDB {
     /**
      * 
      * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
+     * 
      * @type {Object}  backup
      * @property {string} backup.database
      * @property {string} backup.filePath
@@ -770,6 +771,7 @@ class DB extends AbstractDB {
     /**
      * 
      * This 'backupTableToFile' method is used to backup database intro new ${file}.sql
+     * 
      * @type {Object}  backup
      * @property {string} backup.database
      * @property {string} backup.filePath
@@ -785,7 +787,11 @@ class DB extends AbstractDB {
         
         if(connection != null && Object.keys(connection)?.length) this.connection(connection)
 
-        await this.$utils.wait(1000 * 3)
+        /**
+         * 
+         * wait for the connection to new db connected
+         */
+        await this.$utils.wait(1000 * 5)
 
         const schemas =  await this.showSchema(table)
 
@@ -819,7 +825,7 @@ class DB extends AbstractDB {
             valueSQL.join(' ')
         ]
 
-        fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
+        Tool.fs.writeFileSync(filePath , [...sql , 'COMMIT;'].join('\n'))
 
         return
     }
@@ -858,8 +864,6 @@ class DB extends AbstractDB {
      */
     async backupTableSchemaToFile({ filePath, table, connection } : TBackupTableToFile ): Promise<void> {
 
-        await this.$utils.wait(1000 * 3)
-
         const schemas =  await this.showSchema(table)
         const createTableSQL : string[] = [
             `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
@@ -872,7 +876,9 @@ class DB extends AbstractDB {
 
         if(connection != null && Object.keys(connection)?.length) this.connection(connection)
 
-        fs.writeFileSync(filePath, format(sql.join('\n'), {
+        await this.$utils.wait(1000 * 5)
+
+        Tool.fs.writeFileSync(filePath, format(sql.join('\n'), {
             language: 'spark',
             tabWidth: 2,
             linesBetweenQueries: 1,

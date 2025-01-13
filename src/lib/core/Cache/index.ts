@@ -124,7 +124,7 @@ class Cache {
             return this
         } 
         
-        if(driver.includes('redis')) {
+        if(driver != null && driver.includes('redis')) {
             this._driver = new RedisCache(String(options.CACHE))
             return this
         }

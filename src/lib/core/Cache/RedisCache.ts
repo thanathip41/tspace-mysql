@@ -1,7 +1,7 @@
-import { Tools } from '../../tools'
+import { Tool } from '../../tools'
 
 class RedisCache {
-    private _redis : { createClient : Function }  = Tools.import('redis')
+    private _redis : { createClient : Function }  = Tool.import('redis')
     private client : { 
         on : Function 
         quit : Function 

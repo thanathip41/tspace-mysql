@@ -1924,7 +1924,7 @@ class Builder extends AbstractBuilder {
      * @param {string?} order [order=asc] asc, desc
      * @returns {this}
      */
-    orderByRaw (column: string , order: string = this.$constants('ASC')): this {
+    orderByRaw (column: string , order : 'ASC' | 'asc' | 'DESC' | 'desc' = 'ASC'): this {
 
         if(column.includes(this.$constants('RAW'))) {
             column = column?.replace(this.$constants('RAW'),'')
@@ -2736,6 +2736,10 @@ class Builder extends AbstractBuilder {
             if(column === '*') return '*'
 
             const alias = this.$state.get('ALIAS')
+
+            if(this.getTableName() === '') {
+                return  `\`${column.replace(/`/g,'')}\``
+            }
            
             return [
                 alias == null || alias === ''

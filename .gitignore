@@ -1,0 +1,11 @@
+build
+dist
+test
+.env
+.env.production
+.env.development
+.env.test
+.env.benchmark
+.npmignore
+node_modules
+package-lock.json

@@ -1,7 +1,6 @@
 import { Builder } from "./Builder"
 import { Model } from "./Model"
-import fs from 'fs'
-import path from 'path'
+import { Tool } from '../tools'
 class Schema extends Builder {
     //@ts-ignore
     public table = async (table :string , schemas: Record<string,any>) : Promise<void> => {
@@ -153,10 +152,10 @@ class Schema extends Builder {
      */
     async sync (pathFolders : string, { force = false, log = false, foreign = false , changed = false , index = false } = {}) : Promise<void> {
 
-        const directories = fs.readdirSync(pathFolders, { withFileTypes: true })
+        const directories = Tool.fs.readdirSync(pathFolders, { withFileTypes: true })
             
         const files : any[] = (await Promise.all(directories.map((directory) => {
-            const newDir = path.resolve(String(pathFolders), directory.name)
+            const newDir = Tool.path.resolve(String(pathFolders), directory.name)
             if(directory.isDirectory() && directory.name.toLocaleLowerCase().includes('migrations')) return null
             return directory.isDirectory() ? Schema.sync(newDir , { force , log , changed }) : newDir
         })))

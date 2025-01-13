@@ -3,7 +3,9 @@ import Model        from './Model'
 import Schema       from './Schema'
 import Blueprint    from './Blueprint'
 import Pool         from '../connection'
+import sql          from './SqlLike'
 
+export { sql }
 export { DB }
 export { Model }
 export { Blueprint }
