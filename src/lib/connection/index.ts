@@ -42,7 +42,7 @@ export class PoolConnection extends EventEmitter {
      * @property {Function} Connection.query
      * @property {Function} Connection.connection
      */
-    public init () : TConnection {
+    public connected () : TConnection {
 
         const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
 
@@ -112,7 +112,7 @@ export class PoolConnection extends EventEmitter {
                         const startTransaction = async () => {
                             
                             // don't use await as it blocks all connection pools. and ignore the .bind(...) method.
-                            query('START TRANSACTION')
+                            await query('START TRANSACTION')
                             .catch(err => reject(err))
                             
                             return
@@ -383,8 +383,9 @@ export class PoolConnection extends EventEmitter {
  * @property  {Function} Connection.query
  * @property  {Function} Connection.connection
  */
-const pool = new PoolConnection().init()
+const pool = new PoolConnection().connected()
 
 export { loadOptionsEnvironment }
 export { pool as Pool }
+
 export default pool

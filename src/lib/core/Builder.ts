@@ -199,28 +199,19 @@ class Builder extends AbstractBuilder {
      * @param {string} alias as name of the column
      * @returns {this} this
      */
-    selectObject (object : Record<string,`${string}.${string}`> , alias : string): this {
+    selectObject (object : Record<string, string | `${string}.${string}`> , alias : string): this {
 
         if(!Object.keys(object).length) throw new Error("The method 'selectObject' is not supported for empty object")
+
         let maping : string[] = []
         for (const [key, value] of Object.entries(object)) {
-
-            if(/\./.test(value)) {
-                const [table, c ] = value.split('.')
-                maping = [...maping , `'${key}'`, `\`${table}\`.\`${c}\``]
-                continue
-            }
-            
-            maping = [...maping , `'${key}'`, `\`${this.getTableName()}\`.\`${value}\``]
+            maping = [...maping , `'${key}'`, this.bindColumn(value)]
         }
 
-        const json = `
-        ${this.$constants('CASE')}
-        ${this.$constants('WHEN')} COUNT(${Object.values(maping)[1]}) = 0 ${this.$constants('THEN')} ${this.$constants('NULL')}
-        ${this.$constants('ELSE')} ${this.$constants('JSON_OBJECT')}(${maping.join(' , ')})
-        ${this.$constants('END')}
-        ${this.$constants('AS')} \`${alias}\`
-    `
+        const json = [
+            `${this.$constants('JSON_OBJECT')}(${maping.join(', ')})`,
+            `${this.$constants('AS')} \`${alias}\``,
+        ].join(' ')
 
         this.$state.set('SELECT', [...this.$state.get('SELECT'),json])
 
@@ -2835,7 +2826,7 @@ class Builder extends AbstractBuilder {
             ...others
         })
 
-        this.$pool.set(pool.init())
+        this.$pool.set(pool.connected())
 
         return this
     }
@@ -2858,7 +2849,7 @@ class Builder extends AbstractBuilder {
             password    : String(options.password)
         })
 
-        this.$pool.set(pool.init())
+        this.$pool.set(pool.connected())
 
         return this
 
@@ -3562,42 +3553,79 @@ class Builder extends AbstractBuilder {
      * 
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      * 
-     * It returns record an Array-Object key by column *grouping results in column
+     * It returns record to new Map
      * @param {string} column
+     * @example
+     *  const results = await new DB('posts')
+     * .getGroupBy('user_id')
+     * 
+     *  // you can find with user id in the results
+     *  const postsByUserId1 = results.get(1)
      * @returns {promise<Array>}
      */
-    async getGroupBy (column: string): Promise<Record<string,any[] | null>> {
+    async getGroupBy (column: string): Promise<Map<string | number , any[]>> {
 
-        const results = await this.get()
+        if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
+         
+        const results = await new Builder()
+        .copyBuilder(this , { 
+            where   : true,
+            limit   : true,
+            join    : true,
+            orderBy : true
+        })
+        .select(column)
+        .selectRaw([
+            `${this.$constants('GROUP_CONCAT')}(${this.bindColumn('id')})`,
+            `${this.$constants('AS')} \`aggregate\``
+        ].join(' '))
+        .groupBy(column)
+        .oldest()
+        .bind(this.$pool.get())
+        .debug(this.$state.get('DEBUG'))
+        .get()
 
-        const mapping : Record<string , any[]> = [...results]
-        .reduce((prev, curr) => {
+        const ids: number[] = []
 
-            const key = +curr[column]
+        for(const r of results) {
+            const splits : number[] = (r?.aggregate?.split(',') ?? []).map((v : string) => Number(v))
+            ids.push(...splits)
+        }
+        
+        const grouping = await new Builder()
+        .whereIn('id',ids)
+        .bind(this.$pool.get())
+        .debug(this.$state.get('DEBUG'))
+        .get()
 
-            if (!prev[key]) {
-              prev[key] = []
+        const result = grouping.reduce((map, data) => {
+            const id = data[column];
+            if (!map.has(id)) {
+                map.set(id, []);
             }
-
-            prev[key].push({ ...curr })
-
-            return prev
-        }, {} as Record<string,any[]>)
- 
-        return this._resultHandler(mapping)
+            map.get(id)!.push(data);
+            return map;
+        }, new Map())
+        
+        return this._resultHandler(result)
     }
 
-    /**
-     * 
+     /**
      * The 'findGroupBy' method is used to execute a database query and retrieve the result set that matches the query conditions. 
      * 
      * It retrieves multiple records from a database table based on the criteria specified in the query.
      * 
-     * It returns record an Array-Object key by column *grouping results in column
+     * It returns record to new Map
      * @param {string} column
+     * @example
+     *  const results = await new DB('posts')
+     * .findGroupBy('user_id')
+     * 
+     *  // you can find with user id in the results
+     *  const postsByUserId1 = results.get(1)
      * @returns {promise<Array>}
      */
-    async findGroupBy (column: string ): Promise<Record<string,any[] | null>> {
+    async findGroupBy (column: string ): Promise<Map<string | number , any[]>> {
         return await this.getGroupBy(column)
     }
 
@@ -4721,8 +4749,9 @@ class Builder extends AbstractBuilder {
 
         this.$utils = utils
 
-        this.$pool =  (() => {
+        this.$pool = (() => {
             let pool = Pool
+           
             return {
                 query: async (sql : string) => await pool.query(sql),
                 get: () => pool,

@@ -389,7 +389,7 @@ class DB extends AbstractDB {
             ...others
         })
 
-        return pool.init()
+        return pool.connected()
     }
 
       /**
@@ -421,7 +421,7 @@ class DB extends AbstractDB {
      * @property {function} connection.rollback - rollback transaction of query
      */
     async beginTransaction (): Promise<TConnectionTransaction> {
-        const pool = await this.$pool.get()
+        const pool = new PoolConnection().connected()
         return await pool.connection()
     }
 

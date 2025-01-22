@@ -37,6 +37,7 @@ npm install tspace-mysql -g
 ## Basic Usage
 
 - [Configuration](#configuration)
+- [SQL Like](#sql-Like)
 - [Query Builder](#query-builder)
   - [Table Name & Alias Name](#table-name--alias-name)
   - [Returning Results](#returning-results)
@@ -62,6 +63,7 @@ npm install tspace-mysql -g
     - [Where Exists Clauses](#where-exists-clauses)
     - [Subquery Where Clauses](#subquery-where-clauses)
     - [Conditional Where Clauses](#conditional-where-clauses)
+  - [GetGroupBy](#getgroupby)
   - [Paginating](#paginating)
   - [Insert Statements](#insert-statements)
   - [Update Statements](#update-statements)
@@ -175,6 +177,71 @@ source db {
 
 ```
 
+## SQL Like
+```js
+import { sql , OP }  from 'tspace-mysql'
+
+// select
+await sql()
+  .select('id','name')
+  .from('users')
+  .where({
+    'name' : 'tspace'
+    'id' : OP.in([1,2,3])
+  })
+  .limit(3)
+  .orderBy('name')
+
+// insert
+await sql()
+.insert('users')
+.values({
+  email : 'tspace@example.com'
+})
+
+// insert return data
+await sql()
+.insert('users')
+.values({
+  email : 'tspace@example.com'
+})
+.returning({
+  id : true,
+  email : true,
+  enum : true
+})
+
+// update
+await sql()
+.update('users')
+.where({
+  id : 1
+})
+.set({
+  email : 'tspace@example.com'
+})
+
+// update return data
+await sql()
+.update('users')
+.where({
+  id : 1
+})
+.set({
+  email : 'tspace@example.com'
+})
+.returning()
+
+//delete
+await sql()
+.delete('users')
+.where({
+  id : 1
+})
+
+
+```
+
 ## Query Builder
 
 How a database query builder works with a simple example using the following:
@@ -204,6 +271,7 @@ How a database query builder works with a simple example using the following:
 ### Table Name & Alias Name
 
 ```js
+import { DB }  from 'tspace-mysql'
 
 await new DB().from('users').find(1)
 // SELECT * FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
@@ -236,6 +304,10 @@ const user = await new DB("users").firstOrError(message); // Object or error
 const users = await new DB("users").findMany(); // Array-object of users
 
 const users = await new DB("users").get(); // Array-object of users
+
+const users = await new DB("users").getGroupBy('name') // Map
+
+const users = await new DB("users").findGroupBy('name') // Map
 
 const users = await new DB("users").toArray(); // Array of users
 
@@ -642,6 +714,19 @@ const users = await new DB("users")
   .when(false, (query) => query.where("username", "when is actived"))
   .findMany();
 // SELECT * FROM `users` WHERE `users`.`id` = '1';
+```
+
+## GetGroupBy
+
+```js
+const data = await new DB("posts").getGroupBy('user_id')
+
+// return new Map()
+// find posts by user id
+const userHasPosts = data.get(1)
+
+console.log(userHasPosts)
+
 ```
 
 ## Paginating
@@ -2990,12 +3075,12 @@ const user = await userRepository.findOne({
     id: 1
   },
   when : {
-    condition : `${needPhone}`,
+    condition : needPhone,
     query: () => ({
       relations : {
         phone : true
         /** 
-         You can also specify the phone with any method of the repository
+         You can also specify the phone with any methods of the repository
         phone : {
           where : {
             id : 41

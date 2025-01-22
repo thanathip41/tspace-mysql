@@ -3,10 +3,13 @@ import { Join } from './Join'
 
 class SqlLike  {
 
-    private $db = new DB()
+    private $db     = new DB()
+    private $action : 'SELECT' | 'INSERT' | 'INSERT_MUTIPLE' | 'UPDATE' | 'DELETE' = 'SELECT'
+    private $values : any[] = []
     private $state : Record<string,any[]> = {
         from      : [],
         select    : [],
+        distinct  : [],
         join      : [],
         leftJoin  : [],
         rightJoin : [],
@@ -16,15 +19,24 @@ class SqlLike  {
         offset    : [],
         limit     : [],
         having    : [],
-        insert    : []
+        insert    : [],
+        update    : [],
+        delete    : []
     }
 
-    private $returning : Record<string,any> | null = null
+    private $returning ?: Record<string,any> | '*' | null = null
 
     select(...selecteds : string[]) {
 
         this.$state.select.push(() => this.$db.select(...selecteds))
         
+        return this
+    }
+
+    distinct () {
+
+        this.$state.distinct.push(() => this.$db.distinct())
+
         return this
     }
 
@@ -48,7 +60,7 @@ class SqlLike  {
         return this
     }
 
-    where(column: string | Record<string,any> , operator?: any , value?: any) {
+    where(column: Record<string,any> , operator?: any , value?: any) {
         this.$state.where.push(() => this.$db.where(column,operator,value))
         return this
     }
@@ -83,17 +95,31 @@ class SqlLike  {
         return this
     }
 
-    update (table : string) {
+    delete (table : string) {
+        this.$action = 'DELETE'
+        this.from(table)
 
+        this.$state.delete.push(() => this.$db.delete())
         return this
     }
 
-    set (data : Record<string,any>) {
+    update (table : string) {
+        this.$action = 'UPDATE'
+        this.from(table)
+        return this
+    }
+
+    set (values : Record<string,any>) {
+       
+        this.$state.insert.push(() => this.$db.update(values))
+
+        this.$values = [values]
 
         return this
     }
 
     insert (table: string) {
+        this.$action = 'INSERT'
         this.from(table)
         return this
     }
@@ -101,16 +127,20 @@ class SqlLike  {
     values (values : Record<string,any> | Record<string,any>[]) {
         if(Array.isArray(values)) {
             this.$state.insert.push(() => this.$db.insertMultiple(values))
+            this.$values = values
+            this.$action = 'INSERT_MUTIPLE'
             return this
         }
 
         this.$state.insert.push(() => this.$db.insert(values))
 
+        this.$values = [values]
+
         return this
     }
 
-    returning (returning : Record<string,any>) {
-        this.$returning = returning
+    returning (returning ?: Record<string,any> | null){
+        this.$returning = returning === undefined ? '*' : returning
         return this
     }
 
@@ -124,10 +154,26 @@ class SqlLike  {
         .forEach(arr => arr.forEach(v => v()))
 
         const returning = async () => {
-            const inserting = await this.$db.rawQuery(this.$db['_queryBuilder']().any())
-            const results = await this.$db.where('id', inserting.insertId).get()
+            
+            let results : any[] = []
+            if(this.$action === 'INSERT') {
+                const inserting = await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                results = await this.$db.where('id', inserting.insertId).get()
+            }
 
-            if(this.$returning != null) {
+            if(this.$action === 'INSERT_MUTIPLE') {
+                const inserting = await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                results = await this.$db
+                .whereIn('id',  Array.from({ length: this.$values.length }, (_, i) => inserting.insertId + i))
+                .get()
+            }
+
+            if(this.$action === 'UPDATE') {
+                await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                results = await this.$db.get()
+            }
+
+            if(this.$returning != null && this.$returning != '*') {
                 for(const r of results) {
                     for(const key in r) {
                        if(!this.$returning[key]) {

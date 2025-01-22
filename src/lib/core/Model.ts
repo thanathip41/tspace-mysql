@@ -24,8 +24,10 @@ import type {
     TSchemaColumns,
     TModelConstructorOrObject,
     TRelationResults,
-    TRelationKeys
+    TRelationKeys,
+    TConnection
 } from '../types'
+import { Pool } from '../connection'
 
 
 let globalSettings : TGlobalSetting = {
@@ -4257,42 +4259,89 @@ import { alias } from 'yargs';
     /**
      * @override
      * @param {string} column
+     * @example
+     *  const results = await new Post()
+     * .getGroupBy('user_id')
+     * 
+     *  // you can find with user id in the results
+     *  const postsByUserId1 = results.get(1)
      * @returns {Promise<object>} Object binding with your column pairs
      */
     async getGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,R = TRelationResults<TR>>(column: K): Promise<
-    (unknown extends TS 
-        ? Record<`${string}`, any[] | null> 
-        : Record<`${string}`, (TS & Partial<R extends any ? TS & Partial<R> : R>)[] | null>)
+        Map<
+            string | number,
+            unknown extends TS
+            ? any[]
+            : (TS & Partial<R extends any ? TS & Partial<R> : R>)[]
+        >
     > {
 
-        const results = await this.get()
+        if(this.$state.get('EXCEPTS')?.length) this.select(...await this.exceptColumns() as any[])
+         
+        const results = await new Model()
+        .copyModel(this , { 
+            where   : true,
+            limit   : true,
+            join    : true,
+            orderBy : true
+        })
+        .select(column)
+        .selectRaw([
+            `${this.$constants('GROUP_CONCAT')}(${this.bindColumn('id')})`,
+            `${this.$constants('AS')} \`aggregate\``
+        ].join(' '))
+        .groupBy(column)
+        .oldest()
+        .bind(this.$pool.get())
+        .debug(this.$state.get('DEBUG'))
+        .get()
 
-        const mapping : Record<string , any[]> = results
-        .reduce((prev, curr) => {
+        const ids: number[] = []
 
-            const key = String(curr[column])
+        for(const r of results) {
+            const splits : number[] = (r?.aggregate?.split(',') ?? []).map((v : string) => Number(v))
+            ids.push(...splits)
+        }
+       
+        const grouping = await new Model()
+        .copyModel(this , { 
+            relations : true
+        })
+        .whereIn(this.$state.get('PRIMARY_KEY'),ids)
+        .bind(this.$pool.get())
+        .debug(this.$state.get('DEBUG'))
+        .get()
 
-            if (!prev[key]) {
-              prev[key] = []
+        const result = grouping.reduce((map, data) => {
+            const id = data[column];
+            if (!map.has(id)) {
+                map.set(id, []);
             }
-
-            prev[key].push({ ...curr })
-
-            return prev
-        }, {} as Record<string, any[]>)
-
-        return this._resultHandler(mapping)
+            map.get(id)!.push(data);
+            return map;
+        }, new Map())
+        
+        return this._resultHandler(result)
     }
 
     /**
      * @override
      * @param {string} column
+     * @example
+     *  const results = await new Post()
+     * .getGroupBy('user_id')
+     * 
+     *  // you can find with user id in the results
+     *  const postsByUserId1 = results.get(1)
      * @returns {Promise<object>} Object binding with your column pairs
      */
     async findGroupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,R = TRelationResults<TR>>(column: K): Promise<
-    (unknown extends TS 
-        ? Record<`${string}`, any[] | null> 
-        : Record<`${string}`, (TS & Partial<R extends any ? TS & Partial<R> : R>)[] | null>)
+        Map<
+            string | number,
+            unknown extends TS
+            ? any[]
+            : (TS & Partial<R extends any ? TS & Partial<R> : R>)[]
+        >
     > {
         return await this.getGroupBy(column)
     }
@@ -6586,7 +6635,7 @@ import { alias } from 'yargs';
     }
 
     private _initialModel() : this {
-       
+
         this.$state = new StateHandler('model')
 
         this.meta('MAIN')
