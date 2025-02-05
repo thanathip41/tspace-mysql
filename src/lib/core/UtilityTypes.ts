@@ -1,4 +1,4 @@
-import { TRepositoryRequest } from "../types";
+import { TPagination, TRelationResults, TRepositoryRequest } from "../types";
 import { Blueprint } from "./Blueprint";
 import { Model } from "./Model";
 import { Repository } from "./Repository";
@@ -293,6 +293,18 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  * @generic {Model} M Model
  */
 export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M> , TRelationModel<M>>;
+
+/**
+ * The 'TResult' type is used to get type of result from model
+ * @generic {Model} M Model
+ */
+export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>
+
+/**
+ * The 'TResultPaginate' type is used to get type of result from model using paginate , pagination
+ * @generic {Model} M Model
+ */
+export type TResultPaginate<M extends Model> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>
 
 /**
  * The 'TypeOfRepository' type is used to return typeof repository

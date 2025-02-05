@@ -4212,7 +4212,13 @@ import { alias } from 'yargs';
      * @property {number} paginationOptions.page
      * @returns  {promise<Pagination>} Pagination
      */
-    async pagination<K,R = TRelationResults<TR>>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async pagination<K,R = TRelationResults<TR>>(
+        paginationOptions ?: { 
+            limit ?: number; 
+            page ?: number; 
+            alias ?: boolean;
+        }
+    ) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
 
         this._validateMethod('pagination')
 
@@ -4252,7 +4258,13 @@ import { alias } from 'yargs';
      * @property  {number}  paginationOptions.page
      * @returns   {promise<Pagination>} Pagination
      */
-    async paginate<K,R = TRelationResults<TR>>(paginationOptions ?: { limit ?: number , page ?: number, alias ?: boolean }) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async paginate<K,R = TRelationResults<TR>>(
+        paginationOptions ?: { 
+            limit ?: number; 
+            page ?: number; 
+            alias ?: boolean; 
+        }
+    ) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
         return await this.pagination(paginationOptions)
     }
 

@@ -1,4 +1,5 @@
 import { Tool } from '../tools'
+import dotenv from 'dotenv'
 interface IEnvironment {
     HOST                 ?: string | null,
     PORT                 ?: string | number,
@@ -29,7 +30,7 @@ const environment = () : string => {
     return env
 }
 
-Tool.dotenv.config({ path : environment() })
+dotenv.config({ path : environment() })
 
 const ENV = process.env
 
@@ -76,7 +77,7 @@ export const loadOptionsEnvironment = () => {
         return env
     }
 
-    const ENV = Tool.dotenv.config({ path : environment() }).parsed
+    const ENV = dotenv.config({ path : environment() }).parsed
  
     const env: IEnvironment & Record<string,any> =  {
         host                 : ENV?.DB_HOST || ENV?.TSPACE_HOST,

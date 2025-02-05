@@ -169,4 +169,17 @@ export class Operator {
     } 
 }
 
+/**
+ * The 'OP' class is used to operator for where conditions.
+ * @example
+ * import { OP , DB } from 'tspace-mysql'
+ * 
+ * const whereObject = await new DB("users")
+ *  .whereObject({
+ *      id :  OP.eq(1),
+ *      username :  OP.orIn(['user1','user2']),
+ *      name :  OP.like('%value%')
+ *  })
+ *  .findMany();
+ */
 export class OP extends Operator {}
