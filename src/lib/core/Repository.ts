@@ -157,7 +157,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.get()
      */
-    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR>) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
 
         const instance = this._handlerRequest(options)
 
@@ -209,7 +209,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.findMany()
      */
-    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR>) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
         return await this.get(options)
     }
 
@@ -1409,50 +1409,27 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
  * 
  * It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
  * 
+ * 
+ * 
+ * The 'bind' method is used to bind the model to the repository
+ * @param {Model} model A class constructor for a model
+ * @returns {RepositoryHandler<T,R>}
+ * 
  * @example
  * import { Repository } from 'tspace-mysql'
  * import { User } from '../Models/User'
  * 
- * const userRepository = new Repository().bind(User) // or Repository.bind(User)
+ * const userRepository = Repository(User)
  * 
  * const user = await userRepository.findOne()
  * const users = await userRepository.findMany()
  * 
  */
-export class Repository {
-    /**
-     * 
-     * The 'bind' method is used to bind the model to the repository
-     * @param {Model} model A class constructor for a model
-     * @returns {RepositoryHandler<T,R>}
-     */
-    bind<M extends Model>(
-        model: new () => M
-    ): RepositoryHandler<TSchemaModel<M>, TRelationModel<M>> {
-
-        if(!(model?.prototype instanceof Model)) {
-
-            throw new TypeError(
-                `The Repository can only bind to a model, but the argument provided is not a Model.`
-            );
-        }
-
-        return new RepositoryHandler<
-            TSchemaModel<M>, 
-            TRelationModel<M>
-        >(model as new() => Model<TSchemaModel<M>,TRelationModel<M>>);
-    }
-    
-    /**
-     * 
-     * The 'bind' method is used to bind the model to the repository
-     * @static
-     * @param {Model} model A class constructor for a model
-     * @returns {RepositoryHandler<T,R>}
-     */
-    static bind<M extends Model>(
-        model: new () => M
-    ): RepositoryHandler<TSchemaModel<M>, TRelationModel<M>> {
-        return new this().bind(model);
-    }
+export const Repository = <M extends Model>(model: new () => M) : RepositoryHandler<TSchemaModel<M>, TRelationModel<M>> => {
+    return new RepositoryHandler<
+        TSchemaModel<M>, 
+        TRelationModel<M>
+    >(model as new() => Model<TSchemaModel<M>,TRelationModel<M>>);
 }
+
+export default Repository

@@ -2456,9 +2456,9 @@ const schema = {
   uuid: Blueprint.varchar(50).null().index(),
   name: Blueprint.varchar(191).notNull(),
   email: Blueprint.varchar(191).notNull(),
-  createdAt: Blueprint.timestamp().null().bindColumn('created_at'),
-  updatedAt: Blueprint.timestamp().null().bindColumn('updated_at'),
-  deletedAt: Blueprint.timestamp().null().bindColumn('deleted_at')
+  createdAt: Blueprint.timestamp().null(),
+  updatedAt: Blueprint.timestamp().null(),
+  deletedAt: Blueprint.timestamp().null()
 }
 
 
@@ -3058,7 +3058,7 @@ It provides methods for querying, inserting, updating, and deleting records in t
 import { Repository , TRepository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 const needPhone = true
 const user = await userRepository.findOne({
   select : {
@@ -3139,7 +3139,7 @@ const findFullName = await userRepository.findOne({
 ### Repository Insert Statements
 ```js
 
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 
 const created = await userRepository.create({
   data : {
@@ -3191,7 +3191,7 @@ const createdOrSelected = await userRepository.createOrSelect({
 ### Repository Update Statements
 ```js
 
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 
 const updated = await userRepository.update({
   data : {
@@ -3207,7 +3207,7 @@ const updated = await userRepository.update({
 ### Repository Delete Statements
 ```js
 
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 
 const deleted = await userRepository.delete({
   where : {
@@ -3222,7 +3222,7 @@ const deleted = await userRepository.delete({
 ```js
 import { DB , Repository } from 'tspace-mysql'
 import { User } from '../Models/User'
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 
 const transaction = await DB.beginTransaction()
 
@@ -3263,7 +3263,7 @@ import { Repository , TRepository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 import { Phone } from '../Models/Phone'
 
-const userRepository = Repository.bind(User)
+const userRepository = Repository(User)
 
 const userHasPhones = await userRepository.findOne({
   select : ['*'],
@@ -3280,7 +3280,7 @@ const userHasPhones = await userRepository.findOne({
   }
 })
 
-const phoneRepository = Repository.bind(Phone)
+const phoneRepository = Repository(Phone)
 
 const phoneBelongUser = await phoneRepository.findOne({
   select : ['*'],
