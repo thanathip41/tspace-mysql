@@ -56,6 +56,7 @@
   "dependencies": {
     "mysql2": "3.12.0",
     "pluralize": "8.0.0",
+    "reflect-metadata": "^0.2.2",
     "sql-formatter": "10.7.1"
   },
   "devDependencies": {

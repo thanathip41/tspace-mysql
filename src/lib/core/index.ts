@@ -1,3 +1,5 @@
+import 'reflect-metadata'
+
 import DB           from './DB'
 import Model        from './Model'
 import Schema       from './Schema'
@@ -15,6 +17,7 @@ export * from './Schema'
 export * from './UtilityTypes'
 export * from './Repository'
 export * from './Operator'
+export * from './Nest'
 
 export default { 
     DB,

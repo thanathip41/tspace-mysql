@@ -1,6 +1,7 @@
 import { TRepositoryRequest } from "../types";
 import { Blueprint } from "./Blueprint";
 import { Model } from "./Model";
+import { Repository } from "./Repository";
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -292,6 +293,12 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  * @generic {Model} M Model
  */
 export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M> , TRelationModel<M>>;
+
+/**
+ * The 'TypeOfRepository' type is used to return typeof repository
+ * @generic {Model} M Model
+ */
+export type TypeOfRepository<M extends Model> =  ReturnType<typeof Repository<M>>
 
 /**
  * The 'TSchemaKeyOf' type is used to get keyof type TSchemaModel<Model>
