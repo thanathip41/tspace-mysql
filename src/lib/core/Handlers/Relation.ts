@@ -110,8 +110,8 @@ class RelationHandler  {
 
             if(relation.exists == null && relation.notExists == null) continue
 
-            const { localKey, foreignKey , pivot , modelPivot } = this._valueInRelation(relation)    
-
+            const { localKey, foreignKey , pivot , modelPivot } = this._valueInRelation(relation)   
+            
             const query = relation.query as Model
 
             if(query == null) {
@@ -1072,10 +1072,11 @@ class RelationHandler  {
             ].sort().join('_'))
 
             pivot = relationModel.pivot 
-            ?? modelPivot == null 
+            ? relationModel.pivot
+            : modelPivot == null
                 ? defaultPivot 
                 : new modelPivot().getTableName()
-            ?? defaultPivot
+            
         }
 
         return { 
