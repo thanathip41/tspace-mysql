@@ -1,5 +1,3 @@
-import 'reflect-metadata'
-
 import DB           from './DB'
 import Model        from './Model'
 import Schema       from './Schema'
