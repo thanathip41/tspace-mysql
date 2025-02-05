@@ -1,8 +1,10 @@
 import { Builder } from "./Builder"
 import { Model } from "./Model"
 import { Tool } from '../tools'
-class Schema extends Builder {
-    //@ts-ignore
+class Schema {
+
+    private $db: Builder = new Builder()
+    
     public table = async (table :string , schemas: Record<string,any>) : Promise<void> => {
         try {
             let columns: Array<any> = []
@@ -21,12 +23,12 @@ class Schema extends Builder {
             }
             
             const sql : string = [
-                `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
+                `${this.$db['$constants']('CREATE_TABLE_NOT_EXISTS')}`,
                 `${table} (${columns?.join(',')})`,
-                `${this.$constants('ENGINE')}`
+                `${this.$db['$constants']('ENGINE')}`
             ].join(' ')
 
-            await this.rawQuery(sql)
+            await this.$db.rawQuery(sql)
 
             console.log(`Migrats : '${table}' created successfully`)
             
@@ -55,9 +57,9 @@ class Schema extends Builder {
         }
         
         return [
-            `${this.$constants('CREATE_TABLE_NOT_EXISTS')}`,
+            `${this.$db['$constants']('CREATE_TABLE_NOT_EXISTS')}`,
             `${table} (${columns.join(', ')})`,
-            `${this.$constants('ENGINE')}`
+            `${this.$db['$constants']('ENGINE')}`
         ].join(' ')
     }
 
@@ -264,7 +266,7 @@ class Schema extends Builder {
         }
     ){
 
-        const checkTables = await this.rawQuery(this.$constants('SHOW_TABLES'))
+        const checkTables = await this.$db.rawQuery(this.$db['$constants']('SHOW_TABLES'))
 
         const existsTables = checkTables.map((c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0])
 
@@ -342,14 +344,14 @@ class Schema extends Builder {
                     if(type == null)  continue 
                     
                     const sql = [
-                        this.$constants('ALTER_TABLE'),
+                        this.$db['$constants']('ALTER_TABLE'),
                         `\`${model.getTableName()}\``,
-                        this.$constants('CHANGE'),
+                        this.$db['$constants']('CHANGE'),
                         `\`${column}\``,
                         `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
                     ].join(' ')
     
-                    await this.debug(log).rawQuery(sql)
+                    await this.$db.debug(log).rawQuery(sql)
                 }
             }
             
@@ -370,15 +372,15 @@ class Schema extends Builder {
                 if(type == null || findAfterIndex == null)  continue 
 
                 const sql = [
-                    this.$constants('ALTER_TABLE'),
+                    this.$db['$constants']('ALTER_TABLE'),
                     `\`${model.getTableName()}\``,
-                    this.$constants('ADD'),
+                    this.$db['$constants']('ADD'),
                     `\`${column}\` ${type} ${attributes != null && attributes.length ? `${attributes.join(' ')}` : '' }`,
-                    this.$constants('AFTER'),
+                    this.$db['$constants']('AFTER'),
                     `\`${findAfterIndex}\``
                 ].join(' ')
 
-                await this.debug(log).rawQuery(sql)
+                await this.$db.debug(log).rawQuery(sql)
             }
 
             await this._syncForeignKey({
@@ -410,17 +412,17 @@ class Schema extends Builder {
 
             const constraintName = `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``
             const sql = [
-                this.$constants("ALTER_TABLE"),
+                this.$db['$constants']("ALTER_TABLE"),
                 `\`${model.getTableName()}\``,
-                this.$constants('ADD_CONSTRAINT'),
+                this.$db['$constants']('ADD_CONSTRAINT'),
                 `${constraintName}`,
-                `${this.$constants('FOREIGN_KEY')}(\`${key}\`)`,
-                `${this.$constants('REFERENCES')} \`${table}\`(\`${foreign.references}\`)`,
-                `${this.$constants('ON_DELETE')} ${foreign.onDelete} ${this.$constants('ON_UPDATE')} ${foreign.onUpdate}`
+                `${this.$db['$constants']('FOREIGN_KEY')}(\`${key}\`)`,
+                `${this.$db['$constants']('REFERENCES')} \`${table}\`(\`${foreign.references}\`)`,
+                `${this.$db['$constants']('ON_DELETE')} ${foreign.onDelete} ${this.$db['$constants']('ON_UPDATE')} ${foreign.onUpdate}`
             ].join(' ')
 
             try {
-                await this.debug(log).rawQuery(sql)
+                await this.$db.debug(log).rawQuery(sql)
             } catch (e:any) {
                 if(typeof onReference === "string") continue
 
@@ -431,8 +433,8 @@ class Schema extends Builder {
                 if(!schemaModelOn) continue
               
                 const tableSql = this.createTable(`\`${table}\``,schemaModelOn)
-                await this.debug(log).rawQuery(tableSql).catch(e => console.log(e))
-                await this.debug(log).rawQuery(sql).catch(e => console.log(e))
+                await this.$db.debug(log).rawQuery(tableSql).catch(e => console.log(e))
+                await this.$db.debug(log).rawQuery(sql).catch(e => console.log(e))
                 continue
             }
         }
@@ -457,23 +459,23 @@ class Schema extends Builder {
             : `\`${name}\``
 
             const sql = [
-                `${this.$constants('CREATE_INDEX')}`,
+                `${this.$db['$constants']('CREATE_INDEX')}`,
                 `${index}`,
-                `${this.$constants('ON')}`,
+                `${this.$db['$constants']('ON')}`,
                 `${table}(\`${key}\`)`
             ].join(' ')
 
             try {
 
-                await this.debug(log).rawQuery(sql)
+                await this.$db.debug(log).rawQuery(sql)
 
             } catch (err:any) {
 
                 if(String(err.message).includes("Duplicate key name")) continue
 
                 const tableSql = this.createTable(`\`${table}\``,schemaModel)
-                await this.debug(log).rawQuery(tableSql).catch(e => console.log(e))
-                await this.debug(log).rawQuery(sql).catch(e => console.log(e))
+                await this.$db.debug(log).rawQuery(tableSql).catch(e => console.log(e))
+                await this.$db.debug(log).rawQuery(sql).catch(e => console.log(e))
                 continue
             }
 
