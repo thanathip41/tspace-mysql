@@ -3323,17 +3323,21 @@ import { Phone } from '../Models/Phone'
 const userRepository = Repository(User)
 
 const userHasPhones = await userRepository.findOne({
-  select : '*',
-    where : {
+  select : {
+    id : true,
+    name : true,
+    username : true,
+    phone : {
+      id : true,
+      user_id : true,
+      name: true
+    }
+  },
+  where : {
     id: 1
   },
   relations: {
     phone: {
-      select : {
-        id : true,
-        userId : true,
-        name: true
-      }
       user : true
     }
   }
@@ -3342,7 +3346,7 @@ const userHasPhones = await userRepository.findOne({
 const phoneRepository = Repository(Phone)
 
 const phoneBelongUser = await phoneRepository.findOne({
-  select : ['*'],
+  select : '*',
   where : {
     id: 1
   },
