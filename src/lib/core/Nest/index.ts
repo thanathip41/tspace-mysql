@@ -1,4 +1,4 @@
-import { Model, Repository, TypeOfRepository } from "..";
+import { Model, Repository } from "..";
 
 const nameOfModel = <M extends Model>(model : new () => M): string  => {
   
@@ -13,9 +13,16 @@ export const NestInject = < M extends Model>( model : string | (new () => M)) =>
     : nameOfModel(model)
 }
 
-export const NestProvider = <M extends Model>(model : new () => M) => {
+export const NestProvider = <M extends Model>(
+  model : new () => M,  
+  options: { 
+    pattern ?: 'repository' | 'model' 
+  } = { pattern: 'repository' }
+) => {
   return { 
     provide: nameOfModel(model), 
-    useValue:  Repository<M>(model) as unknown
+    useValue: options.pattern === 'repository'
+      ? Repository<M>(model) as unknown
+      : new Model()
   }
 }

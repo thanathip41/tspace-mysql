@@ -1,12 +1,13 @@
 import Builder      from '../Builder'
 import { 
     TConnection, 
-    TConnectionOptions 
+    TConnectionOptions, 
+    TConnectionTransaction
 } from '../../types'
 
 abstract class AbstractDB extends Builder {
 
-    abstract beginTransaction (): Promise<any>
+    abstract beginTransaction (): Promise<TConnectionTransaction>
     abstract generateUUID () : string
     abstract raw (sql : string) : string
     abstract escape (sql : string) : string
