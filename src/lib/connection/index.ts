@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { 
-    createPool, 
+    createPool,
     type Pool as TPool,
     type PoolConnection as TPoolConnection,
     QueryError
@@ -12,6 +12,7 @@ import options , {
 
 import type { 
     TConnection, 
+    TNewConnection, 
     TOptions,
     TPoolEvent
 } from '../types'
@@ -91,27 +92,96 @@ export class PoolConnection extends EventEmitter {
                         if (err) return reject(err)
 
                         const query = (sql: string) => {
+
                             const start : number = Date.now()
-                            return new Promise<any[]>((resolveQ, rejectQ) => {
+                            return new Promise<any[]>((ok, fail) => {
 
                                 connection.query(sql, (err : QueryError, results: any[]) => {
             
                                     connection.release()
                                    
                                     if (err) {
-                                        return rejectQ(err)
+                                        return fail(err)
                                     }
 
                                     this._detectEventQuery({ start , sql , results })
 
-                                    return resolveQ(results)
+                                    return ok(results)
+                                })
+                            })
+                        }
+
+                       
+                        return resolve({ 
+                            on : (event : TPoolEvent , data : any) => this.on(event,data),
+                            query
+                        })
+                    })
+                })
+            }
+        }
+    }
+
+    public newConnected () : TNewConnection {
+
+        const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
+
+        return {
+            on : (event : TPoolEvent , data) => {
+                return this.on(event,data)
+            },
+            query : (sql : string) => {
+                return new Promise<any[]>((resolve, reject)=>{
+                    const start : number = Date.now()
+                  
+                    pool.query(sql , (err : QueryError, results: any[]) => {   
+                                  
+                        if(err) return reject(err)
+
+                        this._detectEventQuery({
+                            start, 
+                            sql,
+                            results
+                        })
+
+                        return resolve(results)
+                    })
+                })
+            },
+            connection : () =>  {
+
+                let closeTransction = false;
+
+                return new Promise((resolve, reject) => {
+                    pool.getConnection((err, connection : TPoolConnection) => {
+
+                        if (err) return reject(err)
+
+                        const query = (sql: string) => {
+                            const start : number = Date.now()
+                            return new Promise<any[]>((ok, fail) => {
+
+                                if(closeTransction) {
+                                    return fail(new Error('The transaction has either been closed'));
+                                }
+
+                                connection.query(sql, (err : QueryError, results: any[]) => {
+            
+                                    connection.release()
+                                   
+                                    if (err) {
+                                        return fail(err)
+                                    }
+
+                                    this._detectEventQuery({ start , sql , results })
+
+                                    return ok(results)
                                 })
                             })
                         }
 
                         const startTransaction = async () => {
                             
-                            // don't use await as it blocks all connection pools. and ignore the .bind(...) method.
                             await query('START TRANSACTION')
                             .catch(err => reject(err))
                             
@@ -120,8 +190,8 @@ export class PoolConnection extends EventEmitter {
 
                         const commit = async () => {
                            
-                           await query('COMMIT')
-                           .catch(err => reject(err))
+                            await query('COMMIT')
+                            .catch(err => reject(err))
 
                             return
                         }
@@ -131,15 +201,38 @@ export class PoolConnection extends EventEmitter {
                             await query('ROLLBACK')
                             .catch(err => reject(err))
 
+                            // when rollback will end of transction
+                            await end()
+
                             return
                         }
-                        
+
+                        const end = async () => {
+
+                            await new Promise<void>(resolve => setTimeout(() => {
+                                // After commit the transaction, you can't perform any actions with this transaction.
+                                connection.destroy()
+
+                                // After destroying the connection, it will be removed from the connection pool.
+                                pool.end()
+
+                                closeTransction = true
+
+                                return resolve()
+
+                            }, 500))
+
+                            return
+
+                        }
+            
                         return resolve({ 
                             on : (event : TPoolEvent , data : any) => this.on(event,data),
                             query,
                             startTransaction, 
                             commit, 
-                            rollback
+                            rollback,
+                            end
                         })
                     })
                 })
@@ -309,6 +402,9 @@ export class PoolConnection extends EventEmitter {
                     const message = this._messageError.bind(this)
     
                     process.nextTick(() => {
+                        if(String(err.message).includes('Pool is close')) {
+                            return
+                        }
                         console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
                         if(options.CONNECTION_ERROR) return process.exit()
                     })

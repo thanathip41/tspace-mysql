@@ -368,7 +368,7 @@ class DB extends AbstractDB {
 
         if(options == null) {
             const pool = await this.$pool.get()
-            return await pool.connection()
+            return await pool.newConnection()
         }
 
         const {
@@ -389,7 +389,7 @@ class DB extends AbstractDB {
             ...others
         })
 
-        return pool.connected()
+        return pool.newConnected()
     }
 
       /**
@@ -421,7 +421,7 @@ class DB extends AbstractDB {
      * @property {function} connection.rollback - rollback transaction of query
      */
     async beginTransaction (): Promise<TConnectionTransaction> {
-        const pool = new PoolConnection().connected()
+        const pool = new PoolConnection().newConnected()
         return await pool.connection()
     }
 
