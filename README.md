@@ -120,6 +120,7 @@ npm install tspace-mysql -g
     - [Safety Update](#safety-update)
     - [Safety Delete](#safety-delete)
     - [Safety Relationships](#safety-relationships)
+    - [Safety Result](#safety-result)
 - [Repository](#repository)
   - [Repository Select Statements](#repository-select-statements)
   - [Repository Insert Statements](#repository-insert-statements)
@@ -1229,7 +1230,35 @@ try {
    *
    * @commit commit transaction to database
    */
+  // After your use commit if use same connection for actions this transction will auto commit
   await connection.commit();
+
+  // If you need to start a new transaction again, just use wait connection.startTransaction();
+
+  const postsAfterCommited = await new Post()
+    .createMultiple([
+      {
+        user_id: user.id,
+        title: `tspace-post1`,
+      },
+      {
+        user_id: user.id,
+        title: `tspace-post2`,
+      },
+      {
+        user_id: user.id,
+        title: `tspace-post3`,
+      },
+    ])
+    // Using this connection now will auto-commit to the database.
+    .bind(connection) // If you need to perform additional operations, use await connection.startTransaction(); again.
+    .save();
+
+   
+    // Do not perform any operations with this connection.
+    // The transaction has already been committed, and the connection is closed.
+    // Just ensure everything is handled at the end of the transaction.
+    await connection.end();
   
 } catch (err) {
   /**
@@ -3045,6 +3074,30 @@ const users = await new User()
 
 ```
 
+## Safety Result
+```js
+import type { TResult } from 'tspace-mysql'
+
+const fError = async () : Promise<TResult<User>[]> => {
+
+  const users = [{
+    id : 1,
+    uuid: "12d4f08a-a20d-4f41-abac-81391e135d60",
+    email: "tspace@example.com"
+  }]
+      
+  return users // ❌
+}
+
+const fCorrect = async () : Promise<TResult<User>[]> => {
+
+  const users = await new User().findMany()
+      
+  return users // ✅
+}
+
+```
+
 ## Repository
 ```js
 Repository is a mechanism that encapsulates all database operations related to a specific model. 
@@ -3248,7 +3301,11 @@ try {
     transaction
   })
 
+  // after your use commit if use same transction for actions this transction will auto commit
   await transaction.commit()
+
+  // ensure the nothing with transction just use end of transction
+  await transaction.end();
 
 } catch (err) {
 
@@ -3266,19 +3323,21 @@ import { Phone } from '../Models/Phone'
 const userRepository = Repository(User)
 
 const userHasPhones = await userRepository.findOne({
-  select : ['*'],
-  where : {
+  select : '*',
+    where : {
     id: 1
   },
-  relations : ['phone'],
-  relationQuery:{
-    name : 'phone',
-    callback: () : TRepository<Phone> => ({ // add type for the callback know to check type of the model
-      select: ['id', 'userId', 'name'],
-      relations : ['user']
-    }) 
+  relations: {
+    phone: {
+      select : {
+        id : true,
+        userId : true,
+        name: true
+      }
+      user : true
+    }
   }
-})
+});
 
 const phoneRepository = Repository(Phone)
 
@@ -3287,7 +3346,9 @@ const phoneBelongUser = await phoneRepository.findOne({
   where : {
     id: 1
   },
-  relations : ['user']
+  relations : {
+    user : true
+  }
 })
 
 ```
