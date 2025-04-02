@@ -1516,14 +1516,31 @@ class Model<
     protected async _actionStatement ({ sql  , returnId = false} : { sql : string, returnId?: boolean }) : Promise<any> {
         try {
 
-            if(this.$state.get('DEBUG')) {
-                this.$utils.consoleDebug(sql)
-                this.$state.set('QUERIES',[
-                    ...this.$state.get('QUERIES'),
-                    sql
-                ])
+            const getResults = async (sql : string) => {
+
+                if(this.$state.get('DEBUG')) {
+                    
+                    this.$utils.consoleDebug(sql)
+
+                    const startTime = +new Date()
+    
+                    const results  = await this.$pool.query(sql)
+    
+                    const endTime = +new Date()
+                    
+                    this.$utils.consoleExec(startTime , endTime)
+    
+                    this.$state.set('QUERIES',[
+                        ...this.$state.get('QUERIES'),
+                        sql
+                    ])
+    
+                    return results
+                }
+
+                return await this.$pool.query(sql)
             }
-               
+    
             if(this.$state.get('LOGGER')) {
                 const updateRegex = /^UPDATE\b/i
                 const insertRegex = /^INSERT\b/i
@@ -1539,7 +1556,7 @@ class Model<
 
                     await this._checkTableLoggerIsExists().catch(_ => null)
 
-                    const result = await this.$pool.query(sql)
+                    const result = await getResults(sql)
 
                     const changed = await new Model()
                     .copyModel(this , {
@@ -1589,7 +1606,7 @@ class Model<
                     .disableVoid()
                     .get()
 
-                    const result = await this.$pool.query(sql)
+                    const result = await getResults(sql)
 
                     const changed = await new Model()
                     .copyModel(this , {
@@ -1642,7 +1659,7 @@ class Model<
                     .disableVoid()
                     .get()
 
-                    const result = await this.$pool.query(sql)
+                    const result = await getResults(sql)
     
                     await new DB(this.$state.get('TABLE_LOGGER'))
                     .create({
@@ -1669,7 +1686,7 @@ class Model<
                 }
             }
 
-            const  result  = await this.$pool.query(sql)
+            const  result  = await getResults(sql)
 
             if(returnId) return [result.affectedRows , result.insertId]
     
@@ -1958,9 +1975,6 @@ class Model<
      * @returns {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
-import { alias } from 'yargs';
-     *   import { pattern } from '../../tests/schema-spec';
-     *   import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -1998,8 +2012,6 @@ import { alias } from 'yargs';
      * @returns {this} this
      * @example
      *   import { Model } from 'tspace-mysql'
-     * import utils from '../utils/index';
-     *   import { TRelationOptions } from '../types';
      *   class User extends Model {
      *       constructor(){
      *           super()
@@ -2198,6 +2210,27 @@ import { alias } from 'yargs';
         return this
     }
 
+    withQueryExists<
+        K extends TR extends object ? TRelationKeys<TR> : string, 
+        M = `$${K & string}` extends keyof TR 
+        ? TR[`$${K & string}`] extends (infer T)[]
+            ? T
+            : TR[`$${K & string}`]
+        : Model
+    >(nameRelation: K, callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
+
+        this.withExists(nameRelation)
+
+        if(options.pivot) {
+            this.$relation.callbackPivot(String(nameRelation) , callback)
+            return this
+        }
+
+        this.$relation.callback(String(nameRelation) , callback)
+
+        return this
+    }
+
     /**
      * 
      * The 'relationQuery' method is particularly useful when you want to filter or add conditions records based on related data. 
@@ -2257,6 +2290,67 @@ import { alias } from 'yargs';
     >
     (nameRelation: K , callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
         return this.withQuery(nameRelation, callback , options)
+    }
+
+    /**
+     * 
+     * The 'relationQueryExists' method is particularly useful when you want to filter or add conditions records based on related data. 
+     * 
+     * Use relation '${name}' registry models then return callback queries
+     * @param {string} nameRelation name relation in registry in your model
+     * @param {function} callback query callback
+     * @param {object} options pivot the query 
+     * @example
+     *   import { Model } from 'tspace-mysql'
+     *   class User extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'posts' , model : Post })      
+     *       }
+     *   }
+     *
+     *   class Post extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'comments' , model : Comment })
+     *           this.belongsTo({ name : 'user' , model : User })      
+     *       }
+     *   }
+     * 
+     *   class Comment extends Model {
+     *       constructor(){
+     *           super()
+     *           this.hasMany({ name : 'users' , model : User })
+     *           this.belongsTo({ name : 'post' , model : Post })
+     *       }
+     *   }
+     * 
+     *   await new User().relations('posts')
+     *   .relationQuery('posts', (query : Post) => {
+     *       return query.relations('comments','user')
+     *       .relationQuery('comments', (query : Comment) => {
+     *           return query.relations('user','post')
+     *       })
+     *       .relationQuery('user', (query : User) => {
+     *           return query.relations('posts').relationsQuery('posts',(query : Post)=> {
+     *               return query.relations('comments','user')
+     *               // relation n, n, ...n
+     *           })
+     *       })
+     *   })
+     *  .findMany()
+     * @returns {this} this
+     */
+    relationQueryExists<
+        K extends TR extends object ? TRelationKeys<TR> : string, 
+        M = `$${K & string}` extends keyof TR 
+        ? TR[`$${K & string}`] extends (infer T)[]
+            ? T
+            : TR[`$${K & string}`]
+        : Model
+    >
+    (nameRelation: K , callback : (query : M) => M , options : { pivot : boolean } = { pivot: false }) : this {
+        return this.withQueryExists(nameRelation, callback , options)
     }
 
     /**
@@ -4092,7 +4186,11 @@ import { alias } from 'yargs';
      * @returns {promise<Record<string,any> | null>} Record | null
     */
     async first<K , R = TRelationResults<TR>>(cb ?: Function): Promise<
-        (unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null
+        (unknown extends TS 
+            ? Record<string, any> 
+            : TS & K 
+                & Partial<R extends any ? TS & Partial<R> : R>
+        ) | null
     > {
     
         this._validateMethod('first')
@@ -4127,7 +4225,12 @@ import { alias } from 'yargs';
      * @param {Function?} cb callback function return query sql
      * @returns {promise<Record<string,any> | null>} Record | null
     */
-    async findOne<K, R = TRelationResults<TR>>(cb ?: Function): Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
+    async findOne<K , R = TRelationResults<TR>>(cb ?: Function): Promise<
+        (unknown extends TS 
+            ? Record<string, any> 
+            : TS & K & Partial<R extends any ? TS & Partial<R> : R>
+        ) | null
+    > {
         return await this.first(cb)
     }
 

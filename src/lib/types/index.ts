@@ -141,10 +141,25 @@ export type TConnectionTransaction = {
      * The 'rollback ' method is used to when the transaction is failed
      * @returns {Promise<void>}
      */
-    rollback : () => Promise<void>
+    rollback : () => Promise<void>;
+
+    /**
+     * The 'end ' method is used to end the transction
+     * @returns {Promise<void>}
+     */
+    end : () => Promise<void>;
 }
 
 export type TConnection = {
+    on : (event : TPoolEvent , data : (r : any) => any) => void
+    query: (sql: string) => Promise<any>
+    connection : () => Promise<{
+        on : (event : TPoolEvent , data : any) => void;
+        query: (sql: string) => Promise<any[]>;
+    }>
+}
+
+export type TNewConnection = {
     on : (event : TPoolEvent , data : (r : any) => any) => void
     query: (sql: string) => Promise<any>
     connection : () => Promise<TConnectionTransaction>
@@ -352,6 +367,30 @@ type TRepositoryWhere<T extends Record<string, any> = any,R = unknown> = Partial
         : never;
 }>;
 
+type TRepositoryOrderBy<T extends Record<string, any> = any,R = unknown> = Partial<{
+    [K in TSchemaKeys<T> | TRelationKeys<R>]: K extends TRelationKeys<R>
+    ? K extends TRawStringQuery
+        ? 'ASC' | 'DESC'
+        : K extends `${string}.${string}`
+            ? 'ASC' | 'DESC'
+            : K extends `$${string & K}`
+                ? R extends Record<string, any>
+                    ? 'ASC' | 'DESC'
+                    : never
+                : R extends Record<string, any>
+                    ?  R[`$${string & K}`] extends (infer U)[]
+                        ? U extends Model 
+                            ? '*' |  TRepositoryOrderBy<TSchemaModel<U> , TRelationModel<U>>
+                            : never
+                        : R[`$${K & string}`] extends Model
+                            ? '*' |  TRepositoryOrderBy<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>>
+                            :  never
+                    : never
+    : K extends keyof T
+        ? 'ASC' | 'DESC'
+        : never;
+}>
+
 type TRepositorySelect<T extends Record<string, any> = any,R = unknown> = Partial<{
     [K in TSchemaKeys<T> | TRelationKeys<R>]: K extends TRelationKeys<R>
     ? K extends TRawStringQuery
@@ -376,7 +415,6 @@ type TRepositorySelect<T extends Record<string, any> = any,R = unknown> = Partia
         : never;
 }>
 
-
 type TRepositoryRelation<R = unknown> = Partial<{
     [K in TRelationKeys<R>]: K extends TRelationKeys<R>
     ? K extends `$${string & K}`
@@ -386,21 +424,49 @@ type TRepositoryRelation<R = unknown> = Partial<{
         : R extends Record<string, any>
         ?  R[`$${string & K}`] extends (infer U)[]
             ? U extends Model 
-                ? boolean | TRepositoryRequest<TSchemaModel<U> , TRelationModel<U>> 
+                ? boolean | 
+                    (
+                        TRepositoryRequest<TSchemaModel<U> , TRelationModel<U>> & 
+                        TRepositoryRelation<TRelationModel<U>>
+                    ) 
                 : never
             : R[`$${K & string}`] extends Model
-                ? boolean | TRepositoryRequest<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
+                ?  boolean | 
+                    (
+                        TRepositoryRequest<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> & 
+                        TRepositoryRelation<TRelationModel<R[`$${K & string}`]>>
+                    )
                 :  never
         : never
     : never;
 }>
+
+// type TRepositoryRelation<T extends Record<string, any> = any,R = unknown> = Partial<{
+//     [K in TRelationKeys<R>]: K extends TRelationKeys<R>
+//     ? K extends `$${string & K}`
+//         ? R extends Record<string, any>
+//             ? boolean
+//             : never
+//         : R extends Record<string, any>
+//         ?  R[`$${string & K}`] extends (infer U)[]
+//             ? U extends Model 
+//                 ? boolean | TRepositoryRequest<TSchemaModel<U> , TRelationModel<U>> 
+//                 : never
+//             : R[`$${K & string}`] extends Model
+//                 ? boolean | TRepositoryRequest<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
+//                 :  never
+//         : never
+//     : never;
+// }>
+
+
 
 export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
     debug ?: boolean
     cache ?: { key : string, expires : number },
     when ?: {condition : boolean , query : () => TRepositoryRequest<T,R>}
     select?: '*' |  TRepositorySelect<T,R>
-    omit ?: TRepositorySelect<T,R>
+    except ?: TRepositorySelect<T,R>
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     leftJoin?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[]
@@ -409,7 +475,7 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> 
     whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>>
     groupBy?: (Partial<TSchemaColumns<T>> | `${string}.${string}` | TRawStringQuery)[]
     having ?: string,
-    orderBy?: Partial<Record<TSchemaColumns<T> | `${string}.${string}` | TRawStringQuery, 'ASC' | 'DESC'>>;
+    orderBy?:  TRepositoryOrderBy<T,R>
     limit ?: number;
     offset ?: number;
     relations ?: TRepositoryRelation<R>;

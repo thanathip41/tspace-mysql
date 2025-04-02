@@ -2,6 +2,7 @@ import pluralize from "pluralize";
 import { TRelationOptions, TRelationQueryOptions } from "../../types";
 import { Model } from "../Model";
 import { Blueprint } from "../Blueprint";
+import { alias } from 'yargs';
 
 class RelationHandler  {
 
@@ -835,7 +836,7 @@ class RelationHandler  {
 
     private async _belongsToMany (parents: Record<string,any>[], relation:TRelationOptions) {
 
-        let { name, foreignKey, localKey , pivot , oldVersion , modelPivot , queryPivot } = this._valueInRelation(relation)
+        let { name, foreignKey, localKey , pivot , oldVersion , modelPivot , queryPivot , as } = this._valueInRelation(relation)
 
         const localKeyId = parents.map((parent : Record<string,any>) => {
             
@@ -934,6 +935,8 @@ class RelationHandler  {
         .bind(this.$model['$pool'].get())
         .debug(this.$model['$state'].get('DEBUG'))
         .get()
+
+        const alias = as ?? name
         
         if(oldVersion) {
             for(const pivotResult of pivotResults) {
@@ -944,10 +947,10 @@ class RelationHandler  {
             }
     
             for(const parent of parents) {
-                if(parent[name] == null) parent[name] = []
+                if(parent[alias] == null) parent[alias] = []
                 for(const pivotResult of pivotResults) {
                     if(pivotResult[localKeyPivotTable] !== parent[foreignKey]) continue                  
-                    parent[name].push(pivotResult)
+                    parent[alias].push(pivotResult)
                 }
             }
            
@@ -971,7 +974,7 @@ class RelationHandler  {
 
         for(const parent of parents) {
 
-            if(parent[name] == null) parent[name] = []
+            if(parent[alias] == null) parent[alias] = []
 
             const match = children[`${parent[foreignKey]}`]
 
@@ -989,7 +992,9 @@ class RelationHandler  {
             }
         }
 
-        if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
+        if(this.$model['$state'].get('HIDDEN').length) {
+            this.$model['_hiddenColumnModel'](parents)
+        }
 
         return parents
     } 
@@ -1071,12 +1076,8 @@ class RelationHandler  {
                 pluralize.singular(query.getTableName())
             ].sort().join('_'))
 
-            pivot = relationModel.pivot 
-            ? relationModel.pivot
-            : modelPivot == null
-                ? defaultPivot 
-                : new modelPivot().getTableName()
-            
+            pivot = relationModel.pivot || (modelPivot ? new modelPivot().getTableName() : defaultPivot);
+
         }
 
         return { 
