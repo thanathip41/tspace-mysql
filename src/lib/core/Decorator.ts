@@ -1,6 +1,9 @@
-import pluralize from "pluralize"
-import { TRelationQueryOptions, TValidateSchemaDecorator } from "../types"
-import { Blueprint } from "./Blueprint"
+import pluralize      from "pluralize"
+import { Blueprint }  from "./Blueprint"
+import type { 
+  TRelationQueryOptions, 
+  TValidateSchemaDecorator 
+} from "../types"
 
 /**
  * 

@@ -441,26 +441,6 @@ type TRepositoryRelation<R = unknown> = Partial<{
     : never;
 }>
 
-// type TRepositoryRelation<T extends Record<string, any> = any,R = unknown> = Partial<{
-//     [K in TRelationKeys<R>]: K extends TRelationKeys<R>
-//     ? K extends `$${string & K}`
-//         ? R extends Record<string, any>
-//             ? boolean
-//             : never
-//         : R extends Record<string, any>
-//         ?  R[`$${string & K}`] extends (infer U)[]
-//             ? U extends Model 
-//                 ? boolean | TRepositoryRequest<TSchemaModel<U> , TRelationModel<U>> 
-//                 : never
-//             : R[`$${K & string}`] extends Model
-//                 ? boolean | TRepositoryRequest<TSchemaModel<R[`$${K & string}`]> , TRelationModel<R[`$${K & string}`]>> 
-//                 :  never
-//         : never
-//     : never;
-// }>
-
-
-
 export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
     debug ?: boolean
     cache ?: { key : string, expires : number },

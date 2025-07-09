@@ -1,4 +1,4 @@
-import { DB } from './DB'
+import { DB }   from './DB'
 import { Join } from './Join'
 
 class SqlLike  {

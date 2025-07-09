@@ -1,9 +1,9 @@
-import { format } from "sql-formatter";
-import { AbstractDB } from "./Abstracts/AbstractDB";
-import { proxyHandler } from "./Handlers/Proxy";
+import { format }         from "sql-formatter";
+import { AbstractDB }     from "./Abstracts/AbstractDB";
+import { proxyHandler }   from "./Handlers/Proxy";
+import { StateHandler }   from "./Handlers/State";
+import { Tool }           from "../tools";
 import { PoolConnection } from "./Pool";
-import { StateHandler } from "./Handlers/State";
-import { Tool } from "../tools";
 import type {
   TConstant,
   TBackup,

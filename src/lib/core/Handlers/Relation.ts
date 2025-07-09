@@ -1,8 +1,10 @@
-import pluralize from "pluralize";
-import { TRelationOptions, TRelationQueryOptions } from "../../types";
-import { Model } from "../Model";
+import pluralize     from "pluralize";
+import { Model }     from "../Model";
 import { Blueprint } from "../Blueprint";
-import { alias } from 'yargs';
+import type { 
+    TRelationOptions, 
+    TRelationQueryOptions 
+} from "../../types";
 
 class RelationHandler  {
 

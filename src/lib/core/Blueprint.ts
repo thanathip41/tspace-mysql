@@ -1,6 +1,5 @@
 import { Model } from "./Model"
 
-
 /**
  * Class 'Blueprint' is used to make the schema for table
  * @example
@@ -22,7 +21,7 @@ class Blueprint<T = any> {
     private _foreignKey : Record<string,any> | null = null
     private _index : string | null = null
     private _column : string | null = null
-    private _valueType !: NumberConstructor | StringConstructor | DateConstructor
+    private _valueType !: NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor
 
     /**
      * Assign type 'serial' in table 

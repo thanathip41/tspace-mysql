@@ -1,6 +1,8 @@
-import { DB , Blueprint, Schema } from '..'
-import utils  from '../../utils'
-import CONSTANTS from '../../constants'
+import { DB }         from '../DB';
+import { Blueprint }  from '../Blueprint';
+import { Schema }     from '../Schema';
+import { utils }      from '../../utils';
+import { CONSTANTS }  from '../../constants';
 
 class DBCache {
 

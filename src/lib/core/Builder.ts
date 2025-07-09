@@ -1,10 +1,14 @@
-import { AbstractBuilder } from "./Abstracts/AbstractBuilder";
-import { utils } from "../utils";
-import { CONSTANTS } from "../constants";
-import { DB } from "./DB";
-import { StateHandler } from "./Handlers/State";
-import { Join } from "./Join";
-import { Pool, PoolConnection, loadOptionsEnvironment } from "./Pool";
+import { AbstractBuilder }  from "./Abstracts/AbstractBuilder";
+import { utils }            from "../utils";
+import { DB }               from "./DB";
+import { StateHandler }     from "./Handlers/State";
+import { Join }             from "./Join";
+import { CONSTANTS }        from "../constants";
+import { 
+  Pool, 
+  PoolConnection, 
+  loadOptionsEnvironment 
+} from "./Pool";
 import {
   TPagination,
   TConnectionOptions,
@@ -1048,13 +1052,17 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  whereSubQuery(column: string, subQuery: string): this {
+  whereSubQuery(
+    column: string, 
+    subQuery: string, 
+    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
+  ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)}`,
-        `${this.$constants("IN")}`,
+        options.operator,
         `(${subQuery})`,
       ].join(" "),
     ]);
@@ -1072,13 +1080,17 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  whereNotSubQuery(column: string, subQuery: string): this {
+  whereNotSubQuery(
+    column: string, 
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
+  ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)}`,
-        `${this.$constants("NOT_IN")}`,
+        options.operator,,
         `(${subQuery})`,
       ].join(" "),
     ]);
@@ -1096,13 +1108,17 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereSubQuery(column: string, subQuery: string): this {
+  orWhereSubQuery(
+    column: string, 
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
+  ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(column)}`,
-        `${this.$constants("IN")}`,
+        options.operator,
         `(${subQuery})`,
       ].join(" "),
     ]);
@@ -1120,13 +1136,17 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereNotSubQuery(column: string, subQuery: string): this {
+  orWhereNotSubQuery(
+    column: string, 
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
+  ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(column)}`,
-        `${this.$constants("NOT_IN")}`,
+        options.operator,
         `(${subQuery})`,
       ].join(" "),
     ]);

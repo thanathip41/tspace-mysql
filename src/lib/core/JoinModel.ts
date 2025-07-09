@@ -1,6 +1,8 @@
 import pluralize from "pluralize"
-import { TModelConstructorOrObject } from "../types"
 import { Model } from "./Model"
+import type { 
+    TModelConstructorOrObject 
+} from "../types"
 
 class JoinModel {
     private join : string[] = []

@@ -1,6 +1,6 @@
-import { Builder } from "./Builder"
-import { Model } from "./Model"
-import { Tool } from '../tools'
+import { Builder }  from "./Builder"
+import { Model }    from "./Model"
+import { Tool }     from '../tools'
 class Schema {
 
     private $db: Builder = new Builder()

@@ -1,14 +1,15 @@
-import pluralize from "pluralize";
-import { DB } from "./DB";
-import { Schema } from "./Schema";
-import { AbstractModel } from "./Abstracts/AbstractModel";
-import { proxyHandler } from "./Handlers/Proxy";
+import pluralize           from "pluralize";
+import { DB }              from "./DB";
+import { Schema }          from "./Schema";
+import { AbstractModel }   from "./Abstracts/AbstractModel";
+import { proxyHandler }    from "./Handlers/Proxy";
 import { RelationHandler } from "./Handlers/Relation";
-import { Blueprint } from "./Blueprint";
-import { StateHandler } from "./Handlers/State";
-import { TSchemaModel } from "./UtilityTypes";
-import { Cache } from "./Cache";
-import { JoinModel } from "./JoinModel";
+import { Blueprint }       from "./Blueprint";
+import { StateHandler }    from "./Handlers/State";
+import { TSchemaModel }    from "./UtilityTypes";
+import { Cache }           from "./Cache";
+import { JoinModel }       from "./JoinModel";
+import { CONSTANTS }       from "../constants";
 import type {
   TCache,
   TExecute,
@@ -25,9 +26,7 @@ import type {
   TModelConstructorOrObject,
   TRelationResults,
   TRelationKeys,
-  TConnection,
 } from "../types";
-import { Pool } from "./Pool";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -3317,14 +3316,15 @@ class Model<
    */
   whereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
-        `${this.$constants("IN")}`,
+        options.operator,
         `(${subQuery})`,
       ]
         .join(" ")
@@ -3342,14 +3342,15 @@ class Model<
    */
   whereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_IN")}`,
+         options.operator,
         `(${subQuery})`,
       ]
         .join(" ")
@@ -3367,14 +3368,15 @@ class Model<
    */
   orWhereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
-        `${this.$constants("IN")}`,
+        options.operator,
         `(${subQuery})`,
       ]
         .join(" ")
@@ -3392,14 +3394,15 @@ class Model<
    */
   orWhereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string
+    subQuery: string,
+    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_IN")}`,
+        options.operator,
         `(${subQuery})`,
       ]
         .join(" ")

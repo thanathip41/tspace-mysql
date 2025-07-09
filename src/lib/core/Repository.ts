@@ -1,5 +1,8 @@
 import { Model } from "./Model"
-import type { TRelationModel, TSchemaModel } from "./UtilityTypes"
+import type { 
+    TRelationModel, 
+    TSchemaModel 
+} from "./UtilityTypes"
 import type { 
     TPagination, 
     TRepositoryRequest, 

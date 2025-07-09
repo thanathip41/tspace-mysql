@@ -1,10 +1,12 @@
-import DB from "./DB";
-import Model from "./Model";
-import Schema from "./Schema";
-import Blueprint from "./Blueprint";
-import Pool from "./Pool";
-import sql from "./SqlLike";
+import DB         from "./DB";
+import Model      from "./Model";
+import Schema     from "./Schema";
+import Blueprint  from "./Blueprint";
+import Pool       from "./Pool";
+import sql        from "./SqlLike";
+import Meta       from "./Meta";
 
+export { Meta };
 export { sql };
 export { DB };
 export { Model };
@@ -22,5 +24,5 @@ export default {
   Model,
   Schema,
   Blueprint,
-  Pool,
+  Pool
 };

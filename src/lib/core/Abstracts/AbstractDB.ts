@@ -1,5 +1,5 @@
-import Builder      from '../Builder'
-import { 
+import Builder    from '../Builder'
+import type { 
     TConnection, 
     TConnectionOptions, 
     TConnectionTransaction

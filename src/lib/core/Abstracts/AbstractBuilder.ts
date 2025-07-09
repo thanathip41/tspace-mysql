@@ -1,8 +1,10 @@
-import { TPagination , TConstant }  from '../../types'
 import { StateHandler } from '../Handlers/State'
 import { TUtils }       from '../../utils'
-import { Join } from '../Join'
-
+import { Join }         from '../Join'
+import type { 
+    TPagination, 
+    TConstant 
+}  from '../../types'
 abstract class AbstractBuilder {
 
     protected $setters = [
