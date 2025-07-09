@@ -9,7 +9,7 @@ import { Repository } from "./Repository";
  * @param {type} T typeof the schema
  * @param {type} S override type in the schema
  * @example 
- * import { Blueprint , TSchema , Model } from 'tspace-mysql'
+ * import { Blueprint, TSchema, Model, Schema } from 'tspace-mysql';
  * const schemaUser = {
  *    id :new Blueprint().int().notNull().primary().autoIncrement(),
  *    uuid :new Blueprint().varchar(50).null(),
@@ -232,25 +232,6 @@ export type RelationType<R> = {
 export type TSchemaModel<M extends Model> = ReturnType<M['typeOfSchema']>;
 
 /**
- * The 'SchemaModelType' type is used to get type of schema in the model
- * @generic {Model} M Model
- * @example 
- * import { TSchemaModel } from 'tspace-mysql'
- * import { User } from '../Models/User'
- * 
- *  type TSchemaModelOfUser = TSchemaModel<User>
- *   // now you can see the schema like that
- *   {
- *       id : number,
- *       uuid : string | null,
- *       name : string
- *       // ....
- *   }
- * 
- */
-export type SchemaModelType<M extends Model> = ReturnType<M['typeOfSchema']>;
-
-/**
  * The 'TRelationModel' type is used to get type of schema in the model
  * @generic {Model} M Model
  * @example 
@@ -267,32 +248,7 @@ export type SchemaModelType<M extends Model> = ReturnType<M['typeOfSchema']>;
  *   }
  * 
  */
-export type RelationModelType<M extends Model> = ReturnType<M['typeOfRelation']>;
-
-/**
- * The 'RelationModelType' type is used to get type of schema in the model
- * @generic {Model} M Model
- * @example 
- * import { RelationModelType } from 'tspace-mysql'
- * import { User } from '../Models/User
- * 
- *  type TRelationModelOfUser = TRelationModel<User>
- * 
- *   {
- *       phone : {
- *          id : number,
- *          // ....
- *       }
- *   }
- * 
- */
 export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
-
-/**
- * The 'TRepository' type is used to get type of repository
- * @generic {Model} M Model
- */
-export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M> , TRelationModel<M>>;
 
 /**
  * The 'TResult' type is used to get type of result from model
@@ -307,10 +263,16 @@ export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSc
 export type TResultPaginate<M extends Model> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>
 
 /**
+ * The 'TRepository' type is used to get type of repository
+ * @generic {Model} M Model
+ */
+export type TRepository<M extends Model> = TRepositoryRequest<TSchemaModel<M> , TRelationModel<M>>;
+
+/**
  * The 'TypeOfRepository' type is used to return typeof repository
  * @generic {Model} M Model
  */
-export type TypeOfRepository<M extends Model> =  ReturnType<typeof Repository<M>>
+export type TRepositoryTypeOf<M extends Model> =  ReturnType<typeof Repository<M>>
 
 /**
  * The 'TSchemaKeyOf' type is used to get keyof type TSchemaModel<Model>
@@ -325,3 +287,25 @@ export type TSchemaKeyOf<
     : keyof {
         [K in keyof T as string extends K ? never : K]: T[K]
     }
+
+export namespace T {
+    export type Schema<T, S = {}> = TSchema<T, S>;
+    export type SchemaStrict<T, S = {}> = TSchemaStrict<T, S>;
+    export type SchemaModel<M extends Model> = TSchemaModel<M>;
+    export type KeyOf<M extends Model> = TSchemaKeyOf<M>;
+    export type Column<M extends Model> = TSchemaKeyOf<M>;
+
+    export type Relation<R> = TRelation<R>;
+    export type RelationModel<M extends Model> = TRelationModel<M>;
+
+    export type Repository<M extends Model> = TRepository<M>;
+    export type RepositoryTypeOf<M extends Model> = TRepositoryTypeOf<M>;
+
+
+    export type Results<
+        M extends Model,
+        Opts extends { paginate?: boolean } = {}
+    > = Opts['paginate'] extends true
+        ? TResultPaginate<M>
+        : TResult<M>;
+}

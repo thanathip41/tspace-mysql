@@ -18,6 +18,7 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 | **Soft Deletes**               | Marks records as deleted without removing them from the database. This allows for recovery and auditing later. |
 | **Relationships**              | Set up connections between models, such as one-to-one, one-to-many, belongs-to, and many-to-many. Supports nested relationships and checks. |
 | **Type Safety**                | Ensures that queries are safer by checking the types of statements like `SELECT`, `ORDER BY`, `GROUP BY`, and `WHERE`. |
+| **Metadata**                   | Get the metadata of a Model. |
 | **Repository**                 | Follows a pattern for managing database operations like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. It helps keep the code organized. |
 | **Decorators**                 | Use decorators to add extra functionality or information to model classes and methods, making the code easier to read. |
 | **Caching**                    | Improves performance by storing frequently requested data. Supports in-memory caching (like memory DB) and Redis for distributed caching. |
@@ -112,15 +113,16 @@ npm install tspace-mysql -g
   - [Cache](#cache)
   - [Decorator](#decorator)
   - [Type Safety](#type-safety)
-    - [Safety Select](#safety-select)
-    - [Safety OrderBy](#safety-order-by)
-    - [Safety GroupBy](#safety-group-by)
-    - [Safety Where](#safety-where)
-    - [Safety Insert](#safety-insert)
-    - [Safety Update](#safety-update)
-    - [Safety Delete](#safety-delete)
-    - [Safety Relationships](#safety-relationships)
-    - [Safety Result](#safety-result)
+    - [Type Safety Select](#type-safety-select)
+    - [Type Safety OrderBy](#type-safety-order-by)
+    - [Type Safety GroupBy](#type-safety-group-by)
+    - [Type Safety Where](#type-safety-where)
+    - [Type Safety Insert](#type-safety-insert)
+    - [Type Safety Update](#type-safety-update)
+    - [Type Safety Delete](#type-safety-delete)
+    - [Type Safety Relationships](#type-safety-relationships)
+    - [Type Safety Results](#type-safety-results)
+  - [Metadata](#metadata)
 - [Repository](#repository)
   - [Repository Select Statements](#repository-select-statements)
   - [Repository Insert Statements](#repository-insert-statements)
@@ -2478,7 +2480,7 @@ using the following:
 #### Schema Model
 
 ```js
-import { Model, Blueprint , TSchema } from "tspace-mysql";
+import { Model, Blueprint , type T } from "tspace-mysql";
 
 const schema = {
   id: Blueprint.int().notNull().primary().autoIncrement(),
@@ -2492,7 +2494,7 @@ const schema = {
 
 
 // make type in TS
-type TS = TSchema<typeof Schema>
+type TS = T.Schema<typeof Schema>
 
 // the TSchemaUser will be created like that
 /**
@@ -2677,12 +2679,12 @@ const user = await new User().trashed().findMany()
 ```
 
 ### Type Safety
-Type safety in TypeScript refers to the ability of the language to detect and prevent type errors during compile-time. 
-Type safety still works when you add additional types to your model, using the following:
+Type Type Safety in TypeScript refers to the ability of the language to detect and prevent type errors during compile-time. 
+Type Type Safety still works when you add additional types to your model, using the following:
 
 ```js
 // in file User.ts
-import { Model , Blueprint , TSchema , TSchemaStatic } from 'tspace-mysql'
+import { Model , Blueprint , type T } from 'tspace-mysql'
 import Phone  from '../Phone'
 
 const schemaUser = {
@@ -2696,8 +2698,8 @@ const schemaUser = {
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaUser = TSchemaStatic<typeof schemaUser>
-// TSchemaUser = TSchema<typeof schemaUser>
+type TSchemaUser = T.SchemaStatic<typeof schemaUser>
+// TSchemaUser = T.Schema<typeof schemaUser>
 
 // TSchema allowed to set any new keys without in the schema to results
 // TSchemaStatic not allowed to set any new keys without in the schema to results
@@ -2717,7 +2719,7 @@ export default User
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , TSchema , TSchemaStatic } from 'tspace-mysql'
+import { Model , Blueprint , type T } from 'tspace-mysql'
 import { User } from './User.ts'
 const schemaPhone = {
     id :Blueprint.int().notNull().primary().autoIncrement(),
@@ -2728,7 +2730,7 @@ const schemaPhone = {
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaPhone = TSchemaStatic<typeof schemaPhone>
+type TSchemaPhone = T.SchemaStatic<typeof schemaPhone>
 
 class Phone extends Model<TSchemaPhone>  {
   constructor() {
@@ -2741,10 +2743,25 @@ class Phone extends Model<TSchemaPhone>  {
 export { Phone }
 export default Phone
 
+// example basic
+type TS = T.Schema<typeof TSchemaUser>
+type TR = T.Relation<{ phone : Phone }>
+
+type TSM = T.SchemaModel<User>
+type TRM = T.RelationModel<User>     
+
+type TColumn = T.Column<User>
+
+type TResults = T.Results<User>
+type TPaginateResults = T.Results<User, { paginate : true }>
+
+type TRepository = T.Repository<User>
+type TRepositoryTypeOf = T.RepositoryTypeOf<User>
+
 +--------------------------------------------------------------------------+
 ```
 
-### Safety Select
+### Type Safety Select
 
 ```js
 import { User  } from './User.ts'
@@ -2756,18 +2773,17 @@ const user = await new User().select('idx','username').findOne() ❌
 const user = await new User().except('id','username').findOne() ✅
 const user = await new User().except('idx','username').findOne() ❌
 
-// TSchemaStatic not allowed to set any new keys without in the schema to results
-user.withoutSchema = 1 ✅ // TSchema<User>
-user.withoutSchema = 1 ❌ // TSchemaStatic<User>
+// T.SchemaStatic not allowed to set any new keys without in the schema to results
+user.withoutSchema = 1 ✅ // T.Schema<User>
+user.withoutSchema = 1 ❌ // T.SchemaStatic<User>
 // But can you make like this for cases
 const user = await new User().except('idx','username').findOne<{ withoutSchema : number }>()
 user.withoutSchema = 1 ✅
 ```
 
-### Safety OrderBy
+### Type Safety OrderBy
 
 ```js
-
 import { User } from './User.ts'
 import { Phone } from './Phone.ts'
 
@@ -2782,7 +2798,7 @@ const users = await new User().oldest('idx').findMany() ❌
 
 ```
 
-### Safety GroupBy
+### Type Safety GroupBy
 
 ```js
 import { User  } from './User.ts'
@@ -2793,7 +2809,7 @@ const users = await new User().groupBy('idx').findMany() ❌
 
 ```
 
-### Safety Where
+### Type Safety Where
 
 ```js
 import { User } from './User.ts'
@@ -2831,7 +2847,7 @@ const users = await new User()
 
 ```
 
-### Safety Insert
+### Type Safety Insert
 
 ```js
 import { User } from './User.ts'
@@ -2845,7 +2861,7 @@ const users = await new User().create({ idx : 10 }).save() ❌
 
 ```
 
-### Safety Update
+### Type Safety Update
 
 ```js
 import { User } from './User.ts'
@@ -2858,7 +2874,7 @@ const users = await new User().update({ idx : 10 }).where('idx',1).save() ❌
 
 ```
 
-### Safety Delete
+### Type Safety Delete
 
 ```js
 import { User } from './User.ts'
@@ -2869,10 +2885,10 @@ const users = await new User().where('idx',1).delete() ❌
 
 ```
 
-### Safety Relationships
+### Type Safety Relationships
 
 ```js
-import { TSchemaModel } from 'tspace-mysql'
+import { type T } from 'tspace-mysql'
 import { User } from './User.ts'
 import { Phone } from './Phone.ts'
 // Case #1 : Relationship with 2 relations 'phone' and 'phones'
@@ -2903,7 +2919,7 @@ import { Phone } from './Phone.ts'
 // good 👍👍👍
 const users = await new User()
 .relations('phone','phones')
-.findMany<{ phone : TSchemaModel<Phone> , phones : TSchemaModel<Phone>[] }>()
+.findMany<{ phone : T.SchemaModel<Phone> , phones : T.SchemaModel<Phone>[] }>()
 
 for(const user of users) {
   user.phone  ✅
@@ -2921,7 +2937,7 @@ for(const user of users) {
   .relations('phone','phones')
   .relationQuery('phone' , (query : Phone) => query.relations('user'))
   .relationQuery('phones' , (query : Phone) => query.relations('user'))
-  .findMany<{ phone : TSchemaModel<Phone> , phones : TSchemaModel<Phone>[] }>()
+  .findMany<{ phone : T.SchemaModel<Phone> , phones : T.SchemaModel<Phone>[] }>()
 
   for(const user of users) {
     user.phone.user ❌
@@ -2949,8 +2965,8 @@ for(const user of users) {
   .relationQuery('phone' , (query : Phone) => query.relations('user'))
   .relationQuery('phones' , (query : Phone) => query.relations('user'))
   .findMany<{ 
-    phone : Partial<TSchemaModel<Phone>> & { user : TSchemaModel<User>};
-    phones : (Partial<TSchemaModel<Phone>> & { user : TSchemaModel<User>})[];
+    phone : Partial<T.SchemaModel<Phone>> & { user : T.SchemaModel<User>};
+    phones : (Partial<T.SchemaModel<Phone>> & { user : T.SchemaModel<User>})[];
   }>()
 
   for(const user of users) {
@@ -2965,23 +2981,23 @@ for(const user of users) {
 +--------------------------------------------------------------------------+
 // If you don't want to set types for every returning method such as 'findOne', 'findMany', and so on...
 
-import { Model , Blueprint , TSchema , TSchemaStatic , TRelation } from 'tspace-mysql'
+import { Model , Blueprint , type T } from 'tspace-mysql'
 import { Phone }  from '../Phone'
 
 const schemaUser = {
-    id :Blueprint.int().notNull().primary().autoIncrement(),
-    uuid :Blueprint.varchar(50).null(),
-    email :Blueprint.varchar(50).null(),
-    name :Blueprint.varchar(255).null(),
-    username : Blueprint.varchar(255).null(),
-    password : Blueprint.varchar(255).null(),
+    id        :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid      :Blueprint.varchar(50).null(),
+    email     :Blueprint.varchar(50).null(),
+    name      :Blueprint.varchar(255).null(),
+    username  :Blueprint.varchar(255).null(),
+    password  :Blueprint.varchar(255).null(),
     createdAt :Blueprint.timestamp().null(),
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaUser = TSchemaStatic<typeof schemaUser>
+type TSchemaUser = T.SchemaStatic<typeof schemaUser>
 
-type TRelationUser =  TRelation<{
+type TRelationUser =  T.Relation<{
   phones : Phone[]
   phone  : Phone
 }>
@@ -3003,28 +3019,25 @@ export { User }
 +--------------------------------------------------------------------------+
 
 // in file Phone.ts
-import { Model , Blueprint , TSchema , TRelation } from 'tspace-mysql'
+import { Model , Blueprint , type T } from 'tspace-mysql'
 import { User } from './User.ts'
 
 const schemaPhone = {
-    id :Blueprint.int().notNull().primary().autoIncrement(),
-    uuid :Blueprint.varchar(50).null(),
-    userId : Blueprint.int().notNull(),
-    number :Blueprint.varchar(50).notNull(),
+    id        :Blueprint.int().notNull().primary().autoIncrement(),
+    uuid      :Blueprint.varchar(50).null(),
+    userId    :Blueprint.int().notNull(),
+    number    :Blueprint.varchar(50).notNull(),
     createdAt :Blueprint.timestamp().null(),
     updatedAt :Blueprint.timestamp().null()
 }
 
-type TSchemaPhone = TSchema<typeof schemaPhone>
+type TSchemaPhone = T.Schema<typeof schemaPhone>
 
-type TRelationPhone = TRelation<{
+type TRelationPhone = T.Relation<{
   user : User[]
 }>
 
-class Phone extends Model<
-  TSchemaPhone,
-  TRelationPhone
->  {
+class Phone extends Model<TSchemaPhone,TRelationPhone>  {
   constructor() {
     super()
     this.useSchema(schemaPhone)
@@ -3074,11 +3087,11 @@ const users = await new User()
 
 ```
 
-## Safety Result
+## Type Safety Results
 ```js
-import type { TResult } from 'tspace-mysql'
+import { type T } from 'tspace-mysql'
 
-const fError = async () : Promise<TResult<User>[]> => {
+const fError = async () : Promise<T.Results<User>[]> => {
 
   const users = [{
     id : 1,
@@ -3089,7 +3102,7 @@ const fError = async () : Promise<TResult<User>[]> => {
   return users // ❌
 }
 
-const fCorrect = async () : Promise<TResult<User>[]> => {
+const fCorrect = async () : Promise<T.Results<User>[]> => {
 
   const users = await new User().findMany()
       
@@ -3098,17 +3111,76 @@ const fCorrect = async () : Promise<TResult<User>[]> => {
 
 ```
 
+## Metadata
+Get the metadata of a Model works only when a schema is added to the Model.
+
+```js
+import { Meta, Model , Blueprint , type T } from 'tspace-mysql';
+
+const schema = {
+  id        : Blueprint.int().notNull().primary().autoIncrement(),
+  uuid      : Blueprint.varchar(50).null(),
+  email     : Blueprint.varchar(255).notNull().index('users.email@index'),
+  name      : Blueprint.varchar(255).null(),
+  username  : Blueprint.varchar(255).notNull(),
+  password  : Blueprint.varchar(255).notNull(),
+  status    : Blueprint.tinyInt().notNull().default(0),
+  createdAt : Blueprint.timestamp().null(),
+  updatedAt : Blueprint.timestamp().null()
+}
+
+type TS = T.Schema<typeof schema>
+
+class User extends Model<TS>  {
+  constructor() {
+    super()
+    this.useSchema(schema)
+    this.useUUID()
+    this.useTimestamp()
+  }
+}
+
+const meta = Meta(User)
+
+const table         = meta.table() // 'users'
+const column        = meta.column('id') // 'id'
+const columnRef     = meta.columnReference('id') // `users`.`id`
+const columnTypeOf  = meta.columnTypeOf('id') // number
+const columnType    = meta.columnType('id') // Int
+const columns       = meta.columns() // ['id','uuid',...'updatedAt']
+const hasColumn     = meta.hasColumn('idx') // false
+const primaryKey    = meta.primaryKey() // 'id'
+const indexes       = meta.indexes() // ['users.email@index']
+const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
+const defaults      = meta.defaults() // { status : 0 }
+
+console.log({
+  table,
+  column,
+  columnRef,
+  columnTypeOf,
+  columnType,
+  columns,
+  hasColumn,
+  primaryKey,
+  indexes,
+  nullable,
+  defaults
+})
+
+```
+
 ## Repository
 ```js
 Repository is a mechanism that encapsulates all database operations related to a specific model. 
 It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
 
-** The Repository check always type safety if model is used the type of schema 
+** The Repository check always type Type Safety if model is used the type of schema 
 
 ```
 ### Repository Select Statements
 ```js
-import { Repository , TRepository , OP } from 'tspace-mysql'
+import { Repository, OP , type T } from 'tspace-mysql'
 import { User } from '../Models/User'
 
 const userRepository = Repository(User)
@@ -3316,7 +3388,7 @@ try {
 
 ### Repository Relations
 ```js
-import { Repository , TRepository , OP } from 'tspace-mysql'
+import { Repository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 import { Phone } from '../Models/Phone'
 
