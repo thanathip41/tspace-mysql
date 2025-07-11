@@ -72,7 +72,8 @@ const STATE_MODEL = {
     GLOBAL_SCOPE_QUERY : null,
     QUERIES : [],
     META : '',
-    CACHE : null
+    CACHE : null,
+    MIDDLEWARES: []
 } as const
 
 type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

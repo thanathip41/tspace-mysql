@@ -5,7 +5,9 @@ import Blueprint  from "./Blueprint";
 import Pool       from "./Pool";
 import sql        from "./SqlLike";
 import Meta       from "./Meta";
+import View       from './View';
 
+export { View }
 export { Meta };
 export { sql };
 export { DB };

@@ -13,6 +13,10 @@ class ModelMeta<M extends Model> {
     columnReference (column: T.Column<M>) : `${string}.${T.Column<M>}` {
         return `\`${this.table()}\`.\`${String(column)}\``;
     }
+
+    columnRef (column: T.Column<M>) : `${string}.${T.Column<M>}` {
+        return this.columnReference(column);
+    }
     
     columns() {
         const schemaModel = this.model.getSchemaModel();

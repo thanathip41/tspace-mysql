@@ -5055,7 +5055,7 @@ class Builder extends AbstractBuilder {
       ...this.$state.get("JOIN"),
       [
         `${this.$constants(type)}`,
-        aliasRef ? `${table}` : `\`${table}\``,
+        aliasRef ? `${table}` : table?.includes('`') ? `${table}`: `\`${table}\``,
         `${this.$constants("ON")}`,
         `${this.bindColumn(localKey)} = ${this.bindColumn(
           String(referenceKey)

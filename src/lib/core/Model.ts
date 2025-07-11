@@ -199,6 +199,14 @@ class Model<
     return Cache;
   }
 
+  protected useMiddleware(func: Function): this {
+    if (typeof func !== "function")
+      throw new Error(`this '${func}' is not a function`);
+
+    this.$state.set("MIDDLEWARES", [...this.$state.get("MIDDLEWARES"), func]);
+    return this;
+  }
+
   /**
    * The 'globalScope' method is a feature that allows you to apply query constraints to all queries for a given model.
    *
@@ -5784,7 +5792,7 @@ class Model<
     return;
   }
 
-  private _valuePattern(column: string): string {
+  protected _valuePattern(column: string): string {
     if (column.startsWith(this.$constants("FREEZE"))) {
       return `${column
         .replace(this.$constants("FREEZE"), "")
@@ -5850,7 +5858,7 @@ class Model<
     return this.$state.get("PATTERN") === this.$constants("PATTERN").snake_case;
   }
 
-  private _classToTableName(
+  protected _classToTableName(
     className?: string | null,
     { singular = false } = {}
   ) {
@@ -6165,6 +6173,13 @@ class Model<
   }
 
   private async _execute({ sql, type, message, options }: TExecute) {
+    
+    const middlewares: Function[] = this.$state.get("MIDDLEWARES");
+
+    if(middlewares.length) {
+      await Promise.all(middlewares.map(fn => fn().catch(() => null)))
+    }
+
     const relations = this.$state.get("RELATIONS");
 
     const cache = await this._getCache();
@@ -7438,6 +7453,7 @@ class Model<
   }
 
   private _initialModel(): this {
+    
     this.$state = new StateHandler("model");
 
     this.meta("MAIN");
