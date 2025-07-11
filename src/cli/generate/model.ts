@@ -1,11 +1,11 @@
 const Model = (model: string, npm: string, schema : string) => {
-return `import { Model , Blueprint , TSchema , TRelation } from '${npm}'
+return `import { Model , Blueprint , type T } from '${npm}'
 
 const schema = ${schema}
 
-type TS = TSchema<typeof schema>
+type TS = T.Schema<typeof schema>
 
-type TR = TRelation<{
+type TR = T.Relation<{
   // ... name your relationship
 }>
 

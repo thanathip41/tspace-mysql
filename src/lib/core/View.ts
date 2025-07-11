@@ -5,30 +5,35 @@ class View<
   TR = unknown
 > extends Model<TS,TR> {
 
-    createView({ name, expression }: { name?: string; expression: string }) {
+    createView({ name, expression, synchronize }: { 
+        name?: string; 
+        expression: string;  
+        synchronize?: boolean
+     }) {
         const baseTableName = this._classToTableName();
-        const escapedTableName = `\`${this._valuePattern(baseTableName)}\``;
-        const viewName = name ?? escapedTableName;
+        const patternTableName = this._valuePattern(baseTableName);
+        const viewName = name ?? patternTableName;
 
         const fn = async () => {
-            const createViewSQL = [
-                this.$constants('CREATE_VIEW'),
-                viewName,
-                this.$constants('AS'),
-                expression
-            ].join(' ')
-
             try {
 
+                if(synchronize) {
+                    await DB
+                    .query(`DROP VIEW IF EXISTS ${viewName};`)
+                    .catch(() => null)
+                }
+
                 return await DB
-                .query(createViewSQL)
+                .query(`${this.$constants('CREATE_VIEW')} ${viewName} ${this.$constants('AS')} ${expression};`)
 
             } catch (err:any) {
-                const exists = String(err.message).includes(`Table '${viewName}' already exists`)
+                const message = err.message
+                const exists = String(message).includes(`Table '${viewName}' already exists`)
 
                 if(exists) return;
 
-                console.log('Fail To Craete View: ', err.message)
+                console.log('Fail To Craete View: ',message);
+                
                 throw err
             }
            
