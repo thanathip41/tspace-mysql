@@ -92,6 +92,7 @@ npm install tspace-mysql -g
     - [Global Scope](#global-scope)
   - [Schema](#schema)
     - [Schema Model](#schema-model)
+    - [Virtual Column](#virtual-column)
     - [Validation](#validation)
     - [Sync](#sync)
   - [SoftDelete](#softdelete)
@@ -130,6 +131,8 @@ npm install tspace-mysql -g
   - [Repository Delete Statements](#repository-delete-statements)
   - [Repository Transactions](#repository-transactions)
   - [Repository Relations](#repository-relations)
+- [View](#view)
+- [Stored Procedure](#stored-procedure)
 - [Blueprint](#blueprint)
 - [Cli](#cli)
   - [Make Model](#make-model)
@@ -2521,6 +2524,60 @@ class User extends Model<TS>  // use the schema for this User model
 
 ```
 
+#### Virtual Column
+```js
+
+import { Model, Blueprint , type T } from "tspace-mysql";
+
+const schema = {
+  id: Blueprint.int().notNull().primary().autoIncrement(),
+  uuid: Blueprint.varchar(50).null().index(),
+  firstName: Blueprint.varchar(191).notNull(),
+  lastName : Blueprint.varchar(191).notNull(),
+  email: Blueprint.varchar(191).notNull(),
+  createdAt: Blueprint.timestamp().null(),
+  updatedAt: Blueprint.timestamp().null(),
+  deletedAt: Blueprint.timestamp().null(),
+
+  // Define you virtual column to schema
+  fullName : new Blueprint().virtual(`CONCAT(firstName,' ', lastName)`),
+  countPosts : new Blueprint().virtual(`(SELECT COUNT(*) FROM posts WHERE posts.userid = users.id)`)
+
+  // if you need to custom the virtual column for some method.
+  // fullName : new Blueprint().virtual({
+  //     select  : `CONCAT(firstName,' ', lastName)`,
+  //     where   : `CONCAT(firstName,' ', lastName)`,
+  //     orderBy : `CONCAT(firstName,' ', lastName)`,
+  //     groupBy : `CONCAT(firstName,' ', lastName)`,
+  // }),
+}
+
+type TS = T.Schema<typeof Schema>
+
+class User extends Model<TS> {
+  constructor() {
+    super();
+    this.useSchema(schema)
+  }
+}
+const users = await new User()
+.select('id','firstName','lastName','fullName','countPosts')
+.where('fullName','LIKE',`%tspace-mysql%`)
+.orderBy('fullName','desc')
+.groupBy('fullName')
+.findMany()
+
+// SELECT 
+//    `users`.`id`, `users`.`firstName`, `users`.`lastName`, 
+//    CONCAT(firstName,' ', lastName) AS fullName , 
+//    (SELECT COUNT(*) FROM posts WHERE posts.userid = users.id) AS countPosts
+// FROM `users` 
+// WHERE CONCAT(firstName,' ', lastName) LIKE '%tspace-mysql%'
+// GROUP BY CONCAT(firstName,' ', lastName)
+// ORDER BY CONCAT(firstName,' ', lastName) DESC
+
+```
+
 #### Validation
 
 Validate the schema of Model
@@ -3429,6 +3486,187 @@ const phoneBelongUser = await phoneRepository.findOne({
 
 ```
 
+## View
+
+Your database schema can also use views. These views are represented by classes that behave similarly to models, 
+but they are based on stored SQL queries instead of actual tables.
+Let's look at a basic view class example:
+```js
+
+import { type T, Blueprint, Model , View , Meta } from 'tspace-mysql'
+
+const schemaUser = {
+  id: Blueprint.int().notNull().primary().autoIncrement(),
+  uuid: Blueprint.varchar(50).null().index(),
+  name: Blueprint.varchar(191).notNull(),
+  email: Blueprint.varchar(191).notNull()
+}
+
+type TUser = T.Schema<typeof schemaUser>
+
+class User extends Model<TUser> {
+  protected boot(): void {
+    this.useSchema(schemaUser)
+  }
+}
+
+const schemaPost = {
+  id: Blueprint.int().notNull().primary().autoIncrement(),
+  uuid: Blueprint.varchar(50).null().index(),
+  user_id :Blueprint.int().notnull(),
+  title: Blueprint.varchar(191).notNull(),
+  content: Blueprint.varchar(191).notNull()
+}
+
+type TPost = T.Schema<typeof schemaPost>
+
+class Post extends Model<TPost> {
+  protected boot(): void {
+    this.useSchema(schemaPost)
+  }
+}
+
+const schemaUserPostCountView = {
+  id :Blueprint.int().notNull().primary().autoIncrement(),
+  user_id :Blueprint.int().notnull(),
+  name :Blueprint.varchar(255).null(),
+  post_count : Blueprint.int().notnull()
+}
+
+type TSUserPostCountView = T.Schema<typeof schemaUserPostCountView>
+type TRUserPostCountView = T.Relation<{
+  user: User
+}>
+
+class UserPostCountView extends View<TSUserPostCountView,TRUserPostCountView> {
+
+  protected boot(): void {
+    this.useSchema(schemaUserPostCountView)
+    const metaUser = Meta(User)
+    const metaPost = Meta(Post)
+
+    this.createView({
+      synchronize: true,
+      expression : new User()
+      .selectRaw(`ROW_NUMBER() OVER (ORDER BY ${metaUser.columnRef('id')}) AS id`)
+      .selectRaw(`${metaUser.columnRef('id')} AS user_id`)
+      .selectRaw(metaUser.columnRef('name'))
+      .select(metaUser.columnRef('email'))
+      .selectRaw(`COUNT(${metaPost.columnRef('id')}) AS post_count`)
+      .leftJoin(metaUser.columnRef('id'),metaPost.columnRef('user_id'))
+      .groupBy(metaUser.columnRef('id'))
+      .groupBy(metaUser.columnRef('name'))
+      .toString()
+
+      // Look like this
+      // expression : 
+      // SELECT 
+      //   ROW_NUMBER() OVER (ORDER BY `users`.`id`) AS id, 
+      //   `users`.`id` AS user_id, `users`.`name`, `users`.`email`, 
+      //   COUNT(`posts`.`id`) AS post_count 
+      //   FROM `users` 
+      //   LEFT JOIN `posts` ON `users`.`id` = `posts`.`user_id` 
+      //   GROUP BY `users`.`id`, `users`.`name`
+    })
+
+    this.belongsTo({ name : 'user' , model : User })
+  }
+}
+
+new UserPostCountView()
+.with('user')
+.get()
+.then( v=> {
+  console.log(v)
+})
+
+```
+
+## Stored Procedure
+StoredProcedure is a predefined set of SQL statements stored in the database that you can call (execute) by name.
+```js
+
+import {  StoredProcedure } from 'tspace-mysql'
+
+type T = {
+  AddUser: {
+      params: {
+          name : string;
+          email: string;
+      } | [string,string];
+      result: {
+          fieldCount: number;
+          affectedRows: number;
+          insertId: number;
+          info: string;
+          serverStatus: number;
+          warningStatus: number;
+          changedRows: number;
+      }
+  };
+    GetUser: {
+      params: [number];
+      result: any[]
+  },
+  GetUsers: {
+      params: [];
+      result: any[]
+  }
+};
+
+class MyStoreProcedure extends StoredProcedure<T> {
+  protected boot(): void {
+
+    this.createProcedure({
+      name: 'AddUser',
+      expression: `
+          CREATE PROCEDURE AddUser(IN name VARCHAR(255), IN email VARCHAR(255))
+          BEGIN
+            INSERT INTO users (name, email) VALUES (name, email);
+          END;
+      `,
+      synchronize: true
+    });
+
+    this.createProcedure({
+      name: 'GetUsers',
+      expression: `
+          CREATE PROCEDURE GetUsers()
+          BEGIN
+            SELECT * FROM users LIMIT 5;
+          END;
+      `,
+      synchronize: true
+    });
+
+    this.createProcedure({
+      name: 'GetUser',
+      expression: `
+          CREATE PROCEDURE GetUser(IN userId INT)
+          BEGIN
+            SELECT * FROM users WHERE id = userId LIMIT 1;
+          END;
+      `,
+      synchronize: true
+    })
+  }
+}
+
+const storeProcedure = new MyStoreProcedure()
+
+storeProcedure.call('AddUser', { name : 'tspace-mysql' , email : 'tspace-mysql@example.com'})
+.then(r => console.log(r))
+.catch(e => console.log(e))
+
+storeProcedure.call('GetUser',[1])
+.then(r => console.log(r))
+.catch(e => console.log(e))
+
+storeProcedure.call('GetUsers',[])
+.then(r => console.log(r))
+.catch(e => console.log(e))
+
+```
 ## Blueprint
 
 Blueprint is a tool used for defining database schemas programmatically. 
