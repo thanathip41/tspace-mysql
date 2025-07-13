@@ -156,8 +156,8 @@ class RelationHandler  {
                 .bind(this.$model['$pool'].get())
                 .select1()
                 .whereReference(
-                    `\`${query.getTableName()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot.getTableName()}\`.\`${localKey}\``
+                    query.bindColumn(foreignKey),
+                    thisPivot.bindColumn(localKey)
                 )
                 .toString()
 
@@ -171,8 +171,12 @@ class RelationHandler  {
                 .bind(this.$model['$pool'].get())
                 .select1()
                 .whereReference(
-                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
+                    this.$model.bindColumn(foreignKey),
+                    thisPivot.bindColumn([ 
+                            pluralize.singular(this.$model.getTableName()),
+                            foreignKey
+                        ].join("_")
+                    )
                 )
                 .toString()
 
@@ -191,8 +195,8 @@ class RelationHandler  {
             .bind(this.$model['$pool'].get())
             .select1()
             .whereReference(
-                `\`${this.$model.getTableName()}\`.\`${localKey}\``,
-                `\`${query.getTableName()}\`.\`${foreignKey}\``
+                this.$model.bindColumn(localKey),
+                query.bindColumn(foreignKey)
             )
             .unset({
                 orderBy : true,
@@ -209,6 +213,56 @@ class RelationHandler  {
         }
 
         const sql = this.$model['_queryBuilder']().select()
+
+        return sql
+    }
+
+    getSqlExists (name : string,cb : Function) : string | null {
+
+        const relation : TRelationOptions = this.$model['$state'].get('RELATION')?.find((data: { name: string }) => data.name === name)
+
+        if(relation == null) {
+            throw this._assertError(
+                `This name relation '${name}' not be register in Model '${this.$model.constructor?.name}.'`
+            )
+        }
+
+        const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+
+        if(!relationHasExists) {
+            throw  this._assertError(
+                `The relationship '${relation.relation}' is unknown.`
+            )
+        }
+
+        if(relation.model == null) {
+            throw this._assertError(`Model for the relationship is unknown.`)
+        }
+        
+        relation.query = cb(relation.query == null ? new relation.model() : relation.query)
+
+        const { localKey, foreignKey } = this._valueInRelation(relation)   
+        
+        const query = relation.query as Model
+
+        if(query == null) {
+            throw this._assertError(`The callback query '${relation.name}' is unknown.`)
+        }
+        
+        const clone = new Model().clone(query)
+
+        const sql = clone
+        .bind(this.$model['$pool'].get())
+        .select1()
+        .whereReference(
+            this.$model.bindColumn(localKey),
+            query.bindColumn(foreignKey)
+        )
+        .unset({
+            orderBy : true,
+            limit   : true
+        })
+        .toString()
 
         return sql
     }
@@ -629,8 +683,12 @@ class RelationHandler  {
                     .bind(this.$model['$pool'].get())
                     .select1()
                     .whereReference(
-                        `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
-                        `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
+                        this.$model.bindColumn(foreignKey),
+                        thisPivot.bindColumn([ 
+                                pluralize.singular(this.$model.getTableName()),
+                                foreignKey
+                            ].join("_")
+                        )
                     )
                     .unset({
                         orderBy : true,
@@ -686,8 +744,12 @@ class RelationHandler  {
                 .bind(this.$model['$pool'].get())
                 .select1()
                 .whereReference(
-                    `\`${clone['getTableName']()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(clone['getTableName']()),foreignKey].join("_"))}\``
+                    clone.bindColumn(foreignKey),
+                    thisPivot.bindColumn([ 
+                            pluralize.singular(clone.getTableName()),
+                            foreignKey
+                        ].join("_")
+                    )
                 )
                 .unset({
                     orderBy : true,
@@ -705,8 +767,12 @@ class RelationHandler  {
                 .bind(this.$model['$pool'].get())
                 .select1()
                 .whereReference(
-                    `\`${this.$model['getTableName']()}\`.\`${foreignKey}\``,
-                    `\`${thisPivot.getTableName()}\`.\`${this._valuePattern([pluralize.singular(this.$model['getTableName']()),foreignKey].join("_"))}\``
+                    this.$model.bindColumn(foreignKey),
+                    thisPivot.bindColumn([ 
+                            pluralize.singular(this.$model.getTableName()),
+                            foreignKey
+                        ].join("_")
+                    )
                 )
                 .unset({
                     orderBy : true,
@@ -731,8 +797,8 @@ class RelationHandler  {
         .bind(this.$model['$pool'].get())
         .select1()
         .whereReference(
-            `\`${this.$model['getTableName']()}\`.\`${localKey}\``,
-            `\`${clone.getTableName()}\`.\`${foreignKey}\``
+            this.$model.bindColumn(localKey),
+            clone.bindColumn(foreignKey)
         )
         .unset({
             orderBy : true,
@@ -872,7 +938,7 @@ class RelationHandler  {
         .copyModel(modelRelation)
         .select1()
         .whereReference(
-            `\`${modelRelation.getTableName()}\`.\`${foreignKey}\``,
+            modelRelation.bindColumn(foreignKey),
             `\`${pivotTable}\`.\`${localKey}\``
         )
         .toString()

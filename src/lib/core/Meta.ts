@@ -115,6 +115,8 @@ class ModelMeta<M extends Model> {
             out[key] = value;
         }
 
+        if(!Object.keys(out).length) return null;
+
         return out as Partial<T.SchemaModel<M>>
     }
 
@@ -129,10 +131,12 @@ class ModelMeta<M extends Model> {
         const blueprint = entry[1];
 
         const value = blueprint['_valueType']
+
         if (value === Number)  return "number";
         if (value === String)  return "string";
         if (value === Boolean) return "boolean";
         if (value === Date)    return "date";
+
         return "unknown"; 
     }
 

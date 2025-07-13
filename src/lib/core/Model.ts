@@ -1,15 +1,15 @@
-import pluralize           from "pluralize";
-import { DB }              from "./DB";
-import { Schema }          from "./Schema";
-import { AbstractModel }   from "./Abstracts/AbstractModel";
-import { proxyHandler }    from "./Handlers/Proxy";
-import { RelationHandler } from "./Handlers/Relation";
-import { Blueprint }       from "./Blueprint";
-import { StateHandler }    from "./Handlers/State";
-import { TSchemaModel }    from "./UtilityTypes";
-import { Cache }           from "./Cache";
-import { JoinModel }       from "./JoinModel";
-import { CONSTANTS }       from "../constants";
+import pluralize            from "pluralize";
+import { DB }               from "./DB";
+import { Schema }           from "./Schema";
+import { AbstractModel }    from "./Abstracts/AbstractModel";
+import { proxyHandler }     from "./Handlers/Proxy";
+import { RelationHandler }  from "./Handlers/Relation";
+import { Blueprint }        from "./Blueprint";
+import { StateHandler }     from "./Handlers/State";
+import { TSchemaModel }     from "./UtilityTypes";
+import { Cache }            from "./Cache";
+import { JoinModel }        from "./JoinModel";
+import { CONSTANTS }        from "../constants";
 import type {
   TCache,
   TExecute,
@@ -1015,6 +1015,21 @@ class Model<
         return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
       }
 
+      const blueprintMapQuery = this._getBlueprintByKey(column, {
+        mapQuery: true,
+      });
+
+      if (blueprintMapQuery) {
+        const sql = blueprintMapQuery.sql?.select;
+        if (sql == null) return this.bindColumn(column);
+
+        if (sql.toLowerCase().includes(" as ")) {
+          return sql;
+        }
+
+        return `${sql} ${this.$constants("AS")} ${column}`;
+      }
+
       return this.bindColumn(column);
     });
 
@@ -1102,6 +1117,23 @@ class Model<
     column: K,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
+    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+      mapQuery: true,
+    });
+
+    if (blueprintMapQuery) {
+      const sql = blueprintMapQuery.sql?.where;
+
+      if (sql) {
+        this.$state.set("ORDER_BY", [
+          ...this.$state.get("ORDER_BY"),
+          `${sql} ${order.toUpperCase()}`,
+        ]);
+
+        return this;
+      }
+    }
+
     const orderBy = [column]
       .map((c: string) => {
         if (/\./.test(c)) return this.bindColumn(c.replace(/'/g, ""));
@@ -1134,8 +1166,20 @@ class Model<
       orderBy = columns
         .map((c: string) => {
           if (/\./.test(c)) return this.bindColumn(c.replace(/'/g, ""));
+
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
+
+          const blueprintMapQuery = this._getBlueprintByKey(c, {
+            mapQuery: true,
+          });
+
+          if (blueprintMapQuery) {
+            const sql = blueprintMapQuery.sql?.orderBy;
+
+            if (sql) return sql;
+          }
+
           return this.bindColumn(c);
         })
         .join(", ");
@@ -1166,6 +1210,17 @@ class Model<
           if (/\./.test(c)) return this.bindColumn(c.replace(/'/g, ""));
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
+
+          const blueprintMapQuery = this._getBlueprintByKey(c, {
+            mapQuery: true,
+          });
+
+          if (blueprintMapQuery) {
+            const sql = blueprintMapQuery.sql?.orderBy;
+
+            if (sql) return sql;
+          }
+
           return this.bindColumn(c);
         })
         .join(", ");
@@ -1196,6 +1251,17 @@ class Model<
           if (/\./.test(c)) return this.bindColumn(c.replace(/'/g, ""));
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
+
+          const blueprintMapQuery = this._getBlueprintByKey(c, {
+            mapQuery: true,
+          });
+
+          if (blueprintMapQuery) {
+            const sql = blueprintMapQuery.sql?.groupBy;
+
+            if (sql) return sql;
+          }
+
           return this.bindColumn(c);
         })
         .join(", ");
@@ -2884,6 +2950,34 @@ class Model<
 
     value = this.$utils.covertBooleanToNumber(value);
 
+    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+      mapQuery: true,
+    });
+
+    if (blueprintMapQuery) {
+      const sql = blueprintMapQuery.sql?.where;
+
+      if (sql) {
+        if (value === null) {
+          return this.whereRaw(`${sql} ${this.$constants("IS_NULL")}`);
+        }
+
+        if (Array.isArray(value)) {
+          const values = value
+            ? `${value
+                .map((value: string) =>
+                  this._checkValueHasRaw(this.$utils.escape(value))
+                )
+                .join(",")}`
+            : this.$constants(this.$constants("NULL"));
+
+          return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+        }
+
+        return this.whereRaw(`${sql} ${operator} '${value}'`);
+      }
+    }
+
     if (value === null) {
       return this.whereNull(column);
     }
@@ -2930,6 +3024,34 @@ class Model<
     value = this.$utils.covertBooleanToNumber(value);
 
     value = this.$utils.covertDateToDateString(value);
+
+    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+      mapQuery: true,
+    });
+
+    if (blueprintMapQuery) {
+      const sql = blueprintMapQuery.sql?.where;
+
+      if (sql) {
+        if (value === null) {
+          return this.orWhereRaw(`${sql} ${this.$constants("IS_NULL")}`);
+        }
+
+        if (Array.isArray(value)) {
+          const values = value
+            ? `${value
+                .map((value: string) =>
+                  this._checkValueHasRaw(this.$utils.escape(value))
+                )
+                .join(",")}`
+            : this.$constants(this.$constants("NULL"));
+
+          return this.orWhereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+        }
+
+        return this.orWhereRaw(`${sql} ${operator} '${value}'`);
+      }
+    }
 
     if (value === null) {
       return this.orWhereNull(column);
@@ -3034,6 +3156,34 @@ class Model<
       const value = this.$utils.escape(columns[column]);
 
       const c = String(column);
+
+      const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+        mapQuery: true,
+      });
+
+      if (blueprintMapQuery) {
+        const sql = blueprintMapQuery.sql?.where;
+
+        if (sql) {
+          if (value === null) {
+            return this.whereRaw(`${sql} ${this.$constants("IS_NULL")}`);
+          }
+
+          if (Array.isArray(value)) {
+            const values = value
+              ? `${value
+                  .map((value: string) =>
+                    this._checkValueHasRaw(this.$utils.escape(value))
+                  )
+                  .join(",")}`
+              : this.$constants(this.$constants("NULL"));
+
+            return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+          }
+
+          return this.whereRaw(`${sql} ${operator} '${value}'`);
+        }
+      }
 
       if (value === null) {
         this.whereNull(column);
@@ -3202,12 +3352,24 @@ class Model<
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this._checkValueHasRaw(this.$utils.escape(value))
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
+    ? `${array
+        .map((value: string) =>
+          this._checkValueHasRaw(this.$utils.escape(value))
+        )
+        .join(",")}`
+    : this.$constants(this.$constants("NULL"));
+
+    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+      mapQuery: true,
+    });
+
+    if (blueprintMapQuery) {
+      const sql = blueprintMapQuery.sql?.where;
+
+      if (sql) {
+        return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3325,7 +3487,9 @@ class Model<
   whereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
     subQuery: string,
-    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
+    options: {
+      operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
+    } = { operator: CONSTANTS["IN"] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3351,14 +3515,16 @@ class Model<
   whereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
     subQuery: string,
-    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
+    options: {
+      operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
+    } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
-         options.operator,
+        options.operator,
         `(${subQuery})`,
       ]
         .join(" ")
@@ -3377,7 +3543,9 @@ class Model<
   orWhereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
     subQuery: string,
-    options: { operator?: typeof CONSTANTS['EQ'] | typeof CONSTANTS['IN'] } = { operator: CONSTANTS['IN'] }
+    options: {
+      operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
+    } = { operator: CONSTANTS["IN"] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3403,7 +3571,9 @@ class Model<
   orWhereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
     subQuery: string,
-    options: { operator?: typeof CONSTANTS['NOT_EQ'] | typeof CONSTANTS['NOT_IN'] } = { operator: CONSTANTS['NOT_IN'] }
+    options: {
+      operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
+    } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3795,6 +3965,27 @@ class Model<
         .join(" ")
         .replace(/^\s+/, ""),
     ]);
+
+    return this;
+  }
+
+  whereHas<
+    K extends TR extends object ? TRelationKeys<TR> : string,
+    M = `$${K & string}` extends keyof TR
+      ? TR[`$${K & string}`] extends (infer T)[]
+        ? T
+        : TR[`$${K & string}`]
+      : Model
+  >(
+    nameRelation: K,
+    callback: (query: M) => M
+  ): this {
+   
+    const sql = this.$relation.getSqlExists(nameRelation as string,callback)
+
+    if(sql == null) return this;
+
+    this.whereExists(sql)
 
     return this;
   }
@@ -5501,11 +5692,12 @@ class Model<
       schemaModel == null
         ? await this.getSchema()
         : Object.entries(schemaModel).map(([key, value]) => {
+            if(value.type === 'VIRTUAL_COLUMN') return
             return {
               Field: key,
               Type: value.type,
             };
-          });
+          }).filter(v => v != null);
 
     const fakers: any[] = [];
 
@@ -5556,7 +5748,7 @@ class Model<
       });
     }
 
-    await Promise.allSettled(promises.map((v) => v()));
+    await Promise.all(promises.map((v) => v()));
 
     return;
   }
@@ -5736,7 +5928,7 @@ class Model<
 
         const { type, attributes } = Schema.detectSchema(schemaModel[column]);
 
-        if (type == null) continue;
+        if (type == null || type === "VIRTUAL_COLUMN") continue;
 
         const sql = [
           this.$constants("ALTER_TABLE"),
@@ -5916,7 +6108,7 @@ class Model<
    * @override
    * @return {this}
    */
-  protected _handleSelect() {
+  protected _handleSelect(): this {
     const selects = this.$state.get("SELECT") as string[];
 
     const hasStart = selects?.some((s) => s.includes("*"));
@@ -5931,6 +6123,20 @@ class Model<
 
     for (const key in schemaColumns) {
       const schemaColumn = schemaColumns[key];
+
+      if (schemaColumn.sql != null) {
+        const sql = schemaColumn.sql.select;
+
+        if (sql == null) continue;
+
+        if (sql.toLowerCase().includes(" as ")) {
+          columns.push(sql);
+          continue;
+        }
+
+        columns.push(`${sql} ${this.$constants("AS")} ${key}`);
+        continue;
+      }
       if (schemaColumn.column == null) {
         columns.push(this.bindColumn(key));
         continue;
@@ -6173,11 +6379,10 @@ class Model<
   }
 
   private async _execute({ sql, type, message, options }: TExecute) {
-    
     const middlewares: Function[] = this.$state.get("MIDDLEWARES");
 
-    if(middlewares.length) {
-      await Promise.all(middlewares.map(fn => fn().catch(() => null)))
+    if (middlewares.length) {
+      await Promise.all(middlewares.map((fn) => fn()));
     }
 
     const relations = this.$state.get("RELATIONS");
@@ -7308,6 +7513,8 @@ class Model<
 
         const { type, attributes } = Schema.detectSchema(schemaTable[column]);
 
+        if (type === "VIRTUAL_COLUMN") return this._stoppedRetry(throwError);
+
         if (type == null) return this._stoppedRetry(throwError);
 
         const entries = Object.entries(schemaTable);
@@ -7452,8 +7659,29 @@ class Model<
     }
   }
 
+  private _getBlueprintByKey(
+    column: string,
+    { mapQuery }: { mapQuery?: boolean } = {}
+  ) {
+    const schemaColumns = this.getSchemaModel();
+
+    if (schemaColumns == null) return null;
+
+    for (const key in schemaColumns) {
+      if (key === column) {
+        const blueprint = schemaColumns[key];
+        const isMapQuery = blueprint.type === "VIRTUAL_COLUMN" && blueprint.sql;
+        if (mapQuery && isMapQuery) {
+          return blueprint;
+        }
+        return blueprint;
+      }
+    }
+
+    return null;
+  }
+
   private _initialModel(): this {
-    
     this.$state = new StateHandler("model");
 
     this.meta("MAIN");

@@ -277,7 +277,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   table(table: string): this {
-    this.$state.set("TABLE_NAME", `\`${table}\``);
+    this.$state.set("TABLE_NAME", `\`${table.replace(/`/g, '')}\``);
     return this;
   }
 
@@ -288,7 +288,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   from(table: string): this {
-    this.$state.set("TABLE_NAME", `\`${table}\``);
+    this.$state.set("TABLE_NAME", `\`${table.replace(/`/g, '')}\``);
     return this;
   }
 
@@ -1806,41 +1806,6 @@ class Builder extends AbstractBuilder {
     this._handleJoin("INNER_JOIN", localKey, referenceKey);
 
     return this;
-
-    //     const callback = localKey(new Join(this,'INNER_JOIN'))
-
-    //     this.$state.set('JOIN', [
-    //             ...this.$state.get('JOIN'),
-    //             callback['toString']()
-    //         ]
-    //     )
-
-    //     return this
-    // }
-
-    // let table = referenceKey?.split('.')?.shift()
-    // const alias = table?.split('|')?.pop()
-
-    // if(alias != null) {
-    //     table = table?.split('|')?.shift()
-    //     referenceKey =  String(referenceKey?.split('|')?.pop() ?? referenceKey) as `${string}.${string}`
-    // }
-
-    // this.$state.set('JOIN', [
-    //         ...this.$state.get('JOIN'),
-    //         [
-    //             `${this.$constants('INNER_JOIN')}`,
-    //             alias == null
-    //                 ? `\`${table}\``
-    //                 : `\`${table}\` ${this.$constants('AS')} \`${alias}\``
-    //             ,
-    //             `${this.$constants('ON')}`,
-    //             `${this.bindColumn(localKey)} = ${this.bindColumn(String(referenceKey))}`
-    //         ].join(' ')
-    //     ]
-    // )
-
-    // return this
   }
 
   /**

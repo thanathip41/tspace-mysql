@@ -1,3 +1,5 @@
+import { Blueprint } from ".."
+
 const typeOf = (data:any) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase() 
 
 const isDate = (data:any) => {
@@ -125,7 +127,10 @@ const snakeCase = (data : any) => {
                 }
             }
 
-            if (typeof(data[newName]) === "object") data[newName] = snakeCase(data[newName])
+            if (typeof(data[newName]) === "object" && !(data[newName] instanceof Blueprint)) {
+
+                data[newName] = snakeCase(data[newName])
+            }
         })
 
         return data
@@ -159,7 +164,9 @@ const camelCase = (data : any) => {
                 }
             }
 
-            if (typeof(data[newName]) === "object") data[newName] = camelCase(data[newName])
+            if (typeof(data[newName]) === "object" && !(data[newName] instanceof Blueprint)) {
+                data[newName] = camelCase(data[newName])
+            }
         })
 
         return data
