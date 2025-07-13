@@ -7,7 +7,7 @@ import { Model } from '../lib'
 
 chai.use(chaiJsonSchema)
 
-describe('Testing Model', function () {
+describe('Testing Model with Pattern & Schema', function () {
   /* ##################################################### */
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD

@@ -14,15 +14,15 @@ export class User extends Model {
         
         this.useSchema(Model.formatPattern({ 
             data : {
-                id : new Blueprint().int().primary().autoIncrement(),
-                uuid :new Blueprint().varchar(50).null(),
-                email :new Blueprint().varchar(50).null(),
-                name :new Blueprint().varchar(255).null(),
-                username : new Blueprint().varchar(255).null(),
-                password : new Blueprint().varchar(255).null(),
-                createdAt :new Blueprint().timestamp().null(),
-                updatedAt :new Blueprint().timestamp().null(),
-                deletedAt :new Blueprint().timestamp().null(),
+                id : Blueprint.int().primary().autoIncrement(),
+                uuid :Blueprint.varchar(50).null(),
+                email :Blueprint.varchar(50).null(),
+                name :Blueprint.varchar(255).null(),
+                username : Blueprint.varchar(255).null(),
+                password : Blueprint.varchar(255).null(),
+                createdAt :Blueprint.timestamp().null(),
+                updatedAt :Blueprint.timestamp().null(),
+                deletedAt :Blueprint.timestamp().null(),
             },
             pattern
         }))
@@ -41,15 +41,15 @@ export class Post extends Model {
        
         this.useSchema(Model.formatPattern({
             data :  { 
-                id          : new Blueprint().int().notNull().primary().autoIncrement(),
-                uuid        : new Blueprint().varchar(50).null(),
-                userId      : new Blueprint().int().null(),
-                title       : new Blueprint().varchar(100).notNull(),
-                subtitle    : new Blueprint().varchar(100).null(),
-                description : new Blueprint().varchar(255).null(),
-                createdAt   : new Blueprint().timestamp().null(),
-                updatedAt   : new Blueprint().timestamp().null(),
-                deletedAt   : new Blueprint().timestamp().null()
+                id          : Blueprint.int().notNull().primary().autoIncrement(),
+                uuid        : Blueprint.varchar(50).null(),
+                userId      : Blueprint.int().null(),
+                title       : Blueprint.varchar(100).notNull(),
+                subtitle    : Blueprint.varchar(100).null(),
+                description : Blueprint.varchar(255).null(),
+                createdAt   : Blueprint.timestamp().null(),
+                updatedAt   : Blueprint.timestamp().null(),
+                deletedAt   : Blueprint.timestamp().null()
             },
             pattern
         }))
@@ -67,13 +67,13 @@ export class PostUser extends Model {
        
         this.useSchema(Model.formatPattern({
             data : { 
-                id          : new Blueprint().int().notNull().primary().autoIncrement(),
-                uuid        : new Blueprint().varchar(50).null(),
-                userId      : new Blueprint().int().notNull(),
-                postId      : new Blueprint().int().notNull(),
-                createdAt   : new Blueprint().timestamp().null(),
-                updatedAt   : new Blueprint().timestamp().null(),
-                deletedAt   : new Blueprint().timestamp().null()
+                id          : Blueprint.int().notNull().primary().autoIncrement(),
+                uuid        : Blueprint.varchar(50).null(),
+                userId      : Blueprint.int().notNull(),
+                postId      : Blueprint.int().notNull(),
+                createdAt   : Blueprint.timestamp().null(),
+                updatedAt   : Blueprint.timestamp().null(),
+                deletedAt   : Blueprint.timestamp().null()
             },
             pattern
         }))
