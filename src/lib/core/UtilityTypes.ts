@@ -1,7 +1,11 @@
-import { TPagination, TRelationResults, TRepositoryRequest } from "../types";
-import { Blueprint } from "./Blueprint";
-import { Model } from "./Model";
-import { Repository } from "./Repository";
+import { Blueprint }    from "./Blueprint";
+import { Model }        from "./Model";
+import { Repository }   from "./Repository";
+import type { 
+    TPagination, 
+    TRelationResults, 
+    TRepositoryRequest 
+} from "../types";
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -302,6 +306,13 @@ export namespace T {
     export type RepositoryTypeOf<M extends Model> = TRepositoryTypeOf<M>;
 
 
+    export type Result<
+        M extends Model,
+        Opts extends { paginate?: boolean } = {}
+    > = Opts['paginate'] extends true
+        ? TResultPaginate<M>
+        : TResult<M>;
+        
     export type Results<
         M extends Model,
         Opts extends { paginate?: boolean } = {}
