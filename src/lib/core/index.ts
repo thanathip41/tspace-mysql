@@ -20,6 +20,7 @@ export * from "./UtilityTypes";
 export * from "./Repository";
 export * from "./Operator";
 export * from "./Nest";
+export * from './StoredProcedure'
 
 export default {
   DB,

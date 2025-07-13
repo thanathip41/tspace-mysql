@@ -474,3 +474,8 @@ export type TModelConstructorOrObject= {
     key?: string
     join  ?: Join
 } | (new () => Model<any, any>)
+
+export type TStoreProcedure = { 
+    params: (string|number|boolean)[] | Record<string, string|number|boolean>; 
+    result: unknown 
+}
