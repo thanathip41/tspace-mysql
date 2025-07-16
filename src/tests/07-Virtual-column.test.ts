@@ -36,7 +36,7 @@ const schema = {
     updated_at :Blueprint.timestamp().null(),
     deleted_at :Blueprint.timestamp().null(),
 
-    email_username : new Blueprint().virtual(`CONCAT(email,' ', username)`),
+    email_username : new Blueprint().virtualColumn(`CONCAT(email,' ', username)`),
 }
 
 class User extends Model {

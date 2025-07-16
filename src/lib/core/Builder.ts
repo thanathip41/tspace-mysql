@@ -4638,16 +4638,11 @@ class Builder extends AbstractBuilder {
     return this._resultHandler(results);
   }
 
-  protected _checkValueHasRaw(value: any) {
-    const detectedValue =
-      typeof value === "string" && value.includes(this.$constants("RAW"))
-        ? `${this.$utils.covertBooleanToNumber(value)}`.replace(
-            this.$constants("RAW"),
-            ""
-          )
-        : `'${this.$utils.covertBooleanToNumber(value)}'`;
-
-    return detectedValue;
+  protected _checkValueHasRaw(value: unknown) {
+    if (typeof value === 'string' && value.includes(this.$constants("RAW"))) {
+      return value.replace(this.$constants("RAW"), "");
+    }
+    return typeof value === 'number' ? value : `'${value}'`;
   }
 
   protected _checkValueHasOp(str: string) {

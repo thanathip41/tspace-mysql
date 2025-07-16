@@ -2949,7 +2949,7 @@ class Model<
     value = this.$utils.escape(value);
 
     value = this.$utils.covertBooleanToNumber(value);
-
+    
     const blueprintMapQuery = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
@@ -3352,12 +3352,12 @@ class Model<
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
-    ? `${array
-        .map((value: string) =>
-          this._checkValueHasRaw(this.$utils.escape(value))
-        )
-        .join(",")}`
-    : this.$constants(this.$constants("NULL"));
+      ? `${array
+          .map((value: string) =>
+            this._checkValueHasRaw(this.$utils.escape(value))
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
 
     const blueprintMapQuery = this._getBlueprintByKey(String(column), {
       mapQuery: true,
@@ -3976,16 +3976,12 @@ class Model<
         ? T
         : TR[`$${K & string}`]
       : Model
-  >(
-    nameRelation: K,
-    callback: (query: M) => M
-  ): this {
-   
-    const sql = this.$relation.getSqlExists(nameRelation as string,callback)
+  >(nameRelation: K, callback: (query: M) => M): this {
+    const sql = this.$relation.getSqlExists(nameRelation as string, callback);
 
-    if(sql == null) return this;
+    if (sql == null) return this;
 
-    this.whereExists(sql)
+    this.whereExists(sql);
 
     return this;
   }
@@ -5691,13 +5687,14 @@ class Model<
     const fields: Array<{ Field: string; Type: string }> =
       schemaModel == null
         ? await this.getSchema()
-        : Object.entries(schemaModel).map(([key, value]) => {
-            if(value.type === 'VIRTUAL_COLUMN') return
-            return {
-              Field: key,
-              Type: value.type,
-            };
-          }).filter(v => v != null);
+        : Object.entries(schemaModel)
+            .map(([key, value]) => {
+              return {
+                Field: key,
+                Type: value.type,
+              };
+            })
+            .filter((v) => v != null);
 
     const fakers: any[] = [];
 
@@ -5760,7 +5757,7 @@ class Model<
    * @property {boolean} options.log   - show log execution with sql statements
    * @property {boolean} options.foreign - check when has a foreign keys will be created
    * @property {boolean} options.changed - check when column is changed attribute will be change attribute
-   * @property {boolean} options.index - add columns to index
+   * @property {boolean} options.index - add index to column
    * @returns {Promise<void>}
    */
   async sync({
@@ -5769,219 +5766,16 @@ class Model<
     changed = false,
     index = false,
   } = {}): Promise<void> {
-    const checkTables = await this._queryStatement(
-      `${this.$constants("SHOW_TABLES")} ${this.$constants(
-        "LIKE"
-      )} '${this.getTableName()}'`
-    );
 
-    const existsTables = checkTables.map(
-      (c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0]
-    ) as string[];
+    return await new Schema()['syncExecute']({
+      models: [this],
+      force,
+      foreign,
+      changed,
+      index,
+      log: this.$state.get('DEBUG')
+    })
 
-    const schemaModel = this.getSchemaModel();
-
-    if (schemaModel == null)
-      throw this._assertError("The schema model does not exist.");
-
-    const checkTableIsExists = existsTables.some(
-      (table: string) => table === this.getTableName()
-    );
-
-    const syncForeignKey = async ({
-      schemaModel,
-      model,
-    }: {
-      schemaModel: Record<string, any>;
-      model: Model;
-    }) => {
-      for (const key in schemaModel) {
-        if (schemaModel[key]?.foreignKey == null) continue;
-
-        const foreign = schemaModel[key].foreignKey;
-
-        const table =
-          typeof foreign.on === "string"
-            ? foreign.on
-            : foreign.on.getTableName();
-
-        const sql = [
-          this.$constants("ALTER_TABLE"),
-          `\`${model.getTableName()}\``,
-          this.$constants("ADD_CONSTRAINT"),
-          `\`${model.getTableName()}(${key})_${table}(${foreign.references})\``,
-          `${this.$constants("FOREIGN_KEY")}(\`${key}\`)`,
-          `${this.$constants("REFERENCES")} \`${table}\`(\`${
-            foreign.references
-          }\`)`,
-          `${this.$constants("ON_DELETE")} ${
-            foreign.onDelete
-          } ${this.$constants("ON_UPDATE")} ${foreign.onUpdate}`,
-        ].join(" ");
-
-        try {
-          await model._queryStatement(sql);
-          continue;
-        } catch (e: any) {
-          if (typeof foreign.on === "string") continue;
-
-          if (String(e.message).includes("Duplicate foreign key constraint"))
-            continue;
-
-          const schemaModelOn = await foreign.on.getSchemaModel();
-
-          if (!schemaModelOn) continue;
-
-          const tableSql = new Schema().createTable(
-            `\`${table}\``,
-            schemaModelOn
-          );
-          await model._queryStatement(tableSql).catch((e) => console.log(e));
-          await model._queryStatement(sql).catch((e) => console.log(e));
-          continue;
-        }
-      }
-    };
-
-    const syncIndex = async ({
-      schemaModel,
-      model,
-    }: {
-      schemaModel: Record<string, any>;
-      model: Model;
-    }) => {
-      for (const key in schemaModel) {
-        const name = schemaModel[key]?.indexKey;
-
-        if (name == null) continue;
-
-        const table = model.getTableName();
-        const index = name == "" ? `\`idx_${table}_${key}\`` : `\`${name}\``;
-
-        const sql = [
-          `${this.$constants("CREATE_INDEX")}`,
-          `${index}`,
-          `${this.$constants("ON")}`,
-          `${table}(\`${key}\`)`,
-        ].join(" ");
-
-        try {
-          await model._queryStatement(sql);
-        } catch (err: any) {
-          if (String(err.message).includes("Duplicate key name")) continue;
-
-          const tableSql = new Schema().createTable(
-            `\`${table}\``,
-            schemaModel
-          );
-          await model._queryStatement(tableSql).catch((e) => console.log(e));
-          await model._queryStatement(sql).catch((e) => console.log(e));
-          continue;
-        }
-      }
-    };
-
-    if (!checkTableIsExists) {
-      const sql = new Schema().createTable(
-        `\`${this.getTableName()}\``,
-        schemaModel
-      );
-      await this._queryStatement(sql);
-      await syncForeignKey({ schemaModel, model: this });
-    }
-
-    if (foreign) {
-      await syncForeignKey({ schemaModel, model: this });
-      return;
-    }
-
-    if (index) {
-      await syncIndex({ schemaModel, model: this });
-      return;
-    }
-
-    if (!force) return;
-
-    const schemaTable = await this.getSchema();
-    const schemaTableKeys = schemaTable.map((k: { Field: string }) => k.Field);
-    const schemaModelKeys = Object.keys(schemaModel);
-
-    const wasChangedColumns = changed
-      ? Object.entries(schemaModel)
-          .map(([key, value]) => {
-            const find = schemaTable.find((t) => t.Field === key);
-
-            if (find == null) return null;
-
-            const compare =
-              String(find.Type).toLocaleLowerCase() !==
-              String(value.type).toLocaleLowerCase();
-
-            return compare ? key : null;
-          })
-          .filter((d) => d != null)
-      : [];
-
-    if (wasChangedColumns.length) {
-      for (const column of wasChangedColumns) {
-        if (column == null) continue;
-
-        const { type, attributes } = Schema.detectSchema(schemaModel[column]);
-
-        if (type == null || type === "VIRTUAL_COLUMN") continue;
-
-        const sql = [
-          this.$constants("ALTER_TABLE"),
-          `\`${this.getTableName()}\``,
-          this.$constants("CHANGE"),
-          `\`${column}\``,
-          `\`${column}\` ${type} ${
-            attributes != null && attributes.length
-              ? `${attributes.join(" ")}`
-              : ""
-          }`,
-        ].join(" ");
-
-        await this._queryStatement(sql);
-      }
-    }
-
-    const missingColumns = schemaModelKeys.filter(
-      (schemaModelKey) => !schemaTableKeys.includes(schemaModelKey)
-    );
-
-    if (!missingColumns.length) return;
-
-    const entries = Object.entries(schemaModel);
-
-    for (const column of missingColumns) {
-      const indexWithColumn = entries.findIndex(([key]) => key === column);
-      const findAfterIndex = indexWithColumn
-        ? entries[indexWithColumn - 1][0]
-        : null;
-
-      const { type, attributes } = Schema.detectSchema(schemaModel[column]);
-
-      if (findAfterIndex == null || type == null) continue;
-
-      const sql = [
-        this.$constants("ALTER_TABLE"),
-        `\`${this.getTableName()}\``,
-        this.$constants("ADD"),
-        `\`${column}\` ${type} ${
-          attributes != null && attributes.length
-            ? `${attributes.join(" ")}`
-            : ""
-        }`,
-        this.$constants("AFTER"),
-        ,
-        `\`${findAfterIndex}\``,
-      ].join(" ");
-
-      await this._queryStatement(sql);
-    }
-
-    return;
   }
 
   protected _valuePattern(column: string): string {
@@ -7513,9 +7307,8 @@ class Model<
 
         const { type, attributes } = Schema.detectSchema(schemaTable[column]);
 
-        if (type === "VIRTUAL_COLUMN") return this._stoppedRetry(throwError);
-
-        if (type == null) return this._stoppedRetry(throwError);
+        if (type == null || attributes == null)
+          return this._stoppedRetry(throwError);
 
         const entries = Object.entries(schemaTable);
         const indexWithColumn = entries.findIndex(([key]) => key === column);
@@ -7659,8 +7452,7 @@ class Model<
     }
   }
 
-  private _getBlueprintByKey(
-    column: string,
+  private _getBlueprintByKey(column: string,
     { mapQuery }: { mapQuery?: boolean } = {}
   ) {
     const schemaColumns = this.getSchemaModel();
@@ -7670,7 +7462,7 @@ class Model<
     for (const key in schemaColumns) {
       if (key === column) {
         const blueprint = schemaColumns[key];
-        const isMapQuery = blueprint.type === "VIRTUAL_COLUMN" && blueprint.sql;
+        const isMapQuery = blueprint.sql;
         if (mapQuery && isMapQuery) {
           return blueprint;
         }

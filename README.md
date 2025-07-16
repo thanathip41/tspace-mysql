@@ -2540,11 +2540,11 @@ const schema = {
   deletedAt: Blueprint.timestamp().null(),
 
   // Define you virtual column to schema
-  fullName : new Blueprint().virtual(`CONCAT(firstName,' ', lastName)`),
-  countPosts : new Blueprint().virtual(`(SELECT COUNT(*) FROM posts WHERE posts.userid = users.id)`)
+  fullName : new Blueprint().virtualColumn(`CONCAT(firstName,' ', lastName)`),
+  countPosts : new Blueprint().virtualColumn(`(SELECT COUNT(*) FROM posts WHERE posts.userid = users.id)`)
 
-  // if you need to custom the virtual column for some method.
-  // fullName : new Blueprint().virtual({
+  // if you need to custom the virtualColumn column for some method.
+  // fullName : new Blueprint().virtualColumn({
   //     select  : `CONCAT(firstName,' ', lastName)`,
   //     where   : `CONCAT(firstName,' ', lastName)`,
   //     orderBy : `CONCAT(firstName,' ', lastName)`,

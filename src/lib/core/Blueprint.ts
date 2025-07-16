@@ -34,21 +34,22 @@ class Blueprint<T = any> {
     | DateConstructor
     | BooleanConstructor;
 
-  static virtual(
-    sql:
-      | string
-      | { select?: string; where?: string; orderBy?: string; groupBy?: string }
-  ): Blueprint<unknown> {
-    return new Blueprint().virtual(sql);
+  /**
+   * Assign type 'virtual' to column
+   * @static
+   * @return {Blueprint<T>} Blueprint
+   */
+  static virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
+    return new Blueprint().virtualColumn(sql);
   }
 
-  virtual(
-    sql:
-      | string
-      | { select?: string; where?: string; orderBy?: string; groupBy?: string }
-  ): Blueprint<unknown> {
+  /**
+   * Assign type 'virtual' to column
+   * @static
+   * @return {Blueprint<T>} Blueprint
+   */
+  virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
     const instance = new Blueprint();
-    instance._addAssignType("VIRTUAL_COLUMN");
     if (typeof sql === "object" && sql !== null) {
       instance._sql = sql;
       return instance;

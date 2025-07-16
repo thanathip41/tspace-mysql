@@ -1,6 +1,6 @@
-import { Builder }  from "./Builder";
-import { Model }    from "./Model";
-import { Tool }     from "../tools";
+import { Builder } from "./Builder";
+import { Model } from "./Model";
+import { Tool } from "../tools";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -16,7 +16,7 @@ class Schema {
 
         const { type, attributes } = this.detectSchema(data);
 
-        if (type == null || type === "VIRTUAL_COLUMN") continue;
+        if (type == null) continue;
 
         columns = [
           ...columns,
@@ -52,8 +52,7 @@ class Schema {
 
       const { type, attributes } = this.detectSchema(data);
 
-      if (type == null || attributes == null || type === "VIRTUAL_COLUMN")
-        continue;
+      if (type == null || attributes == null) continue;
 
       columns = [...columns, `\`${key}\` ${type} ${attributes.join(" ")}`];
     }
@@ -190,7 +189,7 @@ class Schema {
 
     if (!models.length) return;
 
-    await this._syncExecute({ models, force, log, foreign, changed, index });
+    await this.syncExecute({ models, force, log, foreign, changed, index });
 
     return;
   }
@@ -289,7 +288,7 @@ class Schema {
     }
   }
 
-  private async _syncExecute({
+  protected async syncExecute({
     models,
     force,
     log,
@@ -373,15 +372,14 @@ class Schema {
       const wasChangedColumns = changed
         ? Object.entries(schemaModel)
             .map(([key, value]) => {
-              const find = schemaTable.find(
-                (t) => t.Field === key && key !== "id"
-              );
+
+              const find = schemaTable.find((t) => t.Field === key);
 
               if (find == null) return null;
 
-              const compare =
-                String(find.Type).toLocaleLowerCase() !==
-                String(value.type).toLocaleLowerCase();
+              const compare = !String(value.type)
+              .toLowerCase()
+              .startsWith(String(find.Type).toLowerCase());
 
               return compare ? key : null;
             })
@@ -394,7 +392,7 @@ class Schema {
 
           const { type, attributes } = this.detectSchema(schemaModel[column]);
 
-          if (type == null) continue;
+          if (type == null || attributes == null) continue;
 
           const sql = [
             this.$db["$constants"]("ALTER_TABLE"),
@@ -403,7 +401,9 @@ class Schema {
             `\`${column}\``,
             `\`${column}\` ${type} ${
               attributes != null && attributes.length
-                ? `${attributes.join(" ")}`
+                ? `${attributes
+                .filter((v:string) => !['PRIMARY KEY', 'AUTO_INCREMENT']
+                .includes(v)).join(" ")}`
                 : ""
             }`,
           ].join(" ");
@@ -429,7 +429,8 @@ class Schema {
 
         const { type, attributes } = this.detectSchema(schemaModel[column]);
 
-        if (type == null || findAfterIndex == null) continue;
+        if (type == null || findAfterIndex == null || attributes == null)
+          continue;
 
         const sql = [
           this.$db["$constants"]("ALTER_TABLE"),
@@ -480,31 +481,67 @@ class Schema {
           ? onReference
           : onReference.getTableName();
 
-      const constraintName = `\`${model.getTableName()}(${key})_${table}(${
-        foreign.references
-      })\``;
+      const generateConstraintName = ({ modelTable,key, foreignTable, foreignKey }: {
+        modelTable: string;
+        key: string;
+        foreignTable: string;
+        foreignKey: string;
+      }): string => {
+
+        const MAX_LENGTH = 64;
+
+        const baseName = ['fk',`${modelTable}(${key})`, `${foreignTable}(${foreignKey})`].join('_');
+        
+        if (baseName.length <= MAX_LENGTH) {
+          return `\`${baseName}\``;
+        }
+
+        const hash = Buffer.from(baseName).toString('base64').slice(0, 8);
+
+        const shortParts = [
+          'fk',
+          `${modelTable.slice(0, 16)}(${key.slice(0, 16)})`,
+          `${ foreignTable.slice(0, 16)}(${foreignKey.slice(0, 16)})`,
+          hash,
+        ];
+
+        const shortName = shortParts.join('_').slice(0, MAX_LENGTH);
+
+        return `\`${shortName}\``;
+      };
+
+      const constraintName = generateConstraintName({
+        modelTable: model.getTableName(),
+        key,
+        foreignTable: table,
+        foreignKey: foreign.references
+      });
+      
+      const constants = this.$db["$constants"];
+
       const sql = [
-        this.$db["$constants"]("ALTER_TABLE"),
+        constants("ALTER_TABLE"),
         `\`${model.getTableName()}\``,
-        this.$db["$constants"]("ADD_CONSTRAINT"),
-        `${constraintName}`,
-        `${this.$db["$constants"]("FOREIGN_KEY")}(\`${key}\`)`,
-        `${this.$db["$constants"]("REFERENCES")} \`${table}\`(\`${
-          foreign.references
-        }\`)`,
-        `${this.$db["$constants"]("ON_DELETE")} ${foreign.onDelete} ${this.$db[
-          "$constants"
-        ]("ON_UPDATE")} ${foreign.onUpdate}`,
+        constants("ADD_CONSTRAINT"),
+        constraintName,
+        `${constants("FOREIGN_KEY")}(\`${key}\`)`,
+        `${constants("REFERENCES")} \`${table}\`(\`${foreign.references}\`)`,
+        `${constants("ON_DELETE")} ${foreign.onDelete}`,
+        `${constants("ON_UPDATE")} ${foreign.onUpdate}`,
       ].join(" ");
 
       try {
         await this.$db.debug(log).rawQuery(sql);
       } catch (e: any) {
         if (typeof onReference === "string") continue;
+        const message = String(e.message);
 
-        if (String(e.message).includes("Duplicate foreign key constraint"))
+        if (
+          message.includes("Duplicate foreign key constraint") || 
+          message.includes('Duplicate key on write or update')) {
           continue;
-
+        }
+        
         const schemaModelOn = await onReference.getSchemaModel();
 
         if (!schemaModelOn) continue;

@@ -1027,7 +1027,8 @@ class RelationHandler  {
             return parents
         }
 
-        const children : Record<string , { values : Record<string,any>[] }> = [...pivotResults].reduce((prev, curr) => {
+        const children : Record<string , { values : Record<string,any>[] }> = [...pivotResults]
+        .reduce((prev, curr) => {
 
             const key = curr[localKeyPivotTable]
 
@@ -1041,7 +1042,7 @@ class RelationHandler  {
         }, {})
 
         for(const parent of parents) {
-
+           
             if(parent[alias] == null) parent[alias] = []
 
             const match = children[`${parent[foreignKey]}`]
@@ -1056,7 +1057,7 @@ class RelationHandler  {
 
                 if(data == null) continue
              
-                parent[name].push(data)
+                parent[alias].push(data)
             }
         }
 
