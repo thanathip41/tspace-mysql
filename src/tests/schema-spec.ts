@@ -20,6 +20,7 @@ export class User extends Model {
                 name :Blueprint.varchar(255).null(),
                 username : Blueprint.varchar(255).null(),
                 password : Blueprint.varchar(255).null(),
+                status : Blueprint.boolean().default(0),
                 createdAt :Blueprint.timestamp().null(),
                 updatedAt :Blueprint.timestamp().null(),
                 deletedAt :Blueprint.timestamp().null(),

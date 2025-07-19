@@ -67,8 +67,7 @@ describe('Testing Meta', function () {
         expect(primaryKey).to.be.equal('id')
         expect(indexes).to.be.an('array')
         expect(nullable).to.be.an('array')
-        expect(defaults).to.be.equal(null)
-        
+        expect(defaults).to.be.deep.equal({ status: 0 })
     })
     /* ###################################################### */
 })

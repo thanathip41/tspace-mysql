@@ -67,10 +67,7 @@ let globalSettings: TGlobalSetting = {
  * const users = await new User().findMany()
  * console.log(users)
  */
-class Model<
-  TS extends Record<string, any> = any,
-  TR = unknown
-> extends AbstractModel<TS, TR> {
+class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractModel<TS, TR> {
   constructor(protected $cache = Cache) {
     super();
     /**
@@ -199,11 +196,11 @@ class Model<
     return Cache;
   }
 
-  protected useMiddleware(func: Function): this {
-    if (typeof func !== "function")
-      throw new Error(`this '${func}' is not a function`);
+  protected useMiddleware(fun: Function): this {
+    if (typeof fun !== "function")
+      throw new Error(`this '${fun}' is not a function`);
 
-    this.$state.set("MIDDLEWARES", [...this.$state.get("MIDDLEWARES"), func]);
+    this.$state.set("MIDDLEWARES", [...this.$state.get("MIDDLEWARES"), fun]);
     return this;
   }
 
@@ -983,7 +980,7 @@ class Model<
    */
   cache({ key, expires }: { key: string; expires: number }): this {
     this.$state.set("CACHE", {
-      key: `${this.bindColumn(key)}`,
+      key,
       expires,
     });
 
@@ -2938,7 +2935,7 @@ class Model<
       );
     }
 
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -2949,7 +2946,7 @@ class Model<
     value = this.$utils.escape(value);
 
     value = this.$utils.covertBooleanToNumber(value);
-    
+
     const blueprintMapQuery = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
@@ -2966,7 +2963,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this._checkValueHasRaw(this.$utils.escape(value))
+                  this.$utils.checkValueHasRaw(this.$utils.escape(value))
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -2992,7 +2989,7 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this._checkValueHasRaw(value)}`,
+        `${this.$utils.checkValueHasRaw(value)}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3013,7 +3010,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -3041,7 +3038,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this._checkValueHasRaw(this.$utils.escape(value))
+                  this.$utils.checkValueHasRaw(this.$utils.escape(value))
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3067,7 +3064,7 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this._checkValueHasRaw(value)}`,
+        `${this.$utils.checkValueHasRaw(value)}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3173,7 +3170,7 @@ class Model<
             const values = value
               ? `${value
                   .map((value: string) =>
-                    this._checkValueHasRaw(this.$utils.escape(value))
+                    this.$utils.checkValueHasRaw(this.$utils.escape(value))
                   )
                   .join(",")}`
               : this.$constants(this.$constants("NULL"));
@@ -3190,7 +3187,7 @@ class Model<
         continue;
       }
 
-      const useOp = this._checkValueHasOp(value);
+      const useOp = this.$utils.checkValueHasOp(value);
 
       if (useOp == null) {
         this.where(column, operator, value);
@@ -3297,7 +3294,7 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}->>'$.${key}'`,
         `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-        `${this._checkValueHasRaw(value)}`,
+        `${this.$utils.checkValueHasRaw(value)}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3354,7 +3351,7 @@ class Model<
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this._checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.checkValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -3398,7 +3395,7 @@ class Model<
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this._checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.checkValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -3430,7 +3427,9 @@ class Model<
     if (!array.length) return this;
 
     const values = `${array
-      .map((value: string) => this._checkValueHasRaw(this.$utils.escape(value)))
+      .map((value: string) =>
+        this.$utils.checkValueHasRaw(this.$utils.escape(value))
+      )
       .join(",")}`;
 
     this.$state.set("WHERE", [
@@ -3460,7 +3459,9 @@ class Model<
     if (!array.length) return this;
 
     const values = `${array
-      .map((value: string) => this._checkValueHasRaw(this.$utils.escape(value)))
+      .map((value: string) =>
+        this.$utils.checkValueHasRaw(this.$utils.escape(value))
+      )
       .join(",")}`;
 
     this.$state.set("WHERE", [
@@ -3625,9 +3626,9 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("BETWEEN")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3671,9 +3672,9 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("BETWEEN")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3717,9 +3718,9 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("NOT_BETWEEN")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3766,9 +3767,9 @@ class Model<
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("NOT_BETWEEN")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3869,7 +3870,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -3886,7 +3887,7 @@ class Model<
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3907,7 +3908,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -3923,7 +3924,7 @@ class Model<
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3944,7 +3945,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -3960,7 +3961,7 @@ class Model<
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this._checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -4038,7 +4039,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -4080,7 +4081,7 @@ class Model<
     operator?: any,
     value?: any
   ): this {
-    [value, operator] = this._valueAndOperator(
+    [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
@@ -5582,7 +5583,7 @@ class Model<
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this._checkValueHasRaw(value)
+          : this.$utils.checkValueHasRaw(value)
       }`;
     });
 
@@ -5709,7 +5710,12 @@ class Model<
       let columnAndValue: Record<string, any> = {};
 
       for (const { Field: field, Type: type } of fields) {
+
         if (passed(field)) continue;
+
+        const virtualColumn = this._getBlueprintByKey(field,{ mapQuery : true })
+
+        if(virtualColumn) continue;
 
         columnAndValue = {
           ...columnAndValue,
@@ -5766,16 +5772,14 @@ class Model<
     changed = false,
     index = false,
   } = {}): Promise<void> {
-
-    return await new Schema()['syncExecute']({
+    return await new Schema()["syncExecute"]({
       models: [this],
       force,
       foreign,
       changed,
       index,
-      log: this.$state.get('DEBUG')
-    })
-
+      log: this.$state.get("DEBUG"),
+    });
   }
 
   protected _valuePattern(column: string): string {
@@ -6139,6 +6143,8 @@ class Model<
 
     if (cache == null) return;
 
+    const startTime = +new Date();
+
     const findCache = await this.$cache.get(cache.key);
 
     if (findCache == null) return;
@@ -6150,11 +6156,15 @@ class Model<
             driver: this.$cache.provider(),
             key: cache.key,
             expires: cache.expires,
-          },
-          null,
-          2
+            type: this.$utils.typeOf(findCache),
+            length: Array.isArray(findCache) || this.$utils.typeOf(findCache) === 'string' 
+              ? findCache.length 
+              : undefined
+          }
         )
       );
+      const endTime = +new Date();
+      this.$utils.consoleExec(startTime, endTime);
     }
 
     return findCache;
@@ -6162,11 +6172,11 @@ class Model<
 
   private async _setCache(data: any) {
     const cache = this.$state.get("CACHE");
-
+  
     if (cache == null) return;
 
-    const exists = await this.$cache.exists(cache.key);
-
+    const exists = await this.$cache.exists(cache.key)
+   
     if (exists) return;
 
     await this.$cache.set(cache.key, data, cache.expires);
@@ -6186,7 +6196,7 @@ class Model<
     if (cache != null) {
       return cache;
     }
-
+    
     let result = await this._queryStatement(sql);
 
     if (!result.length)
@@ -6196,7 +6206,7 @@ class Model<
       const loaded = (await this.$relation.load(result, relation)) ?? [];
       result = loaded;
     }
-
+  
     if (this.$state.get("HIDDEN").length) this._hiddenColumnModel(result);
 
     return (
@@ -6702,7 +6712,7 @@ class Model<
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this._checkValueHasRaw(value)
+          : this.$utils.checkValueHasRaw(value)
       }`;
     });
 
@@ -6756,7 +6766,7 @@ class Model<
       return `${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this._checkValueHasRaw(value)
+          : this.$utils.checkValueHasRaw(value)
       }`;
     });
 
@@ -6827,7 +6837,7 @@ class Model<
         return `${
           value == null || value === this.$constants("NULL")
             ? this.$constants("NULL")
-            : this._checkValueHasRaw(value)
+            : this.$utils.checkValueHasRaw(value)
         }`;
       });
 
@@ -7005,7 +7015,7 @@ class Model<
           .first();
 
         if (data == null) {
-          await this.$utils.wait(300);
+          await this.$utils.wait(500);
 
           data = await new Model()
             .copyModel(this, { select: true })
@@ -7096,7 +7106,7 @@ class Model<
           .first();
 
         if (data == null) {
-          await this.$utils.wait(300);
+          await this.$utils.wait(500);
 
           data = await new Model()
             .copyModel(this, { select: true })
@@ -7452,7 +7462,8 @@ class Model<
     }
   }
 
-  private _getBlueprintByKey(column: string,
+  private _getBlueprintByKey(
+    column: string,
     { mapQuery }: { mapQuery?: boolean } = {}
   ) {
     const schemaColumns = this.getSchemaModel();

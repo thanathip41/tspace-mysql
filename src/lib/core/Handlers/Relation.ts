@@ -40,12 +40,14 @@ class RelationHandler  {
             const key = parent[localKey]
             
             if(key === undefined) {
-                throw this._assertError(
-                    `This relationship lacks a primary or foreign key in the '${relation?.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`
+                throw this._assertError([
+                    `This relationship lacks a primary in the '${relation?.name}' relation.`, 
+                    `Please review the query to identify whether the key '${localKey}' is missing.`
+                   ].join(' ')
                 )
             }
 
-            return key
+            return +key
         })
         .filter(d => d != null)
 
@@ -62,7 +64,6 @@ class RelationHandler  {
             const childs :  Record<string,any>[] = await query
             .meta('SUBORDINATE')
             .whereIn(foreignKey,parentIds)
-            .select(foreignKey)
             .selectRaw(`${this.$constants('COUNT')}(\`${foreignKey}\`) ${this.$constants('AS')} \`aggregate\``)
             .debug(this.$model['$state'].get('DEBUG'))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
@@ -854,7 +855,15 @@ class RelationHandler  {
         .reduce((prev, curr) => {
 
             const key = +curr[foreignKey]
-
+            
+            if(Number.isNaN(key)) {
+                throw this._assertError([
+                    `This relationship lacks a foreign key in the '${relation?.name}' relation.`, 
+                    `Please review the query to identify whether the key '${foreignKey}' is missing.`
+                   ].join(' ')
+                )
+            }
+            
             if (!prev[key]) {
               prev[key] = { [foreignKey]: key, values: [] }
             }
@@ -911,8 +920,10 @@ class RelationHandler  {
             const data = parent[foreignKey]
 
             if(data === undefined) {
-                throw this._assertError(
-                    `This relationship lacks a primary or foreign key in the '${relation?.name}' relation. Please review the query to identify whether the key '${localKey}' or '${foreignKey}' is missing.`
+                throw this._assertError([
+                    `This relationship lacks a foreign key in the '${relation?.name}' relation.`, 
+                    `Please review the query to identify whether the key '${foreignKey}' is missing.`
+                   ].join(' ')
                 )
             }
 
@@ -954,7 +965,6 @@ class RelationHandler  {
             const pivotResults : Record<string,any>[] = await queryPivot
             .meta('SUBORDINATE')
             .whereIn(localKeyPivotTable,mainResultIds)
-            .select(localKeyPivotTable)
             .selectRaw(`${this.$constants('COUNT')}(${localKeyPivotTable}) ${this.$constants('AS')} \`aggregate\``)
             .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
@@ -1030,8 +1040,16 @@ class RelationHandler  {
         const children : Record<string , { values : Record<string,any>[] }> = [...pivotResults]
         .reduce((prev, curr) => {
 
-            const key = curr[localKeyPivotTable]
+            const key = +curr[localKeyPivotTable]
 
+            if(Number.isNaN(key)) {
+                throw this._assertError([
+                    `This relationship lacks a prisma key in pivot table the '${relation?.name}' relation.`, 
+                    `Please review the query to identify whether the key '${localKeyPivotTable}' is missing.`
+                    ].join(' ')
+                )
+            }
+            
             if (!prev[key]) {
               prev[key] = { [localKeyPivotTable]: key, values: [] }
             }

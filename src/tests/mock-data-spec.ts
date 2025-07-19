@@ -9,6 +9,7 @@ export const userDataObject = Model.formatPattern({
         name : 'name:test01',
         username: 'test01',
         password: 'xxxxxxxxxx',
+        status : Math.random() < 0.5,
         createdAt:  new Date(),
         updatedAt: new Date(),
         deletedAt: null
@@ -25,6 +26,7 @@ export const userDataArray = [2,3,4,5,6].map(i => {
             name : `name:test0${i}`,
             username: `test0${i}`,
             password: 'xxxxxxxxxx',
+            status : Math.random() < 0.5,
             createdAt:  new Date(),
             updatedAt: new Date(),
             deletedAt: null

@@ -465,7 +465,7 @@ export class PoolConnection extends EventEmitter {
 
     private _messageSlowQuery(duration : number , sql : string) : string {
 
-        const message = `\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[30mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`
+        const message = `\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[29mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`
 
         return message
     }

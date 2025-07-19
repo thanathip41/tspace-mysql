@@ -2,23 +2,44 @@ import { type T, Model } from '..';
 
 class ModelMeta<M extends Model> {
     constructor(private model: M) {}
-    table() {
+
+    /**
+     * 
+     * @returns {string}
+     */
+    table(): string {
         return this.model.toTableName();
     }
 
-    column(column: T.Column<M>) {
+    /**
+     * 
+     * @returns {string}
+     */
+    column(column: T.Column<M>): T.Column<M> {
         return column;
     }
 
+    /**
+     * 
+     * @returns {`${string}.${T.Column<M>}`}
+     */
     columnReference (column: T.Column<M>) : `${string}.${T.Column<M>}` {
         return `\`${this.table()}\`.\`${String(column)}\``;
     }
 
+    /**
+     * 
+     * @returns {`${string}.${T.Column<M>}`}
+     */
     columnRef (column: T.Column<M>) : `${string}.${T.Column<M>}` {
         return this.columnReference(column);
     }
     
-    columns() {
+    /**
+     * 
+     * @returns {string[]}
+     */
+    columns(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
         const columns: T.Column<M>[] = schemaModel == null
@@ -30,7 +51,11 @@ class ModelMeta<M extends Model> {
         return columns
     }
 
-    hasColumn(name: string) {
+    /**
+     * 
+     * @returns {boolean}
+     */
+    hasColumn(name: string): boolean {
         const schemaModel = this.model.getSchemaModel();
 
         const columns : T.Column<M>[] = schemaModel == null
@@ -42,6 +67,10 @@ class ModelMeta<M extends Model> {
         return columns.includes(name);
     }
 
+    /**
+     * 
+     * @returns {string | undefined}
+     */
     primaryKey(): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
@@ -60,6 +89,10 @@ class ModelMeta<M extends Model> {
         })?.[0];
     }
 
+    /**
+     * 
+     * @returns {string[]}
+     */
     indexes(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
@@ -76,6 +109,10 @@ class ModelMeta<M extends Model> {
         .filter(v => v != null)
     }
 
+    /**
+     * 
+     * @returns {string[]}
+     */
     nullable(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
@@ -95,6 +132,10 @@ class ModelMeta<M extends Model> {
         .filter(v => v != null);
     }
 
+    /**
+     * 
+     * @returns {Partial<T.SchemaModel<M>> | null}
+     */
     defaults(): Partial<T.SchemaModel<M>> | null {
         const schemaModel = this.model.getSchemaModel();
 
@@ -105,12 +146,20 @@ class ModelMeta<M extends Model> {
 
         for (const [key, blueprint] of Object.entries(schemaModel)) {
             const attr = blueprint['_attributes'];
+
             if (!attr) continue;
 
             const defaultAttr = Array.from(attr).find(str => str.includes(keyword));
+
             if (!defaultAttr) continue;
 
-            const value = defaultAttr.match(new RegExp(`${keyword}\\s+'(.*?)'`))?.[1] ?? null;
+            const match = defaultAttr.match(new RegExp(`${keyword}\\s+(?:'(.*?)'|(\\S+))`));
+            
+            const rawValue = match?.[1] ?? match?.[2] ?? null;
+        
+            const value = rawValue !== null ? Number.isNaN(rawValue) ? rawValue : Number(rawValue) : null;
+
+            if(value == null) continue;
 
             out[key] = value;
         }
@@ -120,7 +169,12 @@ class ModelMeta<M extends Model> {
         return out as Partial<T.SchemaModel<M>>
     }
 
-    columnTypeOf(column: T.Column<M>) {
+    /**
+     * 
+     * @param {string} column 
+     * @returns {string | undefined}
+     */
+    columnTypeOf(column: T.Column<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
         if (!schemaModel) return undefined;
 
@@ -140,6 +194,11 @@ class ModelMeta<M extends Model> {
         return "unknown"; 
     }
 
+    /**
+     * 
+     * @param {string} column 
+     * @returns {string | undefined}
+     */
     columnType (column: T.Column<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
         if (!schemaModel) return undefined;

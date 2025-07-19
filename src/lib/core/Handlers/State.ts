@@ -26,7 +26,7 @@ const STATE_DEFAULT = {
     DEBUG : false,
     CTE : [],
     PAGE: 1,
-    AFTER_SAVE : 0,
+    AFTER_SAVE : 100,
     RETURN_TYPE : null,
     HOOKS : [],
     ALIAS : null,

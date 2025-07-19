@@ -752,7 +752,17 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  default(value: string | number): Blueprint<T> {
+  default(value: string | number | boolean): Blueprint<T> {
+    if (typeof value === 'boolean') {
+      this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
+      return this
+    }
+
+    if (typeof value === 'number') {
+      this._addAssignAttribute(`DEFAULT ${value}`);
+      return this
+    }
+
     this._addAssignAttribute(`DEFAULT '${value}'`);
     return this;
   }
@@ -762,8 +772,8 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  defaultValue(value: string | number): Blueprint<T> {
-    this._addAssignAttribute(`DEFAULT '${value}'`);
+  defaultValue(value: string | number | boolean): Blueprint<T> {
+    this.default(value)
     return this;
   }
 

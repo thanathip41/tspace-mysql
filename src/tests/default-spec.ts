@@ -41,6 +41,7 @@ export const userSchemaObject = {
       name :{ anyOf: [{ type: 'string' }, { type: 'null' }] },
       username: { anyOf: [{ type: 'string' }, { type: 'null' }] },
       password: { type: 'string' },
+      status : { anyOf: [{ type: 'boolean' }, { type: 'integer' } , { type: 'null' }] },
       created_at:  { anyOf: [{ type: 'string' }, { type: "object", format: "date" }  ,{ type: 'null' }] },
       updated_at: { anyOf: [{ type: 'string' }, { type: "object", format: "date" }  , { type: 'null' }] },
       deleted_at: { anyOf: [{ type: 'string' }, { type: "object", format: "date" } , { type: 'null' }] },

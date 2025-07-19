@@ -16,7 +16,7 @@ class Schema {
 
         const { type, attributes } = this.detectSchema(data);
 
-        if (type == null) continue;
+        if (type == null || attributes == null) continue;
 
         columns = [
           ...columns,
@@ -49,7 +49,7 @@ class Schema {
 
     for (const key in schemas) {
       const data = schemas[key];
-
+      
       const { type, attributes } = this.detectSchema(data);
 
       if (type == null || attributes == null) continue;
@@ -335,14 +335,6 @@ class Schema {
         );
 
         if (beforeCreatingTheTable != null) await beforeCreatingTheTable();
-
-        await this._syncForeignKey({
-          schemaModel,
-          model,
-          log,
-        });
-
-        continue;
       }
 
       if (foreign) {
@@ -377,11 +369,17 @@ class Schema {
 
               if (find == null) return null;
 
-              const compare = !String(value.type)
-              .toLowerCase()
-              .startsWith(String(find.Type).toLowerCase());
+              const typeTable = String(find.Type).toLowerCase()
+              const typeSchema = String(value.type).toLowerCase()
 
-              return compare ? key : null;
+              const changed = !typeSchema.startsWith(typeTable);
+
+              if(changed) {
+                if(typeSchema === 'boolean' && typeTable === 'tinyint(1)') {
+                  return null
+                }
+              }
+              return changed ? key : null;
             })
             .filter((d) => d != null)
         : [];
@@ -402,7 +400,7 @@ class Schema {
             `\`${column}\` ${type} ${
               attributes != null && attributes.length
                 ? `${attributes
-                .filter((v:string) => !['PRIMARY KEY', 'AUTO_INCREMENT']
+                .filter((v:string) => !['PRIMARY KEY']
                 .includes(v)).join(" ")}`
                 : ""
             }`,
@@ -571,12 +569,12 @@ class Schema {
   }) {
     for (const key in schemaModel) {
       const name = schemaModel[key]?.indexKey;
-
+   
       if (name == null) continue;
 
       const table = model.getTableName();
 
-      const index = name == "" ? `\`idx_${table}_${key}\`` : `\`${name}\``;
+      const index = name == "" ? `\`idx_${table}(${key})\`` : `\`${name}\``;
 
       const sql = [
         `${this.$db["$constants"]("CREATE_INDEX")}`,
@@ -591,6 +589,7 @@ class Schema {
         if (String(err.message).includes("Duplicate key name")) continue;
 
         const tableSql = this.createTable(`\`${table}\``, schemaModel);
+
         await this.$db
           .debug(log)
           .rawQuery(tableSql)

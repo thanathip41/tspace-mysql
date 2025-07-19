@@ -1,8 +1,8 @@
-import { format }         from "sql-formatter";
-import { AbstractDB }     from "./Abstracts/AbstractDB";
-import { proxyHandler }   from "./Handlers/Proxy";
-import { StateHandler }   from "./Handlers/State";
-import { Tool }           from "../tools";
+import { format } from "sql-formatter";
+import { AbstractDB } from "./Abstracts/AbstractDB";
+import { proxyHandler } from "./Handlers/Proxy";
+import { StateHandler } from "./Handlers/State";
+import { Tool } from "../tools";
 import { PoolConnection } from "./Pool";
 import type {
   TConstant,
@@ -410,7 +410,7 @@ class DB extends AbstractDB {
       ...others,
     });
 
-    return pool.newConnected();
+    return pool.createNewConnected();
   }
 
   /**
@@ -444,7 +444,7 @@ class DB extends AbstractDB {
    * @property {function} connection.rollback - rollback transaction of query
    */
   async beginTransaction(): Promise<TConnectionTransaction> {
-    const pool = new PoolConnection().newConnected();
+    const pool = new PoolConnection().createNewConnected();
     return await pool.connection();
   }
 

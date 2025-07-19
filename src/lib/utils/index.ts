@@ -1,4 +1,5 @@
 import { Blueprint } from ".."
+import { CONSTANTS } from "../constants"
 
 const typeOf = (data:any) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase() 
 
@@ -90,15 +91,34 @@ const covertBooleanToNumber = (data : any) => {
 
 const covertDateToDateString = (data : any ) => {
 
-    if(typeOf(data) === 'date') {
-        return timestamp(data)
+    const isDate = (d: any) => {
+        return typeOf(d) === 'date'
+    };
+
+    const isISODateString = (s: any) => {
+        return typeof s === 'string' && !isNaN(Date.parse(s));
+    };
+
+    if (isDate(data)) {
+        return timestamp(data);
     }
 
-    if(typeOf(data) === 'object') {
-        for(const key in data) {
-            const d = data[key]
-            if(!(typeOf(d) === 'date')) continue
-            data[key] = timestamp(d)
+    if (isISODateString(data)) {
+        return timestamp(new Date(data));
+    }
+
+    if (typeof data === 'object' && data !== null) {
+        for (const key in data) {
+            const d = data[key];
+            
+            if (isDate(d)) {
+                data[key] = timestamp(d);
+                continue
+            } 
+            
+            if (isISODateString(d)) {
+                data[key] = timestamp(new Date(d));
+            }
         }
     }
     
@@ -197,7 +217,7 @@ const consoleExec  = (startTime : number , endTime : number) => {
 }
 
 const consoleCache  = (provider : string) => {
-    console.log(`\x1b[34mCACHE:\x1b[0m \x1b[33m${provider}\x1b[0m\n`)
+    console.log(`\n\x1b[34mCACHE:\x1b[0m \x1b[33m${provider}\x1b[0m`)
 }
 
 const randomString = (length = 100) => {
@@ -275,13 +295,66 @@ const softNumber = (n : any) : number =>  {
 
     const number = Number(n)
 
+    if(number === -1) {
+        return 2 ** 31 - 1; // int 32 bit
+    }
+
     if(Number.isNaN(number)) {
         return -1
     }
 
-    return number
+    return Number.parseInt(`${number}`)
 }
 
+const checkValueHasRaw = (value: unknown) => {
+    if (typeof value === 'string' && value.includes(CONSTANTS.RAW)) {
+      return `${covertBooleanToNumber(value)}`.replace(CONSTANTS.RAW, "");
+    }
+    return typeof value === 'number' ? value : `'${covertBooleanToNumber(value)}'`;
+}
+
+const checkValueHasOp = (str: string) => {
+    if (typeof str !== "string") str = String(str);
+
+    if (
+      !str.includes(CONSTANTS.OP) ||
+      !str.includes(CONSTANTS.VALUE)
+    ) {
+      return null;
+    }
+
+    const opRegex = new RegExp(`\\${CONSTANTS.OP}\\(([^)]+)\\)`);
+    const valueRegex = new RegExp(`\\${CONSTANTS.VALUE}\\(([^)]+)\\)`);
+
+    const opMatch = str.match(opRegex);
+    const valueMatch = str.match(valueRegex);
+
+    const op = opMatch ? opMatch[1] : "";
+    const value = valueMatch ? valueMatch[1] : "";
+
+    return {
+      op: op.replace(CONSTANTS.OP, ""),
+      value: value?.replace(CONSTANTS.VALUE, "") ?? "",
+    };
+}
+
+const valueAndOperator = (
+    value: string,
+    operator: string,
+    useDefault = false
+  ): any[] => {
+    if (useDefault) return [operator, "="];
+
+    if (operator == null) {
+      return [[], "="];
+    }
+
+    if (operator.toUpperCase() === CONSTANTS.LIKE) {
+      operator = operator.toUpperCase();
+    }
+
+    return [value, operator];
+}
 
 const utils = {
     typeOf,
@@ -305,7 +378,10 @@ const utils = {
     hookHandle,
     chunkArray,
     wait,
-    softNumber
+    softNumber,
+    checkValueHasRaw,
+    checkValueHasOp,
+    valueAndOperator
 }
 
 export type TUtils = typeof utils
