@@ -122,7 +122,7 @@ export class PoolConnection extends EventEmitter {
         }
     }
 
-    public newConnected () : TNewConnection {
+    public createNewConnected () : TNewConnection {
 
         const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
 
