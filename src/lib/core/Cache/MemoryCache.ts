@@ -28,8 +28,8 @@ class MemoryCache {
         });
     }
 
-    get(key: string): Promise<any> {
-        return new Promise((resolve) => {
+    async get(key: string): Promise<any> {
+        return await new Promise((resolve) => {
             const cached = this.cache.get(key);
     
             if (!cached) {

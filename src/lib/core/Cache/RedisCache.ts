@@ -8,7 +8,7 @@ class RedisCache {
         connect : Function 
         keys : Function 
         get : (v : string) => Promise<any>
-        setEx : (key : string , expiredAt : number , value : string) => Promise<void>
+        set : (key : string, value : string, { PX } : { PX : number } ) => Promise<void>
         del : (v : string) => Promise<void>
         flushAll : () => Promise<void>
     }
@@ -59,7 +59,7 @@ class RedisCache {
     }
 
     async get(key: string) {
-
+       
         const cached = await this.client.get(key)
 
         if (cached == null) return null
@@ -69,9 +69,7 @@ class RedisCache {
 
     async set(key: string, value: any, ms: number) {
 
-        const expiredAt = Date.now() + ms
-           
-        await this.client.setEx(key , expiredAt , JSON.stringify(value))
+        await this.client.set(key, JSON.stringify(value),  { PX: ms })
 
         return
     }

@@ -1,3 +1,4 @@
+import { Model }      from '../Model'
 import { DB }         from '../DB';
 import { Blueprint }  from '../Blueprint';
 import { Schema }     from '../Schema';
@@ -55,28 +56,29 @@ class DBCache {
     }
 
     async exists (key : string) {
-
+        
         const cached = await this._db().where('key',key).exists()
         
         return cached
     }
-
     async get(key: string) : Promise<any> {
 
         try {
 
-            const cached = await this._db().where('key',key).findOne()
+            const addresses = Array.from({ length: this._maxAddress }, (_, i) => this._addressNumber(i));
+
+            const cached = await this._db().select('expiredAt',...addresses).where('key',key).findOne()
 
             if (!cached) return null
 
-            if (
-                Number.isNaN(+cached.expiredAt) || 
-                new Date() > new Date(+cached.expiredAt)
-            ) {
+            const now = Date.now();
+            const expiredAt = +cached.expiredAt;
+
+            if (Number.isNaN(expiredAt) || now > expiredAt) {
 
                 await this._db()
                 .where('key',key)
-                .delete()
+                .deleteMany()
 
                 return null
             }
@@ -92,17 +94,17 @@ class DBCache {
 
                 if(find == null || find === '') break
 
-                const maybeArray = this._safetyJsonParse(find)
+                const parsed = this._safetyJsonParse(find)
 
-                if(Array.isArray(maybeArray)) {
-                    values.push(...this._safetyJsonParse(find))
+                if(Array.isArray(parsed)) {
+                    values.push(...parsed)
                     continue
                 }
 
-                values.push(this._safetyJsonParse(find))
+                values.push(parsed)
             }
 
-            return values
+            return values.length === 1 ? values[0] : values;
 
         } catch (err : any) {
 
@@ -117,13 +119,13 @@ class DBCache {
 
         }
     }
-
     async set(key: string, value: any, ms: number) : Promise<void> {
 
-        const expiredAt = Date.now() + ms
+        const expiredAt = +new Date() + ms
 
         if(!Array.isArray(value)) {
-            await this._db().create({
+            await this._db()
+            .create({
                 key,
                 [this._addressNumber(0)] : JSON.stringify(value),
                 expiredAt,
@@ -138,15 +140,16 @@ class DBCache {
 
         const avg = value.length / this._maxAddress
         const chunked = utils.chunkArray(value, avg > this._maxLength ? avg : this._maxLength)
-        const cache : Record<string,any> = {}
+        const caches : Record<string,any> = {}
 
         for(const [index , value] of chunked.entries()) {
-            cache[this._addressNumber(index)] = JSON.stringify(value)
+            caches[this._addressNumber(index)] = JSON.stringify(value)
         }
 
-        await this._db().create({
+        await this._db()
+        .create({
             key,
-            ...cache,
+            ...caches,
             expiredAt,
             createdAt : utils.timestamp(),
             updatedAt : utils.timestamp()
@@ -156,15 +159,12 @@ class DBCache {
 
         return
     }
-
-
     async clear() : Promise<void> {
 
         await this._db().truncate({ force : true})
 
         return
     }
-
     async delete(key: string) : Promise<void> {
 
         await this._db().where('key',key).delete()
@@ -182,42 +182,51 @@ class DBCache {
 
         const table = this._cacheTable
 
-        const checkTables = await new DB().rawQuery(`${CONSTANTS.SHOW_TABLES} ${CONSTANTS.LIKE} '${table}'`)
+        const checkTables = await DB.rawQuery(`${CONSTANTS.SHOW_TABLES} ${CONSTANTS.LIKE} '${table}'`)
         
         const existsTables = checkTables.map((c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0])[0]
 
         if(existsTables != null) return
 
-        let address : Record<string,any> = {}
+        let addresses : Record<string,any> = {}
 
         for(let i = 0; i < this._maxAddress; i++) {
-            address[this._addressNumber(i)] = new Blueprint().longText().null()
+            addresses[this._addressNumber(i)] = new Blueprint().json().null()
         }
 
-        const schemaLogger = {
+        const schema = {
             id                  : new Blueprint().int().notNull().primary().autoIncrement(),
-            key                 : new Blueprint().longText().notNull(),
-            ...address,
-            expiredAt           : new Blueprint().varchar(100).null(),
-            createdAt           : new Blueprint().timestamp().null(),
-            updatedAt           : new Blueprint().timestamp().null()
+            key                 : new Blueprint().varchar(255).notNull().index(),
+            ...addresses,
+            expiredAt           : new Blueprint().bigInt().notNull(),
+            createdAt           : new Blueprint().timestamp().notNull(),
+            updatedAt           : new Blueprint().timestamp().notNull()
         }
 
-        const sql = new Schema().createTable(`\`${table}\``,schemaLogger)
+        class Cache extends Model {
+            protected boot(): void {
+                this.useSchema(schema)
+                this.useTable(table)
+            }
+        }
 
-        await new DB().rawQuery(sql)
+        await new Cache().sync({ index:true })
 
         return
     }
 
-    private _safetyJsonParse (value : any) {
+    private _safetyJsonParse(value: unknown) {
+  
+        if (typeof value !== 'string') return value;
+
+        const v = value.trim();
+
+        if (!v || (v[0] !== '{' && v[0] !== '[')) return value;
+
         try {
-
-            return JSON.parse(value)
-
-        } catch (e) {
-
-            return value
+            return JSON.parse(v);
+        } catch {
+            return value;
         }
     }
 }
