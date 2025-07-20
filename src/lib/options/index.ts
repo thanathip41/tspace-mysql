@@ -1,23 +1,5 @@
 import { Tool } from '../tools'
 import dotenv from 'dotenv'
-interface IEnvironment {
-    HOST                 ?: string | null,
-    PORT                 ?: string | number,
-    USERNAME             ?: string | null,
-    PASSWORD             ?: string | null,
-    DATABASE             ?: string | null,
-    CONNECTION_LIMIT     ?: string | number,
-    QUEUE_LIMIT          ?: string | number,
-    TIMEOUT              ?: string | number,
-    CHARSET              ?: string | null,
-    CONNECTION_ERROR     ?: string | boolean,
-    WAIT_FOR_CONNECTIONS ?: string | boolean,
-    DATE_STRINGS         ?: string | boolean,
-    KEEP_ALIVE_DELAY     ?: string | number,
-    ENABLE_KEEP_ALIVE    ?: string | boolean,
-    MULTIPLE_STATEMENTS  ?: string | boolean,
-    CACHE                ?: string | null
-}
 
 const environment = () : string => {
     const NODE_ENV = process.env?.NODE_ENV
@@ -34,7 +16,7 @@ dotenv.config({ path : environment() })
 
 const ENV = process.env
 
-const env: IEnvironment & Record<string,any> =  {
+const rawEnv =  {
     HOST                    : ENV.DB_HOST ?? 'localhost',
     PORT                    : ENV.DB_PORT ?? 3306,
     USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
@@ -51,17 +33,41 @@ const env: IEnvironment & Record<string,any> =  {
     KEEP_ALIVE_DELAY        : ENV.DB_KEEP_ALIVE_DELAY ??  0,
     ENABLE_KEEP_ALIVE       : ENV.DB_ENABLE_KEEP_ALIVE ?? true,
     MULTIPLE_STATEMENTS     : ENV.DB_MULTIPLE_STATEMENTS ??  false,
-    CACHE                   : ENV.DB_CACHE ?? 'db'
+    CACHE                   : ENV.DB_CACHE ?? 'memory' as 'memory' | 'db' | 'redis'
+} as const 
+
+type RawEnv = typeof rawEnv
+
+const parseEnv = (env: typeof rawEnv): RawEnv => {
+    const parsed = {} as Record<string,any>
+
+    for (const [key, value] of Object.entries(env)) {
+
+        if (value == null) continue
+
+        if(value === '') {
+            parsed[key] = value
+            continue
+        }
+
+        if (!isNaN(Number(value))) {
+            (parsed)[key] = Number(value)
+            continue
+        } 
+        
+        if (typeof value === 'string' && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
+            (parsed)[key] = value.toLowerCase() === 'true'
+
+            continue
+        } 
+
+        parsed[key] = value
+    }
+
+    return parsed as RawEnv
 }
 
-for(const [key, value] of Object.entries(env)) {
-    if(value == null || key == null) continue
-    if(typeof value === 'string' && ['true','false'].some(v => value.toLowerCase() === v)) {
-        env[key] = JSON.parse(value.toLowerCase())
-        continue
-    }
-    if(/^[0-9]+$/.test(value)) env[key] = +value
-}
+const env = parseEnv(rawEnv)
 
 export const loadOptionsEnvironment = () => {
     const environment = () : string => {
@@ -77,25 +83,22 @@ export const loadOptionsEnvironment = () => {
         return env
     }
 
-    const ENV = dotenv.config({ path : environment() }).parsed
+    dotenv.config({ path : environment() })
+
+    const ENV = process.env
  
-    const env: IEnvironment & Record<string,any> =  {
+    const rawEnv =  {
         host                 : ENV?.DB_HOST || ENV?.TSPACE_HOST,
         port                 : ENV?.DB_PORT || ENV?.TSPACE_PORT || 3306,
         username             : ENV?.DB_USERNAME || ENV?.TSPACE_USERNAME,
         password             : ENV?.DB_PASSWORD || ENV?.TSPACE_PASSWORD || '', 
         database             : ENV?.DB_DATABASE || ENV?.TSPACE_DATABASE, 
-    }
+    } as const
+
+    //@ts-ignore
+    const env = parseEnv(rawEnv)
     
-    for(const [key, value] of Object.entries(env)) {
-        if(value == null) continue
-        if(typeof value === 'string' && ['true','false'].some(v => value.toLowerCase() === v)) {
-            env[key] = JSON.parse(value.toLowerCase())
-            continue
-        }
-        if(/^[0-9]+$/.test(value)) env[key] = +value
-    }
-    return Object.freeze({ ...env })
+    return Object.freeze(env) as unknown as typeof rawEnv
 }
 
-export default Object.freeze({ ...env })
+export default Object.freeze(env)
