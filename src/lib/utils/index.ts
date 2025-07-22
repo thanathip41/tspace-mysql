@@ -85,18 +85,21 @@ const generateUUID = () => {
 }
 
 const covertBooleanToNumber = (data : any) => {
-    if(typeOf(data) === 'boolean') return +data
+    if(typeOf(data) === 'boolean') return Number(data)
     return data
 }
 
-const covertDateToDateString = (data : any ) => {
+const covertDateToDateString = (data : any) => {
 
-    const isDate = (d: any) => {
+    const isDate = (d: unknown) => {
         return typeOf(d) === 'date'
     };
 
-    const isISODateString = (s: any) => {
-        return typeof s === 'string' && !isNaN(Date.parse(s));
+    const isISODateString = (s: unknown): boolean => {
+        if (typeof s !== 'string') return false;
+        const isoRegex = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+
+        return isoRegex.test(s) && !isNaN(Date.parse(s.replace(' ', 'T')));
     };
 
     if (isDate(data)) {
@@ -107,7 +110,7 @@ const covertDateToDateString = (data : any ) => {
         return timestamp(new Date(data));
     }
 
-    if (typeof data === 'object' && data !== null) {
+    if (typeOf(data) === 'object' && data !== null) {
         for (const key in data) {
             const d = data[key];
             
