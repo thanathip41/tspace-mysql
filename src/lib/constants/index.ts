@@ -91,6 +91,9 @@ const CONSTANTS = Object.freeze({
     JSON_ARRAY : 'JSON_ARRAY',
     JSON_ARRAYAGG : 'JSON_ARRAYAGG',
     JSON_OBJECT : 'JSON_OBJECT',
+    UNION : 'UNION',
+    UNION_ALL : 'UNION ALL',
+    WITH: 'WITH',
     RELATIONSHIP : {
         hasOne : 'hasOne',
         hasMany : 'hasMany',

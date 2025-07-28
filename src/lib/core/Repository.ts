@@ -1239,14 +1239,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
 
                 if(cbRelation == null) continue
 
-                // console.log('hi!')
                 this._handleRelationQuery({
                     instance,
                     name,
                     options : value,
                     exists : true
                 })
-                // filterRelations.push(name)
             }
 
             instance.relationsExists(...filterRelations as any[])

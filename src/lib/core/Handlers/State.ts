@@ -31,6 +31,8 @@ const STATE_DEFAULT = {
     HOOKS : [],
     ALIAS : null,
     RAW_ALIAS : null,
+    UNION: [],
+    UNION_ALL: []
 } as const
 
 const STATE_DB = {

@@ -1823,12 +1823,21 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    * @override
    * @returns {string} return sql query
    */
-  CTEs(as: string, callback: (query: Model<any, any>) => Model): this {
-    const query = callback(new Model().from(this.getTableName()));
+  CTEs<M extends Model>(
+    as: string,
+    callback: (query: M) => M,
+    bindModel?: new () => M
+  ): this {
+
+    const baseInstance = bindModel
+    ? new bindModel()
+    : new Model().from(this.getTableName()) as M;
+
+    const query = callback(baseInstance);
 
     this.$state.set("CTE", [
       ...this.$state.get("CTE"),
-      `${as} AS (${query.toSQL()})`,
+      `${as} AS (${query})`,
     ]);
 
     return this;
@@ -3487,11 +3496,16 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    */
   whereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string,
+    subQuery: string | Model,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
+
+    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3515,11 +3529,16 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    */
   whereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string,
+    subQuery: string | Model,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
+
+    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3543,11 +3562,16 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    */
   orWhereSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string,
+    subQuery: string | Model,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
+
+    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3571,11 +3595,16 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    */
   orWhereNotSubQuery<K extends TSchemaColumns<TS>>(
     column: K,
-    subQuery: string,
+    subQuery: string | Model,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
+
+    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -4122,6 +4151,38 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     if (cb instanceof Promise)
       throw new Error("'when' does not support Promises");
+
+    return this;
+  }
+
+  /**
+   * This 'union' method is used to union statement sql
+   * 
+   * @override
+   * @param {string} sql
+   * @returns {this} this
+   */
+  union (sql : string | Model): this {
+    this.$state.set("UNION", [
+      ...this.$state.get("UNION"),
+      `${sql}`
+    ]);
+
+    return this;
+  }
+  
+  /**
+   * This 'union' method is used to union statement sql
+   *
+   * @override
+   * @param {string} sql
+   * @returns {this} this
+   */
+  unionAll (sql : string | Model): this {
+    this.$state.set("UNION_ALL", [
+      ...this.$state.get("UNION_ALL"),
+      `${sql}`
+    ]);
 
     return this;
   }

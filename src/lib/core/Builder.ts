@@ -84,7 +84,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("CTE", [
       ...this.$state.get("CTE"),
-      `${as} AS (${query.toSQL()})`,
+      `${as} AS (${query})`,
     ]);
 
     return this;
@@ -1058,11 +1058,16 @@ class Builder extends AbstractBuilder {
    */
   whereSubQuery(
     column: string,
-    subQuery: string,
+    subQuery: string | Builder,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
+
+    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1088,11 +1093,16 @@ class Builder extends AbstractBuilder {
    */
   whereNotSubQuery(
     column: string,
-    subQuery: string,
+    subQuery: string | Builder,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
+
+    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1119,11 +1129,16 @@ class Builder extends AbstractBuilder {
    */
   orWhereSubQuery(
     column: string,
-    subQuery: string,
+    subQuery: string | Builder,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
+
+    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1149,11 +1164,16 @@ class Builder extends AbstractBuilder {
    */
   orWhereNotSubQuery(
     column: string,
-    subQuery: string,
+    subQuery: string | Builder,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
+
+    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
+      subQuery.select('id')
+    }
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3001,6 +3021,36 @@ class Builder extends AbstractBuilder {
   }
 
   /**
+   * This 'union' method is used to union statement sql
+   *
+   * @param {string} sql
+   * @returns {this} this
+   */
+  union (sql : string | Builder): this {
+    this.$state.set("UNION", [
+      ...this.$state.get("UNION"),
+      `${sql}`
+    ]);
+
+    return this;
+  }
+
+  /**
+   * This 'union' method is used to union statement sql
+   *
+   * @param {string} sql
+   * @returns {this} this
+   */
+  unionAll (sql : string | Builder): this {
+    this.$state.set("UNION_ALL", [
+      ...this.$state.get("UNION_ALL"),
+      `${sql}`
+    ]);
+
+    return this;
+  }
+
+  /**
    * This 'rawQuery' method is used to execute sql statement
    *
    * @param {string} sql
@@ -4478,7 +4528,7 @@ class Builder extends AbstractBuilder {
     };
 
     const select = () => {
-      const sql = buildSQL([
+      let sql = buildSQL([
         bindSelect(this.$state.get("SELECT")),
         bindFrom({
           from: this.$constants("FROM"),
@@ -4496,7 +4546,15 @@ class Builder extends AbstractBuilder {
       ]).trimEnd();
 
       if (this.$state.get("CTE").length) {
-        return `WITH ${this.$state.get("CTE")} ${sql}`;
+        sql = `${this.$constants("WITH")} ${this.$state.get("CTE").join(", ")} ${sql}`;
+      }
+
+      if (this.$state.get("UNION").length) {
+        sql = `(${sql}) ${this.$state.get("UNION").map((union: string) => `${this.$constants("UNION")} (${union})`).join(" ")}`;
+      }
+
+      if (this.$state.get("UNION_ALL").length) {
+        sql = `(${sql}) ${this.$state.get("UNION_ALL").map((union: string) => `${this.$constants("UNION_ALL")} (${union})`).join(" ")}`;
       }
 
       return sql;

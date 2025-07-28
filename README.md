@@ -56,6 +56,7 @@ npm install tspace-mysql -g
   - [Basic Where Clauses](#basic-where-clauses)
     - [Where Clauses](#where-clauses)
     - [Or Where Clauses](#or-where-clauses)
+    - [Where cases](#where-cases)
     - [Where Object Clauses](#where-object-clauses)
     - [JSON Where Clauses](#json-where-clauses)
     - [Additional Where Clauses](#additional-where-clauses)
@@ -73,6 +74,7 @@ npm install tspace-mysql -g
   - [Faker Statements](#faker-statements)
   - [Unset Statements](#unset-statements)
   - [Common Table Expressions](#common-table-expressions)
+  - [Union](#union)
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
 - [Connection](#connection)
@@ -557,7 +559,7 @@ const users = await new DB("users").where("id", "<>", 1).findMany();
 
 ```js
 const users = await new DB("users").where("id", 1).orWhere("id", 2).findMany();
-// SELECT * FROM `users` WHERE `users`.`id` = '1' OR `users`.`id` = '2'
+// SELECT * FROM `users` WHERE `users`.`id` = 1 OR `users`.`id` = 2
 
 const users = await new DB("users")
   .where("id", 1)
@@ -568,9 +570,53 @@ const users = await new DB("users")
       .orWhere("email", "find@example.com");
   })
   .findMany();
-// SELECT * FROM `users` WHERE `users`.`id` = '1'
+// SELECT * FROM `users` WHERE `users`.`id` = 1
 // AND
-// ( `users`.`id` <> '2' OR `users`.`username` = 'try to find' OR `users`.`email` = 'find@example.com');
+// ( `users`.`id` <> 2 OR `users`.`username` = 'try to find' OR `users`.`email` = 'find@example.com');
+
+```
+
+### Where cases
+
+```js
+const payments = await new DB('payments')
+.whereCases([
+  {
+    when : "payment_type = 'credit'",
+    then : "status = 'approved'"
+  },
+  {
+    when : "payment_type = 'paypal'",
+    then : "status = 'pending'"
+  }
+],"FALSE")
+.findMany()
+
+// SELECT * FROM `payments` 
+// WHERE ( 
+// CASE 
+//  WHEN payment_type = 'credit' THEN status = 'approved' 
+//  WHEN payment_type = 'paypal' THEN status = 'pending' 
+//  ELSE FALSE 
+// END 
+// );
+
+const tasks = await new DB("tasks")
+.whereCases([
+  {
+    when : "priority = 'high'",
+    then : "DATEDIFF(due_date, NOW()) <= 3"
+  },
+],"DATEDIFF(due_date, NOW()) <= 7")
+.findMany()
+
+// SELECT * FROM `tasks` 
+// WHERE ( 
+//  CASE 
+//    WHEN priority = 'high' THEN DATEDIFF(due_date, NOW()) <= 3 
+//    ELSE DATEDIFF(due_date, NOW()) <= 7 
+//  END 
+// );
 
 ```
 
@@ -1066,6 +1112,31 @@ const user = await new User()
 // WITH z AS (SELECT posts.* FROM `posts`), 
 // x AS (SELECT * FROM `post_user`) 
 // SELECT users.*, z.*, x.* FROM `users` INNER JOIN `x` ON `users`.`id` = `x`.`user_id` INNER JOIN `z` ON `users`.`id` = `z`.`user_id` WHERE `users`.`deleted_at` IS NULL LIMIT 1;
+
+```
+
+### Union
+
+```js
+const users = await new DB('users')
+.where('id',1)
+.union(new DB('users').whereIn('id',[2]))
+.union(new DB('users').whereIn('id',[3,4]))
+.findMany()
+
+// (SELECT * FROM `users` WHERE `users`.`id` = 1) 
+// UNION (SELECT * FROM `users` WHERE `users`.`id` IN (2)) 
+// UNION (SELECT * FROM `users` WHERE `users`.`id` IN (3,4)); 
+
+
+const users = await new DB('users')
+.unionAll(new DB('users'))
+.unionAll(new DB('users'))
+.findMany()
+
+// (SELECT * FROM `users`) 
+// UNION ALL (SELECT * FROM `users`)  
+// UNION ALL (SELECT * FROM `users`); 
 
 ```
 
