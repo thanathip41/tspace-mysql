@@ -211,6 +211,24 @@ class ModelMeta<M extends Model> {
         
         return blueprint['_type'];
     }
+
+    /**
+     * 
+     * @param {string} column 
+     * @returns {string | undefined}
+     */
+    enum (column: T.Column<M>): string[] {
+        const schemaModel = this.model.getSchemaModel();
+        if (!schemaModel) return [];
+
+        const entry = Object.entries(schemaModel).find(([key]) => key === column);
+
+        if (!entry) return [];
+
+        const blueprint = entry[1];
+        
+        return blueprint['_enum'];
+    }
 }
 
 /**
