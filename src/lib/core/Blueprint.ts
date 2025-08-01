@@ -4,7 +4,7 @@ import { Model } from "./Model";
  * Class 'Blueprint' is used to make the schema for table
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
-import sql from '../../../build/lib/core/SqlLike';
+ *   import sql from '../../../build/lib/core/SqlLike';
  *   await new Schema().table('users',{ 
  *      id          : Blueprint.int().notNull().primary().autoIncrement(),
  *      name        : Blueprint.varchar(255).default('my name'),
@@ -17,6 +17,7 @@ import sql from '../../../build/lib/core/SqlLike';
  *   })
  */
 class Blueprint<T = any> {
+  private _default: unknown = null;
   private _enum :string[] = [];
   private _type: string = "INT";
   private _attributes: string[] = [];
@@ -665,15 +666,18 @@ class Blueprint<T = any> {
   default(value: string | number | boolean): Blueprint<T> {
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
+      this._default = value ? 1 : 0
       return this
     }
 
     if (typeof value === 'number') {
       this._addAssignAttribute(`DEFAULT ${value}`);
+      this._default = value
       return this
     }
 
     this._addAssignAttribute(`DEFAULT '${value}'`);
+    this._default = `${value}`
     return this;
   }
 
@@ -683,8 +687,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   defaultValue(value: string | number | boolean): Blueprint<T> {
-    this.default(value)
-    return this;
+    return this.default(value)
   }
 
   /**

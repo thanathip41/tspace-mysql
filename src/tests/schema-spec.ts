@@ -14,16 +14,17 @@ export class User extends Model {
         
         this.useSchema(Model.formatPattern({ 
             data : {
-                id : Blueprint.int().primary().autoIncrement(),
-                uuid :Blueprint.varchar(50).null(),
-                email :Blueprint.varchar(50).null(),
-                name :Blueprint.varchar(255).null(),
-                username : Blueprint.varchar(255).null(),
-                password : Blueprint.varchar(255).null(),
-                status : Blueprint.boolean().default(0),
-                createdAt :Blueprint.timestamp().null(),
-                updatedAt :Blueprint.timestamp().null(),
-                deletedAt :Blueprint.timestamp().null(),
+                id        : Blueprint.int().primary().autoIncrement(),
+                uuid      : Blueprint.varchar(50).null(),
+                email     : Blueprint.varchar(50).null().index('users.email@index'),
+                name      : Blueprint.varchar(255).null(),
+                username  : Blueprint.varchar(255).null(),
+                password  : Blueprint.varchar(255).null(),
+                status    : Blueprint.boolean().default(0),
+                role      : Blueprint.enum('admin','user').default('user'),
+                createdAt : Blueprint.timestamp().null(),
+                updatedAt : Blueprint.timestamp().null(),
+                deletedAt : Blueprint.timestamp().null(),
             },
             pattern
         }))

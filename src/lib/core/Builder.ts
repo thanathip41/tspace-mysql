@@ -1694,35 +1694,28 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   whereCases(cases: { when: string; then: string }[], elseCase?: string): this {
+
     if (!cases.length) return this;
 
-    let query: Array<string> = [];
+    const query = cases.map(({ when, then }) => {
+      if (when == null) throw new Error(`can't find when condition`);
+      if (then == null) throw new Error(`can't find then condition`);
+      return `${this.$constants("WHEN")} ${when} ${this.$constants("THEN")} ${then}`;
+    });
 
-    for (const c of cases) {
-      if (c.when == null) throw new Error(`can't find when condition`);
-      if (c.then == null) throw new Error(`can't find then condition`);
-
-      query = [
-        ...query,
-        `${this.$constants("WHEN")} ${c.when} ${this.$constants("THEN")} ${
-          c.then
-        }`,
-      ];
-    }
+    const whereClause = [
+      this.$state.get("WHERE").length ? this.$constants("AND") : "",
+      "(",
+      this.$constants("CASE"),
+      ...query,
+      elseCase != null ? `ELSE ${elseCase}` : "",
+      this.$constants("END"),
+      ")"
+    ].filter(Boolean).join(" ");
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
-      [
-        [
-          this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-          "(",
-          this.$constants("CASE"),
-          query.join(" "),
-          elseCase == null ? "" : `ELSE ${elseCase}`,
-          this.$constants("END"),
-          ")",
-        ].join(" "),
-      ].join(" "),
+      whereClause,
     ]);
 
     return this;
@@ -1741,35 +1734,28 @@ class Builder extends AbstractBuilder {
     cases: { when: string; then: string }[],
     elseCase?: string
   ): this {
+    
     if (!cases.length) return this;
 
-    let query: Array<string> = [];
+    const query = cases.map(({ when, then }) => {
+      if (when == null) throw new Error(`can't find when condition`);
+      if (then == null) throw new Error(`can't find then condition`);
+      return `${this.$constants("WHEN")} ${when} ${this.$constants("THEN")} ${then}`;
+    });
 
-    for (const c of cases) {
-      if (c.when == null) throw new Error(`can't find when condition`);
-      if (c.then == null) throw new Error(`can't find then condition`);
-
-      query = [
-        ...query,
-        `${this.$constants("WHEN")} ${c.when} ${this.$constants("THEN")} ${
-          c.then
-        }`,
-      ];
-    }
+    const whereClause = [
+      this.$state.get("WHERE").length ? this.$constants("OR") : "",
+      "(",
+      this.$constants("CASE"),
+      ...query,
+      elseCase != null ? `ELSE ${elseCase}` : "",
+      this.$constants("END"),
+      ")"
+    ].filter(Boolean).join(" ");
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
-      [
-        [
-          this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-          "(",
-          this.$constants("CASE"),
-          query.join(" "),
-          elseCase == null ? "" : `ELSE ${elseCase}`,
-          this.$constants("END"),
-          ")",
-        ].join(" "),
-      ].join(" "),
+      whereClause,
     ]);
 
     return this;
@@ -4545,16 +4531,16 @@ class Builder extends AbstractBuilder {
         this.$state.get("OFFSET"),
       ]).trimEnd();
 
-      if (this.$state.get("CTE").length) {
-        sql = `${this.$constants("WITH")} ${this.$state.get("CTE").join(", ")} ${sql}`;
-      }
-
       if (this.$state.get("UNION").length) {
         sql = `(${sql}) ${this.$state.get("UNION").map((union: string) => `${this.$constants("UNION")} (${union})`).join(" ")}`;
       }
 
       if (this.$state.get("UNION_ALL").length) {
         sql = `(${sql}) ${this.$state.get("UNION_ALL").map((union: string) => `${this.$constants("UNION_ALL")} (${union})`).join(" ")}`;
+      }
+
+      if (this.$state.get("CTE").length) {
+        sql = `${this.$constants("WITH")} ${this.$state.get("CTE").join(", ")} ${sql}`;
       }
 
       return sql;

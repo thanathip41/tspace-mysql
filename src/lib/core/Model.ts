@@ -48,7 +48,7 @@ let globalSettings: TGlobalSetting = {
  * @generic {Type} TS
  * @generic {Type} TR
  * @example
- * import { Model, Blueprint , TSchema , TRelation } from 'tspace-mysql'
+ * import { Model, Blueprint, type T } from 'tspace-mysql'
  *
  * const schema = {
  *   id    : new Blueprint().int().primary().autoIncrement(),
@@ -56,12 +56,13 @@ let globalSettings: TGlobalSetting = {
  *   email : new Blueprint().varchar(50).null(),
  *   name  : new Blueprint().varchar(255).null(),
  * }
+ * 
+ * type TS = T.Schema<typeof Schema>
  *
- * type TS = TSchema<typeof schema>
- * type TR = TRelation<{}>
- *
- * class User extends Model<TS,TR> {
- *     ...........configration
+ * class User extends Model<TS> {
+ *  boot() {
+ *   this.useSchema(schema)
+ *  }
  * }
  *
  * const users = await new User().findMany()
@@ -655,7 +656,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    * }
    */
   protected useTable(table: string): this {
-    this.$state.set("TABLE_NAME", `\`${table}\``);
+    this.$state.set("TABLE_NAME", `\`${table.replace(/\`/g, "")}\``);
 
     return this;
   }

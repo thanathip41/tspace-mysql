@@ -56,18 +56,49 @@ describe('Testing Meta', function () {
         const indexes       = metaUserWithSchema.indexes()
         const nullable      = metaUserWithSchema.nullable()
         const defaults      = metaUserWithSchema.defaults()
+        const enums         = metaUserWithSchema.enums('role')
 
         expect(table).to.be.equal('users')
         expect(column).to.be.equal('id')
         expect(columnRef).to.be.equal('`users`.`id`')
         expect(columnTypeOf).to.be.equal('number')
         expect(columnType).to.be.equal('INT')
-        expect(columns).to.be.an('array')
+        expect(columns).to.deep.equal([
+            'id',         'uuid',
+            'email',      'name',
+            'username',   'password',
+            'status',     'role',
+            'created_at', 'updated_at',
+            'deleted_at'
+        ])
         expect(hasColumn).to.be.equal(true)
         expect(primaryKey).to.be.equal('id')
-        expect(indexes).to.be.an('array')
-        expect(nullable).to.be.an('array')
-        expect(defaults).to.be.deep.equal({ status: 0 })
+        expect(indexes).to.deep.equal(['users.email@index'])
+        expect(nullable).to.deep.equal([
+            'uuid',
+            'email',
+            'name',
+            'username',
+            'password',
+            'created_at',
+            'updated_at',
+            'deleted_at'
+        ])
+        expect(defaults).to.be.deep.equal({ 
+            id: null,
+            uuid: null,
+            email: null,
+            name: null,
+            username: null,
+            password: null,
+            status: 0,
+            role: 'user',
+            created_at: null,
+            updated_at: null,
+            deleted_at: null
+        })
+
+        expect(enums).to.deep.equal(['admin', 'user'])
     })
     /* ###################################################### */
 })

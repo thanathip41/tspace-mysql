@@ -38,7 +38,7 @@ class ModelMeta<M extends Model> {
      * 
      * @returns {string[]}
      */
-    columns(): string[] {
+    columns(): T.Column<M>[] {
         const schemaModel = this.model.getSchemaModel();
 
         const columns: T.Column<M>[] = schemaModel == null
@@ -133,39 +133,18 @@ class ModelMeta<M extends Model> {
 
     /**
      * 
-     * @returns {Partial<T.SchemaModel<M>> | null}
+     * @returns {T.SchemaModel<M> | null}
      */
-    defaults(): Partial<T.SchemaModel<M>> | null {
+    defaults(): T.SchemaModel<M> | null {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return null;
 
-        const out: Record<string,any> = {};
-        const keyword = this.model['$constants']('DEFAULT');
+        const results = Object.fromEntries(
+            Object.entries(schemaModel).map(([key, blueprint]) => [key, blueprint['_default']])
+        );
 
-        for (const [key, blueprint] of Object.entries(schemaModel)) {
-            const attr = blueprint['_attributes'];
-
-            if (!attr) continue;
-
-            const defaultAttr = Array.from(attr).find(str => str.includes(keyword));
-
-            if (!defaultAttr) continue;
-
-            const match = defaultAttr.match(new RegExp(`${keyword}\\s+(?:'(.*?)'|(\\S+))`));
-            
-            const rawValue = match?.[1] ?? match?.[2] ?? null;
-        
-            const value = rawValue !== null ? Number.isNaN(rawValue) ? rawValue : Number(rawValue) : null;
-
-            if(value == null) continue;
-
-            out[key] = value;
-        }
-
-        if(!Object.keys(out).length) return null;
-
-        return out as Partial<T.SchemaModel<M>>
+        return Object.keys(results).length ? (results as T.SchemaModel<M>) : null;
     }
 
     /**
@@ -175,6 +154,7 @@ class ModelMeta<M extends Model> {
      */
     columnTypeOf(column: T.Column<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
+
         if (!schemaModel) return undefined;
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
@@ -190,7 +170,7 @@ class ModelMeta<M extends Model> {
         if (value === Boolean) return "boolean";
         if (value === Date)    return "date";
 
-        return "unknown"; 
+        return undefined; 
     }
 
     /**
@@ -200,6 +180,7 @@ class ModelMeta<M extends Model> {
      */
     columnType (column: T.Column<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
+
         if (!schemaModel) return undefined;
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
@@ -216,21 +197,20 @@ class ModelMeta<M extends Model> {
      * @param {string} column 
      * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
      */
-    enum<C extends T.Column<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
+    enums<C extends T.Column<M>>(column: C): T.Result<M>[C][] {
         const schemaModel = this.model.getSchemaModel();
-        if (!schemaModel) return null;
+
+        if (!schemaModel) return [];
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
 
-        if (!entry) return null;
+        if (!entry) return [];
 
         const blueprint = entry[1];
         
         const enumValues = blueprint['_enum'] as T.Result<M>[C][];
 
-        return Object.fromEntries(
-            enumValues.map((v) => [v, v])
-        ) as Record<T.Result<M>[C], T.Result<M>[C]>;
+        return enumValues
     }
 }
 
@@ -238,36 +218,45 @@ class ModelMeta<M extends Model> {
  * The 'Meta' used to get the metadata of a Model works only when a schema is added to the Model.
  * 
  * @example
- *  import { Meta } from 'tspace-mysql';
- *  import { User } from './Model/User';
+ *  import { Meta, Model , Blueprint , type T } from 'tspace-mysql';
+ *
+ *  const schema = {
+ *   id        : Blueprint.int().notNull().primary().autoIncrement(),
+ *   uuid      : Blueprint.varchar(50).null(),
+ *   email     : Blueprint.varchar(255).notNull().index('users.email@index'),
+ *   name      : Blueprint.varchar(255).null(),
+ *   username  : Blueprint.varchar(255).notNull(),
+ *   password  : Blueprint.varchar(255).notNull(),
+ *   status    : Blueprint.tinyInt().notNull().default(0),
+ *   role      : Blueprint.enum('admin','user').default('user'),
+ *   createdAt : Blueprint.timestamp().null(),
+ *   updatedAt : Blueprint.timestamp().null()
+ *  }
+ *
+ *  type TS = T.Schema<typeof schema>
+ *  
+ *  class User extends Model<TS>  {
+ *    constructor() {
+ *       super()
+ *       this.useSchema(schema)
+ *    }
+ *  }
  * 
  *  const meta          = Meta(User)
  *  // --- get metadata of User ---
- *  const table         = meta.table()
- *  const column        = meta.column('id')
- *  const columnRef     = meta.columnReference('id')
- *  const columnTypeOf  = meta.columnTypeOf('id')
- *  const columnType    = meta.columnType('id')
- *  const columns       = meta.columns()
- *  const hasColumn     = meta.hasColumn('id')
- *  const primaryKey    = meta.primaryKey()
- *  const indexes       = meta.indexes()
- *  const nullable      = meta.nullable()
- *  const defaults      = meta.defaults()
+ *  const table         = meta.table() // 'users'
+ *  const column        = meta.column('id') // id
+ *  const columnRef     = meta.columnReference('id') // `users`.`id`
+ *  const columnTypeOf  = meta.columnTypeOf('id') // number
+ *  const columnType    = meta.columnType('id') // Int
+ *  const columns       = meta.columns() // ['id','uuid',...'updatedAt']
+ *  const hasColumn     = meta.hasColumn('id') // false
+ *  const primaryKey    = meta.primaryKey() // 'id'
+ *  const indexes       = meta.indexes() // ['users.email@index']
+ *  const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
+ *  const defaults      = meta.defaults() // { id : null, ..., status : 0, role: 'user', ..updatedAt : null  }
+ *  const enums         = meta.enums('role') // [ 'admin', 'user' ]
  * 
- *  console.log({
- *   table,
- *   column,
- *   columnRef
- *   columnTypeOf,
- *   columnType
- *   columns,
- *   hasColumn,
- *   primaryKey,
- *   indexes,
- *   nullable,
- *   defaults,
- *  })
  */
 const Meta = <M extends Model>(model: new () => M) => {
   return new ModelMeta(new model());
