@@ -1,5 +1,10 @@
 import { type T, Model } from '..';
 
+type EnumItem<C extends string, V> = {
+  value: V;
+  column: C;
+};
+
 class ModelMeta<M extends Model> {
     constructor(private model: M) {}
 
@@ -215,19 +220,23 @@ class ModelMeta<M extends Model> {
     /**
      * 
      * @param {string} column 
-     * @returns {string | undefined}
+     * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
      */
-    enum (column: T.Column<M>): string[] {
+    enum<C extends T.Column<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
         const schemaModel = this.model.getSchemaModel();
-        if (!schemaModel) return [];
+        if (!schemaModel) return null;
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
 
-        if (!entry) return [];
+        if (!entry) return null;
 
         const blueprint = entry[1];
         
-        return blueprint['_enum'];
+        const enumValues = blueprint['_enum'] as T.Result<M>[C][];
+
+        return Object.fromEntries(
+            enumValues.map((v) => [v, v])
+        ) as Record<T.Result<M>[C], T.Result<M>[C]>;
     }
 }
 

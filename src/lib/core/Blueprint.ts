@@ -504,8 +504,8 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  static enum<K extends string[]>(...enums: K): Blueprint<K> {
-    return new Blueprint<string[]>().enum(...enums);
+  static enum<K extends string[]>(...enums: K): Blueprint<K[number]> {
+    return new Blueprint<K[number]>().enum(...enums);
   }
 
   /**
@@ -513,8 +513,8 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  enum<K extends string[]>(...enums: K): Blueprint<K> {
-    const instance = new Blueprint<K>();
+  enum<K extends string[]>(...enums: K): Blueprint<K[number]> {
+    const instance = new Blueprint<K[number]>();
     instance._addAssignType(
       `ENUM(${enums.map((e) => `'${e.replace(/'/g, "")}'`)})`
     );
