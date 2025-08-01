@@ -3253,6 +3253,7 @@ const schema = {
   username  : Blueprint.varchar(255).notNull(),
   password  : Blueprint.varchar(255).notNull(),
   status    : Blueprint.tinyInt().notNull().default(0),
+  role      : Blueprint.enum('admin','user').default('user'),
   createdAt : Blueprint.timestamp().null(),
   updatedAt : Blueprint.timestamp().null()
 }
@@ -3263,8 +3264,6 @@ class User extends Model<TS>  {
   constructor() {
     super()
     this.useSchema(schema)
-    this.useUUID()
-    this.useTimestamp()
   }
 }
 
@@ -3280,22 +3279,8 @@ const hasColumn     = meta.hasColumn('idx') // false
 const primaryKey    = meta.primaryKey() // 'id'
 const indexes       = meta.indexes() // ['users.email@index']
 const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
-const defaults      = meta.defaults() // { status : 0 }
-
-console.log({
-  table,
-  column,
-  columnRef,
-  columnTypeOf,
-  columnType,
-  columns,
-  hasColumn,
-  primaryKey,
-  indexes,
-  nullable,
-  defaults
-})
-
+const defaults      = meta.defaults() // { id : null, uuid : null, ..., status : 0, role: 'user' ,..updatedAt : null  }
+const enums         = meta.enums('role') // [ 'admin', 'user' ]
 ```
 
 ## Repository
