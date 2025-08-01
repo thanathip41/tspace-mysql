@@ -17,6 +17,7 @@ import sql from '../../../build/lib/core/SqlLike';
  *   })
  */
 class Blueprint<T = any> {
+  private _enum :string[] = [];
   private _type: string = "INT";
   private _attributes: string[] = [];
   private _foreignKey: Record<string, any> | null = null;
@@ -209,18 +210,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static double(length: number = 0, decimal: number = 0): Blueprint<number> {
-    const instance = new Blueprint<number>();
-
-    instance._valueType = Number;
-
-    if (!length || !decimal) {
-      instance._addAssignType(`DOUBLE`);
-      return instance;
-    }
-
-    instance._addAssignType(`DOUBLE(${length},${decimal})`);
-
-    return instance;
+    return new Blueprint<number>().double(length,decimal);
   }
 
   /**
@@ -252,17 +242,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static float(length: number = 0, decimal: number = 0): Blueprint<number> {
-    const instance = new Blueprint<number>();
-    instance._valueType = Number;
-
-    if (!length || !decimal) {
-      instance._addAssignType(`FLOAT`);
-      return instance;
-    }
-
-    instance._addAssignType(`FLOAT(${length},${decimal})`);
-
-    return instance;
+    return new Blueprint<number>().float(length,decimal);
   }
 
   /**
@@ -292,17 +272,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static varchar(length: number = 191): Blueprint<string> {
-    const instance = new Blueprint<string>();
-
-    if (length > 255) length = 255;
-
-    if (length <= 0) length = 1;
-
-    instance._addAssignType(`VARCHAR(${length})`);
-
-    instance._valueType = String;
-
-    return instance;
+    return new Blueprint<string>().varchar(length);
   }
 
   /**
@@ -331,13 +301,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static char(length: number = 1): Blueprint<string> {
-    const instance = new Blueprint<number>();
-
-    instance._addAssignType(`CHAR(${length})`);
-
-    instance._valueType = String;
-
-    return instance;
+    return new Blueprint<string>().char(length);
   }
 
   /**
@@ -361,13 +325,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static longText(): Blueprint<string> {
-    const instance = new Blueprint<number>();
-
-    instance._addAssignType(`LONGTEXT`);
-
-    instance._valueType = String;
-
-    return instance;
+    return new Blueprint<string>().longText();
   }
 
   /**
@@ -384,16 +342,36 @@ class Blueprint<T = any> {
     return instance;
   }
 
+   /**
+   * Assign type 'LONGTEXT' in table
+   * @static
+   * @return {Blueprint<T>} Blueprint
+   */
+  static longtext(): Blueprint<string> {
+    return new Blueprint<string>().longtext();
+  }
+
+  /**
+   * Assign type 'LONGTEXT' in table
+   * @return {Blueprint<T>} Blueprint
+   */
+  longtext(): Blueprint<string> {
+    const instance = new Blueprint<number>();
+
+    instance._addAssignType(`LONGTEXT`);
+
+    instance._valueType = String;
+
+    return instance;
+  }
+
   /**
    * Assign type 'BINARY' in table
    * @static
    * @return {Blueprint<T>} Blueprint
    */
   static binary(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`BINARY`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().binary();
   }
 
   /**
@@ -406,40 +384,13 @@ class Blueprint<T = any> {
     instance._valueType = String;
     return instance;
   }
-
-  /**
-   * Assign type 'LONGTEXT' in table
-   * @static
-   * @return {Blueprint<T>} Blueprint
-   */
-  static longtext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`LONGTEXT`);
-    instance._valueType = String;
-    return instance;
-  }
-
-  /**
-   * Assign type 'LONGTEXT' in table
-   * @return {Blueprint<T>} Blueprint
-   */
-  longtext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`LONGTEXT`);
-    instance._valueType = String;
-    return instance;
-  }
-
   /**
    * Assign type 'JSON' in table
    * @static
    * @return {Blueprint<T>} Blueprint
    */
   static json(): Blueprint<Record<string, any> | string> {
-    const instance = new Blueprint<Record<string, any>>();
-    instance._addAssignType(`JSON`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().json();
   }
 
   /**
@@ -459,10 +410,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static mediumText(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`MEDIUMTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().mediumText();
   }
 
   /**
@@ -482,10 +430,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static mediumtext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`MEDIUMTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().mediumText();
   }
 
   /**
@@ -493,10 +438,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   mediumtext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`MEDIUMTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().mediumText();
   }
 
   /**
@@ -505,10 +447,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static tinyText(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`TINYTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().tinyText();
   }
 
   /**
@@ -528,10 +467,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static tinytext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`TINYTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().tinyText();
   }
 
   /**
@@ -539,10 +475,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   tinytext(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`TINYTEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().tinyText();
   }
 
   /**
@@ -551,10 +484,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static text(): Blueprint<string> {
-    const instance = new Blueprint<string>();
-    instance._addAssignType(`TEXT`);
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<string>().text();
   }
 
   /**
@@ -575,12 +505,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static enum<K extends string[]>(...enums: K): Blueprint<K[number]> {
-    const instance = new Blueprint<K[number]>();
-    instance._addAssignType(
-      `ENUM(${enums.map((e) => `'${e.replace(/'/g, "")}'`)})`
-    );
-    instance._valueType = String;
-    return instance;
+    return new Blueprint<K[number]>().enum(...enums);
   }
 
   /**
@@ -594,6 +519,7 @@ class Blueprint<T = any> {
       `ENUM(${enums.map((e) => `'${e.replace(/'/g, "")}'`)})`
     );
     instance._valueType = String;
+    instance._enum = enums
     return instance;
   }
 
@@ -603,11 +529,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static date(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
-    instance._addAssignType(`DATE`);
-    instance._valueType = Date;
-
-    return instance;
+    return new Blueprint<Date | string >().date();
   }
 
   /**
@@ -628,10 +550,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static dateTime(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
-    instance._addAssignType(`DATETIME`);
-    instance._valueType = Date;
-    return instance;
+    return new Blueprint<Date | string >().dateTime();
   }
 
   /**
@@ -651,10 +570,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static datetime(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
-    instance._addAssignType(`DATETIME`);
-    instance._valueType = Date;
-    return instance;
+    return new Blueprint<Date | string >().dateTime();
   }
 
   /**
@@ -662,10 +578,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   datetime(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
-    instance._addAssignType(`DATETIME`);
-    instance._valueType = Date;
-    return instance;
+    return new Blueprint<Date | string >().dateTime();
   }
 
   /**
@@ -674,10 +587,7 @@ class Blueprint<T = any> {
    * @return {Blueprint<T>} Blueprint
    */
   static timestamp(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
-    instance._addAssignType(`TIMESTAMP`);
-    instance._valueType = Date;
-    return instance;
+    return new Blueprint<Date | string >().timestamp();
   }
 
   /**
