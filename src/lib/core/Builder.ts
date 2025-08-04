@@ -4,6 +4,7 @@ import { DB }               from "./DB";
 import { StateHandler }     from "./Handlers/State";
 import { Join }             from "./Join";
 import { CONSTANTS }        from "../constants";
+import { DatabaseName }     from "../options"
 import { 
   Pool, 
   PoolConnection, 
@@ -2974,33 +2975,12 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   *
-   * @param {Function} pool pool connection database
-   * @returns {this} this
-   */
-  pool(pool: TConnection): this {
-    if (!pool?.hasOwnProperty("query")) {
-      throw new Error("pool must have a query property");
-    }
-
-    this.$pool.set(pool);
-    return this;
-  }
-
-  /**
    * make sure this connection has same transaction in pool connection
    * @param {object} connection pool database
    * @returns {this} this
    */
   bind(connection: TConnection | TConnectionTransaction): this {
-    if (!connection?.hasOwnProperty("query")) {
-      throw new Error("connection must have a query property");
-    }
-
-    if (typeof connection.query !== "function") {
-      throw new Error("connection must have a query function");
-    }
-
+  
     this.$pool.set(connection);
 
     return this;
@@ -4030,12 +4010,19 @@ class Builder extends AbstractBuilder {
   async showColumns(
     table: string = this.$state.get("TABLE_NAME")
   ): Promise<string[]> {
-    const sql: string = [
-      `${this.$constants("SHOW")}`,
-      `${this.$constants("COLUMNS")}`,
-      `${this.$constants("FROM")}`,
-      `\`${table.replace(/\`/g, "")}\``,
-    ].join(" ");
+    
+    const sql = [
+      `SELECT 
+        COLUMN_NAME as "Field", 
+        DATA_TYPE as "Type",
+        IS_NULLABLE as "Null",
+        COLUMN_DEFAULT as "Default"
+      `, 
+      `FROM information_schema.columns
+       WHERE table_name = '${table.replace(/\`/g, "")}'
+        AND table_schema = '${this.$database}'
+      ` 
+    ].join(' ')
 
     const rawColumns: any[] = await this._queryStatement(sql);
 
@@ -4424,11 +4411,13 @@ class Builder extends AbstractBuilder {
   }
 
   protected _buildQueryStatement() {
-    const buildSQL = (sql: (string | null)[]) =>
-      sql
-        .filter((s) => s !== "" || s == null)
-        .join(" ")
-        .replace(/\s+/g, " ");
+    const buildSQL = (sql: (string | null)[]) => {
+      return sql
+      .filter((s) => s !== "" || s == null)
+      .join(" ")
+      .replace(/\s+/g, " ");
+    }
+      
 
     const bindJoin = (values: string[]) => {
       if (!Array.isArray(values) || !values.length) return null;
@@ -4546,24 +4535,29 @@ class Builder extends AbstractBuilder {
       return sql;
     };
 
-    const insert = () => buildSQL([this.$state.get("INSERT")]);
+    const insert = () => {
+      const sql = buildSQL([this.$state.get("INSERT")]);
+      return sql;
+    };
 
     const update = () => {
-      return buildSQL([
+      const sql = buildSQL([
         this.$state.get("UPDATE"),
         bindWhere(this.$state.get("WHERE")),
         bindOrderBy(this.$state.get("ORDER_BY")),
         bindLimit(this.$state.get("LIMIT")),
       ]);
+      return sql;
     };
 
     const remove = () => {
-      return buildSQL([
+      const sql = buildSQL([
         this.$state.get("DELETE"),
         bindWhere(this.$state.get("WHERE")),
         bindOrderBy(this.$state.get("ORDER_BY")),
         bindLimit(this.$state.get("LIMIT")),
       ]);
+      return sql;
     };
 
     return {
@@ -4604,6 +4598,7 @@ class Builder extends AbstractBuilder {
   }
 
   protected async _queryStatement(sql: string): Promise<any[]> {
+    sql = this.$pool.format(sql)
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
     const result = await this.$pool.query(sql);
@@ -4618,6 +4613,7 @@ class Builder extends AbstractBuilder {
     sql: string;
     returnId?: boolean;
   }) {
+    sql = this.$pool.format(sql)
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
     if (returnId) {
@@ -5037,17 +5033,23 @@ class Builder extends AbstractBuilder {
 
   private _initialConnection() {
     this.$utils = utils;
-
+    this.$database = DatabaseName()
+  
     this.$pool = (() => {
       let pool = Pool;
-
       return {
-        query: async (sql: string) => await pool.query(sql),
+        query: async (sql: string) => {
+          return pool.query(sql);
+        },
         get: () => pool,
         set: (newConnection: TConnection) => {
           pool = newConnection;
           return;
         },
+        format: (sql: string) => {
+          if(pool.format == null) return sql
+          return pool.format(sql)
+        }
       };
     })();
 

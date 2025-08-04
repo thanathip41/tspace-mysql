@@ -1013,12 +1013,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
       }
 
-      const blueprintMapQuery = this._getBlueprintByKey(column, {
+      const virtualColumn = this._getBlueprintByKey(column, {
         mapQuery: true,
       });
 
-      if (blueprintMapQuery) {
-        const sql = blueprintMapQuery.sql?.select;
+      if (virtualColumn) {
+        const sql = virtualColumn.sql?.select;
         if (sql == null) return this.bindColumn(column);
 
         if (sql.toLowerCase().includes(" as ")) {
@@ -1115,12 +1115,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     column: K,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
-    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+    const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
 
-    if (blueprintMapQuery) {
-      const sql = blueprintMapQuery.sql?.where;
+    if (virtualColumn) {
+      const sql = virtualColumn.sql?.where;
 
       if (sql) {
         this.$state.set("ORDER_BY", [
@@ -1168,12 +1168,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
 
-          const blueprintMapQuery = this._getBlueprintByKey(c, {
+          const virtualColumn = this._getBlueprintByKey(c, {
             mapQuery: true,
           });
 
-          if (blueprintMapQuery) {
-            const sql = blueprintMapQuery.sql?.orderBy;
+          if (virtualColumn) {
+            const sql = virtualColumn.sql?.orderBy;
 
             if (sql) return sql;
           }
@@ -1209,12 +1209,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
 
-          const blueprintMapQuery = this._getBlueprintByKey(c, {
+          const virtualColumn = this._getBlueprintByKey(c, {
             mapQuery: true,
           });
 
-          if (blueprintMapQuery) {
-            const sql = blueprintMapQuery.sql?.orderBy;
+          if (virtualColumn) {
+            const sql = virtualColumn.sql?.orderBy;
 
             if (sql) return sql;
           }
@@ -1250,12 +1250,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
 
-          const blueprintMapQuery = this._getBlueprintByKey(c, {
+          const virtualColumn = this._getBlueprintByKey(c, {
             mapQuery: true,
           });
 
-          if (blueprintMapQuery) {
-            const sql = blueprintMapQuery.sql?.groupBy;
+          if (virtualColumn) {
+            const sql = virtualColumn.sql?.groupBy;
 
             if (sql) return sql;
           }
@@ -1558,6 +1558,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     { retry = false } = {}
   ): Promise<any[]> {
     try {
+      sql = this.$pool.format(sql);
       const logger = async (results: any[]) => {
         const selectRegex = /^SELECT\b/i;
 
@@ -1592,7 +1593,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
         const startTime = +new Date();
-
+        
         const result = await this.$pool.query(sql);
 
         const endTime = +new Date();
@@ -1639,6 +1640,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     returnId?: boolean;
   }): Promise<any> {
     try {
+      sql = this.$pool.format(sql);
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           this.$utils.consoleDebug(sql);
@@ -2683,6 +2685,54 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
   }
 
   /**
+   * The 'belongsToManySingle' relationship defines a many-to-many relationship between two database tables.
+   * But return object
+   *
+   * It indicates that records in both the primary table and the related table can be associated
+   * with multiple records in each other's table through an intermediate table.
+   *
+   * This is commonly used when you have a many-to-many relationship between entities, such as users and roles or products and categories.
+   * @param    {object} relations registry relation in your model
+   * @property {string} relation.name
+   * @property {string} relation.as
+   * @property {class}  relation.model
+   * @property {string} relation.localKey
+   * @property {string} relation.foreignKey
+   * @property {string} relation.freezeTable freeae table name
+   * @property {string} relation.pivot table name of pivot
+   * @property {string} relation.oldVersion return value of old version
+   * @property {class?} relation.modelPivot model for pivot
+   * @returns  {this}   this
+   */
+  protected belongsToManySingle<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
+    name,
+    as,
+    model,
+    localKey,
+    foreignKey,
+    freezeTable,
+    pivot,
+    oldVersion,
+    modelPivot,
+  }: TRelationOptions<K>): this {
+    this.$relation.belongsToManySingle({
+      name,
+      as,
+      model,
+      localKey,
+      foreignKey,
+      freezeTable,
+      pivot,
+      oldVersion,
+      modelPivot,
+    });
+
+    return this;
+  }
+
+  /**
    * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
    *
    * @param    {object}  relation registry relation in your model
@@ -2957,12 +3007,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     value = this.$utils.covertBooleanToNumber(value);
 
-    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+    const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
 
-    if (blueprintMapQuery) {
-      const sql = blueprintMapQuery.sql?.where;
+    if (virtualColumn) {
+      const sql = virtualColumn.sql?.where;
 
       if (sql) {
         if (value === null) {
@@ -3032,12 +3082,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     value = this.$utils.covertDateToDateString(value);
 
-    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+    const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
 
-    if (blueprintMapQuery) {
-      const sql = blueprintMapQuery.sql?.where;
+    if (virtualColumn) {
+      const sql = virtualColumn.sql?.where;
 
       if (sql) {
         if (value === null) {
@@ -3164,12 +3214,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
       const c = String(column);
 
-      const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+      const virtualColumn = this._getBlueprintByKey(String(column), {
         mapQuery: true,
       });
 
-      if (blueprintMapQuery) {
-        const sql = blueprintMapQuery.sql?.where;
+      if (virtualColumn) {
+        const sql = virtualColumn.sql?.where;
 
         if (sql) {
           if (value === null) {
@@ -3366,12 +3416,12 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
 
-    const blueprintMapQuery = this._getBlueprintByKey(String(column), {
+    const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
     });
 
-    if (blueprintMapQuery) {
-      const sql = blueprintMapQuery.sql?.where;
+    if (virtualColumn) {
+      const sql = virtualColumn.sql?.where;
 
       if (sql) {
         return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
@@ -5796,6 +5846,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       fakers.push(columnAndValue);
     }
 
+    console.log(fakers)
+
     const chunkedData = this.$utils.chunkArray([...fakers], 500);
 
     const promises: Function[] = [];
@@ -6261,9 +6313,10 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     
     let result = await this._queryStatement(sql);
 
-    if (!result.length)
+    if (!result.length) {
       return this._returnEmpty(type, result, message, options);
-
+    }
+      
     for (const relation of relations) {
       const loaded = (await this.$relation.load(result, relation)) ?? [];
       result = loaded;
@@ -7539,6 +7592,11 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         if (mapQuery && isMapQuery) {
           return blueprint;
         }
+
+        if(mapQuery && !isMapQuery) {
+          return null;
+        }
+        
         return blueprint;
       }
     }

@@ -98,9 +98,11 @@ const CONSTANTS = Object.freeze({
         hasOne : 'hasOne',
         hasMany : 'hasMany',
         belongsTo : 'belongsTo',
-        belongsToMany : 'belongsToMany'
+        belongsToMany : 'belongsToMany',
+        belongsToManySingle : 'belongsToManySingle'
     },
     PATTERN : {
+        maybeSnake_case : 'maybeSnake_case',
         snake_case : 'snake_case',
         camelCase : 'camelCase'
     }

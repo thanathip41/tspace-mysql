@@ -11,14 +11,14 @@ import options , {
 } from '../options'
 
 import type { 
-    TConnection, 
-    TNewConnection, 
+    TConnection,
+    TCreateNewConnection, 
     TOptions,
     TPoolEvent
 } from '../types'
 
 export class PoolConnection extends EventEmitter {
-
+    
     private OPTIONS = this._loadOptions()
      
     /**
@@ -36,93 +36,14 @@ export class PoolConnection extends EventEmitter {
             )
         }
     }
-    /**
-     * 
-     * Get a connection to database
-     * @return {Connection} Connection
-     * @property {Function} Connection.query
-     * @property {Function} Connection.connection
-     */
-    public connected () : TConnection {
 
-        const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
-
-        /**
-         * After the server is listening, verify that the pool has successfully connected to the database.
-         * @param {Pool} pool
-         * @returns {void}
-         */
-        this._onPoolConnect(pool)
-        
-        pool.on('release', (connection) => {
-            this.emit('release', connection)
-        })
-
-        return {
-            on : (event : TPoolEvent , data) => {
-                return this.on(event,data)
-            },
-            query : (sql : string) => {
-                return new Promise<any[]>((resolve, reject)=>{
-                    const start : number = Date.now()
-                    /**
-                     * 
-                     * The pool does not need to be manually released,
-                     * because the mysql2 automatically handles the release when a query is successful.
-                     */
-                    pool.query(sql , (err : QueryError, results: any[]) => {   
-                                  
-                        if(err) return reject(err)
-
-                        this._detectEventQuery({
-                            start, 
-                            sql,
-                            results
-                        })
-
-                        return resolve(results)
-                    })
-                })
-            },
-            connection : () =>  {
-
-                return new Promise((resolve, reject) => {
-                    pool.getConnection((err, connection : TPoolConnection) => {
-
-                        if (err) return reject(err)
-
-                        const query = (sql: string) => {
-
-                            const start : number = Date.now()
-                            return new Promise<any[]>((ok, fail) => {
-
-                                connection.query(sql, (err : QueryError, results: any[]) => {
-            
-                                    connection.release()
-                                   
-                                    if (err) {
-                                        return fail(err)
-                                    }
-
-                                    this._detectEventQuery({ start , sql , results })
-
-                                    return ok(results)
-                                })
-                            })
-                        }
-
-                       
-                        return resolve({ 
-                            on : (event : TPoolEvent , data : any) => this.on(event,data),
-                            query
-                        })
-                    })
-                })
-            }
-        }
+    connected (): TConnection & { format ?: (sql : string) => string } {
+        const pool : any = this._connectPool()
+        pool.format =  (sql:string) => this.format(sql)
+        return pool
     }
 
-    public createNewConnected () : TNewConnection {
+    public createNewConnected () : TCreateNewConnection {
 
         const pool : TPool = createPool(Object.fromEntries(this.OPTIONS))
 
@@ -302,7 +223,8 @@ export class PoolConnection extends EventEmitter {
                 password                : String(options.PASSWORD),
                 multipleStatements      : Boolean(options.MULTIPLE_STATEMENTS),
                 enableKeepAlive         : Boolean(options.ENABLE_KEEP_ALIVE),
-                keepAliveInitialDelay   : Number(options.KEEP_ALIVE_DELAY)
+                keepAliveInitialDelay   : Number(options.KEEP_ALIVE_DELAY),
+                driver                  : String(options.DRIVER ?? 'mysql2')
             })
         )
     }
@@ -468,6 +390,313 @@ export class PoolConnection extends EventEmitter {
         const message = `\n\x1b[1m\x1b[31mWARING:\x1b[0m \x1b[1m\x1b[29mSlow query detected: Execution time: ${duration} ms\x1b[0m \n\x1b[33m${sql};\x1b[0m`
 
         return message
+    }
+
+    private _connectPool (): TConnection {
+        const options : Record<string,any> = JSON.parse(JSON.stringify({
+            ...Object.fromEntries(this.OPTIONS),
+            driver : undefined
+        }))
+      
+        switch (this.driver()) {
+            case 'mysql':
+            case 'mysql2': {
+                const mysql = Tool.import(this.driver())
+                const pool = mysql.createPool(options)
+                
+                /**
+                 * After the server is listening, verify that the pool has successfully connected to the database.
+                 * @param {Pool} pool
+                 * @returns {void}
+                 */
+                this._onPoolConnect(pool)
+                
+                pool.on('release', (connection: unknown) => {
+                    this.emit('release', connection)
+                })
+        
+                return {
+                    on : (event : TPoolEvent , data: any) => {
+                        return this.on(event,data)
+                    },
+                    query : (sql : string) : Promise<any[]> => {
+                        return new Promise<any[]>((resolve, reject)=>{
+                            return pool.query(sql , (err: any, results: any[]) => {                                        
+                                if(err) return reject(err)
+                                return resolve(this._result(results))
+                            })
+                        })
+                    },
+                    connection : async () =>  {
+                        return new Promise((resolve, reject) => {
+                            pool.getConnection((err: any, connection : any) => {
+        
+                                if (err) return reject(err)
+
+                                const query = (sql: string) => {
+        
+                                    return new Promise<any[]>((ok, fail) => {
+                                        connection.query(sql, (err : any, results: any[]) => {
+                                            if (err)  return fail(err)
+                                            return ok(this._result(results))
+                                        })
+                                    })
+                                }
+
+                                return resolve({ 
+                                    on : (event : TPoolEvent , data : any) => this.on(event,data),
+                                    query
+                                })
+                            })
+                        })
+                    }
+                }
+            }
+
+            case 'mariadb': {
+                const mariadb = Tool.import(this.driver())
+                const connectPool = mariadb.createPool(options)
+                const pool = connectPool.getConnection().catch((err : any) => {
+                    const message = this._messageError.bind(this)
+        
+                    process.nextTick(() => {
+                        console.log(message(err?.message))     
+                        return process.exit()
+                    })
+                })
+                
+                return {
+                    on : (event : TPoolEvent , data: any) => {
+                        return this.on(event,data)
+                    },
+                    query : (sql : string) => {
+                        return new Promise<any[]>((resolve, reject)=>{
+                            return pool.query(sql)
+                            .then((results:any) => resolve(this._result(results)))
+                            .catch((err: any) => reject(err))
+                        })
+                    },
+                    connection : async () =>  {
+                        const pool = await connectPool.getConnection()
+                        return new Promise((resolve) => {
+                            const query = (sql: string) => {
+                                return new Promise<any[]>((resolve, reject) => {
+                                    pool.query(sql)
+                                    .then((r: any[] | PromiseLike<any[]>) => resolve(this._result(r)))
+                                    .catch((e: any) => reject(e))
+                                })
+                            }
+        
+                            return resolve({ 
+                                on : (event : TPoolEvent , data : any) => this.on(event,data),
+                                query
+                            })
+                        })
+                    }
+                }
+            }
+                
+            case 'pg': 
+            case 'postgres': {
+                const pg = Tool.import('pg')
+ 
+                const pool = new pg.Pool(options)
+
+                pool.connect((err: any) => {
+                    if(err == null || !err) return
+        
+                    const message = this._messageError.bind(this)
+        
+                    process.nextTick(() => {
+                        console.log(message(err?.message))     
+                        return process.exit()
+                    })
+                })
+
+                return {
+                    on : (event : TPoolEvent , data: any) => {
+                        return this.on(event,data)
+                    },
+                    query : (sql : string) => {
+                        return new Promise<any[]>((resolve, reject)=>{
+
+                            return pool.query(sql , (err: any, results: any[]) => {                                       
+                                if(err) return reject(err)
+                                return resolve(this._result(results))
+                            })
+                        })
+                    },
+                    connection : () =>  {
+                        return new Promise((resolve, reject) => {
+                            pool.connect((err: any, connection: { query: Function }) => {
+         
+                                if (err) return reject(err)
+        
+                                const query = (sql: string) => {
+        
+                                    return new Promise<any[]>((resolve, reject) => {
+                                        connection.query(sql, (err : any, result: any[]) => {
+                                            if (err)  return reject(err)
+                                            return resolve(this._result(result))
+                                        })
+                                    })
+                                }
+    
+                                return resolve({ 
+                                    on : (event : TPoolEvent , data : any) => this.on(event,data),
+                                    query
+                                })
+                            })
+                        })
+                    }
+                }
+            }
+
+            case 'sqlite3': {
+                const sqlite3 = Tool.import(this.driver())
+                const db = new sqlite3.Database(options.database);
+
+                return {
+                    on : (event : TPoolEvent , data: any) => {
+                        return this.on(event,data)
+                    },
+                    query : (sql : string) => {
+                        return new Promise((resolve, reject) => {
+                            db.all(sql , [] , (err: any, result: any[]) => {
+                              if (err) return reject(err)
+                              return resolve(result)
+                            })
+                        })
+                    },
+                    connection : async () =>  {
+                        return new Promise((resolve) => {
+                            const query = (sql: string) => {
+                                return new Promise<any>((resolve, reject) => {
+                                    db.all(sql)
+                                    .then((r: any[] | PromiseLike<any[]>) => resolve(this._result(r)))
+                                    .catch((e: any) => reject(e))
+                                })
+                            }
+        
+                            return resolve({ 
+                                on : (event : TPoolEvent , data : any) => this.on(event,data),
+                                query
+                            })
+                        })
+                    }
+                }
+            }
+
+            case 'mssql': {
+                const mssql = Tool.import(this.driver())
+ 
+                const createPool = mssql.createPool(options)
+
+                const pool = createPool.connect().catch((err : any) => {
+                    const message = this._messageError.bind(this)
+        
+                    process.nextTick(() => {
+                        console.log(message(err?.message))     
+                        return process.exit()
+                    })
+                })
+
+                return {
+                    on : (event : TPoolEvent , data: any) => {
+                        return this.on(event,data)
+                    },
+                    query : (sql : string) => {
+                        return new Promise<any[]>((resolve, reject)=>{
+                            return pool.query(sql , (err: any, results: any[]) => {                                        
+                                if(err) return reject(err)
+                                return resolve(this._result(results))
+                            })
+                        })
+                    },
+                    connection : () =>  {
+                        return new Promise((resolve, reject) => {
+                            pool.connect((err: any, connection: { query: Function }) => {
+         
+                                if (err) return reject(err)
+        
+                                const query = (sql: string) => {
+                                    return new Promise<any>((resolve, reject) => {
+                                        connection.query(sql, (err : any, result: any[]) => {
+                                            if (err)  return reject(err)
+                                            return resolve(this._result(result))
+                                        })
+                                    })
+                                }
+        
+                                return resolve({ 
+                                    on : (event : TPoolEvent , data : any) => this.on(event,data),
+                                    query
+                                })
+                            })
+                        })
+                    }
+                }
+            }
+
+            default : throw new Error('No default driver specified')
+        }
+    }
+
+    format(sql : string) {
+        switch(this.driver()) {
+            case 'pg':
+            case 'postgres' : {
+                const replaceBackticksWithDoubleQuotes = (sqlString : string) => {
+
+                    const updateRegex = /^UPDATE\b/i
+                    const insertRegex = /^INSERT\b/i
+                    const deleteRegex = /^DELETE\b/i
+                
+                    if (
+                        insertRegex.test(sqlString) ||
+                        updateRegex.test(sqlString) ||
+                        deleteRegex.test(sqlString) 
+                    )  {
+                        const replacedString = sqlString
+                        .replace(/`[\w_]+`\.`([\w_]+)`/g, '`$1`')
+                        .replace(/`([^`]+)`/g, '"$1"');
+                    
+                        return replacedString;
+                    }
+
+                    const replacedString = sqlString
+                    .replace(/`([^`]+)`/g, '"$1"')
+                    .replace(/table_schema/gi, 'table_catalog')
+                  
+                    return replacedString;
+                }
+                return replaceBackticksWithDoubleQuotes(sql)
+            }
+
+            default : return sql
+        }
+    }
+    driver () {
+        return String(this.OPTIONS.get('driver') ?? 'mysql2')
+    }
+
+    private _result (results : any) {
+
+        switch(this.driver()) {
+            case 'pg' : 
+            case 'postgres':
+            case 'oracle': {
+                const { rows } = results
+                return rows
+            }
+            case 'mssql': {
+                const { recordset } = results
+                return recordset
+            }
+
+            default : return results
+        }
+        
     }
 }
 

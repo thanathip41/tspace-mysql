@@ -18,15 +18,18 @@ abstract class AbstractBuilder {
     ]
 
     protected $utils !: TUtils 
+
+    protected $database !: string
     
     protected $constants !: (name ?: keyof TConstant) => any
 
     protected $state !: StateHandler
 
-    protected $pool: { query : Function , set : Function , get : Function } = {
+    protected $pool: { query : Function , set : Function , get : Function, format : Function } = {
         query: (sql :string) => {},
         set: (pool : any) => {},
-        get: () => {}
+        get: () => {},
+        format: (sql : string) => {}
     }
 
     protected $logger : { get: Function , set: (value: string) => void,reset : () => void , check: (value: string) => boolean }  = {

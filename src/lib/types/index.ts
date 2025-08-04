@@ -159,7 +159,7 @@ export type TConnection = {
     }>
 }
 
-export type TNewConnection = {
+export type TCreateNewConnection = {
     on : (event : TPoolEvent , data : (r : any) => any) => void
     query: (sql: string) => Promise<any>
     connection : () => Promise<TConnectionTransaction>

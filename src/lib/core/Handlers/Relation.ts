@@ -9,7 +9,6 @@ import type {
 class RelationHandler  {
 
     private $model : Model
-    private $constants : Function
     private $logger : { 
         get: Function; 
         set: (value: string) => void; 
@@ -19,15 +18,16 @@ class RelationHandler  {
 
     constructor(model : Model) {
         this.$model = model
-        this.$constants = this.$model["$constants"]
         this.$logger = this.$model["$logger"]
     }
 
     async load (parents: Record<string,any>[] , relation: TRelationOptions) {
 
-        const relationIsBelongsToMany = relation.relation === this.$constants('RELATIONSHIP').belongsToMany
+        const relationIsBelongsToMany = relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany
 
-        if(relationIsBelongsToMany) {
+         const relationIsBelongsToManySingle = relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToManySingle
+
+        if(relationIsBelongsToMany || relationIsBelongsToManySingle) {
             return await this._belongsToMany(parents , relation)
         }
 
@@ -64,7 +64,7 @@ class RelationHandler  {
             const childs :  Record<string,any>[] = await query
             .meta('SUBORDINATE')
             .whereIn(foreignKey,parentIds)
-            .selectRaw(`${this.$constants('COUNT')}(\`${foreignKey}\`) ${this.$constants('AS')} \`aggregate\``)
+            .selectRaw(`${this.$model["$constants"]('COUNT')}(\`${foreignKey}\`) ${this.$model["$constants"]('AS')} \`aggregate\``)
             .debug(this.$model['$state'].get('DEBUG'))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
@@ -91,7 +91,7 @@ class RelationHandler  {
         if(this.$model['$state'].get('DEBUG')) {
             this.$model['$state'].set('QUERIES',[
                 ...this.$model['$state'].get('QUERIES'),
-                query.toString()
+                `${query}`
             ])
         }
      
@@ -147,7 +147,7 @@ class RelationHandler  {
                 }
             }
             
-            if(relation.relation === this.$constants('RELATIONSHIP').belongsToMany) {
+            if(relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
 
                 const thisPivot =  modelPivot
                 ? new modelPivot as Model
@@ -228,7 +228,7 @@ class RelationHandler  {
             )
         }
 
-        const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -280,7 +280,7 @@ class RelationHandler  {
                 )
             }
 
-            const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+            const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
 
             if(!relationHasExists) {
                 throw  this._assertError(
@@ -322,7 +322,7 @@ class RelationHandler  {
             )
         }
 
-        const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -349,7 +349,7 @@ class RelationHandler  {
             )
         }
     
-        const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -357,7 +357,7 @@ class RelationHandler  {
             )
         }
     
-        if(relation.relation !== this.$constants('RELATIONSHIP').belongsToMany) {
+        if(relation.relation !== this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
             throw  this._assertError(
                 `The pivot options support 'belongsToMany' relations exclusively.`
             )
@@ -378,7 +378,7 @@ class RelationHandler  {
 
         if(relation == null) return null
     
-        const relationHasExists = Object.values(this.$constants('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -394,7 +394,7 @@ class RelationHandler  {
             name,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').hasOne,
+            relation: this.$model["$constants"]('RELATIONSHIP').hasOne,
             localKey,
             foreignKey,
             freezeTable,
@@ -408,7 +408,7 @@ class RelationHandler  {
             name,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').hasMany,
+            relation: this.$model["$constants"]('RELATIONSHIP').hasMany,
             localKey,
             foreignKey,
             freezeTable,
@@ -422,7 +422,7 @@ class RelationHandler  {
             name,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').belongsTo,
+            relation: this.$model["$constants"]('RELATIONSHIP').belongsTo,
             localKey,
             foreignKey,
             freezeTable,
@@ -442,7 +442,7 @@ class RelationHandler  {
             name,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').belongsToMany,
+            relation: this.$model["$constants"]('RELATIONSHIP').belongsToMany,
             localKey,
             foreignKey,
             freezeTable,
@@ -459,13 +459,13 @@ class RelationHandler  {
         ])
     }
 
-    manyToMany({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+    belongsToManySingle({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
         
         const relation = {
             name,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').belongsToMany,
+            relation: this.$model["$constants"]('RELATIONSHIP').belongsToManySingle,
             localKey,
             foreignKey,
             freezeTable,
@@ -481,7 +481,6 @@ class RelationHandler  {
             relation
         ])
     }
-
     hasOneBuilder ({ 
         name, 
         as, 
@@ -499,7 +498,7 @@ class RelationHandler  {
             name : nameRelation,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').hasOne,
+            relation: this.$model["$constants"]('RELATIONSHIP').hasOne,
             localKey,
             foreignKey,
             freezeTable,
@@ -536,7 +535,7 @@ class RelationHandler  {
             name : nameRelation,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').hasMany,
+            relation: this.$model["$constants"]('RELATIONSHIP').hasMany,
             localKey,
             foreignKey,
             freezeTable,
@@ -573,7 +572,7 @@ class RelationHandler  {
             name : nameRelation,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').belongsTo,
+            relation: this.$model["$constants"]('RELATIONSHIP').belongsTo,
             localKey,
             foreignKey,
             freezeTable,
@@ -611,7 +610,7 @@ class RelationHandler  {
             name : nameRelation,
             model,
             as,
-            relation: this.$constants('RELATIONSHIP').belongsToMany,
+            relation: this.$model["$constants"]('RELATIONSHIP').belongsToMany,
             localKey,
             foreignKey,
             freezeTable,
@@ -660,7 +659,7 @@ class RelationHandler  {
 
                 if(r.query == null) continue
 
-                if(r.relation === this.$constants('RELATIONSHIP').belongsToMany) {
+                if(r.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
                     
                     const data = clone['$relation']?._valueInRelation(r)
 
@@ -721,7 +720,7 @@ class RelationHandler  {
             }
         }
 
-        if(relation.relation === this.$constants('RELATIONSHIP').belongsToMany) {
+        if(relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
               
             const data = clone['$relation']?._valueInRelation(relation)
 
@@ -842,13 +841,13 @@ class RelationHandler  {
         const alias = as ?? name
 
         const relationIsHasOneOrBelongsTo = [
-            this.$constants('RELATIONSHIP').hasOne, 
-            this.$constants('RELATIONSHIP').belongsTo
+            this.$model["$constants"]('RELATIONSHIP').hasOne, 
+            this.$model["$constants"]('RELATIONSHIP').belongsTo
         ].some(r => r ===  relationName)
 
         const relationIsHasManyOrBelongsToMany = [
-            this.$constants('RELATIONSHIP').hasMany, 
-            this.$constants('RELATIONSHIP').belongsToMany
+            this.$model["$constants"]('RELATIONSHIP').hasMany, 
+            this.$model["$constants"]('RELATIONSHIP').belongsToMany
         ].some(r => r ===  relationName)
         
         const children : Record<string , { values : Record<string,any>[] }> = [...childs]
@@ -915,6 +914,8 @@ class RelationHandler  {
 
         let { name, foreignKey, localKey , pivot , oldVersion , modelPivot , queryPivot , as } = this._valueInRelation(relation)
 
+        const isBelongsToManySingle = relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToManySingle
+       
         const localKeyId = parents.map((parent : Record<string,any>) => {
             
             const data = parent[foreignKey]
@@ -965,7 +966,7 @@ class RelationHandler  {
             const pivotResults : Record<string,any>[] = await queryPivot
             .meta('SUBORDINATE')
             .whereIn(localKeyPivotTable,mainResultIds)
-            .selectRaw(`${this.$constants('COUNT')}(${localKeyPivotTable}) ${this.$constants('AS')} \`aggregate\``)
+            .selectRaw(`${this.$model["$constants"]('COUNT')}(${localKeyPivotTable}) ${this.$model["$constants"]('AS')} \`aggregate\``)
             .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
@@ -1025,9 +1026,16 @@ class RelationHandler  {
             }
     
             for(const parent of parents) {
-                if(parent[alias] == null) parent[alias] = []
+
+                if(parent[alias] == null) parent[alias] = isBelongsToManySingle ? null : []
+
                 for(const pivotResult of pivotResults) {
-                    if(pivotResult[localKeyPivotTable] !== parent[foreignKey]) continue                  
+                    if(pivotResult[localKeyPivotTable] !== parent[foreignKey]) continue    
+                    
+                    if(isBelongsToManySingle) {
+                        parent[alias] = {...pivotResult }
+                        continue
+                    }
                     parent[alias].push(pivotResult)
                 }
             }
@@ -1061,7 +1069,7 @@ class RelationHandler  {
 
         for(const parent of parents) {
            
-            if(parent[alias] == null) parent[alias] = []
+            if(parent[alias] == null) parent[alias] = isBelongsToManySingle ? null : []
 
             const match = children[`${parent[foreignKey]}`]
 
@@ -1069,13 +1077,22 @@ class RelationHandler  {
 
             const childrens = match?.values ?? []
 
+            if(isBelongsToManySingle) {
+                const children = childrens[0];
+                const data = relationResults.find(relationResult => relationResult[foreignKey] === children[localKey])  
+                if(data == null) continue
+                parent[alias] = {...data }
+                continue
+            }
+
             for(const children of childrens) {
 
                 const data = relationResults.find(relationResult => relationResult[foreignKey] === children[localKey])  
 
                 if(data == null) continue
-             
+
                 parent[alias].push(data)
+                
             }
         }
 
@@ -1128,13 +1145,13 @@ class RelationHandler  {
                 `${this.$model['$state'].get('PRIMARY_KEY')}`
             ].join('_'))
 
-        const checkTRelationOptionsIsBelongsTo = [
+        const checkRelationIsBelongsTo = [
             relationModel.localKey == null,
             relationModel.foreignKey == null,
-            relation ===  this.$constants('RELATIONSHIP').belongsTo 
+            relation ===  this.$model["$constants"]('RELATIONSHIP').belongsTo 
         ].every(r => r)
      
-        if(checkTRelationOptionsIsBelongsTo) {
+        if(checkRelationIsBelongsTo) {
             foreignKey = this._valuePattern(localKey)
             localKey =  this._valuePattern([
                 `${pluralize.singular(table ?? '')}`,
@@ -1142,13 +1159,19 @@ class RelationHandler  {
             ].join('_'))
         }
 
-        const checkTRelationOptionsIsBelongsToMany = [
+        const checkRelationIsBelongsToMany = [
             relationModel.localKey == null,
             relationModel.foreignKey == null,
-            relation === this.$constants('RELATIONSHIP').belongsToMany
+            relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany
         ].every(r => r)
 
-        if(checkTRelationOptionsIsBelongsToMany) {
+         const checkRelationIsBelongsToManySingle = [
+            relationModel.localKey == null,
+            relationModel.foreignKey == null,
+            relation === this.$model["$constants"]('RELATIONSHIP').belongsToManySingle
+        ].every(r => r)
+
+        if(checkRelationIsBelongsToMany || checkRelationIsBelongsToManySingle) {
             localKey = this._valuePattern([
                 `${pluralize.singular(table ?? '')}`,
                 `${this.$model['$state'].get('PRIMARY_KEY')}`
@@ -1193,7 +1216,7 @@ class RelationHandler  {
 
         switch (this.$model['$state'].get('PATTERN')) {
 
-            case this.$constants('PATTERN').snake_case : {
+            case this.$model["$constants"]('PATTERN').snake_case : {
 
                 if(schema == null) {
                     return snakeCase(value)
@@ -1208,7 +1231,7 @@ class RelationHandler  {
                 return find.column
             }
 
-            case this.$constants('PATTERN').camelCase : {
+            case this.$model["$constants"]('PATTERN').camelCase : {
 
                 if(schema == null) {
                     return camelCase(value)

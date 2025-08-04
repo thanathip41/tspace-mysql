@@ -6,19 +6,20 @@ describe('Testing Pool', function () {
   /* ##################################################### */
   it('Pool: It is connected?', async function () {
     
-    expect(Pool).to.have.an('object')
-    expect(Pool).to.have.property('query')
-    expect(Pool).to.have.property('connection')
-    expect(Pool.connection).to.be.a('function')
-    expect(Pool.query).to.be.a('function')
+    const pool = await Pool
+    expect(pool).to.have.an('object')
+    expect(pool).to.have.property('query')
+    expect(pool).to.have.property('connection')
+    expect(pool.connection).to.be.a('function')
+    expect(pool.query).to.be.a('function')
     
-    const query = await Pool.query('SELECT 1 as ping')
+    const query = await pool.query('SELECT 1 as ping')
 
     expect(query).to.be.an('array')
     expect(query.length).to.be.equal(1)
     expect(query[0].ping).to.be.equal(1)
 
-    const connect = await Pool.connection()
+    const connect = await pool.connection()
 
     expect(connect.query).to.be.an('function')
 

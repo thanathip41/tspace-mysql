@@ -17,6 +17,7 @@ dotenv.config({ path : environment() })
 const ENV = process.env
 
 const rawEnv =  {
+    DRIVER                  : ENV.DB_DRIVER ?? 'mysql2',
     HOST                    : ENV.DB_HOST ?? 'localhost',
     PORT                    : ENV.DB_PORT ?? 3306,
     USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
@@ -99,6 +100,10 @@ export const loadOptionsEnvironment = () => {
     const env = parseEnv(rawEnv)
     
     return Object.freeze(env) as unknown as typeof rawEnv
+}
+
+export const DatabaseName = () => {
+    return String(env.DATABASE)
 }
 
 export default Object.freeze(env)
