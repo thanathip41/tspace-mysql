@@ -801,6 +801,14 @@ class Blueprint<T = any> {
     return this._valueType;
   }
 
+  get valueEnum() {
+    return this._enum
+  }
+
+  get valueDefault() {
+    return this._default
+  }
+
   private _addAssignType(type: string) {
     this._type = type;
     return this;

@@ -197,20 +197,40 @@ class ModelMeta<M extends Model> {
      * @param {string} column 
      * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
      */
-    enums<C extends T.Column<M>>(column: C): T.Result<M>[C][] {
+    enums<C extends keyof T.Result<M>>(
+        column: C,
+        options?: { asObject?: false }
+    ): T.Result<M>[C][];
+    enums<C extends keyof T.Result<M>>(
+        column: C,
+        options: { asObject: true }
+    ): Record<T.Result<M>[C], T.Result<M>[C]> | null;
+    enums<C extends keyof T.Result<M>>(
+        column: C,
+        options: { asObject?: boolean } = {}
+    ): T.Result<M>[C][] | (Record<T.Result<M>[C], T.Result<M>[C]> | null) {
+
         const schemaModel = this.model.getSchemaModel();
 
-        if (!schemaModel) return [];
+        const asObject = options.asObject ?? false;
+
+        if (!schemaModel) return options.asObject ? null : [];
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
 
-        if (!entry) return [];
+        if (!entry) return asObject ? null : [];
 
         const blueprint = entry[1];
-        
         const enumValues = blueprint['_enum'] as T.Result<M>[C][];
 
-        return enumValues
+        if (asObject) {
+            return enumValues.reduce((prev, curr) => {
+                prev[curr] = curr;
+                return prev;
+            }, {} as Record<T.Result<M>[C], T.Result<M>[C]>);
+        }
+
+        return enumValues;
     }
 }
 
