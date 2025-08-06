@@ -3281,6 +3281,7 @@ const indexes       = meta.indexes() // ['users.email@index']
 const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
 const defaults      = meta.defaults() // { id : null, uuid : null, ..., status : 0, role: 'user' ,..updatedAt : null  }
 const enums         = meta.enums('role') // [ 'admin', 'user' ]
+const enumsObj      = meta.enum('role', { asObject: true }) // { admin: 'admin', user: 'user' }
 ```
 
 ## Repository
