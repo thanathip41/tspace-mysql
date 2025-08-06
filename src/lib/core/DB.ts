@@ -9,7 +9,7 @@ import type {
   TBackup,
   TBackupTableToFile,
   TBackupToFile,
-  TConnection,
+  TPoolConnected,
   TConnectionOptions,
   TConnectionTransaction,
   TRawStringQuery,
@@ -386,7 +386,7 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  async getConnection(options?: TConnectionOptions): Promise<TConnection> {
+  async getConnection(options?: TConnectionOptions): Promise<TPoolConnected> {
     if (options == null) {
       const pool = await this.$pool.get();
       return await pool.newConnection();
@@ -410,7 +410,7 @@ class DB extends AbstractDB {
       ...others,
     });
 
-    return pool.createNewConnected();
+    return pool.connected();
   }
 
   /**
@@ -425,7 +425,7 @@ class DB extends AbstractDB {
    */
   static async getConnection(
     options: TConnectionOptions
-  ): Promise<TConnection> {
+  ): Promise<TPoolConnected> {
     return new this().getConnection(options);
   }
 
@@ -444,7 +444,7 @@ class DB extends AbstractDB {
    * @property {function} connection.rollback - rollback transaction of query
    */
   async beginTransaction(): Promise<TConnectionTransaction> {
-    const pool = new PoolConnection().createNewConnected();
+    const pool = new PoolConnection().connected()
     return await pool.connection();
   }
 

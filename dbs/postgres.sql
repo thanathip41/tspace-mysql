@@ -1,4 +1,3 @@
--- Ensure the enum type for user role exists
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -27,7 +26,7 @@ CREATE TABLE posts (
   title VARCHAR(100) NOT NULL,
   subtitle VARCHAR(100),
   description VARCHAR(255),
-  user_id INT REFERENCES users(id),
+  user_id INT,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
   deleted_at TIMESTAMP
@@ -36,8 +35,8 @@ CREATE TABLE posts (
 CREATE TABLE post_user (
   id SERIAL PRIMARY KEY,
   uuid VARCHAR(50),
-  user_id INT REFERENCES users(id),
-  post_id INT REFERENCES posts(id),
+  user_id INT,
+  post_id INT,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
   deleted_at TIMESTAMP

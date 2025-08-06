@@ -13,7 +13,7 @@ import {
 import {
   TPagination,
   TConnectionOptions,
-  TConnection,
+  TPoolConnected,
   TConnectionTransaction,
 } from "../types";
 
@@ -2979,7 +2979,7 @@ class Builder extends AbstractBuilder {
    * @param {object} connection pool database
    * @returns {this} this
    */
-  bind(connection: TConnection | TConnectionTransaction): this {
+  bind(connection: TPoolConnected | TConnectionTransaction): this {
   
     this.$pool.set(connection);
 
@@ -4026,7 +4026,7 @@ class Builder extends AbstractBuilder {
 
     const rawColumns: any[] = await this._queryStatement(sql);
 
-    const columns = rawColumns.map((column: { Field: string }) => column.Field);
+    const columns = (rawColumns ?? []).map((column: { Field: string }) => column.Field);
 
     return columns;
   }
@@ -5042,7 +5042,7 @@ class Builder extends AbstractBuilder {
           return pool.query(sql);
         },
         get: () => pool,
-        set: (newConnection: TConnection) => {
+        set: (newConnection: TPoolConnected) => {
           pool = newConnection;
           return;
         },

@@ -151,12 +151,19 @@ export type TConnectionTransaction = {
 }
 
 export type TConnection = {
+    on : (event : TPoolEvent , data : any) => void;
+    query: (sql: string) => Promise<any[]>;
+    startTransaction: () => Promise<void>; 
+    commit: () => Promise<void>;
+    rollback: () => Promise<void>; 
+    end : () => Promise<void>;
+}
+
+export type TPoolConnected = {
     on : (event : TPoolEvent , data : (r : any) => any) => void
-    query: (sql: string) => Promise<any>
-    connection : () => Promise<{
-        on : (event : TPoolEvent , data : any) => void;
-        query: (sql: string) => Promise<any[]>;
-    }>
+    format: (sql : string) => string
+    query: (sql: string) => Promise<any[]>
+    connection : () => Promise<TConnection>
 }
 
 export type TCreateNewConnection = {
