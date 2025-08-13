@@ -23,7 +23,7 @@ const rawEnv =  {
     USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
     PASSWORD                : ENV.DB_PASSWORD ?? '', 
     DATABASE                : ENV.DB_DATABASE, 
-    CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 151,
+    CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 20,
     QUEUE_LIMIT             : ENV.DB_QUEUE_LIMIT ?? 0,
     TIMEOUT                 : ENV.DB_TIMEOUT ?? 1000 * 90,
     CHARSET                 : ENV.DB_CHARSET ?? 'utf8mb4',
@@ -100,10 +100,6 @@ export const loadOptionsEnvironment = () => {
     const env = parseEnv(rawEnv)
     
     return Object.freeze(env) as unknown as typeof rawEnv
-}
-
-export const DatabaseName = () => {
-    return String(env.DATABASE)
 }
 
 export default Object.freeze(env)

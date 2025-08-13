@@ -1,13 +1,14 @@
 import chai , { expect  } from 'chai'
 import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
-import { Post, postSchemaArray, postSchemaObject, PostUser, User, userSchemaArray, userSchemaObject , pattern } from './schema-spec';
+import { Post, PostUser, User, 
+  postSchemaArray, postSchemaObject, userSchemaArray, userSchemaObject 
+} from './default-spec';
 import { postDataArray, postDataObject, userDataArray, userDataObject } from './mock-data-spec'
-import { Model } from '../lib'
 
 chai.use(chaiJsonSchema)
 
-describe('Testing Model with Pattern & Schema', function () {
+describe('Testing Model without Pattern & Schema', function () {
   /* ##################################################### */
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD
@@ -91,7 +92,7 @@ describe('Testing Model with Pattern & Schema', function () {
     const truncate = await new PostUser().truncate({ force : true})
     expect(truncate).to.be.equal(true)
 
-    const createds = await new PostUser().createMultiple([1,2,3,4,5].map(v => ({ userId : v , postId : v}))).save()
+    const createds = await new PostUser().createMultiple([1,2,3,4,5].map(v => ({ user_id : v , post_id : v}))).save()
 
     expect(createds).to.be.an('array')
 
@@ -175,11 +176,11 @@ describe('Testing Model with Pattern & Schema', function () {
     expect(pagination.meta).to.be.an('object')
     expect(pagination.meta).to.have.property('total')
     expect(pagination.meta).to.have.property('limit')
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'totalPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'currentPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'lastPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'nextPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'prevPage' , pattern }))
+    expect(pagination.meta).to.have.property('total_page')
+    expect(pagination.meta).to.have.property('current_page')
+    expect(pagination.meta).to.have.property('last_page')
+    expect(pagination.meta).to.have.property('next_page')
+    expect(pagination.meta).to.have.property('prev_page')
 
     expect(pagination.data).to.be.jsonSchema(userSchemaArray)
 
@@ -217,15 +218,15 @@ describe('Testing Model with Pattern & Schema', function () {
     }
 
     const pagination = await new User().with('posts').pagination()
-
+    
     expect(pagination.meta).to.be.an('object')
     expect(pagination.meta).to.have.property('total')
     expect(pagination.meta).to.have.property('limit')
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'totalPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'currentPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'lastPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'nextPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'prevPage' , pattern }))
+    expect(pagination.meta).to.have.property('total_page')
+    expect(pagination.meta).to.have.property('current_page')
+    expect(pagination.meta).to.have.property('last_page')
+    expect(pagination.meta).to.have.property('next_page')
+    expect(pagination.meta).to.have.property('prev_page')
 
     expect(pagination.data).to.be.an('array')
     expect(pagination.data).to.be.jsonSchema(userSchemaArray)
@@ -260,7 +261,7 @@ describe('Testing Model with Pattern & Schema', function () {
 
     for(const result of results) {
       expect(result).to.have.property('user')
-      if(result.userId == null && result.user == null) continue
+      if(result.user_id == null && result.user == null) continue
       expect(result.user).to.be.an('object')
       expect(result.user).to.be.jsonSchema(userSchemaObject)
     }
@@ -270,18 +271,18 @@ describe('Testing Model with Pattern & Schema', function () {
     expect(pagination.meta).to.be.an('object')
     expect(pagination.meta).to.have.property('total')
     expect(pagination.meta).to.have.property('limit')
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'totalPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'currentPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'lastPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'nextPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'prevPage' , pattern }))
+    expect(pagination.meta).to.have.property('total_page')
+    expect(pagination.meta).to.have.property('current_page')
+    expect(pagination.meta).to.have.property('last_page')
+    expect(pagination.meta).to.have.property('next_page')
+    expect(pagination.meta).to.have.property('prev_page')
 
     expect(pagination.data).to.be.an('array')
     expect(pagination.data).to.be.jsonSchema(postSchemaArray)
 
     for(const result of pagination.data) {
       expect(result).to.have.property('user')
-      if(result.userId == null && result.user == null) continue
+      if(result.user_id == null && result.user == null) continue
       expect(result.user).to.be.an('object')
       expect(result.user).to.be.jsonSchema(userSchemaObject)
     }
@@ -290,7 +291,7 @@ describe('Testing Model with Pattern & Schema', function () {
 
   it(`Relation : M:M 'posts' belongsToMany 'users' ?`, 
   async function () {
-    const result = await new Post().with('subscribers').first()
+    const result = await new Post().withExists('subscribers').first()
 
     expect(result).to.be.an('object')
     expect(result).to.be.jsonSchema(postSchemaObject)
@@ -314,11 +315,11 @@ describe('Testing Model with Pattern & Schema', function () {
     expect(pagination.meta).to.be.an('object')
     expect(pagination.meta).to.have.property('total')
     expect(pagination.meta).to.have.property('limit')
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'totalPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'currentPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'lastPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'nextPage' , pattern }))
-    expect(pagination.meta).to.have.property(Model.formatPattern({ data : 'prevPage' , pattern }))
+    expect(pagination.meta).to.have.property('total_page')
+    expect(pagination.meta).to.have.property('current_page')
+    expect(pagination.meta).to.have.property('last_page')
+    expect(pagination.meta).to.have.property('next_page')
+    expect(pagination.meta).to.have.property('prev_page')
 
     expect(pagination.data).to.be.an('array')
     expect(pagination.data).to.be.jsonSchema(postSchemaArray)
@@ -368,7 +369,7 @@ describe('Testing Model with Pattern & Schema', function () {
       const exists = await new User()
       .withExists('posts')
       .withQuery('posts' , (query : Post) => {
-        return query.where('id',"xxxx")
+        return query.where('id',999)
       })
       .first()
 
@@ -377,7 +378,7 @@ describe('Testing Model with Pattern & Schema', function () {
       const notExists = await new User()
       .withNotExists('posts')
       .withQuery('posts' , (query : Post) => {
-        return query.where('id',"xxxx")
+        return query.where('id',999)
       })
       .first()
 

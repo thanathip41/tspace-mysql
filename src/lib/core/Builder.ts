@@ -4,7 +4,7 @@ import { DB }               from "./DB";
 import { StateHandler }     from "./Handlers/State";
 import { Join }             from "./Join";
 import { CONSTANTS }        from "../constants";
-import { DatabaseName }     from "../options"
+import { QueryBuilder }     from "./Driver";
 import { 
   Pool, 
   PoolConnection, 
@@ -16,7 +16,6 @@ import {
   TPoolConnected,
   TConnectionTransaction,
 } from "../types";
-
 class Builder extends AbstractBuilder {
   constructor() {
     super();
@@ -30,6 +29,21 @@ class Builder extends AbstractBuilder {
    */
   static get instance(): Builder {
     return new this();
+  }
+  /**
+   * The 'driver' method is used to get current driver
+   * @returns {string} driver
+   */
+  driver(): string {
+    return this.$driver;
+  }
+
+  /**
+   * The 'database' method is used to get current database
+   * @returns {string} database
+   */
+  database(): string {
+    return this.$database;
   }
 
   /**
@@ -83,10 +97,7 @@ class Builder extends AbstractBuilder {
   CTEs(as: string, callback: (query: Builder) => Builder): this {
     const query = callback(new DB().from(this.getTableName()));
 
-    this.$state.set("CTE", [
-      ...this.$state.get("CTE"),
-      `${as} AS (${query})`,
-    ]);
+    this.$state.set("CTE", [...this.$state.get("CTE"), `${as} AS (${query})`]);
 
     return this;
   }
@@ -367,32 +378,6 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'returnType' method is used covert the results to type 'object' or 'array'.
-   *
-   * @param {string} type - The types 'object' | 'array'
-   * @returns {this} this
-   */
-  returnType(type: "object" | "array"): this {
-    this.$state.set("RETURN_TYPE", type);
-
-    return this;
-  }
-
-  /**
-   * The 'pluck' method is used to retrieve the value of a single column from the first result of a query.
-   *
-   * It is often used when you need to retrieve a single value,
-   * such as an ID or a specific attribute, from a query result.
-   * @param {string} column
-   * @returns {this}
-   */
-  pluck(column: string): this {
-    this.$state.set("PLUCK", column);
-
-    return this;
-  }
-
-  /**
    * The 'except' method is used to specify which columns you don't want to retrieve from a database table.
    *
    * It allows you to choose the specific columns that should be not included in the result set of a database query.
@@ -440,21 +425,6 @@ class Builder extends AbstractBuilder {
    */
   only(...columns: string[]): this {
     this.$state.set("ONLY", columns);
-
-    return this;
-  }
-
-  /**
-   * The 'chunk' method is used to process a large result set from a database query in smaller, manageable "chunks" or segments.
-   *
-   * It's particularly useful when you need to iterate over a large number of database records without loading all of them into memory at once.
-   *
-   * This helps prevent memory exhaustion and improves the performance of your application when dealing with large datasets.
-   * @param {number} chunk
-   * @returns {this} this
-   */
-  chunk(chunk: number): this {
-    this.$state.set("CHUNK", chunk);
 
     return this;
   }
@@ -1064,9 +1034,8 @@ class Builder extends AbstractBuilder {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
-
-    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Builder && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -1099,9 +1068,8 @@ class Builder extends AbstractBuilder {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
-
-    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Builder && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -1135,9 +1103,8 @@ class Builder extends AbstractBuilder {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
-
-    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Builder && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -1170,9 +1137,8 @@ class Builder extends AbstractBuilder {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
-
-    if(subQuery instanceof Builder && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Builder && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -1695,13 +1661,14 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   whereCases(cases: { when: string; then: string }[], elseCase?: string): this {
-
     if (!cases.length) return this;
 
     const query = cases.map(({ when, then }) => {
       if (when == null) throw new Error(`can't find when condition`);
       if (then == null) throw new Error(`can't find then condition`);
-      return `${this.$constants("WHEN")} ${when} ${this.$constants("THEN")} ${then}`;
+      return `${this.$constants("WHEN")} ${when} ${this.$constants(
+        "THEN"
+      )} ${then}`;
     });
 
     const whereClause = [
@@ -1711,13 +1678,12 @@ class Builder extends AbstractBuilder {
       ...query,
       elseCase != null ? `ELSE ${elseCase}` : "",
       this.$constants("END"),
-      ")"
-    ].filter(Boolean).join(" ");
+      ")",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
-    this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
-      whereClause,
-    ]);
+    this.$state.set("WHERE", [...this.$state.get("WHERE"), whereClause]);
 
     return this;
   }
@@ -1735,13 +1701,14 @@ class Builder extends AbstractBuilder {
     cases: { when: string; then: string }[],
     elseCase?: string
   ): this {
-    
     if (!cases.length) return this;
 
     const query = cases.map(({ when, then }) => {
       if (when == null) throw new Error(`can't find when condition`);
       if (then == null) throw new Error(`can't find then condition`);
-      return `${this.$constants("WHEN")} ${when} ${this.$constants("THEN")} ${then}`;
+      return `${this.$constants("WHEN")} ${when} ${this.$constants(
+        "THEN"
+      )} ${then}`;
     });
 
     const whereClause = [
@@ -1751,13 +1718,12 @@ class Builder extends AbstractBuilder {
       ...query,
       elseCase != null ? `ELSE ${elseCase}` : "",
       this.$constants("END"),
-      ")"
-    ].filter(Boolean).join(" ");
+      ")",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
-    this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
-      whereClause,
-    ]);
+    this.$state.set("WHERE", [...this.$state.get("WHERE"), whereClause]);
 
     return this;
   }
@@ -2263,7 +2229,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("OFFSET", `${this.$constants("OFFSET")} ${number}`);
 
-    if (!this.$state.get("LIMIT")) this.limit(number)
+    if (!this.$state.get("LIMIT")) this.limit(number);
 
     return this;
   }
@@ -2809,18 +2775,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getColumns(): Promise<string[]> {
-    const sql: string = [
-      `${this.$constants("SHOW")}`,
-      `${this.$constants("COLUMNS")}`,
-      `${this.$constants("FROM")}`,
-      `\`${this.$state.get("TABLE_NAME").replace(/\`/g, "")}\``,
-    ].join(" ");
-
-    const rawColumns = await this._queryStatement(sql);
-
-    const columns = rawColumns.map((column: { Field: string }) => column.Field);
-
-    return columns;
+    return this.showColumns(this.$state.get("TABLE_NAME"));
   }
 
   /**
@@ -2828,14 +2783,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getSchema(): Promise<any[]> {
-    const sql: string = [
-      `${this.$constants("SHOW")}`,
-      `${this.$constants("COLUMNS")}`,
-      `${this.$constants("FROM")}`,
-      `\`${this.$state.get("TABLE_NAME").replace(/\`/g, "")}\``,
-    ].join(" ");
-
-    return await this._queryStatement(sql);
+    return this.showSchema(this.$state.get("TABLE_NAME"));
   }
 
   /**
@@ -2980,7 +2928,6 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   bind(connection: TPoolConnected | TConnectionTransaction): this {
-  
     this.$pool.set(connection);
 
     return this;
@@ -2992,11 +2939,8 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this} this
    */
-  union (sql : string | Builder): this {
-    this.$state.set("UNION", [
-      ...this.$state.get("UNION"),
-      `${sql}`
-    ]);
+  union(sql: string | Builder): this {
+    this.$state.set("UNION", [...this.$state.get("UNION"), `${sql}`]);
 
     return this;
   }
@@ -3007,11 +2951,8 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this} this
    */
-  unionAll (sql : string | Builder): this {
-    this.$state.set("UNION_ALL", [
-      ...this.$state.get("UNION_ALL"),
-      `${sql}`
-    ]);
+  unionAll(sql: string | Builder): this {
+    this.$state.set("UNION_ALL", [...this.$state.get("UNION_ALL"), `${sql}`]);
 
     return this;
   }
@@ -3246,32 +3187,6 @@ class Builder extends AbstractBuilder {
 
     if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
 
-    if (this.$state.get("PLUCK")) {
-      const pluck = this.$state.get("PLUCK");
-      const newData = result?.shift();
-      const checkProperty = newData.hasOwnProperty(pluck);
-      if (!checkProperty)
-        throw new Error(`can't find property '${pluck}' of result`);
-
-      const r = newData[pluck] || null;
-
-      await this.$utils.hookHandle(this.$state.get("HOOKS"), r);
-
-      return r;
-    }
-
-    if (this.$state.get("RETURN_TYPE") != null) {
-      const returnType = this.$state.get("RETURN_TYPE");
-
-      return this._resultHandler(
-        returnType === "object"
-          ? result[0]
-          : returnType === "array"
-          ? result
-          : [result]
-      );
-    }
-
     const r = result[0] || null;
 
     await this.$utils.hookHandle(this.$state.get("HOOKS"), r);
@@ -3313,25 +3228,6 @@ class Builder extends AbstractBuilder {
     const result: any[] = await this._queryStatement(sql);
 
     if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
-
-    if (this.$state.get("PLUCK")) {
-      const pluck = this.$state.get("PLUCK");
-      const newData = result?.shift();
-      const checkProperty = newData.hasOwnProperty(pluck);
-      if (!checkProperty)
-        throw new Error(`can't find property '${pluck}' of result`);
-
-      const data = newData[pluck] || null;
-
-      if (data == null) {
-        if (options == null) throw { message, code: 400 };
-        throw { message, ...options };
-      }
-
-      await this.$utils.hookHandle(this.$state.get("HOOKS"), data);
-
-      return this._resultHandler(data);
-    }
 
     const data = result?.shift() || null;
 
@@ -3390,47 +3286,7 @@ class Builder extends AbstractBuilder {
 
     if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
 
-    if (this.$state.get("CHUNK")) {
-      const data = result.reduce(
-        (resultArray: any[][], item: any, index: number) => {
-          const chunkIndex = Math.floor(index / this.$state.get("CHUNK"));
-          if (!resultArray[chunkIndex]) resultArray[chunkIndex] = [];
-          resultArray[chunkIndex].push(item);
-
-          return resultArray;
-        },
-        []
-      );
-
-      await this.$utils.hookHandle(this.$state.get("HOOKS"), data || []);
-
-      return this._resultHandler(data || []);
-    }
-
-    if (this.$state.get("PLUCK")) {
-      const pluck = this.$state.get("PLUCK");
-      const newData = result.map((d: any) => d[pluck]);
-      if (newData.every((d: any) => d == null)) {
-        throw new Error(`can't find property '${pluck}' of result`);
-      }
-
-      await this.$utils.hookHandle(this.$state.get("HOOKS"), newData || []);
-
-      return this._resultHandler(newData || []);
-    }
-
     await this.$utils.hookHandle(this.$state.get("HOOKS"), result || []);
-
-    if (this.$state.get("RETURN_TYPE") != null) {
-      const returnType = this.$state.get("RETURN_TYPE");
-      return this._resultHandler(
-        returnType === "object"
-          ? result[0]
-          : returnType === "array"
-          ? result
-          : [result]
-      );
-    }
 
     return this._resultHandler(result || []);
   }
@@ -3694,13 +3550,8 @@ class Builder extends AbstractBuilder {
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
-
-    if (result) return Boolean(this._resultHandler(!!result || false));
-
-    return Boolean(this._resultHandler(false));
+    const result = await this._actionStatement(this._queryBuilder().remove());
+    return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
 
   /**
@@ -3723,13 +3574,9 @@ class Builder extends AbstractBuilder {
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().remove());
 
-    if (result) return Boolean(this._resultHandler(!!result || false));
-
-    return Boolean(this._resultHandler(false));
+    return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
 
   /**
@@ -3751,13 +3598,9 @@ class Builder extends AbstractBuilder {
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().remove());
 
-    if (result) return Boolean(this._resultHandler(!!result || false));
-
-    return Boolean(this._resultHandler(!!result || false));
+    return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
 
   /**
@@ -3851,7 +3694,7 @@ class Builder extends AbstractBuilder {
    * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
    * @returns {Promise<any>} promise
    */
-  async save({ waitMs = 0 } = {}): Promise<
+  async save({ waitMs = 100 } = {}): Promise<
     Record<string, any> | any[] | null | undefined
   > {
     this.$state.set("AFTER_SAVE", waitMs);
@@ -4010,23 +3853,16 @@ class Builder extends AbstractBuilder {
   async showColumns(
     table: string = this.$state.get("TABLE_NAME")
   ): Promise<string[]> {
-    
-    const sql = [
-      `SELECT 
-        COLUMN_NAME as "Field", 
-        DATA_TYPE as "Type",
-        IS_NULLABLE as "Null",
-        COLUMN_DEFAULT as "Default"
-      `, 
-      `FROM information_schema.columns
-       WHERE table_name = '${table.replace(/\`/g, "")}'
-        AND table_schema = '${this.$database}'
-      ` 
-    ].join(' ')
+    const sql = this._queryBuilder().columns({
+      table,
+      database: this.$database,
+    });
 
     const rawColumns: any[] = await this._queryStatement(sql);
 
-    const columns = (rawColumns ?? []).map((column: { Field: string }) => column.Field);
+    const columns = (rawColumns ?? []).map(
+      (column: { Field: string }) => column.Field
+    );
 
     return columns;
   }
@@ -4040,11 +3876,16 @@ class Builder extends AbstractBuilder {
   async showSchema(
     table: string = this.$state.get("TABLE_NAME")
   ): Promise<string[]> {
-    const sql: string = [
-      `${this.$constants("SHOW")}`,
-      `${this.$constants("COLUMNS")}`,
-      `${this.$constants("FROM")}`,
-      `\`${table.replace(/\`/g, "")}\``,
+    const sql = [
+      `SELECT 
+        COLUMN_NAME as "Field", 
+        DATA_TYPE as "Type",
+        IS_NULLABLE as "Null",
+        COLUMN_DEFAULT as "Default"
+      `,
+      `FROM information_schema.columns
+       WHERE table_name = '${table.replace(/\`/g, "")}'
+      `,
     ].join(" ");
 
     const raws: any[] = await this._queryStatement(sql);
@@ -4082,18 +3923,6 @@ class Builder extends AbstractBuilder {
 
       return schema.join(" ");
     });
-  }
-
-  /**
-   * The 'showSchemas' method is used to show schema table.
-   *
-   * @param {string=} table [table= current table name]
-   * @returns {Promise<Array>}
-   */
-  async showSchemas(
-    table: string = this.$state.get("TABLE_NAME")
-  ): Promise<string[]> {
-    return this.showSchema(table);
   }
 
   /**
@@ -4236,7 +4065,7 @@ class Builder extends AbstractBuilder {
     const sql: string = [
       `${this.$constants("TRUNCATE_TABLE")}`,
       `${this.$state.get("TABLE_NAME")}`,
-    ].join(" ");
+    ].join(' ');
 
     if (!force) {
       console.log(
@@ -4296,7 +4125,7 @@ class Builder extends AbstractBuilder {
         if (/\./.test(except)) return except.split(".")[0];
         return null;
       })
-      .filter((d: null) => d != null);
+      .filter(Boolean);
 
     const tableNames = names.length
       ? [...new Set(names)]
@@ -4305,18 +4134,7 @@ class Builder extends AbstractBuilder {
     const removeExcepts: string[][] = [];
 
     for (const tableName of tableNames) {
-      const sql: string = [
-        `${this.$constants("SHOW")}`,
-        `${this.$constants("COLUMNS")}`,
-        `${this.$constants("FROM")}`,
-        `${tableName}`,
-      ].join(" ");
-
-      const rawColumns = await this._queryStatement(sql);
-
-      const columns = rawColumns.map(
-        (column: { Field: string }) => column.Field
-      );
+      const columns = await new Builder().copyBuilder(this).getColumns();
 
       const removeExcept = columns.filter((column: string) => {
         return excepts.every((except: string) => {
@@ -4372,7 +4190,7 @@ class Builder extends AbstractBuilder {
     if (!(instance instanceof Builder))
       throw new Error("Value is not a instanceof Builder");
 
-    const copy = Object.fromEntries(instance.$state.get());
+    const copy = Object.fromEntries(instance.$state.all());
 
     const newInstance = new Builder();
 
@@ -4407,172 +4225,13 @@ class Builder extends AbstractBuilder {
   }
 
   protected _queryBuilder() {
-    return this._buildQueryStatement();
+    return this._buildQueryStatement() as QueryBuilder;
   }
 
   protected _buildQueryStatement() {
-    const buildSQL = (sql: (string | null)[]) => {
-      return sql
-      .filter((s) => s !== "" || s == null)
-      .join(" ")
-      .replace(/\s+/g, " ");
-    }
-      
+    const buildQuery = this.$pool.queryBuilder();
 
-    const bindJoin = (values: string[]) => {
-      if (!Array.isArray(values) || !values.length) return null;
-
-      return values.join(" ");
-    };
-
-    const bindWhere = (values: string[]) => {
-      if (!Array.isArray(values) || !values.length) return null;
-
-      return `${this.$constants("WHERE")} ${values
-        .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-        .join(" ")}`;
-    };
-
-    const bindOrderBy = (values: string[]) => {
-      if (!Array.isArray(values) || !values.length) return null;
-
-      return `${this.$constants("ORDER_BY")} ${values
-        .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-        .join(", ")}`;
-    };
-
-    const bindGroupBy = (values: string[]) => {
-      if (!Array.isArray(values) || !values.length) return null;
-
-      return `${this.$constants("GROUP_BY")} ${values
-        .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-        .join(", ")}`;
-    };
-
-    const bindSelect = (values: string[]) => {
-      if (!values.length) {
-        if (!this.$state.get("DISTINCT"))
-          return `${this.$constants("SELECT")} *`;
-
-        return `${this.$constants("SELECT")} ${this.$constants("DISTINCT")} *`;
-      }
-
-      const findIndex = values.indexOf("*");
-
-      if (findIndex > -1) {
-        const removed = values.splice(findIndex, 1);
-        values.unshift(removed[0]);
-      }
-
-      return `${this.$constants("SELECT")} ${values.join(", ")}`;
-    };
-
-    const bindFrom = ({
-      from,
-      table,
-      alias,
-      rawAlias,
-    }: {
-      from: string;
-      table: string;
-      alias: string | null;
-      rawAlias: string | null;
-    }) => {
-      if (alias != null && alias !== "") {
-        if (rawAlias != null && rawAlias !== "") {
-          const raw = String(rawAlias)
-            .replace(/^\(\s*|\s*\)$/g, "")
-            .trim();
-          const normalizedRawAlias =
-            raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
-          return `${from} (${normalizedRawAlias}) ${this.$constants(
-            "AS"
-          )} \`${alias}\``;
-        }
-
-        return `${from} ${table} ${this.$constants("AS")} \`${alias}\``;
-      }
-
-      return `${from} ${table}`;
-    };
-
-    const bindLimit = (limit: string | number) => {
-      if (limit === "" || limit == null) return "";
-
-      return `${this.$constants("LIMIT")} ${limit}`;
-    };
-
-    const select = () => {
-      let sql = buildSQL([
-        bindSelect(this.$state.get("SELECT")),
-        bindFrom({
-          from: this.$constants("FROM"),
-          table: this.$state.get("TABLE_NAME"),
-          alias: this.$state.get("ALIAS"),
-          rawAlias: this.$state.get("RAW_ALIAS"),
-        }),
-        bindJoin(this.$state.get("JOIN")),
-        bindWhere(this.$state.get("WHERE")),
-        bindGroupBy(this.$state.get("GROUP_BY")),
-        this.$state.get("HAVING"),
-        bindOrderBy(this.$state.get("ORDER_BY")),
-        bindLimit(this.$state.get("LIMIT")),
-        this.$state.get("OFFSET"),
-      ]).trimEnd();
-
-      if (this.$state.get("UNION").length) {
-        sql = `(${sql}) ${this.$state.get("UNION").map((union: string) => `${this.$constants("UNION")} (${union})`).join(" ")}`;
-      }
-
-      if (this.$state.get("UNION_ALL").length) {
-        sql = `(${sql}) ${this.$state.get("UNION_ALL").map((union: string) => `${this.$constants("UNION_ALL")} (${union})`).join(" ")}`;
-      }
-
-      if (this.$state.get("CTE").length) {
-        sql = `${this.$constants("WITH")} ${this.$state.get("CTE").join(", ")} ${sql}`;
-      }
-
-      return sql;
-    };
-
-    const insert = () => {
-      const sql = buildSQL([this.$state.get("INSERT")]);
-      return sql;
-    };
-
-    const update = () => {
-      const sql = buildSQL([
-        this.$state.get("UPDATE"),
-        bindWhere(this.$state.get("WHERE")),
-        bindOrderBy(this.$state.get("ORDER_BY")),
-        bindLimit(this.$state.get("LIMIT")),
-      ]);
-      return sql;
-    };
-
-    const remove = () => {
-      const sql = buildSQL([
-        this.$state.get("DELETE"),
-        bindWhere(this.$state.get("WHERE")),
-        bindOrderBy(this.$state.get("ORDER_BY")),
-        bindLimit(this.$state.get("LIMIT")),
-      ]);
-      return sql;
-    };
-
-    return {
-      select,
-      insert,
-      update,
-      delete: remove,
-      where: () => bindWhere(this.$state.get("WHERE")),
-      any: () => {
-        if (this.$state.get("INSERT")) return insert();
-        if (this.$state.get("UPDATE")) return update();
-        if (this.$state.get("DELETE")) return remove();
-        return select();
-      },
-    };
+    return new buildQuery(this.$state);
   }
 
   protected _resultHandler(data: any) {
@@ -4598,7 +4257,7 @@ class Builder extends AbstractBuilder {
   }
 
   protected async _queryStatement(sql: string): Promise<any[]> {
-    sql = this.$pool.format(sql)
+    sql = this._queryBuilder().format([sql])
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
     const result = await this.$pool.query(sql);
@@ -4606,22 +4265,11 @@ class Builder extends AbstractBuilder {
     return result;
   }
 
-  protected async _actionStatement({
-    sql,
-    returnId = false,
-  }: {
-    sql: string;
-    returnId?: boolean;
-  }) {
-    sql = this.$pool.format(sql)
+  protected async _actionStatement(sql: string) {
+    // sql = this._queryBuilder().format([sql])
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
-    if (returnId) {
-      const result = await this.$pool.query(sql);
-      return [result.affectedRows, result.insertId];
-    }
-
-    const { affectedRows: result } = await this.$pool.query(sql);
+    const result = await this.$pool.query(sql);
 
     return result;
   }
@@ -4630,37 +4278,33 @@ class Builder extends AbstractBuilder {
     if (!this.$state.get("WHERE").length)
       throw new Error("Can't insert not exists without where condition");
 
-    let sql: string = [
-      `${this.$constants("SELECT")}`,
-      `${this.$constants("EXISTS")}(${this.$constants("SELECT")}`,
-      `*`,
-      `${this.$constants("FROM")}`,
-      `${this.$state.get("TABLE_NAME")}`,
-      `${this._queryBuilder().where()}`,
-      `${this.$constants("LIMIT")} 1)`,
-      `${this.$constants("AS")} 'exists'`,
-    ].join(" ");
-
-    const [{ exists: result }] = await this._queryStatement(sql);
-
-    const check: boolean = !!Number.parseInt(result);
+    const check = await new Builder()
+      .copyBuilder(this, {
+        where: true,
+        select: true,
+        limit: true,
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .exists();
 
     switch (check) {
       case false: {
-        const [result, id] = await this._actionStatement({
-          sql: this.$state.get("INSERT"),
-          returnId: true,
-        });
+        const result = await this._actionStatement(
+          this._queryBuilder().insert()
+        );
 
-        if (this.$state.get("VOID") || !result)
+        if (this.$state.get("VOID") || !result) {
           return this._resultHandler(undefined);
+        }
 
         await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
         const data = await new Builder()
-          .copyBuilder(this, { select: true })
-          .where("id", id)
-          .first();
+        .copyBuilder(this, { select: true })
+        .whereIn("id", result.$meta.insertIds)
+        .bind(this.$pool.get())
+        .first();
 
         return this._resultHandler(data);
       }
@@ -4671,11 +4315,8 @@ class Builder extends AbstractBuilder {
   }
 
   private async _insert() {
-    const [result, id] = await this._actionStatement({
-      sql: this.$state.get("INSERT"),
-      returnId: true,
-    });
-
+    const result = await this._actionStatement(this._queryBuilder().insert());
+    
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
 
@@ -4683,29 +4324,26 @@ class Builder extends AbstractBuilder {
 
     const results = await new Builder()
       .copyBuilder(this, { select: true })
-      .where("id", id)
+      .whereIn("id", result.$meta.insertIds)
+      .bind(this.$pool.get())
       .first();
 
     return this._resultHandler(results);
   }
 
   private async _insertMultiple() {
-    const [result, id] = await this._actionStatement({
-      sql: this._queryBuilder().insert(),
-      returnId: true,
-    });
+    const result = await this._actionStatement(this._queryBuilder().insert());
 
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
 
-    const arrayId = [...Array(result)].map((_, i) => i + id);
-
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
     const resultData = await new Builder()
-      .copyBuilder(this, { select: true, limit: true })
-      .whereIn("id", arrayId)
-      .get();
+    .copyBuilder(this, { select: true, limit: true })
+    .whereIn("id", result.$meta.insertIds)
+    .bind(this.$pool.get())
+    .get();
 
     return this._resultHandler(resultData);
   }
@@ -4715,29 +4353,21 @@ class Builder extends AbstractBuilder {
       throw new Error("Can't create or select without where condition");
     }
 
-    let sql: string = [
-      `${this.$constants("SELECT")}`,
-      `${this.$constants("EXISTS")}(${this.$constants("SELECT")}`,
-      `1`,
-      `${this.$constants("FROM")}`,
-      `${this.$state.get("TABLE_NAME")}`,
-      `${this._queryBuilder().where()}`,
-      `${this.$constants("LIMIT")} 1)`,
-      `${this.$constants("AS")} 'exists'`,
-    ].join(" ");
-
-    let check: boolean = false;
-
-    const [{ exists: result }] = await this._queryStatement(sql);
-
-    check = !!parseInt(result);
+    const check = await new Builder()
+      .copyBuilder(this, {
+        where: true,
+        select: true,
+        limit: true,
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .exists();
 
     switch (check) {
       case false: {
-        const [result, id] = await this._actionStatement({
-          sql: this._queryBuilder().insert(),
-          returnId: true,
-        });
+        const result = await this._actionStatement(
+          this._queryBuilder().insert()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -4745,9 +4375,10 @@ class Builder extends AbstractBuilder {
         await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
         const data = await new Builder()
-          .copyBuilder(this, { select: true })
-          .where("id", id)
-          .first();
+        .copyBuilder(this, { select: true })
+        .whereIn("id", result.$meta.insertIds)
+        .bind(this.$pool.get())
+        .first();
 
         const resultData = data == null ? null : { ...data, $action: "insert" };
 
@@ -4782,29 +4413,21 @@ class Builder extends AbstractBuilder {
       throw new Error("Can't update or insert without where condition");
     }
 
-    let sql: string = [
-      `${this.$constants("SELECT")}`,
-      `${this.$constants("EXISTS")}(${this.$constants("SELECT")}`,
-      `1`,
-      `${this.$constants("FROM")}`,
-      `${this.$state.get("TABLE_NAME")}`,
-      `${this._queryBuilder().where()}`,
-      `${this.$constants("LIMIT")} 1)`,
-      `${this.$constants("AS")} 'exists'`,
-    ].join(" ");
-
-    let check: boolean = false;
-
-    const [{ exists: result }] = await this._queryStatement(sql);
-
-    check = !!parseInt(result);
+    const check = await new Builder()
+      .copyBuilder(this, {
+        where: true,
+        select: true,
+        limit: true,
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .exists();
 
     switch (check) {
       case false: {
-        const [result, id] = await this._actionStatement({
-          sql: this._queryBuilder().insert(),
-          returnId: true,
-        });
+        const result = await this._actionStatement(
+          this._queryBuilder().insert()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -4813,7 +4436,8 @@ class Builder extends AbstractBuilder {
 
         const data = await new Builder()
           .copyBuilder(this, { select: true })
-          .where("id", id)
+          .whereIn("id", result.$meta.insertIds)
+          .bind(this.$pool.get())
           .first();
 
         const resultData = data == null ? null : { ...data, $action: "insert" };
@@ -4821,20 +4445,20 @@ class Builder extends AbstractBuilder {
         return this._resultHandler(resultData);
       }
       case true: {
-        const result = await this._actionStatement({
-          sql: this._queryBuilder().update(),
-        });
+        const result = await this._actionStatement(
+          this._queryBuilder().update()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(null);
 
         await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
-        const data = await this._queryStatement(
-          new Builder()
-            .copyBuilder(this, { select: true, where: true })
-            .toString()
-        );
+        const sql = new Builder()
+          .copyBuilder(this, { select: true, where: true })
+          .toString();
+
+        const data = await this._queryStatement(sql);
 
         if (data?.length > 1) {
           for (const val of data) {
@@ -4857,9 +4481,7 @@ class Builder extends AbstractBuilder {
     if (!this.$state.get("WHERE").length && !ignoreWhere)
       throw new Error("can't update without where condition");
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().update(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().update());
 
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
@@ -5033,8 +4655,7 @@ class Builder extends AbstractBuilder {
 
   private _initialConnection() {
     this.$utils = utils;
-    this.$database = DatabaseName()
-  
+   
     this.$pool = (() => {
       let pool = Pool;
       return {
@@ -5046,10 +4667,7 @@ class Builder extends AbstractBuilder {
           pool = newConnection;
           return;
         },
-        format: (sql: string) => {
-          if(pool.format == null) return sql
-          return pool.format(sql)
-        }
+        queryBuilder: () => pool.queryBuilder,
       };
     })();
 

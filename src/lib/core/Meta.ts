@@ -1,4 +1,5 @@
 import { type T, Model } from '..';
+import { TLiteralEnumKeys } from '../types';
 class ModelMeta<M extends Model> {
     constructor(private model: M) {}
 
@@ -197,15 +198,15 @@ class ModelMeta<M extends Model> {
      * @param {string} column 
      * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
      */
-    enums<C extends keyof T.Result<M>>(
+    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
         column: C,
         options?: { asObject?: false }
     ): T.Result<M>[C][];
-    enums<C extends keyof T.Result<M>>(
+    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
         column: C,
         options: { asObject: true }
     ): Record<T.Result<M>[C], T.Result<M>[C]> | null;
-    enums<C extends keyof T.Result<M>>(
+    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
         column: C,
         options: { asObject?: boolean } = {}
     ): T.Result<M>[C][] | (Record<T.Result<M>[C], T.Result<M>[C]> | null) {
@@ -276,6 +277,7 @@ class ModelMeta<M extends Model> {
  *  const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
  *  const defaults      = meta.defaults() // { id : null, ..., status : 0, role: 'user', ..updatedAt : null  }
  *  const enums         = meta.enums('role') // [ 'admin', 'user' ]
+ *  const enumsObj      = meta.enum('role', { asObject: true }) // { admin: 'admin', user: 'user' }
  * 
  */
 const Meta = <M extends Model>(model: new () => M) => {

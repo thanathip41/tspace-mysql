@@ -1,11 +1,12 @@
-build
-dist
+src
 test
 .env
 .env.production
+.env.test
 .env.development
-.env.test*
-.env.benchmark
+.gitignore
 node_modules
+tsconfig.json
 package-lock.json
+dbs
 npm-test.sqlite3

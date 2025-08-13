@@ -33,7 +33,6 @@ describe('Testing View', function () {
         const userPostCountView = await new UserPostCount().get()
 
         expect(userPostCountView).to.be.an('array')
-
         expect(userPostCountView).to.be.jsonSchema(
             {
                 type : 'array',
@@ -41,7 +40,7 @@ describe('Testing View', function () {
                     type : 'object',
                     required: ['id','user_id', 'name', 'post_count'],
                     properties : {
-                        id: { type: 'integer' },
+                        id: { type: 'number' },
                         user_id:{ type: 'integer' },
                         name :{ type: 'string' },
                         email:{ type: 'string' },

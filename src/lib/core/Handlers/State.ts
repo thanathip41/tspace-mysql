@@ -1,81 +1,83 @@
+import { Blueprint } from "../Blueprint";
+
 const STATE_DEFAULT = {
-    PRIMARY_KEY : 'id',
-    VOID : false,
-    RESULT : null,
-    DISTINCT : false,
-    PLUCK : '',
-    SAVE : '',
-    DELETE : '',
-    UPDATE : '',
-    INSERT : '',
-    SELECT : [],
-    ONLY : [],
-    EXCEPTS: [],
-    CHUNK : 0,
-    COUNT : '',
-    FROM : 'FROM',
-    JOIN : [],
-    WHERE : [],
-    GROUP_BY : [],
-    ORDER_BY : [],
-    LIMIT : '',
-    OFFSET : '',
-    HAVING : '',
-    TABLE_NAME :'',
-    HIDDEN:  [],
-    DEBUG : false,
-    CTE : [],
-    PAGE: 1,
-    AFTER_SAVE : 100,
-    RETURN_TYPE : null,
-    HOOKS : [],
-    ALIAS : null,
-    RAW_ALIAS : null,
-    UNION: [],
-    UNION_ALL: []
+  PRIMARY_KEY: 'id' as string,
+  VOID: false as boolean,
+  RESULT: null as { id : number } | null,
+  DISTINCT: false,
+  SAVE: '' as string,
+  DELETE: '' as string,
+  UPDATE: '' as string,
+  INSERT: '' as string,
+  SELECT: [] as string[],
+  ONLY: [] as string[],
+  EXCEPTS: [] as string[],
+  FROM: 'FROM' as string,
+  JOIN: [] as string[],
+  WHERE: [] as string[],
+  GROUP_BY: [] as string[],
+  ORDER_BY: [] as string[],
+  LIMIT: '' as string,
+  OFFSET: '' as string,
+  HAVING: '' as string,
+  TABLE_NAME: '' as string,
+  HIDDEN: [] as string[],
+  DEBUG: false as boolean,
+  CTE: [] as string[],
+  PAGE: 1 as number,
+  AFTER_SAVE: 100 as number,
+  HOOKS: [] as Function[],
+  ALIAS: null as string | null,
+  RAW_ALIAS: null as string | null,
+  UNION: [] as string[],
+  UNION_ALL: [] as string[],
 } as const
 
 const STATE_DB = {
-    ...STATE_DEFAULT
+  ...STATE_DEFAULT,
 } as const
 
 const STATE_MODEL = {
-    ...STATE_DEFAULT,
-    MODEL_NAME : 'MODEL',
-    UUID_FORMAT : 'uuid',
-    UUID : false,
-    SOFT_DELETE: false,
-    SOFT_DELETE_FORMAT : 'deleted_at',
-    SOFT_DELETE_RELATIONS : false,
-    REGISTRY : {},
-    PATTERN:  'snake_case',
-    RELATION: [],
-    RELATIONS : [],
-    RELATIONS_TRASHED : false,
-    RELATIONS_EXISTS : false,
-    TIMESTAMP :  false,
-    TIMESTAMP_FORMAT : {
-        CREATED_AT : 'created_at',
-        UPDATED_AT : 'updated_at'
-    },
-    LOGGER : false,
-    LOGGER_OPTIONS : null,
-    TABLE_LOGGER : '$loggers',
-    VALIDATE_SCHEMA : false,
-    VALIDATE_SCHEMA_DEFINED : null,
-    FUNCTION_RELATION : false,
-    SCHEMA_TABLE : null,
-    RETRY : 0,
-    OBSERVER : null,
-    DATA : null,
-    BEFORE_CREATING_TABLE : null,
-    RETURN_TYPE : null,
-    GLOBAL_SCOPE : true,
-    GLOBAL_SCOPE_QUERY : null,
-    QUERIES : [],
-    META : '',
-    CACHE : null,
-    MIDDLEWARES: []
+  ...STATE_DEFAULT,
+  MODEL_NAME: 'MODEL' as string,
+  UUID_FORMAT: 'uuid' as string,
+  UUID: false as boolean,
+  SOFT_DELETE: false as boolean,
+  SOFT_DELETE_FORMAT: 'deleted_at' as string,
+  SOFT_DELETE_RELATIONS: false as boolean,
+  REGISTRY: {} as Record<string, string>,
+  PATTERN: 'snake_case' as string,
+  RELATION: [] as any[],
+  RELATIONS: [] as any[],
+  RELATIONS_TRASHED: false,
+  RELATIONS_EXISTS: false,
+  TIMESTAMP: false,
+  TIMESTAMP_FORMAT: {
+    CREATED_AT: 'created_at' as string,
+    UPDATED_AT: 'updated_at' as string,
+  } as const,
+  LOGGER: false,
+  LOGGER_OPTIONS: null as { 
+    selected : boolean;
+    inserted : boolean;
+    updated  : boolean;
+    deleted  : boolean;
+  } | null,
+  TABLE_LOGGER: '$loggers' as string,
+  VALIDATE_SCHEMA: false as boolean,
+  VALIDATE_SCHEMA_DEFINED: null as string | null,
+  FUNCTION_RELATION: false as boolean,
+  SCHEMA_TABLE: null as Record<string, Blueprint> | null,
+  RETRY: 0 as number,
+  OBSERVER: null as (new () => any) | null,
+  DATA: null as any | null,
+  BEFORE_CREATING_TABLE: null as Function | null,
+  GLOBAL_SCOPE: true,
+  GLOBAL_SCOPE_QUERY: null as Function | null,
+  QUERIES: [] as string[],
+  META: '' as string,
+  CACHE: null as { key : string, set : Function , expires: number } | null,
+  MIDDLEWARES: [] as Function[],
 } as const
 
 type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT
@@ -116,7 +118,7 @@ class StateHandler {
                return this
             }
 
-            default : throw new Error(`Unknown the state : '${state}'`)
+            default : throw new Error(`string the state : '${state}'`)
         }
         
     }
@@ -125,15 +127,17 @@ class StateHandler {
         return  this.STATE.defaultState
     }
 
-    get(key ?: keyof TState)  { 
+    all()  { 
+        return this.STATE.currentState 
+    }
 
-        if(key == null) return this.STATE.currentState 
+    get<K extends keyof TState>(key : K)  { 
 
         if(!this.STATE.currentState.has(key) && key !== 'DEBUG') {
-            return this._assertError(`This state does not have that key '${key}'`)
+            throw this._assertError(`This state does not have that key '${key}'`)
         }
        
-        return this.STATE.currentState.get(key)
+        return this.STATE.currentState.get(key) as TState[K]
     }
     
     set(key: keyof TState, value: any) : void {

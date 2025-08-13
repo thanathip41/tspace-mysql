@@ -1,6 +1,7 @@
 import { StateHandler } from '../Handlers/State'
 import { TUtils }       from '../../utils'
 import { Join }         from '../Join'
+import Config           from "../../config";
 import type { 
     TPagination, 
     TConstant 
@@ -19,17 +20,18 @@ abstract class AbstractBuilder {
 
     protected $utils !: TUtils 
 
-    protected $database !: string
+    protected $database : string = String(Config.DATABASE ?? '')
+    protected $driver : string = String(Config.DRIVER ?? 'mysql')
     
     protected $constants !: (name ?: keyof TConstant) => any
 
     protected $state !: StateHandler
 
-    protected $pool: { query : Function , set : Function , get : Function, format : Function } = {
+    protected $pool: { query : Function , set : Function , get : Function,queryBuilder : Function } = {
         query: (sql :string) => {},
         set: (pool : any) => {},
         get: () => {},
-        format: (sql : string) => {}
+        queryBuilder: () => {}
     }
 
     protected $logger : { get: Function , set: (value: string) => void,reset : () => void , check: (value: string) => boolean }  = {

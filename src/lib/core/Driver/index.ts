@@ -1,28 +1,27 @@
 import { EventEmitter } from 'events'
-import { TPoolConnected } from "../../types"
+import { TConstant, TPoolConnected } from "../../types"
+import { StateHandler } from "../Handlers/State";
 import Tool from '../../tools'
+import { CONSTANTS } from '../../constants';
 
-abstract class BaseDriver extends EventEmitter {
+export abstract class BaseDriver extends EventEmitter {
 
     protected pool !: any
     protected options !: Record<string, any>
+    protected MESSAGE_TRX_CLOSED = "The transaction has either been closed"
 
-    constructor(options: Record<string, any>) {  
-        super()
-        this.options = options
-    }
-    abstract connect() : TPoolConnected
-
-    abstract disconnect() : void
+    protected abstract connect() : TPoolConnected
+    protected abstract disconnect() : void
+    protected abstract meta(results: any, sql: string) : void
+    protected abstract returning(results : any) : any
 
     protected import (mod : string) {
         return Tool.import(mod)
     }
-
     protected _detectEventQuery ({ start , sql , results  }:{ start : number , sql : string , results : any[] }) {
         const duration = Date.now() - start
         
-        if (duration > 1000 * 10) {
+        if (duration > 1000 * 12) {
             const maxLength = 8_000
 
             if (sql.length > maxLength) {
@@ -64,10 +63,10 @@ abstract class BaseDriver extends EventEmitter {
         const insertRegex = /^INSERT\b/i
         const deleteRegex = /^DELETE\b/i
       
-        if (selectRegex.test(query))  return 'select'
-        if (updateRegex.test(query))  return 'update' 
-        if (insertRegex.test(query))  return 'insert' 
-        if (deleteRegex.test(query))  return 'delete'
+        if (selectRegex.test(query))  return 'SELECT'
+        if (updateRegex.test(query))  return 'UPDATE' 
+        if (insertRegex.test(query))  return 'INSERT' 
+        if (deleteRegex.test(query))  return 'DELETE'
         
         return ''
     }
@@ -144,6 +143,50 @@ abstract class BaseDriver extends EventEmitter {
         `
     }
 }
+export abstract class QueryBuilder {
+    protected $constants = (name: keyof TConstant): string => {
+      if (!CONSTANTS.hasOwnProperty(name))
+        throw new Error(`Not found that constant : '${name}'`);
 
-export { BaseDriver }
-export default BaseDriver
+      return CONSTANTS[name] as string
+    };
+    protected $state!: StateHandler
+
+    constructor(state: StateHandler) {
+        this.$state = state
+    }
+
+    public abstract select(): string
+    public abstract insert(): string
+    public abstract update(): string
+    public abstract remove(): string
+
+    public abstract any() :string
+
+    public abstract columns ({ database, table } : { 
+      database : string; 
+      table    : string;
+    }) :string
+
+    public abstract schema ({ database, table } : { 
+      database : string; 
+      table    : string;
+    }) :string
+
+    public abstract format(sql: (string | null)[]): string
+
+    protected abstract bindJoin(values: string[]): string | null
+    protected abstract bindWhere(values: string[]): string | null
+    protected abstract bindOrderBy(values: string[]): string | null
+    protected abstract bindGroupBy(values: string[]): string | null
+    protected abstract bindSelect(values: string[], opts?: { distinct?: string }): string
+    protected abstract bindFrom(args: {
+        from: string
+        table: string
+        alias: string | null
+        rawAlias: string | null
+    }): string
+    protected abstract bindLimit(limit: string | number): string
+    protected abstract bindOffset(offset: string): string
+    protected abstract bindHaving(having: string): string
+}

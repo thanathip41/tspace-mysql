@@ -48,7 +48,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "cross-env NODE_ENV=test ts-mocha './src/tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
+    "test": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './src/tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
     "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./src/tests/benchmark.test.ts",
     "release:beta": "npm test && npm run build && npm publish --tag beta",
     "release": "npm test && npm run build && npm publish"

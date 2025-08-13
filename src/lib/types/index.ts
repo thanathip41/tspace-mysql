@@ -3,6 +3,7 @@ import { TCache as Cache }  from '../core/Cache'
 import { CONSTANTS }        from '../constants'
 import { Join }             from "../core/Join"
 import { TRelationModel, TSchemaModel } from "../core"
+import { QueryBuilder } from "../core/Driver"
 
 export type TCache = Cache
 
@@ -153,6 +154,7 @@ export type TConnectionTransaction = {
 export type TConnection = {
     on : (event : TPoolEvent , data : any) => void;
     query: (sql: string) => Promise<any[]>;
+    queryBuilder: typeof QueryBuilder;
     startTransaction: () => Promise<void>; 
     commit: () => Promise<void>;
     rollback: () => Promise<void>; 
@@ -161,7 +163,7 @@ export type TConnection = {
 
 export type TPoolConnected = {
     on : (event : TPoolEvent , data : (r : any) => any) => void
-    format: (sql : string) => string
+    queryBuilder: typeof QueryBuilder
     query: (sql: string) => Promise<any[]>
     connection : () => Promise<TConnection>
 }
@@ -341,8 +343,8 @@ export type TSchemaKeys<T> = keyof {
         [K in keyof T as string extends K ? never : K]: T[K]
     };
 
-export type TRelationResults<T> = T extends Array<infer U>
-    ? TRelationResults<U>[] 
+export type TRelationResults<T> = T extends Array<infer A>
+    ? TRelationResults<A>[] 
     : T extends object
         ? { 
             [K in keyof T as K extends `$${string}` ? never : K] : TRelationResults<T[K]>
@@ -486,3 +488,19 @@ export type TStoreProcedure = {
     params: (string|number|boolean)[] | Record<string, string|number|boolean>; 
     result: unknown 
 }
+
+export type TRemoveIndexSignature<T> = {
+    [K in keyof T as string extends K
+    ? never
+    : number extends K
+        ? never
+        : K]: T[K];
+};
+
+export type TLiteralStringKeys<T> = {
+    [K in keyof T]: T[K] extends string ? (string extends T[K] ? never : K) : never
+}[keyof T]
+
+export type TLiteralEnumKeys<T> = TLiteralStringKeys<TRemoveIndexSignature<T>>
+
+export type TDriver = 'pg' | 'postgres' | 'mysql' | 'mysql2' | 'mariadb' | 'mssql' | 'sqlite3'

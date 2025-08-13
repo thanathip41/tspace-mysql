@@ -56,7 +56,7 @@ let globalSettings: TGlobalSetting = {
  *   email : new Blueprint().varchar(50).null(),
  *   name  : new Blueprint().varchar(255).null(),
  * }
- * 
+ *
  * type TS = T.Schema<typeof Schema>
  *
  * class User extends Model<TS> {
@@ -68,7 +68,10 @@ let globalSettings: TGlobalSetting = {
  * const users = await new User().findMany()
  * console.log(users)
  */
-class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractModel<TS, TR> {
+class Model<
+  TS extends Record<string, any> = any,
+  TR = unknown
+> extends AbstractModel<TS, TR> {
   constructor(protected $cache = Cache) {
     super();
     /**
@@ -234,7 +237,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       const where: string[] = repository?.$state.get("WHERE") || [];
       const select: string[] = repository?.$state.get("SELECT") || [];
       const orderBy: string[] = repository?.$state.get("ORDER_BY") || [];
-      const limit: string = repository?.$state.get("LIMIT") || null;
+      const limit: string = repository?.$state.get("LIMIT");
 
       if (where.length) {
         this.$state.set("WHERE", [
@@ -445,7 +448,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    */
   protected useLoadRelationsInRegistry(): this {
     const relations: string[] = this.$state
-      .get("RELATION")
+      .get("RELATIONS")
       .map((r: { name: string }) => String(r.name));
 
     if (relations.length)
@@ -851,11 +854,11 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     const excepts = this.$state.get("EXCEPTS");
     const hasDot = excepts.some((except: string) => /\./.test(except));
     const names = excepts
-      .map((except: string) => {
-        if (/\./.test(except)) return except.split(".")[0];
-        return null;
-      })
-      .filter((d: null) => d != null);
+    .map((except: string) => {
+      if (/\./.test(except)) return except.split(".")[0];
+      return null;
+    })
+    .filter(Boolean) as string[];
 
     const tableNames = names.length
       ? [...new Set(names)]
@@ -1474,7 +1477,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    * @returns {this} this
    */
   clone(instance: Model): this {
-    const copy = Object.fromEntries(instance.$state.get());
+    const copy = Object.fromEntries(instance.$state.all());
 
     this.$state.clone(copy);
 
@@ -1509,7 +1512,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       throw this._assertError("This instance is not an instanceof Model.");
     }
 
-    const copy = Object.fromEntries(instance.$state.get());
+    const copy = Object.fromEntries(instance.$state.all());
 
     const newInstance = new Model();
 
@@ -1558,14 +1561,13 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     { retry = false } = {}
   ): Promise<any[]> {
     try {
-      sql = this.$pool.format(sql);
+      sql = this._queryBuilder().format([sql])
       const logger = async (results: any[]) => {
         const selectRegex = /^SELECT\b/i;
 
-        const loggerOptions: { selected: boolean } =
-          this.$state.get("LOGGER_OPTIONS");
+        const loggerOptions = this.$state.get("LOGGER_OPTIONS");
 
-        if (!(selectRegex.test(sql) && loggerOptions.selected)) return;
+        if (!(selectRegex.test(sql) && loggerOptions?.selected)) return;
 
         await this._checkTableLoggerIsExists().catch((_) => null);
 
@@ -1593,7 +1595,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
         const startTime = +new Date();
-        
+
         const result = await this.$pool.query(sql);
 
         const endTime = +new Date();
@@ -1632,15 +1634,9 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    * @property {Function} actions.returnId
    * @returns {this} this
    */
-  protected async _actionStatement({
-    sql,
-    returnId = false,
-  }: {
-    sql: string;
-    returnId?: boolean;
-  }): Promise<any> {
+  protected async _actionStatement(sql: string): Promise<any> {
     try {
-      sql = this.$pool.format(sql);
+      sql = this._queryBuilder().format([sql])
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           this.$utils.consoleDebug(sql);
@@ -1666,13 +1662,9 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         const insertRegex = /^INSERT\b/i;
         const deleteRegex = /^DELETE\b/i;
 
-        const loggerOptions: {
-          inserted: boolean;
-          updated: boolean;
-          deleted: boolean;
-        } = this.$state.get("LOGGER_OPTIONS");
+        const loggerOptions = this.$state.get("LOGGER_OPTIONS");
 
-        if (insertRegex.test(sql) && loggerOptions.inserted) {
+        if (insertRegex.test(sql) && loggerOptions?.inserted) {
           await this._checkTableLoggerIsExists().catch((_) => null);
 
           const result = await getResults(sql);
@@ -1683,8 +1675,9 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
               orderBy: true,
               limit: true,
             })
-            .where("id", result.insertId)
+            .whereIn("id", result.$meta.insertIds)
             .disableVoid()
+            .bind(this.$pool.get())
             .get();
 
           await new DB(this.$state.get("TABLE_LOGGER"))
@@ -1704,12 +1697,10 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
             .save()
             .catch((_) => null);
 
-          if (returnId) return [result.affectedRows, result.insertId];
-
-          return result.affectedRows;
+          return result;
         }
 
-        if (updateRegex.test(sql) && loggerOptions.updated) {
+        if (updateRegex.test(sql) && loggerOptions?.updated) {
           await this._checkTableLoggerIsExists().catch((err) => null);
 
           const createdAt = this.$utils.timestamp();
@@ -1721,6 +1712,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
               limit: true,
             })
             .disableVoid()
+            .bind(this.$pool.get())
             .get();
 
           const result = await getResults(sql);
@@ -1733,6 +1725,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
             })
             .disableSoftDelete()
             .disableVoid()
+            .bind(this.$pool.get())
             .get();
 
           const updatedAt = this.$utils.timestamp();
@@ -1756,12 +1749,10 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
             .save()
             .catch((_) => null);
 
-          if (returnId) return [result.affectedRows, result.insertId];
-
-          return result.affectedRows;
+          return result;
         }
 
-        if (deleteRegex.test(sql) && loggerOptions.deleted) {
+        if (deleteRegex.test(sql) && loggerOptions?.deleted) {
           await this._checkTableLoggerIsExists().catch((err) => null);
 
           const data = await new Model()
@@ -1771,6 +1762,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
               limit: true,
             })
             .disableVoid()
+            .bind(this.$pool.get())
             .get();
 
           const result = await getResults(sql);
@@ -1792,17 +1784,13 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
             .save()
             .catch((_) => null);
 
-          if (returnId) return [result.affectedRows, result.insertId];
-
-          return result.affectedRows;
+          return result;
         }
       }
 
       const result = await getResults(sql);
 
-      if (returnId) return [result.affectedRows, result.insertId];
-
-      return result.affectedRows;
+      return result;
     } catch (error: unknown) {
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -1813,10 +1801,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
       this.$state.set("RETRY", Number(this.$state.get("RETRY")) + 1);
 
-      return await this._actionStatement({
-        sql,
-        returnId,
-      });
+      return await this._actionStatement(sql);
     }
   }
 
@@ -1831,17 +1816,13 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     callback: (query: M) => M,
     bindModel?: new () => M
   ): this {
-
     const baseInstance = bindModel
-    ? new bindModel()
-    : new Model().from(this.getTableName()) as M;
+      ? new bindModel()
+      : (new Model().from(this.getTableName()) as M);
 
     const query = callback(baseInstance);
 
-    this.$state.set("CTE", [
-      ...this.$state.get("CTE"),
-      `${as} AS (${query})`,
-    ]);
+    this.$state.set("CTE", [...this.$state.get("CTE"), `${as} AS (${query})`]);
 
     return this;
   }
@@ -3552,9 +3533,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
-
-    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -3585,9 +3565,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
-
-    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -3618,9 +3597,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
-
-    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -3651,9 +3629,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
-
-    if(subQuery instanceof Model && !subQuery.$state.get('SELECT').length) {
-      subQuery.select('id')
+    if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
+      subQuery.select("id");
     }
 
     this.$state.set("WHERE", [
@@ -4208,20 +4185,17 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
   /**
    * This 'union' method is used to union statement sql
-   * 
+   *
    * @override
    * @param {string} sql
    * @returns {this} this
    */
-  union (sql : string | Model): this {
-    this.$state.set("UNION", [
-      ...this.$state.get("UNION"),
-      `${sql}`
-    ]);
+  union(sql: string | Model): this {
+    this.$state.set("UNION", [...this.$state.get("UNION"), `${sql}`]);
 
     return this;
   }
-  
+
   /**
    * This 'union' method is used to union statement sql
    *
@@ -4229,11 +4203,8 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
    * @param {string} sql
    * @returns {this} this
    */
-  unionAll (sql : string | Model): this {
-    this.$state.set("UNION_ALL", [
-      ...this.$state.get("UNION_ALL"),
-      `${sql}`
-    ]);
+  unionAll(sql: string | Model): this {
+    this.$state.set("UNION_ALL", [...this.$state.get("UNION_ALL"), `${sql}`]);
 
     return this;
   }
@@ -4601,7 +4572,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         .debug(this.$state.get("DEBUG"))
         .toString();
 
-      const result = await this._actionStatement({ sql });
+      const result = await this._actionStatement(sql);
 
       const r = Boolean(this._resultHandler(!!result || false));
 
@@ -4619,9 +4590,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().remove());
 
     const r = Boolean(this._resultHandler(!!result || false));
 
@@ -4651,7 +4620,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         })
         .toString();
 
-      const result = await this._actionStatement({ sql });
+      const result = await this._actionStatement(sql);
 
       const r = Boolean(this._resultHandler(!!result || false));
 
@@ -4669,9 +4638,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().remove());
 
     const r = Boolean(this._resultHandler(!!result || false));
 
@@ -4701,9 +4668,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       ].join(" ")
     );
 
-    const result = await this._actionStatement({
-      sql: this._queryBuilder().delete(),
-    });
+    const result = await this._actionStatement(this._queryBuilder().remove());
 
     if (result) return Boolean(this._resultHandler(!!result || false));
 
@@ -5822,12 +5787,13 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       let columnAndValue: Record<string, any> = {};
 
       for (const { Field: field, Type: type } of fields) {
-
         if (passed(field)) continue;
 
-        const virtualColumn = this._getBlueprintByKey(field,{ mapQuery : true })
+        const virtualColumn = this._getBlueprintByKey(field, {
+          mapQuery: true,
+        });
 
-        if(virtualColumn) continue;
+        if (virtualColumn) continue;
 
         columnAndValue = {
           ...columnAndValue,
@@ -5845,8 +5811,6 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
       fakers.push(columnAndValue);
     }
-
-    console.log(fakers)
 
     const chunkedData = this.$utils.chunkArray([...fakers], 500);
 
@@ -6265,17 +6229,17 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     if (this.$state.get("DEBUG")) {
       this.$utils.consoleCache(
-        JSON.stringify(
-          {
-            driver: this.$cache.provider(),
-            key: cache.key,
-            expires: cache.expires,
-            type: this.$utils.typeOf(findCache),
-            length: Array.isArray(findCache) || this.$utils.typeOf(findCache) === 'string' 
-              ? findCache.length 
-              : undefined
-          }
-        )
+        JSON.stringify({
+          driver: this.$cache.provider(),
+          key: cache.key,
+          expires: cache.expires,
+          type: this.$utils.typeOf(findCache),
+          length:
+            Array.isArray(findCache) ||
+            this.$utils.typeOf(findCache) === "string"
+              ? findCache.length
+              : undefined,
+        })
       );
       const endTime = +new Date();
       this.$utils.consoleExec(startTime, endTime);
@@ -6286,11 +6250,11 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
   private async _setCache(data: any) {
     const cache = this.$state.get("CACHE");
-  
+
     if (cache == null) return;
 
-    const exists = await this.$cache.exists(cache.key)
-   
+    const exists = await this.$cache.exists(cache.key);
+
     if (exists) return;
 
     await this.$cache.set(cache.key, data, cache.expires);
@@ -6310,18 +6274,18 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     if (cache != null) {
       return cache;
     }
-    
+
     let result = await this._queryStatement(sql);
 
     if (!result.length) {
       return this._returnEmpty(type, result, message, options);
     }
-      
+
     for (const relation of relations) {
       const loaded = (await this.$relation.load(result, relation)) ?? [];
       result = loaded;
     }
-  
+
     if (this.$state.get("HIDDEN").length) this._hiddenColumnModel(result);
 
     return (
@@ -6390,16 +6354,6 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     switch (type) {
       case "FIRST": {
-        if (this.$state.get("RETURN_TYPE") != null) {
-          const returnType = this.$state.get("RETURN_TYPE");
-
-          emptyData = this._resultHandler(
-            returnType === "object" ? null : returnType === "array" ? [] : null
-          );
-
-          break;
-        }
-
         emptyData = null;
         break;
       }
@@ -6423,16 +6377,6 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       }
 
       case "GET": {
-        if (this.$state.get("RETURN_TYPE") != null) {
-          const returnType = this.$state.get("RETURN_TYPE");
-
-          emptyData = this._resultHandler(
-            returnType === "object" ? null : returnType === "array" ? [] : null
-          );
-
-          break;
-        }
-
         emptyData = [];
         break;
       }
@@ -6515,116 +6459,18 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     switch (type) {
       case "FIRST": {
-        if (this.$state.get("PLUCK")) {
-          const pluck = this.$state.get("PLUCK");
-          const newData = res[0];
-          const checkProperty = newData.hasOwnProperty(pluck);
-          if (!checkProperty) {
-            this._assertError(`Can't find property '${pluck}' of results.`);
-          }
-
-          result = this._resultHandler(newData[pluck]);
-
-          break;
-        }
-
-        if (this.$state.get("RETURN_TYPE") != null) {
-          const returnType = this.$state.get("RETURN_TYPE");
-
-          result = this._resultHandler(
-            returnType === "object"
-              ? res[0]
-              : returnType === "array"
-              ? res
-              : [res]
-          );
-          break;
-        }
-
         result = this._resultHandler(res[0] ?? null);
 
         break;
       }
 
       case "FIRST_OR_ERROR": {
-        if (this.$state.get("PLUCK")) {
-          const pluck = this.$state.get("PLUCK");
-          const newData = res[0];
-          const checkProperty = newData.hasOwnProperty(pluck);
-
-          if (!checkProperty) {
-            throw this._assertError(
-              `Can't find property '${pluck}' of results`
-            );
-          }
-
-          result = this._resultHandler(newData[pluck]) ?? null;
-
-          break;
-        }
-
-        if (this.$state.get("RETURN_TYPE") != null) {
-          const returnType = this.$state.get("RETURN_TYPE");
-
-          result = this._resultHandler(
-            returnType === "object"
-              ? res[0]
-              : returnType === "array"
-              ? res
-              : [res]
-          );
-          break;
-        }
-
         result = this._resultHandler(res[0] ?? null);
 
         break;
       }
 
       case "GET": {
-        if (this.$state.get("CHUNK")) {
-          const r = data.reduce(
-            (resultArray: any[][], item: any, index: number) => {
-              const chunkIndex = Math.floor(index / this.$state.get("CHUNK"));
-              if (!resultArray[chunkIndex]) resultArray[chunkIndex] = [];
-              resultArray[chunkIndex].push(item);
-
-              return resultArray;
-            },
-            []
-          );
-
-          result = this._resultHandler(r);
-          break;
-        }
-
-        if (this.$state.get("PLUCK")) {
-          const pluck = this.$state.get("PLUCK");
-          const newData = data.map((d: any) => d[pluck]);
-
-          if (newData.every((d: any) => d == null)) {
-            throw this._assertError(
-              `Can't find property '${pluck}' of results.`
-            );
-          }
-
-          result = this._resultHandler(newData);
-          break;
-        }
-
-        if (this.$state.get("RETURN_TYPE") != null) {
-          const returnType = this.$state.get("RETURN_TYPE");
-
-          result = this._resultHandler(
-            returnType === "object"
-              ? data[0]
-              : returnType === "array"
-              ? data
-              : [data]
-          );
-          break;
-        }
-
         result = this._resultHandler(res);
         break;
       }
@@ -6660,7 +6506,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
   private async _save() {
     const result = this.$state.get("RESULT");
 
-    if (result.id == null) {
+    if (result?.id == null) {
       throw this._assertError(
         `This '$save' must be required the 'id' for the function`
       );
@@ -6708,7 +6554,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           dataId.map((id: number) => {
             return {
               [this._valuePattern(`${relationTable}Id`)]: id,
-              [this._valuePattern(`${thisTable}Id`)]: result.id,
+              [this._valuePattern(`${thisTable}Id`)]: result?.id,
               ...fields,
             };
           })
@@ -6730,7 +6576,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
             dataId.map((id: number) => {
               return {
                 [this._valuePattern(`${relationTable}Id`)]: id,
-                [this._valuePattern(`${thisTable}Id`)]: result.id,
+                [this._valuePattern(`${thisTable}Id`)]: result?.id,
                 ...fields,
               };
             })
@@ -6772,7 +6618,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         await new DB()
           .table(pivotTable)
           .where(this._valuePattern(`${relationTable}Id`), id)
-          .where(this._valuePattern(`${thisTable}Id`), result.id)
+          .where(this._valuePattern(`${thisTable}Id`), result?.id)
           .delete();
       }
 
@@ -6790,7 +6636,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           await new DB()
             .table(pivotTable)
             .where(this._valuePattern(`${relationTable}Id`), id)
-            .where(this._valuePattern(`${thisTable}Id`), result.id)
+            .where(this._valuePattern(`${thisTable}Id`), result?.id)
             .delete();
         }
 
@@ -6988,10 +6834,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
-    const [result, id] = await this._actionStatement({
-      sql: this._queryBuilder().insert(),
-      returnId: true,
-    });
+    const result = await this._actionStatement(this._queryBuilder().insert());
 
     if (!result) return this._resultHandler(null);
 
@@ -6999,7 +6842,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     let resultData = await new Model()
       .copyModel(this, { select: true, relations: true })
-      .where("id", id)
+      .whereIn("id", result.$meta.insertIds)
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
       .first();
@@ -7009,7 +6852,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
       resultData = await new Model()
         .copyModel(this, { select: true, relations: true })
-        .where("id", id)
+        .whereIn("id", result.$meta.insertIds)
         .bind(this.$pool.get())
         .debug(this.$state.get("DEBUG"))
         .first();
@@ -7021,10 +6864,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
   private async _insertModel() {
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
-    const [result, id] = await this._actionStatement({
-      sql: this._queryBuilder().insert(),
-      returnId: true,
-    });
+    const result = await this._actionStatement(this._queryBuilder().insert());
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
@@ -7034,17 +6874,17 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     let resultData = await new Model()
       .copyModel(this, { select: true, relations: true })
-      .where("id", id)
+      .whereIn("id", result.$meta.insertIds)
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
       .first();
 
     if (resultData == null) {
-      await this.$utils.wait(500);
+      await this.$utils.wait(1000);
 
       resultData = await new Model()
         .copyModel(this, { select: true, relations: true })
-        .where("id", id)
+        .whereIn("id", result.$meta.insertIds)
         .bind(this.$pool.get())
         .debug(this.$state.get("DEBUG"))
         .first();
@@ -7062,10 +6902,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       await this._validateSchema(v, "insert");
     }
 
-    const [result, id] = await this._actionStatement({
-      sql: this._queryBuilder().insert(),
-      returnId: true,
-    });
+    const result = await this._actionStatement(this._queryBuilder().insert());
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
@@ -7073,7 +6910,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     const hasTimestamp = this.$state.get("TIMESTAMP");
 
-    const ids = [...Array(result)].map((_, i) => i + id);
+    const ids = result.$meta.insertIds
 
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
@@ -7112,10 +6949,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       case false: {
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
-        const [result, id] = await this._actionStatement({
-          sql: this._queryBuilder().insert(),
-          returnId: true,
-        });
+        const result = await this._actionStatement(this._queryBuilder().insert());
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7125,17 +6959,17 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         let data = await new Model()
           .copyModel(this, { select: true })
           .bind(this.$pool.get())
-          .where("id", id)
+          .whereIn("id", result.$meta.insertIds)
           .debug(this.$state.get("DEBUG"))
           .first();
 
         if (data == null) {
-          await this.$utils.wait(500);
+          await this.$utils.wait(1000);
 
           data = await new Model()
             .copyModel(this, { select: true })
             .bind(this.$pool.get())
-            .where("id", id)
+            .whereIn("id", result.$meta.insertIds)
             .debug(this.$state.get("DEBUG"))
             .first();
         }
@@ -7151,9 +6985,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       case true: {
         await this._validateSchema(this.$state.get("DATA"), "update");
 
-        const result = await this._actionStatement({
-          sql: this._queryBuilder().update(),
-        });
+        const result = await this._actionStatement(this._queryBuilder().update());
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7203,10 +7035,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
       case false: {
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
-        const [result, id] = await this._actionStatement({
-          sql: this._queryBuilder().insert(),
-          returnId: true,
-        });
+        const result = await this._actionStatement(this._queryBuilder().insert());
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7216,17 +7045,17 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
         let data = await new Model()
           .copyModel(this, { select: true })
           .bind(this.$pool.get())
-          .where("id", id)
+          .whereIn("id", result.$meta.insertIds)
           .debug(this.$state.get("DEBUG"))
           .first();
 
         if (data == null) {
-          await this.$utils.wait(500);
+          await this.$utils.wait(1000);
 
           data = await new Model()
             .copyModel(this, { select: true })
             .bind(this.$pool.get())
-            .where("id", id)
+            .whereIn("id", result.$meta.insertIds)
             .debug(this.$state.get("DEBUG"))
             .first();
         }
@@ -7274,9 +7103,7 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
 
     await this._validateSchema(this.$state.get("DATA"), "update");
 
-    const sql = this._queryBuilder().update();
-
-    const result = await this._actionStatement({ sql });
+    const result = await this._actionStatement(this._queryBuilder().update());
 
     if (this.$state.get("VOID") || !result || result == null)
       return this._resultHandler(undefined);
@@ -7491,9 +7318,11 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
     result: unknown,
     type: "selected" | "created" | "updated" | "deleted"
   ) {
-    if (this.$state.get("OBSERVER") == null) return;
 
     const observer = this.$state.get("OBSERVER");
+
+    if(observer == null) return;
+
     const ob = new observer();
 
     await ob[type](result);
@@ -7593,10 +7422,10 @@ class Model<TS extends Record<string, any> = any,TR = unknown> extends AbstractM
           return blueprint;
         }
 
-        if(mapQuery && !isMapQuery) {
+        if (mapQuery && !isMapQuery) {
           return null;
         }
-        
+
         return blueprint;
       }
     }

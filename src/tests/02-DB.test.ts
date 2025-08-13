@@ -9,7 +9,6 @@ chai.use(chaiJsonSchema)
 
 describe('Testing DB', function () {
   /* ##################################################### */
-
   it(`DB: Start to mock up the data in table 'users' for testing CRUD
     - Truncate : new DB('users').truncate()
     - Create : new DB('users').create(userDataObject).save()
@@ -23,8 +22,8 @@ describe('Testing DB', function () {
     const truncate = await new DB('users').truncate({ force : true})
     expect(truncate).to.be.equal(true)
     
-    const created : any = await new DB('users').create(userDataObject).save()
-
+    const created = await new DB('users').create(userDataObject).save()
+    
     expect(created).to.be.an('object')
     expect(created).to.be.jsonSchema(userSchemaObject)
 
