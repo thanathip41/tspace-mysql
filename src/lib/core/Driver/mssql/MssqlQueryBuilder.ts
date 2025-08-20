@@ -84,7 +84,7 @@ export class MssqlQueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
+        `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE table_name = '${table.replace(/\`/g, "")}'
           AND table_schema = '${database}'
         `,
@@ -104,7 +104,7 @@ export class MssqlQueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
+        `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE table_name = '${table.replace(/\`/g, "")}'
           AND table_schema = '${database}'
         `,
@@ -113,7 +113,33 @@ export class MssqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public format (sql: (string | null)[]) {
+    public fk ({ database , table , fk } : { 
+      database  : string; 
+      table     : string;
+      fk        : string;
+    }) {
+      const sql = [
+        `
+        SELECT 
+          TABLE_CATALOG as "Database", 
+          TABLE_NAME as "Table", 
+          CONSTRAINT_NAME as "Fk"
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        `,
+        `
+        WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
+          AND TABLE_CATALOG    = '${database}'
+          AND TABLE_NAME       = '${table}'
+          AND CONSTRAINT_NAME  = '${fk}'
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public format (sql: (string | null)[] | string) {
+      if(typeof sql === 'string') sql = [sql];
+
       return sql
       .filter((s) => s !== "" || s == null)
       .join(" ")

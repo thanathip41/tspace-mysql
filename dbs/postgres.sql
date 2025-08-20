@@ -1,11 +1,12 @@
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-    CREATE TYPE user_role AS ENUM ('admin', 'user');
-  END IF;
-END$$;
+DROP VIEW IF EXISTS user_post_counts;
+DROP TABLE IF EXISTS post_user CASCADE;
+DROP TABLE IF EXISTS posts CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TYPE IF EXISTS user_role;
 
--- Create tables
+
+CREATE TYPE user_role AS ENUM ('admin', 'user');
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   uuid VARCHAR(50),
@@ -42,8 +43,7 @@ CREATE TABLE post_user (
   deleted_at TIMESTAMP
 );
 
--- Create view user_post_counts
-CREATE VIEW user_post_counts AS
+CREATE OR REPLACE VIEW user_post_counts AS
 SELECT
   ROW_NUMBER() OVER (ORDER BY u.id) AS id,
   u.id AS user_id,
@@ -54,7 +54,7 @@ FROM users u
 LEFT JOIN posts p ON u.id = p.user_id
 GROUP BY u.id, u.name, u.email;
 
--- Insert data into users
+
 INSERT INTO users (id, uuid, email, name, username, password, status, role, created_at, updated_at, deleted_at) VALUES
 (1, '3e145569-afb3-4932-9a56-8c3ac1a74a46', 'test01@example.com', 'name:test01', 'test01', 'xxxxxxxxxx', TRUE, 'user', '2025-08-03 00:56:34', '2025-08-03 00:56:34', NULL),
 (2, '1c50de95-69a5-4da6-b635-f5267c8091fc', 'test02@example.com', 'name:test02', 'test02', 'xxxxxxxxxx', TRUE, 'user', '2025-08-03 00:56:34', '2025-08-03 00:56:34', NULL),

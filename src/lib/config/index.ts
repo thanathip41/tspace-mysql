@@ -23,7 +23,7 @@ const rawEnv =  {
     USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
     PASSWORD                : ENV.DB_PASSWORD ?? '', 
     DATABASE                : ENV.DB_DATABASE, 
-    CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 20,
+    CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 10,
     QUEUE_LIMIT             : ENV.DB_QUEUE_LIMIT ?? 0,
     TIMEOUT                 : ENV.DB_TIMEOUT ?? 1000 * 90,
     CHARSET                 : ENV.DB_CHARSET ?? 'utf8mb4',

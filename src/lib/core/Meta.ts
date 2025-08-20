@@ -20,7 +20,7 @@ class ModelMeta<M extends Model> {
     }
 
     /**
-     * 
+     * @param {string} column
      * @returns {`${string}.${T.Column<M>}`}
      */
     columnReference (column: T.Column<M>) : `${string}.${T.Column<M>}` {
@@ -29,6 +29,7 @@ class ModelMeta<M extends Model> {
 
     /**
      * 
+     * @param {string} column
      * @returns {`${string}.${T.Column<M>}`}
      */
     columnRef (column: T.Column<M>) : `${string}.${T.Column<M>}` {
@@ -52,7 +53,7 @@ class ModelMeta<M extends Model> {
     }
 
     /**
-     * 
+     * @param {string} name
      * @returns {boolean}
      */
     hasColumn(name: string): boolean {

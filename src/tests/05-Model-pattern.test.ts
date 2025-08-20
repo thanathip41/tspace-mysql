@@ -10,8 +10,57 @@ chai.use(chaiJsonSchema)
 describe('Testing Model with Pattern & Schema', function () {
   /* ##################################################### */
 
+  it(`Model: Start to test Schema 
+    - Drop Table : new User().drop()
+    - Create Table
+    - Sync Schema
+    - Sync Index
+    - Sync Fk
+  `, 
+  async function () {
+
+    const dropPostUser = await new PostUser().drop({ force : true}).catch(err => {
+      return false
+    })
+
+    expect(dropPostUser).to.be.equal(true)
+
+    const dropPost = await new Post().drop({ force : true}).catch(err => {
+      return false
+    })
+    
+    expect(dropPost).to.be.equal(true)
+
+    const dropUser = await new User().drop({ force : true}).catch(err => {
+      return false
+    })
+    
+    expect(dropUser).to.be.equal(true)
+
+    await new User().sync({
+      force   : true,
+      changed : true,
+      foreign : true,
+      index   : true,
+    })
+
+    await new Post().sync({
+      force   : true,
+      changed : true,
+      foreign : true,
+      index   : true,
+    })
+
+    await new PostUser().sync({
+      force   : true,
+      changed : true,
+      foreign : true,
+      index   : true,
+    })
+
+  })
+
   it(`Model: Start to mock up the data in table 'users' for testing CRUD
-    - Truncate : new User().truncate()
     - Create : new User().create(userDataObject).save()
     - Select : new User().first()
     - CreateMultiple : new User().createMultiple(userDataArray).save()
@@ -19,9 +68,6 @@ describe('Testing Model with Pattern & Schema', function () {
     - Delete : new User().where('id',6).delete()
   `, 
   async function () {
-
-    const truncate = await new User().truncate({ force : true})
-    expect(truncate).to.be.equal(true)
 
     const created = await new User().create(userDataObject).save()
     expect(created).to.be.an('object')
@@ -47,7 +93,6 @@ describe('Testing Model with Pattern & Schema', function () {
   })
 
   it(`Model: Start to mock up the data in table 'posts' for testing CRUD
-    - Truncate : new Post().truncate()
     - Create : new Post().create(postDataObject).save()
     - Select : new Post().first()
     - CreateMultiple : new Post().createMultiple(postDataArray).save()
@@ -56,9 +101,6 @@ describe('Testing Model with Pattern & Schema', function () {
   `, 
   async function () {
 
-    const truncate = await new Post().truncate({ force : true})
-    expect(truncate).to.be.equal(true)
-        
     const created = await new Post().create(postDataObject).save()
     expect(created).to.be.an('object')
     expect(created).to.be.jsonSchema(postSchemaObject)
@@ -83,13 +125,9 @@ describe('Testing Model with Pattern & Schema', function () {
   })
 
   it(`Model: Start to mock up the data in table 'postUser' for testing CRUD
-    - Truncate : new PostUser().truncate()
     - CreateMultiple : new PostUser().createMultiple([]).save()
   `, 
   async function () {
-
-    const truncate = await new PostUser().truncate({ force : true})
-    expect(truncate).to.be.equal(true)
 
     const createds = await new PostUser().createMultiple([1,2,3,4,5].map(v => ({ userId : v , postId : v}))).save()
 

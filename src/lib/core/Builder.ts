@@ -2774,8 +2774,8 @@ class Builder extends AbstractBuilder {
    * The 'getColumns' method is used to get columns
    * @returns {this} this this
    */
-  async getColumns(): Promise<string[]> {
-    return this.showColumns(this.$state.get("TABLE_NAME"));
+  async getColumns(): Promise<any[]> {
+    return this.showColumns(this.$state.get("TABLE_NAME"), { raw : true });
   }
 
   /**
@@ -2783,7 +2783,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getSchema(): Promise<any[]> {
-    return this.showSchema(this.$state.get("TABLE_NAME"));
+    return this.showSchema(this.$state.get("TABLE_NAME"), { raw : true });
   }
 
   /**
@@ -3851,16 +3851,19 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showColumns(
-    table: string = this.$state.get("TABLE_NAME")
+    table: string = this.$state.get("TABLE_NAME"),
+    options: { raw?: boolean } = {}
   ): Promise<string[]> {
     const sql = this._queryBuilder().columns({
       table,
       database: this.$database,
     });
 
-    const rawColumns: any[] = await this._queryStatement(sql);
+    const raws: any[] = await this._queryStatement(sql);
 
-    const columns = (rawColumns ?? []).map(
+    if(options.raw) return raws;
+
+    const columns = (raws ?? []).map(
       (column: { Field: string }) => column.Field
     );
 
@@ -3874,23 +3877,20 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showSchema(
-    table: string = this.$state.get("TABLE_NAME")
+    table: string = this.$state.get("TABLE_NAME"),
+    options: { raw?: boolean } = {}
   ): Promise<string[]> {
-    const sql = [
-      `SELECT 
-        COLUMN_NAME as "Field", 
-        DATA_TYPE as "Type",
-        IS_NULLABLE as "Null",
-        COLUMN_DEFAULT as "Default"
-      `,
-      `FROM information_schema.columns
-       WHERE table_name = '${table.replace(/\`/g, "")}'
-      `,
-    ].join(" ");
+   
+    const sql = this._queryBuilder().schema({
+      database : this.$database,
+      table
+    })
 
     const raws: any[] = await this._queryStatement(sql);
 
-    return raws.map((r: Record<string, any>) => {
+    if(options.raw) return raws;
+
+    const schema = raws.map((r: Record<string, any>) => {
       const schema: string[] = [];
 
       schema.push(`\`${r.Field}\``);
@@ -3923,6 +3923,8 @@ class Builder extends AbstractBuilder {
 
       return schema.join(" ");
     });
+
+    return schema
   }
 
   /**
@@ -4089,7 +4091,7 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  async drop({ force = false }: { force?: boolean } = {}): Promise<boolean> {
+  async drop({ force = false, view = false }: { force?: boolean; view?: boolean } = {}): Promise<boolean> {
     if (
       this.$state.get("TABLE_NAME") == null ||
       this.$state.get("TABLE_NAME") === ""
@@ -4099,7 +4101,7 @@ class Builder extends AbstractBuilder {
     }
 
     const sql: string = [
-      `${this.$constants("DROP_TABLE")}`,
+      view ? `${this.$constants("DROP_VIEW")}` : `${this.$constants("DROP_TABLE")}`,
       `${this.$state.get("TABLE_NAME")}`,
     ].join(" ");
 
@@ -4136,7 +4138,7 @@ class Builder extends AbstractBuilder {
     for (const tableName of tableNames) {
       const columns = await new Builder().copyBuilder(this).getColumns();
 
-      const removeExcept = columns.filter((column: string) => {
+      const removeExcept = columns.map(v=> v.Field).filter((column: string) => {
         return excepts.every((except: string) => {
           if (/\./.test(except)) {
             const [table, _] = except.split(".");

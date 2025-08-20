@@ -84,7 +84,7 @@ export class Sqlite3QueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
+        `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE table_name = '${table.replace(/\`/g, "")}'
           AND table_schema = '${database}'
         `,
@@ -104,7 +104,7 @@ export class Sqlite3QueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
+        `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE table_name = '${table.replace(/\`/g, "")}'
           AND table_schema = '${database}'
         `,
@@ -113,7 +113,33 @@ export class Sqlite3QueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public format (sql: (string | null)[]) {
+    public fk ({ database , table , fk } : { 
+      database  : string; 
+      table     : string;
+      fk        : string;
+    }) {
+      const sql = [
+        `
+        SELECT 
+          TABLE_SCHEMA as "Database", 
+          TABLE_NAME as "Table", 
+          CONSTRAINT_NAME as "Fk"
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        `,
+        `
+        WHERE REFERENCED_TABLE_NAME IS NOT NULL
+          AND TABLE_SCHEMA    = '${database}'
+          AND TABLE_NAME      = '${table}'
+          AND CONSTRAINT_NAME = '${fk}'
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public format (sql: (string | null)[] | string) {
+      if(typeof sql === 'string') sql = [sql];
+      
       let formated = sql
       .filter((s) => s !== "" || s == null)
       .join(" ")

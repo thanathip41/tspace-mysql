@@ -2,6 +2,11 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
+DROP VIEW IF EXISTS user_post_counts;
+DROP TABLE IF EXISTS post_user;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE IF NOT EXISTS `posts` (
   `id` int NOT NULL,
   `uuid` varchar(50) DEFAULT NULL,
@@ -56,7 +61,7 @@ ALTER TABLE `post_user`
 ALTER TABLE `users`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
-CREATE VIEW `user_post_counts` AS
+CREATE OR REPLACE VIEW `user_post_counts` AS
 SELECT 
   row_number() OVER (ORDER BY `users`.`id`) AS `id`, 
   `users`.`id` AS `user_id`, 

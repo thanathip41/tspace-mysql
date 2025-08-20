@@ -84,9 +84,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
+        `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database}'
+          AND table_schema = '${database.replace(/\`/g, "")}'
         `,
       ];
 
@@ -104,16 +104,42 @@ export class PostgresQueryBuilder extends QueryBuilder {
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
-        `FROM information_schema.columns
-        WHERE table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database}'
+        `FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
+          AND TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
         `,
       ];
 
       return this.format(sql);
     }
 
-    public format (sql: (string | null)[]) {
+    public fk ({ database , table , fk } : { 
+      database  : string; 
+      table     : string;
+      fk        : string;
+    }) {
+      const sql = [
+        `
+        SELECT 
+          TABLE_CATALOG as "Database", 
+          TABLE_NAME as "Table", 
+          CONSTRAINT_NAME as "Fk"
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        `,
+        `
+        WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
+          AND TABLE_CATALOG    = '${database}'
+          AND TABLE_NAME       = '${table}'
+          AND CONSTRAINT_NAME  = '${fk}'
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public format (sql: (string | null)[] | string) {
+      if(typeof sql === 'string') sql = [sql];
+
       const formated = sql
       .filter((s) => s !== "" || s == null)
       .join(" ")

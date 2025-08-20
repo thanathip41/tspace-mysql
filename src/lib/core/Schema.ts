@@ -303,10 +303,11 @@ class Schema {
     changed: boolean;
     index: boolean;
   }) {
+   
     const checkTables = await this.$db.rawQuery(
       this.$db["$constants"]("SHOW_TABLES")
     );
-
+   
     const existsTables = checkTables.map(
       (c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0]
     );
@@ -315,7 +316,7 @@ class Schema {
       if (model == null) continue;
 
       const schemaModel = model.getSchemaModel();
-
+      
       if (!schemaModel) continue;
 
       const checkTableIsExists = existsTables.some(
@@ -427,8 +428,20 @@ class Schema {
 
         const { type, attributes } = this.detectSchema(schemaModel[column]);
 
-        if (type == null || findAfterIndex == null || attributes == null)
+        if (type == null || findAfterIndex == null || attributes == null) {
           continue;
+        }
+        
+        // console.log({
+        //   findAfterIndex,
+        //   indexWithColumn,
+        //   type,
+        //   attributes,
+        //   column,
+        //   missingColumns,
+        //   schemaTableKeys,
+        //   schemaTable
+        // })
 
         const sql = [
           this.$db["$constants"]("ALTER_TABLE"),

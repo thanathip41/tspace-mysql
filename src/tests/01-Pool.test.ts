@@ -20,7 +20,7 @@ describe('Testing Pool', function () {
   })
 
   it('Pool: It is Pool can open new connection?', async function () {
-    console.log('hi! try to connected ?')
+    
     const connect = await Pool.connection()
 
     expect(connect.query).to.be.an('function')

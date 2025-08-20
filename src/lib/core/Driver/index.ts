@@ -173,7 +173,13 @@ export abstract class QueryBuilder {
       table    : string;
     }) :string
 
-    public abstract format(sql: (string | null)[]): string
+    public abstract fk ({ database , table , fk } : { 
+      database  : string; 
+      table     : string;
+      fk        : string;
+    }) : string
+
+    public abstract format(sql: (string | null)[] | string): string
 
     protected abstract bindJoin(values: string[]): string | null
     protected abstract bindWhere(values: string[]): string | null

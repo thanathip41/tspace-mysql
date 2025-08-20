@@ -894,7 +894,7 @@ class Model<
 
       const columns = await this.getColumns();
 
-      const removeExcept = columns.filter((column: string) => {
+      const removeExcept = columns.map(v=> v.Field).filter((column: string) => {
         return excepts.every((except: string) => {
           if (/\./.test(except)) {
             const [table, _] = except.split(".");

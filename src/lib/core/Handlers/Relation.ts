@@ -63,14 +63,21 @@ class RelationHandler  {
 
             const childs :  Record<string,any>[] = await query
             .meta('SUBORDINATE')
-            .whereIn(foreignKey,parentIds)
+            .select(foreignKey)
             .selectRaw(`${this.$model["$constants"]('COUNT')}(\`${foreignKey}\`) ${this.$model["$constants"]('AS')} \`aggregate\``)
+            .whereIn(foreignKey,parentIds)
+            .groupBy(foreignKey)
             .debug(this.$model['$state'].get('DEBUG'))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
             .bind(this.$model['$pool'].get())
-            .groupBy(foreignKey)
             .get() 
+
+            console.log({
+                parents,
+                childs,
+                relation
+            })
 
             return this._relationMapData({ 
                 parents , 
@@ -852,7 +859,7 @@ class RelationHandler  {
         
         const children : Record<string , { values : Record<string,any>[] }> = [...childs]
         .reduce((prev, curr) => {
-
+            
             const key = +curr[foreignKey]
             
             if(Number.isNaN(key)) {
@@ -965,12 +972,13 @@ class RelationHandler  {
 
             const pivotResults : Record<string,any>[] = await queryPivot
             .meta('SUBORDINATE')
-            .whereIn(localKeyPivotTable,mainResultIds)
+            .select(localKeyPivotTable)
             .selectRaw(`${this.$model["$constants"]('COUNT')}(${localKeyPivotTable}) ${this.$model["$constants"]('AS')} \`aggregate\``)
+            .whereIn(localKeyPivotTable,mainResultIds)
+            .groupBy(localKeyPivotTable)
             .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))
             .when(relation.trashed, (query : Model) => query.onlyTrashed())
             .when(relation.all, (query : Model) => query.disableSoftDelete())
-            .groupBy(localKeyPivotTable)
             .bind(this.$model['$pool'].get())
             .debug(this.$model['$state'].get('DEBUG'))
             .get()
@@ -979,6 +987,7 @@ class RelationHandler  {
                 if(parent[name] == null) parent[name] = 0
                 for(const pivotResult of pivotResults) {
                     if(pivotResult[localKeyPivotTable] !== parent[foreignKey]) continue    
+                    
                     parent[name] = Number(pivotResult.aggregate ?? 0)
                 }
             }

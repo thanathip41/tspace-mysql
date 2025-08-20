@@ -45,7 +45,7 @@ export class Post extends Model {
             data :  { 
                 id          : Blueprint.int().notNull().primary().autoIncrement(),
                 uuid        : Blueprint.varchar(50).null(),
-                userId      : Blueprint.int().null(),
+                userId      : Blueprint.int().null().foreign({ on: User }),
                 title       : Blueprint.varchar(100).notNull(),
                 subtitle    : Blueprint.varchar(100).null(),
                 description : Blueprint.varchar(255).null(),
@@ -71,46 +71,14 @@ export class PostUser extends Model {
             data : { 
                 id          : Blueprint.int().notNull().primary().autoIncrement(),
                 uuid        : Blueprint.varchar(50).null(),
-                userId      : Blueprint.int().notNull(),
-                postId      : Blueprint.int().notNull(),
+                userId      : Blueprint.int().notNull().foreign({ on: User }),
+                postId      : Blueprint.int().notNull().foreign({ on: Post }),
                 createdAt   : Blueprint.timestamp().null(),
                 updatedAt   : Blueprint.timestamp().null(),
                 deletedAt   : Blueprint.timestamp().null()
             },
             pattern
         }))
-    }
-}
-
-export class UserDefault extends Model {
-    constructor() {
-        super()
-        this.useUUID()
-        this.useTimestamp()
-        this.useSoftDelete()
-        this.hasMany({ model : Post , name : 'posts'})
-        this.hasOne({ model : Post , name : 'post' })
-    }
-}
-
-export class PostDefault extends Model {
-    constructor() {
-        super()
-        this.useUUID()
-        this.useTimestamp()
-        this.useSoftDelete()
-        this.belongsTo({ name : 'user' , model : User })
-        this.belongsToMany({ name : 'subscribers' , model : User , modelPivot : PostUser })
-    }
-}
-
-export class PostUserDefault extends Model {
-    constructor() {
-        super()
-        this.useUUID()
-        this.useTimestamp()
-        this.useTableSingular()
-        this.useTimestamp()
     }
 }
 
