@@ -1,4 +1,5 @@
 import { QueryBuilder } from "..";
+import { Blueprint } from "../../Blueprint";
 import { StateHandler } from "../../Handlers/State";
 
 export class PostgresQueryBuilder extends QueryBuilder {
@@ -21,7 +22,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
             this.bindHaving(this.$state.get("HAVING")),
             this.bindOrderBy(this.$state.get("ORDER_BY")),
             this.bindLimit(this.$state.get("LIMIT")),
-            this.bindOffset(this.$state.get("OFFSET"))
+            this.bindOffset(this.$state.get("OFFSET")),   
+            this.bindRowLevelLock(this.$state.get("ROW_LEVEL_LOCK"))
         ];
 
         let sql  = this.format(combindSQL).trimEnd()
@@ -85,8 +87,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
           COLUMN_DEFAULT as "Default"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database.replace(/\`/g, "")}'
+        WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
+          AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
         `,
       ];
 
@@ -106,32 +108,233 @@ export class PostgresQueryBuilder extends QueryBuilder {
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
-          AND TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
+          AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
         `,
       ];
 
       return this.format(sql);
     }
 
-    public fk ({ database , table , fk } : { 
-      database  : string; 
-      table     : string;
-      fk        : string;
+    public tables (database : string) {
+      const sql = [
+        `SELECT table_name AS "TABLES"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = 'public'
+        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+        AND TABLE_TYPE = 'BASE TABLE'
+      `,
+      ];
+
+      return this.format(sql);
+    }
+
+    public tableCreating ({ table , schema } : {
+        table: string;
+        schema: Record<string,Blueprint>
+    }) {
+
+      let columns: Array<any> = [];
+
+      const detectSchema = (schema: Blueprint<any>) =>{
+        try {
+          return {
+            type: schema?.type ?? schema['_type'] ?? null,
+            attributes: schema?.attributes ?? schema['_attributes'] ?? null,
+          };
+        } catch (e) {
+          return {
+            type: null,
+            attributes: null,
+          };
+        }
+      }
+
+      for (const key in schema) {
+        const data = schema[key];
+        
+        const { type, attributes } = detectSchema(data);
+
+        if (type == null || attributes == null) continue;
+
+        const { 
+          formatedAttributes, 
+          formatedType 
+        } = this._formatedTypeAndAttributes({
+          type,
+          attributes,
+          key
+        })
+
+        columns = [...columns, `\`${key}\` ${formatedType} ${formatedAttributes.join(" ")}`];
+      }
+
+       const sql = [
+        `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
+        `${table} (${columns.join(", ")})`
+      ];
+
+      return this.format(sql);
+    }
+
+    public addColumn ({ table , column , type , attributes , after } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+        after       : string;
+    }) {
+
+      const { formatedAttributes , formatedType } = this._formatedTypeAndAttributes({
+        type,
+        attributes,
+        key : column
+      })
+
+      const sql = [
+        this.$constants("ALTER_TABLE"),
+        `\`${table}\``,
+        this.$constants("ADD"),
+        "COLUMN",
+        `\`${column}\` ${formatedType} ${
+          formatedAttributes != null && formatedAttributes.length
+            ? `${formatedAttributes.join(" ")}`
+            : ""
+        }`,
+        `${after ? '' : ''}`
+      ]
+
+      return this.format(sql);
+    }
+
+    public changeColumn ({ table , column , type , attributes } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+    }) {
+
+      const { formatedAttributes , formatedType } = this._formatedTypeAndAttributes({
+        type,
+        attributes,
+        key : column
+      })
+
+      const sql = [
+        this.$constants("ALTER_TABLE"),
+        `\`${table}\``,
+        this.$constants("ALTER_COLUMN"),
+        `\`${column}\``, 
+        `TYPE ${formatedType}`
+      ]
+
+      const sqlAttr = [];
+
+      for(const formatedAttribute of formatedAttributes) {
+        if(formatedAttribute.startsWith('PRIMARY KEY') ||
+          formatedAttribute.startsWith('NULL')
+        ) {
+          continue;
+        }
+
+        sqlAttr.push([
+           this.$constants("ALTER_TABLE"),
+          `\`${table}\``,
+          this.$constants("ALTER_COLUMN"),
+          `\`${column}\``, 
+          `SET ${formatedAttribute}`, 
+        ].join(" "))
+      }
+
+      if(!sqlAttr.length) {
+        return this.format(sql)
+      }
+
+      return [
+        this.format(sql),
+        this.format(sqlAttr)
+      ].join('; ');
+    }
+
+    public fkExists ({ database , table , constraint } : { 
+      database   : string; 
+      table      : string;
+      constraint : string;
     }) {
       const sql = [
         `
-        SELECT 
-          TABLE_CATALOG as "Database", 
-          TABLE_NAME as "Table", 
-          CONSTRAINT_NAME as "Fk"
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        `,
-        `
-        WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
-          AND TABLE_CATALOG    = '${database}'
+        SELECT EXISTS( 
+          SELECT 1
+          FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+          WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
+          AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
           AND TABLE_NAME       = '${table}'
-          AND CONSTRAINT_NAME  = '${fk}'
+          AND CONSTRAINT_NAME  = '${constraint}'
+        ) AS "IS_EXISTS"
         `
+      ]
+
+      return this.format(sql);
+    }
+
+    public fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+      table         : string; 
+      tableRef      : string;
+      key           : string;
+      constraint    : string;
+      foreign : {
+        references  : string,
+        onDelete    : string,
+        onUpdate    : string
+      }
+    }) {
+      
+      const sql = [
+        `${this.$constants("ALTER_TABLE")}`,
+        `\`${table}\``,
+        `${this.$constants("ADD_CONSTRAINT")}`,
+        `\`${constraint}\``,
+        `${this.$constants("FOREIGN_KEY")}(\`${key}\`)`,
+        `${this.$constants("REFERENCES")} \`${tableRef}\`(\`${foreign.references}\`)`,
+        `${this.$constants("ON_DELETE")} ${foreign.onDelete}`,
+        `${this.$constants("ON_UPDATE")} ${foreign.onUpdate}`,
+      ].join(" ");
+
+      return this.format(sql);
+    }
+
+    public indexExists ({ database , table , index } : { 
+      database : string; 
+      table    : string;
+      index    : string;
+    }) {
+      database = 'public';
+
+      const sql = [
+        `
+        SELECT EXISTS( 
+          SELECT 1
+          FROM pg_indexes
+          WHERE SCHEMANAME = '${database}'
+          AND TABLENAME = '${table}'
+          AND INDEXNAME = '${index}'
+        ) AS "IS_EXISTS"
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public indexCreating ({ table, index , key } : { 
+      table      : string; 
+      index      : string;
+      key        : string;
+    }) {
+      
+      const sql = [
+        `${this.$constants("CREATE_INDEX")}`,
+        `\`${index}\``,
+        `${this.$constants("ON")}`,
+        `${table}(\`${key}\`)`
       ]
 
       return this.format(sql);
@@ -166,7 +369,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
           const replacedString = sqlString
           .replace(/`([^`]+)`/g, '"$1"')
-          .replace(/table_schema/gi, "table_catalog");
+          // .replace(/TABLE_CATALOG/gi, "table_catalog");
           return replacedString;
       };
       return replaceBackticksWithDoubleQuotes(formated);
@@ -264,4 +467,60 @@ export class PostgresQueryBuilder extends QueryBuilder {
     protected bindHaving (having: string) {
       return having
     };
+
+    protected bindRowLevelLock (mode: string) {
+      return mode
+    };
+
+    private _formatedTypeAndAttributes ({ type , attributes, key } : {
+      type : string;
+      attributes: string[];
+      key : string;
+    }) {
+
+      let formatedType = type;
+      let formatedAttributes = attributes;
+
+      if(type.startsWith('INT') && attributes.some(v => v === 'PRIMARY KEY')) {
+
+        formatedType = 'SERIAL';
+        formatedAttributes = attributes.filter(attr => {
+          return !attr.startsWith('AUTO_INCREMENT');
+        })
+      }
+
+      if(type.startsWith('TINYINT')) {
+        formatedType = 'SMALLINT';
+      }
+
+      if(type.startsWith('LONGTEXT')) {
+        formatedType = 'TEXT';
+      }
+
+      if(type.startsWith('ENUM')) {
+        const enums = type.replace('ENUM','');
+
+        const totalLength = enums.slice(1, -1).split(',')
+        .map(s => s.replace(/'/g, ''))
+        .reduce((sum, item) => sum + item.length, 0);
+
+        formatedType = `VARCHAR(${totalLength}) CHECK (${key} IN ${enums})`
+      }
+
+      if(type.startsWith('BOOLEAN')) {
+        formatedAttributes = attributes.map(attr => {
+          if(attr.startsWith('DEFAULT')) {
+            return attr.replace(/\b0\b/, 'false').replace(/\b1\b/, 'true')
+          }
+
+          return attr
+        })
+      }
+
+      return {
+        formatedType,
+        formatedAttributes
+      }
+
+    }
 }

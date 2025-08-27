@@ -1,7 +1,6 @@
 import chai , { expect  } from 'chai'
 import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
-import { User as UserWithOutSchema } from './default-spec';
 import { User as UserWithSchema } from './schema-spec';
 import { Meta } from '../lib';
 

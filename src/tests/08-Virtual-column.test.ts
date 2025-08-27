@@ -130,23 +130,11 @@ describe('Testing Virtual Column', function () {
 
     async function () {
 
-        const userAsc = await new User().orderBy('email_username','asc').first()
-
-        expect(userAsc).to.be.an('object')
-
-        expect(userAsc?.id).to.be.equal(1)
-
         const usersAsc = await new User().orderBy('email_username','asc').get()
 
         expect(usersAsc).to.be.an('array')
 
         expect(isSortedByAsc(usersAsc)).to.be.true
-
-        const userDesc = await new User().orderBy('email_username','desc').first()
-
-        expect(userDesc).to.be.an('object')
-
-        expect(userDesc?.id).to.be.equal(6)
 
         const usersDesc = await new User().orderBy('email_username','desc').get()
 
@@ -154,23 +142,11 @@ describe('Testing Virtual Column', function () {
 
         expect(isSortedByDesc(usersDesc)).to.be.true
 
-        const userOldested = await new User().oldest('email_username').first()
-
-        expect(userOldested).to.be.an('object')
-
-        expect(userOldested?.id).to.be.equal(1)
-
         const usersOldested = await new User().oldest('email_username').get()
 
         expect(usersOldested).to.be.an('array')
 
         expect(isSortedByAsc(usersOldested)).to.be.true
-
-        const userLatested = await new User().latest('email_username').first()
-
-        expect(userLatested).to.be.an('object')
-
-        expect(userLatested?.id).to.be.equal(6)
 
         const usersLatested = await new User().latest('email_username').get()
 

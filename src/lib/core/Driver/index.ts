@@ -3,6 +3,7 @@ import { TConstant, TPoolConnected } from "../../types"
 import { StateHandler } from "../Handlers/State";
 import Tool from '../../tools'
 import { CONSTANTS } from '../../constants';
+import Blueprint from '../Blueprint';
 
 export abstract class BaseDriver extends EventEmitter {
 
@@ -173,10 +174,56 @@ export abstract class QueryBuilder {
       table    : string;
     }) :string
 
-    public abstract fk ({ database , table , fk } : { 
-      database  : string; 
-      table     : string;
-      fk        : string;
+    public abstract tables (database: string) :string
+
+    public abstract tableCreating ({ table , schema } : {
+        table: string;
+        schema: Record<string,Blueprint>
+    }) :string
+
+    public abstract addColumn ({ table , column , type , attributes , after } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+        after       : string;
+    }) :string
+
+    public abstract changeColumn ({ table , column , type , attributes } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+    }) :string
+
+    public abstract fkExists ({ database , table , constraint } : { 
+      database   : string; 
+      table      : string;
+      constraint : string;
+    }) : string
+
+    public abstract fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+      table         : string; 
+      tableRef      : string;
+      key           : string;
+      constraint    : string;
+      foreign : {
+        references  : string,
+        onDelete    : string,
+        onUpdate    : string
+      }
+    }): string
+
+    public abstract indexExists ({ database , table , index } : { 
+      database   : string; 
+      table      : string;
+      index      : string;
+    }) : string
+
+    public abstract indexCreating ({ table, index , key } : { 
+      table      : string; 
+      index      : string;
+      key        : string;
     }) : string
 
     public abstract format(sql: (string | null)[] | string): string

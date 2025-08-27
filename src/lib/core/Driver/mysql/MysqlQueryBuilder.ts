@@ -1,4 +1,5 @@
 import { QueryBuilder } from "..";
+import { Blueprint } from "../../Blueprint";
 import { StateHandler } from "../../Handlers/State";
 
 export class MysqlQueryBuilder extends QueryBuilder {
@@ -21,7 +22,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
             this.bindHaving(this.$state.get("HAVING")),
             this.bindOrderBy(this.$state.get("ORDER_BY")),
             this.bindLimit(this.$state.get("LIMIT")),
-            this.bindOffset(this.$state.get("OFFSET"))
+            this.bindOffset(this.$state.get("OFFSET")),
+            this.bindRowLevelLock(this.$state.get("ROW_LEVEL_LOCK"))
         ];
 
         let sql  = this.format(combindSQL).trimEnd()
@@ -113,25 +115,180 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public fk ({ database , table , fk } : { 
-      database  : string; 
-      table     : string;
-      fk        : string;
+    public tables (database: string) {
+      const sql = [
+        `SHOW TABLES FROM \`${database.replace(/\`/g, "")}\``
+      ];
+
+      return this.format(sql);
+    }
+
+    public tableCreating ({ table , schema } : {
+        table: string;
+        schema: Record<string,Blueprint>
+    }) {
+
+      let columns: Array<any> = [];
+
+      const detectSchema = (schema: Blueprint<any>) =>{
+        try {
+          return {
+            type: schema?.type ?? schema['_type'] ?? null,
+            attributes: schema?.attributes ?? schema['_attributes'] ?? null,
+          };
+        } catch (e) {
+          return {
+            type: null,
+            attributes: null,
+          };
+        }
+      }
+
+      for (const key in schema) {
+        const data = schema[key];
+        
+        const { type, attributes } = detectSchema(data);
+
+        if (type == null || attributes == null) continue;
+
+        columns = [...columns, `\`${key}\` ${type} ${attributes.join(" ")}`];
+      }
+
+       const sql = [
+        `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
+        `${table} (${columns.join(", ")})`,
+        `${this.$constants("ENGINE")}`,
+      ];
+
+      return this.format(sql);
+    }
+
+    public  addColumn ({ table , column , type , attributes , after } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+        after       : string;
+    }) {
+
+      const sql = [
+        this.$constants("ALTER_TABLE"),
+        `\`${table}\``,
+        this.$constants("ADD"),
+        `\`${column}\` ${type} ${
+          attributes != null && attributes.length
+            ? `${attributes.join(" ")}`
+            : ""
+        }`,
+        this.$constants("AFTER"),
+        `\`${after}\``,
+      ]
+
+      return this.format(sql);
+    }
+
+    public changeColumn ({ table , column , type , attributes } : {
+        table       : string;
+        column      : string;
+        type        : string;
+        attributes  : string[];
+    }) {
+
+      const sql = [
+        this.$constants("ALTER_TABLE"),
+        `\`${table}\``,
+        this.$constants("CHANGE"),
+        `\`${column}\``,
+        `\`${column}\` ${type} ${
+          attributes != null && attributes.length
+            ? `${attributes
+            .filter((v:string) => !['PRIMARY KEY']
+            .includes(v)).join(" ")}`
+            : ""
+        }`,
+      ]
+
+      return this.format(sql);
+    }
+
+    public fkExists ({ database , table , constraint } : { 
+      database   : string; 
+      table      : string;
+      constraint : string;
     }) {
       const sql = [
         `
-        SELECT 
-          TABLE_SCHEMA    as "Database", 
-          TABLE_NAME      as "Table", 
-          CONSTRAINT_NAME as "Fk"
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        `,
-        `
-        WHERE REFERENCED_TABLE_NAME IS NOT NULL
+        SELECT EXISTS( 
+          SELECT 1
+          FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+          WHERE REFERENCED_TABLE_NAME IS NOT NULL
           AND TABLE_SCHEMA    = '${database}'
           AND TABLE_NAME      = '${table}'
-          AND CONSTRAINT_NAME = '${fk}'
+          AND CONSTRAINT_NAME = '${constraint}'
+        ) AS "IS_EXISTS"
         `
+      ]
+
+      return this.format(sql);
+    }
+
+    public fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+      table         : string; 
+      tableRef      : string;
+      key           : string;
+      constraint    : string;
+      foreign : {
+        references  : string,
+        onDelete    : string,
+        onUpdate    : string
+      }
+    }) {
+      
+      const sql = [
+        `${this.$constants("ALTER_TABLE")}`,
+        `\`${table}\``,
+        `${this.$constants("ADD_CONSTRAINT")}`,
+        `\`${constraint}\``,
+        `${this.$constants("FOREIGN_KEY")}(\`${key}\`)`,
+        `${this.$constants("REFERENCES")} \`${tableRef}\`(\`${foreign.references}\`)`,
+        `${this.$constants("ON_DELETE")} ${foreign.onDelete}`,
+        `${this.$constants("ON_UPDATE")} ${foreign.onUpdate}`,
+      ].join(" ");
+
+      return this.format(sql);
+    }
+
+    public indexExists ({ database , table , index } : { 
+      database : string; 
+      table    : string;
+      index    : string;
+    }) {
+      const sql = [
+        `
+        SELECT EXISTS(
+          SELECT 1
+          FROM information_schema.STATISTICS
+          WHERE TABLE_SCHEMA  = '${database}'
+          AND TABLE_NAME      = '${table}'
+          AND INDEX_NAME = '${index}'
+        ) AS "IS_EXISTS"
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public indexCreating ({ table, index , key } : { 
+      table      : string; 
+      index      : string;
+      key        : string;
+    }) {
+      
+      const sql = [
+        `${this.$constants("CREATE_INDEX")}`,
+        `\`${index}\``,
+        `${this.$constants("ON")}`,
+        `${table}(\`${key}\`)`
       ]
 
       return this.format(sql);
@@ -237,5 +394,9 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
     protected bindHaving (having: string) {
       return having
+    };
+
+    protected bindRowLevelLock (mode: string) {
+      return mode
     };
 }

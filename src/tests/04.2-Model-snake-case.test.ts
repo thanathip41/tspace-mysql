@@ -3,7 +3,7 @@ import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
 import { Post, postSchemaArray, postSchemaObject, PostUser, User, userSchemaArray, userSchemaObject , pattern } from './schema-spec';
 import { postDataArray, postDataObject, userDataArray, userDataObject } from './mock-data-spec'
-import { Model } from '../lib'
+import { DB, Model } from '../lib'
 
 chai.use(chaiJsonSchema)
 
@@ -18,6 +18,10 @@ describe('Testing Model with Pattern & Schema', function () {
     - Sync Fk
   `, 
   async function () {
+
+    await new DB('user_post_counts').drop({ force : true , view : true }).catch(err => {
+      return false
+    })
 
     const dropPostUser = await new PostUser().drop({ force : true}).catch(err => {
       return false
@@ -422,6 +426,57 @@ describe('Testing Model with Pattern & Schema', function () {
       expect(notExists).to.be.not.equal(null)
 
   })
+
+  it(`Relation : withCount 'users' and 'subscribers' ?`, 
+      async function () {
+  
+        await new User().where('id','>=',1).deleteMany()
+        await new Post().where('id','>=',1).deleteMany()
+  
+  
+        await new User().createMultiple(userDataArray).save()
+       
+        const usersWithoutPosts = await new User()
+        .withCount('posts')
+        .get()
+       
+        for(const user of usersWithoutPosts) {
+          expect(user?.posts).to.be.equal(0)
+  
+          await new Post()
+          .createMultiple(postDataArray.map(v => ({ ...v, user_id : user.id })))
+          .save()
+  
+          const posts =  await new Post()
+          .where('user_id',user.id)
+          .get()
+  
+          for(const post of posts) {
+            await new PostUser()
+            .create({
+              user_id : user.id,
+              post_id : post.id
+            })
+            .save()
+          }
+        }
+  
+        const users = await new User()
+        .withCount('posts')
+        .get()
+  
+        for(const user of users) {
+          expect(user?.posts).to.be.equal(5)
+        }
+  
+        const posts = await new Post()
+        .withCount('subscribers')
+        .get()
+  
+        for(const post of posts) {
+           expect(post?.subscribers).to.be.not.equal(5)
+        }
+    })
 
   /* ###################################################### */
 })

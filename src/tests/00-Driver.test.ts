@@ -38,7 +38,7 @@ describe('Testing Driver', function () {
       await new DB().query(stmt).catch(err => console.log(err))
     }
 
-    await new Promise(r => setTimeout(r, 1000 * 8));
+    await new Promise(r => setTimeout(r, 1000 * 5));
   })
   /* ###################################################### */
 })

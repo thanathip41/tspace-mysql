@@ -47,6 +47,25 @@ class Builder extends AbstractBuilder {
   }
 
   /**
+   * The 'rowLock' method is used to row level locks
+   * 
+   * @param {string} mode 
+   * @returns {this} this
+   */
+  rowLock(mode: 'FOR_UPDATE' | 'FOR_SHARE'): this {
+    if (!['FOR_UPDATE', 'FOR_SHARE'].includes(mode)) {
+      throw new Error(`Invalid lock mode: ${mode}`);
+    }
+
+    this.$state.set(
+      'ROW_LEVEL_LOCK',
+      mode === 'FOR_UPDATE' ? this.$constants('ROW_LEVEL_LOCK').update : this.$constants('ROW_LEVEL_LOCK').share
+    );
+    
+    return this;
+  }
+
+  /**
    * The 'unset' method is used to drop a property as desired.
    * @param {object} options
    * @property {boolean | undefined} options.select
@@ -4262,16 +4281,27 @@ class Builder extends AbstractBuilder {
     sql = this._queryBuilder().format([sql])
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
+    const startTime = +new Date();
+
     const result = await this.$pool.query(sql);
+
+    const endTime = +new Date();
+
+    if (this.$state.get("DEBUG")) this.$utils.consoleExec(startTime, endTime);
 
     return result;
   }
 
   protected async _actionStatement(sql: string) {
-    // sql = this._queryBuilder().format([sql])
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
+    const startTime = +new Date();
+
     const result = await this.$pool.query(sql);
+
+    const endTime = +new Date();
+
+    if (this.$state.get("DEBUG")) this.$utils.consoleExec(startTime, endTime);
 
     return result;
   }

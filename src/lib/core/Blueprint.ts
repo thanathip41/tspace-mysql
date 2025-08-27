@@ -1,5 +1,8 @@
 import { Model } from "./Model";
 
+type HasType = { _type: string };
+type NoType = {};
+
 /**
  * Class 'Blueprint' is used to make the schema for table
  * @example
@@ -16,7 +19,7 @@ import { Model } from "./Model";
  *      deleted_at  : Blueprint.timestamp().null()
  *   })
  */
-class Blueprint<T = any> {
+class Blueprint<T = any, S = NoType> {
   private _default: unknown = null;
   private _enum :string[] = [];
   private _type: string = "INT";
@@ -24,6 +27,7 @@ class Blueprint<T = any> {
   private _foreignKey: Record<string, any> | null = null;
   private _index: string | null = null;
   private _column: string | null = null;
+  private _isVirtual: boolean = false;
   private _sql: {
     select?: string;
     where?: string;
@@ -52,6 +56,7 @@ class Blueprint<T = any> {
    */
   virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
     const instance = new Blueprint();
+    instance._isVirtual = true;
     if (typeof sql === "object" && sql !== null) {
       instance._sql = sql;
       return instance;
@@ -769,11 +774,6 @@ class Blueprint<T = any> {
     return this;
   }
 
-  bindColumn(column: string) {
-    this._column = column;
-    return this;
-  }
-
   get sql() {
     return this._sql;
   }
@@ -807,6 +807,10 @@ class Blueprint<T = any> {
 
   get valueDefault() {
     return this._default
+  }
+
+  get isVirtual() {
+    return this._isVirtual
   }
 
   private _addAssignType(type: string) {

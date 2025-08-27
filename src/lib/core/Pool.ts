@@ -3,8 +3,6 @@ import { Tool }             from '../tools'
 import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
 import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
 import { MariadbDriver }    from './Driver/mariadb/MariadbDriver';
-import { MssqlDriver }      from './Driver/mssql/MssqlDriver';
-import { Sqlite3Driver }    from './Driver/sqlite3/Sqlite3Driver';
 
 import options, { loadOptionsEnvironment } from "../config";
 
@@ -47,14 +45,6 @@ export class PoolConnection extends EventEmitter {
           return new MariadbDriver(options).connect()
       }
 
-      case 'mssql': {
-          return new MssqlDriver(options).connect()
-      }
-
-      case 'sqlite3': {
-          return new Sqlite3Driver(options).connect()
-      }
-
       default:
         throw new Error("No default driver specified");
     }
@@ -74,14 +64,6 @@ export class PoolConnection extends EventEmitter {
 
       case 'mariadb': {
           return new MariadbDriver(options).disconnect()
-      }
-
-      case 'mssql': {
-          return new MssqlDriver(options).disconnect()
-      }
-
-      case 'sqlite3': {
-          return new Sqlite3Driver(options).disconnect()
       }
 
       default:

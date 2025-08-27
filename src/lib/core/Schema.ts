@@ -1,6 +1,8 @@
 import { Builder } from "./Builder";
 import { Model } from "./Model";
 import { Tool } from "../tools";
+import Blueprint from "./Blueprint";
+import { QueryBuilder } from "./Driver";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -44,24 +46,9 @@ class Schema {
     }
   };
 
-  public createTable = (table: string, schemas: Record<string, any>) => {
-    let columns: Array<any> = [];
-
-    for (const key in schemas) {
-      const data = schemas[key];
-      
-      const { type, attributes } = this.detectSchema(data);
-
-      if (type == null || attributes == null) continue;
-
-      columns = [...columns, `\`${key}\` ${type} ${attributes.join(" ")}`];
-    }
-
-    return [
-      `${this.$db["$constants"]("CREATE_TABLE_NOT_EXISTS")}`,
-      `${table} (${columns.join(", ")})`,
-      `${this.$db["$constants"]("ENGINE")}`,
-    ].join(" ");
+  public createTable = (table: string, schema: Record<string, any>) => {
+    const query =  this.$db['_queryBuilder']() as QueryBuilder;
+    return query.tableCreating({ table , schema })
   };
 
   public detectSchema(schema: Record<string, any>) {
@@ -304,8 +291,12 @@ class Schema {
     index: boolean;
   }) {
    
-    const checkTables = await this.$db.rawQuery(
-      this.$db["$constants"]("SHOW_TABLES")
+    const query =  this.$db['_queryBuilder']() as QueryBuilder;
+
+    const checkTables = await this.$db
+    .debug(log)
+    .rawQuery(
+      query.tables(this.$db.database())
     );
    
     const existsTables = checkTables.map(
@@ -315,14 +306,24 @@ class Schema {
     for (const model of models) {
       if (model == null) continue;
 
-      const schemaModel = model.getSchemaModel();
+      const query = model['_queryBuilder']() as QueryBuilder;
+
+      let rawSchemaModel = model.getSchemaModel();
       
-      if (!schemaModel) continue;
+      if (!rawSchemaModel) continue;
+
+      const schemaModel : Record<string,Blueprint> = {};
+
+      for (const column in rawSchemaModel) {
+        const blueprint = rawSchemaModel[column];
+        if(blueprint.isVirtual) continue;
+        schemaModel[column] = blueprint;
+      }
 
       const checkTableIsExists = existsTables.some(
         (table: string) => table === model.getTableName()
       );
-
+    
       if (!checkTableIsExists) {
         const sql = this.createTable(
           `\`${model.getTableName()}\``,
@@ -331,9 +332,8 @@ class Schema {
 
         await model.debug(log).rawQuery(sql);
 
-        const beforeCreatingTheTable = model["$state"].get(
-          "BEFORE_CREATING_TABLE"
-        );
+        const beforeCreatingTheTable = model["$state"]
+        .get("BEFORE_CREATING_TABLE");
 
         if (beforeCreatingTheTable != null) await beforeCreatingTheTable();
       }
@@ -362,6 +362,36 @@ class Schema {
       );
       const schemaModelKeys = Object.keys(schemaModel);
 
+       const isTypeMatch = ({ typeTable, typeSchema } : { typeTable : string, typeSchema : string}) => {
+        const mappings: Record<string, (string | RegExp)[]> = {
+          integer: ['int', 'integer'],
+          'character varying': [/^varchar\(\d+\)$/i, 'varchar'],
+          boolean: ['boolean', 'tinyint(1)'],
+          smallint: ['smallint', 'tinyint(1)'],
+          json: ['json'],
+          text: ['text', /^longtext$/i],
+          'timestamp without time zone': ['timestamp', 'datetime'],
+        };
+
+        if (typeTable === 'character varying' && /^enum\(.+\)$/i.test(typeSchema)) {
+          return true;
+        }
+
+        if (typeTable in mappings) {
+          return mappings[typeTable].some((pattern) => {
+            if (typeof pattern === 'string') {
+              return typeSchema.toLowerCase() === pattern.toLowerCase();
+            }
+            if (pattern instanceof RegExp) {
+              return pattern.test(typeSchema.toLowerCase());
+            }
+            return false;
+          });
+        }
+
+        return false;
+      }
+
       const wasChangedColumns = changed
         ? Object.entries(schemaModel)
             .map(([key, value]) => {
@@ -373,13 +403,8 @@ class Schema {
               const typeTable = String(find.Type).toLowerCase()
               const typeSchema = String(value.type).toLowerCase()
 
-              const changed = !typeSchema.startsWith(typeTable);
-
-              if(changed) {
-                if(typeSchema === 'boolean' && typeTable === 'tinyint(1)') {
-                  return null
-                }
-              }
+              const changed = !isTypeMatch({ typeTable, typeSchema }) 
+             
               return changed ? key : null;
             })
             .filter((d) => d != null)
@@ -407,7 +432,15 @@ class Schema {
             }`,
           ].join(" ");
 
-          await this.$db.debug(log).rawQuery(sql);
+          await this.$db
+          .debug(log)
+          .rawQuery(query.changeColumn({
+            table: model.getTableName(),
+            type,
+            column,
+            attributes
+          }));
+         
         }
       }
 
@@ -432,31 +465,15 @@ class Schema {
           continue;
         }
         
-        // console.log({
-        //   findAfterIndex,
-        //   indexWithColumn,
-        //   type,
-        //   attributes,
-        //   column,
-        //   missingColumns,
-        //   schemaTableKeys,
-        //   schemaTable
-        // })
-
-        const sql = [
-          this.$db["$constants"]("ALTER_TABLE"),
-          `\`${model.getTableName()}\``,
-          this.$db["$constants"]("ADD"),
-          `\`${column}\` ${type} ${
-            attributes != null && attributes.length
-              ? `${attributes.join(" ")}`
-              : ""
-          }`,
-          this.$db["$constants"]("AFTER"),
-          `\`${findAfterIndex}\``,
-        ].join(" ");
-
-        await this.$db.debug(log).rawQuery(sql);
+        await this.$db
+        .debug(log)
+        .rawQuery(query.addColumn({
+          table: model.getTableName(),
+          type,
+          column,
+          attributes,
+          after: findAfterIndex
+        }));
       }
 
       await this._syncForeignKey({
@@ -484,13 +501,13 @@ class Schema {
 
       if (foreign.on == null) continue;
 
-      const onReference =
-        typeof foreign.on === "string" ? foreign.on : new foreign.on();
+      const onReference = typeof foreign.on === "string" 
+      ? foreign.on 
+      : new foreign.on();
 
-      const table =
-        typeof onReference === "string"
-          ? onReference
-          : onReference.getTableName();
+      const table = typeof onReference === "string"
+      ? onReference
+      : onReference.getTableName();
 
       const generateConstraintName = ({ modelTable,key, foreignTable, foreignKey }: {
         modelTable: string;
@@ -526,47 +543,64 @@ class Schema {
         key,
         foreignTable: table,
         foreignKey: foreign.references
-      });
+      }).replace(/`/g,'')
       
-      const constants = this.$db["$constants"];
-
-      const sql = [
-        constants("ALTER_TABLE"),
-        `\`${model.getTableName()}\``,
-        constants("ADD_CONSTRAINT"),
-        constraintName,
-        `${constants("FOREIGN_KEY")}(\`${key}\`)`,
-        `${constants("REFERENCES")} \`${table}\`(\`${foreign.references}\`)`,
-        `${constants("ON_DELETE")} ${foreign.onDelete}`,
-        `${constants("ON_UPDATE")} ${foreign.onUpdate}`,
-      ].join(" ");
+      const query = model['_queryBuilder']() as QueryBuilder;
 
       try {
-        await this.$db.debug(log).rawQuery(sql);
-      } catch (e: any) {
-        if (typeof onReference === "string") continue;
-        const message = String(e.message);
+        const [FK] = await this.$db
+        .debug(log)
+        .rawQuery(query.fkExists({ 
+          database   : this.$db.database(),
+          table      : model.getTableName(),
+          constraint : constraintName
+        }));
 
-        if (
-          message.includes("Duplicate foreign key constraint") || 
-          message.includes('Duplicate key on write or update')) {
-          continue;
-        }
+        if(FK.IS_EXISTS) continue;
+
+        await this.$db.debug(log)
+        .rawQuery(query.fkCreating(
+          {
+            table: model.getTableName(),
+            tableRef : table,
+            key,
+            constraint: constraintName,
+            foreign: {
+              references : foreign.references,
+              onDelete: foreign.onDelete,
+              onUpdate : foreign.onUpdate
+            }
+          })
+        );
+      } catch (e: any) {
         
         const schemaModelOn = await onReference.getSchemaModel();
 
         if (!schemaModelOn) continue;
 
         const tableSql = this.createTable(`\`${table}\``, schemaModelOn);
+
         await this.$db
-          .debug(log)
-          .rawQuery(tableSql)
-          .catch((e) => console.log(e));
+        .debug(log)
+        .rawQuery(tableSql)
+        .catch((e) => console.log(e));
+
         await this.$db
-          .debug(log)
-          .rawQuery(sql)
-          .catch((e) => console.log(e));
-        continue;
+        .debug(log)
+        .rawQuery(query.fkCreating(
+          {
+            table: model.getTableName(),
+            tableRef : table,
+            key,
+            constraint: constraintName,
+            foreign: {
+              references  : foreign.references,
+              onDelete    : foreign.onDelete,
+              onUpdate    : foreign.onUpdate
+            }
+          })
+        )
+        .catch((e) => console.log(e));
       }
     }
   }
@@ -587,31 +621,46 @@ class Schema {
 
       const table = model.getTableName();
 
-      const index = name == "" ? `\`idx_${table}(${key})\`` : `\`${name}\``;
-
-      const sql = [
-        `${this.$db["$constants"]("CREATE_INDEX")}`,
-        `${index}`,
-        `${this.$db["$constants"]("ON")}`,
-        `${table}(\`${key}\`)`,
-      ].join(" ");
+      const index = name == "" ? `idx_${table}(${key})` : name
+      
+      const query = model['_queryBuilder']() as QueryBuilder;
 
       try {
-        await this.$db.debug(log).rawQuery(sql);
+
+        const [INDEX] = await this.$db
+        .debug(log)
+        .rawQuery(query.indexExists({ 
+          database : this.$db.database(),
+          table    : model.getTableName(),
+          index    : index
+        }));
+
+        if(INDEX.IS_EXISTS) continue;
+
+        await this.$db
+        .debug(log)
+        .rawQuery(query.indexCreating({ 
+          table   : model.getTableName(),
+          index   : index,
+          key     : key
+        }));
       } catch (err: any) {
-        if (String(err.message).includes("Duplicate key name")) continue;
 
         const tableSql = this.createTable(`\`${table}\``, schemaModel);
 
         await this.$db
-          .debug(log)
-          .rawQuery(tableSql)
-          .catch((e) => console.log(e));
+        .debug(log)
+        .rawQuery(tableSql)
+        .catch((e) => console.log(e));
+
         await this.$db
-          .debug(log)
-          .rawQuery(sql)
-          .catch((e) => console.log(e));
-        continue;
+        .debug(log)
+        .rawQuery(query.indexCreating({ 
+          table   : model.getTableName(),
+          index   : index,
+          key     : key
+        }))
+        .catch((e) => console.log(e));
       }
     }
   }

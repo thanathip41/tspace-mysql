@@ -87,6 +87,7 @@ const CONSTANTS = Object.freeze({
     ADD_CONSTRAINT : 'ADD CONSTRAINT',
     AFTER : 'AFTER',
     ALTER_TABLE : 'ALTER TABLE',
+    ALTER_COLUMN: 'ALTER COLUMN',
     IFNULL : 'IFNULL',
     JSON_ARRAY : 'JSON_ARRAY',
     JSON_ARRAYAGG : 'JSON_ARRAYAGG',
@@ -105,6 +106,10 @@ const CONSTANTS = Object.freeze({
         maybeSnake_case : 'maybeSnake_case',
         snake_case : 'snake_case',
         camelCase : 'camelCase'
+    },
+    ROW_LEVEL_LOCK : {
+        update : 'FOR UPDATE',
+        share  : 'LOCK IN SHARE MODE'
     }
 })
 

@@ -31,6 +31,7 @@ const STATE_DEFAULT = {
   RAW_ALIAS: null as string | null,
   UNION: [] as string[],
   UNION_ALL: [] as string[],
+  ROW_LEVEL_LOCK : '' as string
 } as const
 
 const STATE_DB = {

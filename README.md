@@ -7,8 +7,9 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 
 ## Feature
 
-| **Feature**                   | **Description**                                                                                          |
-|-------------------------------|----------------------------------------------------------------------------------------------------------|
+| **Feature**                    | **Description**                                                                                         |
+|--------------------------------|---------------------------------------------------------------------------------------------------------|
+| **Supports Driver**            | MySQL ✅ / MariaDB ✅ / Postgres ✅ MSSQL ⏳ / SQLite3 ⏳ / Oracle ⏳                                |
 | **Query Builder**              | Create flexible queries like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. You can also use raw SQL.      |
 | **Join Clauses**               | Use `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, and `CROSS JOIN` to combine data from multiple tables.     |
 | **Model**                      | Provides a way to interact with database records as objects in code. You can perform create, read, update, and delete (CRUD) operations. Models also support soft deletes and relationship methods. |
@@ -31,8 +32,20 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 Install with [npm](https://www.npmjs.com/):
 
 ```sh
+# Install tspace-mysql locally for your project
 npm install tspace-mysql --save
-npm install tspace-mysql -g
+
+# Install tspace-mysql globally (optional)
+npm install -g tspace-mysql
+
+# Install database drivers if needed:
+# For MariaDB
+npm install mariadb --save
+
+# For PostgreSQL
+npm install pg --save
+
+# MySQL2 driver is installed by default with tspace-mysql
 ```
 
 ## Basic Usage
@@ -77,6 +90,7 @@ npm install tspace-mysql -g
   - [Union](#union)
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
+- [Race Condition](#race-condition)
 - [Connection](#connection)
 - [Backup](#backup)
 - [Injection](#injection)
@@ -151,6 +165,9 @@ npm install tspace-mysql -g
 To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
 
 ```js
+DB_DRIVER = mysql 
+// DB_DRIVER = mariadb
+// DB_DRIVER = postgres
 DB_HOST = localhost;
 DB_PORT = 3306;
 DB_USERNAME = root;
@@ -1262,14 +1279,14 @@ makeCreateTableStatement()
 Within a database transaction, you can utilize the following:
 
 ```js
-const connection = await new DB().beginTransaction();
+const trx = await new DB().beginTransaction();
 
 try {
   /**
    *
    * @startTransaction start transaction in scopes function
    */
-  await connection.startTransaction();
+  await trx.startTransaction();
 
   const user = await new User()
     .create({
@@ -1278,10 +1295,10 @@ try {
     })
     /**
      *
-     * bind method for make sure this connection has same transaction in connection
-     * @params {Function} connection
+     * bind method for make sure this trx has same transaction in trx
+     * @params {Function} trx
      */
-    .bind(connection)
+    .bind(trx)
     .save();
 
   const posts = await new Post()
@@ -1299,17 +1316,17 @@ try {
         title: `tspace-post3`,
       },
     ])
-    .bind(connection) // don't forget this
+    .bind(trx) // don't forget this
     .save();
 
   /**
    *
    * @commit commit transaction to database
    */
-  // After your use commit if use same connection for actions this transction will auto commit
-  await connection.commit();
+  // After your use commit if use same trx for actions this transction will auto commit
+  await trx.commit();
 
-  // If you need to start a new transaction again, just use wait connection.startTransaction();
+  // If you need to start a new transaction again, just use wait trx.startTransaction();
 
   const postsAfterCommited = await new Post()
     .createMultiple([
@@ -1326,23 +1343,135 @@ try {
         title: `tspace-post3`,
       },
     ])
-    // Using this connection now will auto-commit to the database.
-    .bind(connection) // If you need to perform additional operations, use await connection.startTransaction(); again.
+    // Using this trx now will auto-commit to the database.
+    .bind(trx) // If you need to perform additional operations, use await trx.startTransaction(); again.
     .save();
 
    
-    // Do not perform any operations with this connection.
-    // The transaction has already been committed, and the connection is closed.
+    // Do not perform any operations with this trx.
+    // The transaction has already been committed, and the trx is closed.
     // Just ensure everything is handled at the end of the transaction.
-    await connection.end();
+    await trx.end();
   
 } catch (err) {
   /**
    *
    * @rollback rollback transaction
    */
-  await connection.rollback();
+  await trx.rollback();
 }
+```
+
+## Race Condition
+
+Within a race condition, you can utilize the following:
+
+```js
+
+import { Model, DB }  from 'tspace-mysql'
+
+class Product extends Model {}
+
+class Order extends Model {}
+
+async function purchaseForUpdate({userId , productId , qty } : { 
+  userId: number;
+  productId: number;
+  qty: number 
+}): Promise<void> {
+  const trx = await DB.beginTransaction()
+  try {
+   
+    await trx.startTransaction()
+
+    const product = await new Product()
+    .where('id',productId)
+    .rowLock('FOR_UPDATE') // don't forget this, lock this product for update
+    .bind(trx)
+    .first()
+
+    if (product == null) throw new Error("Product not found");
+
+    if (product.stock < qty) throw new Error("Not enough stock");
+
+    await new Product()
+    .where('id',productId)
+    .update({
+      stock : `${DB.raw('stock')} - ${qty}`,
+      id: productId
+    })
+    .bind(trx)
+    .save()
+
+    await new Order()
+    .create({
+      user_id : userId,
+      product_id : productId,
+      qty
+    })
+    .bind(trx)
+    .save()
+
+    await trx.commit();
+    console.log(`✅ [FOR UPDATE] User ${userId} purchased ${qty}`);
+
+  } catch (err: any) {
+    await trx.rollback();
+    console.log(`❌ [FOR UPDATE] User ${userId} failed: ${err.message}`);
+  } finally {
+    await trx.end();
+  }
+}
+
+async function simulateRaceConnection(): Promise<void> {
+  const MAX_CONNECTION = 500;
+  const TASKS: Function[] = [];
+  const STOCK = MAX_CONNECTION * 10
+
+  await new Product()
+  .where('id',1)
+  .update({
+    stock : STOCK,
+  })
+  .save()
+
+  const successes : number[] = []
+  const fails     : number[] = []
+  let purchased   : number = 0
+  let outOfStock  : number = 0
+  for (let i = 1; i <= MAX_CONNECTION; i++) {
+    TASKS.push(async () => {
+      const qty = Math.floor(Math.random() * 30) + 1 
+      await purchaseForUpdate({
+        userId : i, 
+        productId : 1 , 
+        qty
+      })
+      .then(_ => {
+        successes.push(1)
+        purchased += qty
+      })
+      .catch(_ => {
+        fails.push(1)
+        outOfStock += qty
+      })
+    });
+  }
+
+  console.log("=== Simulation ===");
+  const start = Date.now();
+  await Promise.all(TASKS.map(v => v()));
+  const end = Date.now();
+  console.log(`USING TIME TO TEST IN ${end - start} ms`)
+  console.log(`ALL STOCK: ${STOCK} qty`)
+  console.log(`✅ [SUCCESS(${successes.length})] [Purchased]: ${purchased} qty`);
+  console.log(`❌ [FAIL(${fails.length})] [OutOfStock]: ${outOfStock} qty`);
+  console.log('======== DONE ============')
+  process.exit(0)
+}
+
+simulateRaceConnection();
+
 ```
 
 ## Connection

@@ -73,12 +73,6 @@ class RelationHandler  {
             .bind(this.$model['$pool'].get())
             .get() 
 
-            console.log({
-                parents,
-                childs,
-                relation
-            })
-
             return this._relationMapData({ 
                 parents , 
                 childs , 
