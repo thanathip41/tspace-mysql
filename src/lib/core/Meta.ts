@@ -222,7 +222,7 @@ class ModelMeta<M extends Model> {
      * @param {string} column 
      * @returns {T.Result<M>[C][]}
      */
-    enums<C extends TLiteralEnumKeys<T.Result<M>>>(column: C): T.Result<M>[C][] {
+    enums<C extends T.Column<M>>(column: C): T.Result<M>[C][] {
 
         const schemaModel = this.model.getSchemaModel();
 
