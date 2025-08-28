@@ -195,42 +195,45 @@ class ModelMeta<M extends Model> {
     }
 
     /**
-     * 
-     * @param {string} column 
+     *
+     * @param {string} column
      * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
      */
-    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
-        column: C,
-        options?: { asObject?: false }
-    ): T.Result<M>[C][];
-    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
-        column: C,
-        options: { asObject: true }
-    ): Record<T.Result<M>[C], T.Result<M>[C]> | null;
-    enums<C extends TLiteralEnumKeys<T.Result<M>>>(
-        column: C,
-        options: { asObject?: boolean } = {}
-    ): T.Result<M>[C][] | (Record<T.Result<M>[C], T.Result<M>[C]> | null) {
-
+    enum<C extends T.Column<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
         const schemaModel = this.model.getSchemaModel();
 
-        const asObject = options.asObject ?? false;
-
-        if (!schemaModel) return options.asObject ? null : [];
+        if(schemaModel == null) return null;
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
 
-        if (!entry) return asObject ? null : [];
+        if (!entry) return null;
 
         const blueprint = entry[1];
         const enumValues = blueprint['_enum'] as T.Result<M>[C][];
 
-        if (asObject) {
-            return enumValues.reduce((prev, curr) => {
-                prev[curr] = curr;
-                return prev;
-            }, {} as Record<T.Result<M>[C], T.Result<M>[C]>);
-        }
+        return enumValues.reduce((prev, curr) => {
+            prev[curr] = curr;
+            return prev;
+        }, {} as Record<T.Result<M>[C], T.Result<M>[C]>);
+    }
+
+    /**
+     * 
+     * @param {string} column 
+     * @returns {T.Result<M>[C][]}
+     */
+    enums<C extends TLiteralEnumKeys<T.Result<M>>>(column: C): T.Result<M>[C][] {
+
+        const schemaModel = this.model.getSchemaModel();
+
+        if (!schemaModel) return [];
+
+        const entry = Object.entries(schemaModel).find(([key]) => key === column);
+
+        if (!entry) return [];
+
+        const blueprint = entry[1];
+        const enumValues = blueprint['_enum'] as T.Result<M>[C][];
 
         return enumValues;
     }
