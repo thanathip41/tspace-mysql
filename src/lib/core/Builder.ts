@@ -5,6 +5,7 @@ import { StateHandler }     from "./Handlers/State";
 import { Join }             from "./Join";
 import { CONSTANTS }        from "../constants";
 import { QueryBuilder }     from "./Driver";
+import Config               from "../config";
 import { 
   Pool, 
   PoolConnection, 
@@ -15,6 +16,7 @@ import {
   TConnectionOptions,
   TPoolConnected,
   TConnectionTransaction,
+  TPoolCusterConnected,
 } from "../types";
 class Builder extends AbstractBuilder {
   constructor() {
@@ -4689,7 +4691,44 @@ class Builder extends AbstractBuilder {
     this.$utils = utils;
    
     this.$pool = (() => {
-      let pool = Pool;
+      
+      if(Config.CLUSTER) {
+        let poolCluster = Pool.clusterConnected();
+
+        if(poolCluster == null) {
+          throw new Error(
+            'Cluster connection has not been initialized. Please call createCluster before executing queries.'
+          );
+        }
+      
+        return {
+          query: async (sql: string) => {
+            const first = sql.trim().split(/\s+/)[0].toUpperCase();
+            const isReaded = ['SELECT', 'SHOW', 'DESCRIBE'].includes(first) &&
+            !sql.toUpperCase().includes('FOR UPDATE');
+           
+            if(isReaded) {
+              const length = poolCluster?.readers?.length ?? 0;
+              const random = Math.floor(Math.random() * length);
+
+              return poolCluster?.query != null ? poolCluster.query(sql) : poolCluster?.readers[random].query(sql);
+            }
+
+            return poolCluster.query != null ? poolCluster.query(sql) : poolCluster?.writer.query(sql);
+          },
+          get: () => poolCluster,
+          set: (newConnection: TPoolCusterConnected) => {
+            poolCluster = newConnection;
+            return;
+          },
+          queryBuilder: () => {
+            return poolCluster?.writer?.queryBuilder ?? poolCluster?.queryBuilder;
+          },
+        };
+      }
+
+      let pool = Pool.connected();
+      
       return {
         query: async (sql: string) => {
           return pool.query(sql);

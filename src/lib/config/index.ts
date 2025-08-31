@@ -17,6 +17,7 @@ dotenv.config({ path : environment() })
 const ENV = process.env
 
 const rawEnv =  {
+    CLUSTER                 : ENV.DB_CLUSTER ?? false,
     DRIVER                  : ENV.DB_DRIVER ?? 'mysql2',
     HOST                    : ENV.DB_HOST ?? 'localhost',
     PORT                    : ENV.DB_PORT ?? 3306,
@@ -89,11 +90,13 @@ export const loadOptionsEnvironment = () => {
     const ENV = process.env
  
     const rawEnv =  {
-        host                 : ENV?.DB_HOST || ENV?.TSPACE_HOST,
-        port                 : ENV?.DB_PORT || ENV?.TSPACE_PORT || 3306,
-        username             : ENV?.DB_USERNAME || ENV?.TSPACE_USERNAME,
-        password             : ENV?.DB_PASSWORD || ENV?.TSPACE_PASSWORD || '', 
-        database             : ENV?.DB_DATABASE || ENV?.TSPACE_DATABASE, 
+        cluster              : ENV.DB_CLUSTER ?? false,
+        driver               : ENV.DB_DRIVER ?? 'mysql2',
+        host                 : ENV?.DB_HOST,
+        port                 : ENV?.DB_PORT || 3306,
+        username             : ENV?.DB_USERNAME ,
+        password             : ENV?.DB_PASSWORD || '', 
+        database             : ENV?.DB_DATABASE, 
     } as const
 
     //@ts-ignore

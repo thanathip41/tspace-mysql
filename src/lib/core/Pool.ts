@@ -4,12 +4,14 @@ import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
 import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
 import { MariadbDriver }    from './Driver/mariadb/MariadbDriver';
 
-import options, { loadOptionsEnvironment } from "../config";
+import Config, { loadOptionsEnvironment } from "../config";
 
-import type { TDriver, TOptions, TPoolConnected } from "../types";
+import type { TDriver, TOptions, TPoolConnected, TPoolCusterConnected, TPoolCusterOptions } from "../types";
 
 export class PoolConnection extends EventEmitter {
-  private OPTIONS = this._loadOptions();
+  private OPTIONS : Map<string, any>    = this._loadOptions();
+  private POOL    : TPoolConnected | null = null
+  private CLUSTER : TPoolCusterConnected | null  = null;
 
   /**
    *
@@ -27,30 +29,42 @@ export class PoolConnection extends EventEmitter {
     }
   }
 
-  public connected(): TPoolConnected {
-    const options = Object.fromEntries(this.OPTIONS);
+  public connected(configs ?: Record<string,any>): TPoolConnected {
+
+    if(this.POOL != null) {
+      return this.POOL;
+    }
+
+    const options = configs ?? Object.fromEntries(this.OPTIONS);
 
     switch (this._driver()) {
       case "mysql":
       case "mysql2": {
-        return new MysqlDriver(options).connect();
+        this.POOL = new MysqlDriver(options).connect();
+        break
       }
 
       case "pg":
       case "postgres": {
-        return new PostgresDriver(options).connect();
+        this.POOL = new PostgresDriver(options).connect();
+        break
       }
 
       case 'mariadb': {
-          return new MariadbDriver(options).connect()
+          this.POOL = new MariadbDriver(options).connect();
+          break
       }
 
       default:
         throw new Error("No default driver specified");
     }
+
+    return this.POOL
   }
 
   public disconnected(): void {
+    const options = Object.fromEntries(this.OPTIONS);
+
     switch (this._driver()) {
       case "mysql":
       case "mysql2": {
@@ -59,11 +73,11 @@ export class PoolConnection extends EventEmitter {
 
       case 'pg':
       case 'postgres': {
-          return new PostgresDriver(options).disconnect()
+        return new PostgresDriver(options).disconnect()
       }
 
       case 'mariadb': {
-          return new MariadbDriver(options).disconnect()
+        return new MariadbDriver(options).disconnect()
       }
 
       default:
@@ -71,24 +85,55 @@ export class PoolConnection extends EventEmitter {
     }
   }
 
+  public clusterConnected () {
+
+    if(this.CLUSTER != null) {
+      return this.CLUSTER;
+    }
+
+    const options = Object.fromEntries(this.OPTIONS);
+    const hostWriter   = String(options.host).split(',')[0]
+    const hostReaders  = String(options.host).split(',').slice(1)
+
+    const writer = new PoolConnection().connected({
+      ...options,
+      host : hostWriter
+    });
+
+    const readers = hostReaders.map((hostReader: string) => {
+      return new PoolConnection().connected({ 
+        ...options, host: hostReader 
+      })
+    })
+
+    this.CLUSTER = {
+      writer,
+      readers
+    }
+
+    return this.CLUSTER
+  }
+
   private _defaultOptions() {
     return new Map<string, number | boolean | string>(
       Object.entries({
-        connectionLimit: Number(options.CONNECTION_LIMIT),
-        dateStrings: Boolean(options.DATE_STRINGS),
-        connectTimeout: Number(options.TIMEOUT),
-        waitForConnections: Boolean(options.WAIT_FOR_CONNECTIONS),
-        queueLimit: Number(options.QUEUE_LIMIT),
-        charset: String(options.CHARSET),
-        host: String(options.HOST),
-        port: Number(options.PORT),
-        database: String(options.DATABASE),
-        user: String(options.USERNAME),
-        password: String(options.PASSWORD),
-        multipleStatements: Boolean(options.MULTIPLE_STATEMENTS),
-        enableKeepAlive: Boolean(options.ENABLE_KEEP_ALIVE),
-        keepAliveInitialDelay: Number(options.KEEP_ALIVE_DELAY),
-        driver: String(options.DRIVER ?? "mysql2"),
+        connectionLimit       : Number(Config.CONNECTION_LIMIT),
+        dateStrings           : Boolean(Config.DATE_STRINGS),
+        connectTimeout        : Number(Config.TIMEOUT),
+        waitForConnections    : Boolean(Config.WAIT_FOR_CONNECTIONS),
+        queueLimit            : Number(Config.QUEUE_LIMIT),
+        charset               : String(Config.CHARSET),
+        host                  : String(Config.HOST),
+        port                  : Number(Config.PORT),
+        database              : String(Config.DATABASE),
+        user                  : String(Config.USERNAME),
+        password              : String(Config.PASSWORD),
+        multipleStatements    : Boolean(Config.MULTIPLE_STATEMENTS),
+        enableKeepAlive       : Boolean(Config.ENABLE_KEEP_ALIVE),
+        keepAliveInitialDelay : Number(Config.KEEP_ALIVE_DELAY),
+        // ------------------ custom ----------------------------
+        driver                : String(Config.DRIVER ?? "mysql2"),
+        cluster               : Boolean(Config.CLUSTER ?? false)
       })
     );
   }
@@ -197,9 +242,9 @@ export class PoolConnection extends EventEmitter {
  * @property  {Function} Connection.query
  * @property  {Function} Connection.connection
  */
-const pool = new PoolConnection().connected();
+const pool = new PoolConnection();
 
 export { loadOptionsEnvironment };
 export { pool as Pool };
 
-export default pool;
+export default pool

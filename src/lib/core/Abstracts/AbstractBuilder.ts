@@ -20,8 +20,9 @@ abstract class AbstractBuilder {
 
     protected $utils !: TUtils 
 
-    protected $database : string = String(Config.DATABASE ?? '')
-    protected $driver : string = String(Config.DRIVER ?? 'mysql')
+    protected $database : string = String(Config.DATABASE ?? '');
+    protected $driver : string = String(Config.DRIVER ?? 'mysql');
+    protected $cluster : boolean = Boolean(Config.CLUSTER ?? false);
     
     protected $constants !: (name ?: keyof TConstant) => any
 

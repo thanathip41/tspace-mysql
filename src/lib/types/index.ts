@@ -504,3 +504,25 @@ export type TLiteralStringKeys<T> = {
 export type TLiteralEnumKeys<T> = TLiteralStringKeys<TRemoveIndexSignature<T>>
 
 export type TDriver = 'pg' | 'postgres' | 'mysql' | 'mysql2' | 'mariadb' | 'mssql' | 'sqlite3'
+
+export type TPoolCusterOptions = {
+    writer: {
+        host: string;
+        user: string;
+        password: string;
+        database: string;
+    };
+    readers: {
+        host: string;
+        user: string;
+        password: string;
+        database: string;
+    }[];
+}
+
+export type TPoolCusterConnected = {
+    query ?: Function | null;
+    queryBuilder ?: QueryBuilder | null;
+    writer: TPoolConnected;
+    readers: TPoolConnected[];
+}
