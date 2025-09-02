@@ -51,7 +51,8 @@
     "test": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './src/tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
     "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./src/tests/benchmark.test.ts",
     "release:beta": "npm test && npm run build && npm publish --tag beta",
-    "release": "npm test && npm run build && npm publish"
+    "release": "npm test && npm run build && npm publish",
+    "docs" : "npx docsify-cli serve docs"
   },
   "dependencies": {
     "dotenv": "16.0.3",
@@ -72,6 +73,7 @@
     "chai": "4.3.10",
     "chai-json-schema": "1.5.1",
     "cross-env": "7.0.3",
+    "docsify-cli": "^4.4.4",
     "mariadb": "3.4.5",
     "mocha": "10.2.0",
     "mochawesome": "7.1.3",
