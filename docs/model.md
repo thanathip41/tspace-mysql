@@ -1463,7 +1463,7 @@ type TRepositoryTypeOf = T.RepositoryTypeOf<User>
 +--------------------------------------------------------------------------+
 ```
 
-### Select
+### Select Type Safety 
 
 ```js
 import { User  } from './User.ts'
@@ -1483,7 +1483,7 @@ const user = await new User().except('idx','username').findOne<{ withoutSchema :
 user.withoutSchema = 1 ✅
 ```
 
-### OrderBy
+### OrderBy Type Safety
 
 ```js
 import { User } from './User.ts'
@@ -1500,7 +1500,7 @@ const users = await new User().oldest('idx').findMany() ❌
 
 ```
 
-### GroupBy
+### GroupBy Type Safety
 
 ```js
 import { User  } from './User.ts'
@@ -1510,9 +1510,7 @@ const users = await new User().groupBy('id').findMany() ✅
 const users = await new User().groupBy('idx').findMany() ❌
 
 ```
-
-### Where
-
+### Where Type Safety
 ```js
 import { User } from './User.ts'
 import { Phone } from './Phone.ts'
@@ -1548,8 +1546,7 @@ const users = await new User()
 ).findMany() ❌
 
 ```
-
-### Insert
+### Insert Type Safety
 
 ```js
 import { User } from './User.ts'
@@ -1562,8 +1559,7 @@ const users = await new User().create({ id : "10" }).save() ❌
 const users = await new User().create({ idx : 10 }).save() ❌
 
 ```
-
-### Update
+### Update Type Safety
 
 ```js
 import { User } from './User.ts'
@@ -1575,8 +1571,7 @@ const users = await new User().update({ id : "10" }).where('id',1).save() ❌
 const users = await new User().update({ idx : 10 }).where('idx',1).save() ❌
 
 ```
-
-### Delete
+### Delete Type Safety
 
 ```js
 import { User } from './User.ts'
@@ -1586,9 +1581,7 @@ const users = await new User().where('id',1).delete() ✅
 const users = await new User().where('idx',1).delete() ❌
 
 ```
-
-### Relationships
-
+### Relationships Type Safety
 ```js
 import { type T } from 'tspace-mysql'
 import { User } from './User.ts'
@@ -1788,8 +1781,7 @@ const users = await new User()
   }
 
 ```
-
-### Results
+### Results Type Safety
 ```js
 import { type T } from 'tspace-mysql'
 
@@ -1812,7 +1804,6 @@ const fCorrect = async () : Promise<T.Results<User>[]> => {
 }
 
 ```
-
 ## Metadata
 Get the metadata of a Model works only when a schema is added to the Model.
 
@@ -1857,3 +1848,21 @@ const defaults      = meta.defaults() // { id : null, uuid : null, ..., status :
 const enums         = meta.enums('role') // [ 'admin', 'user' ]
 const enumsObj      = meta.enum('role') // { admin: 'admin', user: 'user' }
 ```
+
+<div class="page-nav-cards">
+  <a href="#/injection" class="prev-card">
+    <div class="nav-label"> 
+        <span style="color:#fff; font-size:16px;">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> Injection </div>
+  </a>
+
+  <a href="#/repository" class="next-card">
+    <div class="nav-label">
+        Next
+        <span style="color:#fff; font-size:16px;">→</span>
+    </div>
+    <div class="nav-title"> Repository </div>
+  </a>
+</div>

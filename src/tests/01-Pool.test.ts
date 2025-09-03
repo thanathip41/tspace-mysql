@@ -6,13 +6,14 @@ describe('Testing Pool', function () {
   /* ##################################################### */
   it('Pool: It is connected?', async function () {
 
-    expect(Pool).to.have.an('object')
-    expect(Pool).to.have.property('query')
-    expect(Pool).to.have.property('connection')
-    expect(Pool.connection).to.be.a('function')
-    expect(Pool.query).to.be.a('function')
+    const pool = Pool.connected()
+    expect(pool).to.have.an('object')
+    expect(pool).to.have.property('query')
+    expect(pool).to.have.property('connection')
+    expect(pool.connection).to.be.a('function')
+    expect(pool.query).to.be.a('function')
 
-    const query = await Pool.query('SELECT 1 as ping')
+    const query = await pool.query('SELECT 1 as ping')
 
     expect(query).to.be.an('array')
     expect(query.length).to.be.equal(1)
@@ -21,7 +22,8 @@ describe('Testing Pool', function () {
 
   it('Pool: It is Pool can open new connection?', async function () {
     
-    const connect = await Pool.connection()
+    const pool = Pool.connected();
+    const connect = await pool.connection();
 
     expect(connect.query).to.be.an('function')
 

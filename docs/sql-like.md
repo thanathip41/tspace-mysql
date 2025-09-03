@@ -2,7 +2,7 @@
 SQL (Structured Query Language) is used to manage data in relational databases.  
 Here are the four most common commands with **tspace-mysql** examples:
 
-## Select
+## Select Statements
 Retrieve data from a table. You can select specific columns or all columns.
 
 ```js
@@ -20,7 +20,7 @@ await sql()
 
 ```
 
-## Insert
+## Insert Statements
 Add new data into a table.
 
 ```js
@@ -44,7 +44,7 @@ await sql()
   })
 ```
 
-## Update
+## Update Statements
 
 Modify existing data in a table.
 
@@ -68,7 +68,7 @@ await sql()
 
 ```
 
-## Delete
+## Delete Statements
 
 Remove data from a table.
 
@@ -81,7 +81,7 @@ await sql()
   
 ```
 <div class="page-nav-cards">
-    <a href="getting-started" class="prev-card">
+    <a href="#" class="prev-card">
       <div class="nav-label"> 
           <span style="color:#fff; font-size:16px;">←</span> 
           Previous
@@ -89,7 +89,7 @@ await sql()
       <div class="nav-title"> Getting Started</div>
     </a>
 
-  <a href="query-builder" class="next-card">
+  <a href="#/query-builder" class="next-card">
     <div class="nav-label">
         Next
         <span style="color:#fff; font-size:16px;">→</span>

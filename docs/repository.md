@@ -257,3 +257,21 @@ const phoneBelongUser = await phoneRepository.findOne({
 })
 
 ```
+
+<div class="page-nav-cards">
+  <a href="#/repository" class="prev-card">
+    <div class="nav-label"> 
+        <span style="color:#fff; font-size:16px;">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> Repository </div>
+  </a>
+
+  <a href="#/view" class="next-card">
+    <div class="nav-label">
+        Next
+        <span style="color:#fff; font-size:16px;">→</span>
+    </div>
+    <div class="nav-title"> View </div>
+  </a>
+</div>

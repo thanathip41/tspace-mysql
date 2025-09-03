@@ -3,10 +3,15 @@ import { Tool }             from '../tools'
 import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
 import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
 import { MariadbDriver }    from './Driver/mariadb/MariadbDriver';
-
-import Config, { loadOptionsEnvironment } from "../config";
-
-import type { TDriver, TOptions, TPoolConnected, TPoolCusterConnected, TPoolCusterOptions } from "../types";
+import Config, { 
+  loadOptionsEnvironment 
+} from "../config";
+import type { 
+  TDriver, 
+  TOptions, 
+  TPoolConnected, 
+  TPoolCusterConnected 
+} from "../types";
 
 export class PoolConnection extends EventEmitter {
   private OPTIONS : Map<string, any>    = this._loadOptions();

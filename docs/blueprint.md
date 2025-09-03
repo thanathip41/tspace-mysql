@@ -74,3 +74,21 @@ foreign({ references : ${COLUMN} , on : ${TABLE-NAME OR MODEL CLASSES} })
  */
 index()
 ```
+
+<div class="page-nav-cards">
+  <a href="#/stored-procedure" class="prev-card">
+    <div class="nav-label"> 
+        <span style="color:#fff; font-size:16px;">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> Stored Procedure </div>
+  </a>
+
+  <a href="#/cli" class="next-card">
+    <div class="nav-label">
+        Next
+        <span style="color:#fff; font-size:16px;">→</span>
+    </div>
+    <div class="nav-title"> Cli </div>
+  </a>
+</div>

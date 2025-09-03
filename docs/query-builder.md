@@ -193,6 +193,218 @@ const findFullName = await new User()
 
 ```
 
+## Insert Statements
+
+```js
+const user = await new DB("users")
+  .create({
+    name: "tspace3",
+    email: "tspace3@gmail.com",
+  })
+  .save();
+/**
+  INSERT INTO `users` 
+    (`users`.`name`,`users`.`email`) 
+  VALUES 
+    ('tspace3','tspace3@gmail.com');
+
+  -- then return the result inserted --
+  SELECT * FROM `users` WHERE `users`.`id` = ${INSERT ID};
+*/
+
+const users = await new DB("users")
+  .createMultiple([
+    {
+      name: "tspace4",
+      email: "tspace4@gmail.com",
+    },
+    {
+      name: "tspace5",
+      email: "tspace5@gmail.com",
+    },
+    {
+      name: "tspace6",
+      email: "tspace6@gmail.com",
+    },
+  ])
+  .save();
+
+/**
+  INSERT INTO `users` 
+    (`users`.`name`,`users`.`email`)
+  VALUES
+    ('tspace4','tspace4@gmail.com'), 
+    ('tspace5','tspace5@gmail.com'), 
+    ('tspace6','tspace6@gmail.com');
+*/
+
+const users = await new DB("users")
+  .where("name", "tspace4")
+  .where("email", "tspace4@gmail.com")
+  .createNotExists({
+    name: "tspace4",
+    email: "tspace4@gmail.com",
+  })
+  .save();
+/*
+  -- if exists return null, if not exists created new data --
+  SELECT EXISTS(
+    SELECT 1 FROM `users` 
+    WHERE `users`.`name` = 'tspace4' 
+    AND `users`.`email` = 'tspace4@gmail.com' 
+    LIMIT 1
+  ) AS 'exists';
+
+  INSERT INTO `users` (`users`.`name`,`users`.`email`) VALUES ('tspace4','tspace4@gmail.com');
+*/
+
+const users = await new DB("users")
+  .where("name", "tspace4")
+  .where("email", "tspace4@gmail.com")
+  .createOrSelect({
+    name: "tspace4",
+    email: "tspace4@gmail.com",
+  })
+  .save();
+/**
+  -- if has exists return data, if not exists created new data --
+  SELECT EXISTS(
+    SELECT 1 FROM `users` 
+    WHERE `users`.`name` = 'tspace4' 
+    AND `users`.`email` = 'tspace4@gmail.com' 
+    LIMIT 1
+  ) AS 'exists';
+
+  INSERT INTO `users` (`users`.`name`,`users`.`email`) VALUES ('tspace4','tspace4@gmail.com');
+
+  SELECT * FROM `users` WHERE `users`.`id` = '4';
+*/
+```
+
+## Update Statements
+
+```js
+const user = await new DB("users")
+  .where("id", 1)
+  .update({
+    name: "tspace1**",
+    email: "tspace1@gmail.com",
+  })
+  .save();
+/**
+
+ UPDATE `users` SET 
+  `users`.`name` = 'tspace1',
+  `users`.`email` = 'tspace1@gmail.com' 
+ WHERE `users`.`id` = '1' LIMIT 1;
+
+ */
+
+const user = await new DB("users")
+  .where("id", 1)
+  .updateMany({
+    name: "tspace1",
+    email: "tspace1@gmail.com",
+  })
+  .save();
+/**
+ UPDATE `users` SET 
+ `users`.`name` = 'tspace1',
+ `users`.`email` = 'tspace1@gmail.com' 
+ WHERE `users`.`id` = '1';
+ */
+
+const user = await new DB("users")
+  .where("id", 1)
+  .update(
+    {
+      name: "tspace1",
+      email: "tspace1@gmail.com",
+    },
+    ["name"]
+  )
+  .save();
+/**
+  UPDATE `users` SET 
+    `name` = 
+    CASE WHEN (`name` = '' OR `name` IS NULL) 
+    THEN 'tspace1' ELSE `name` 
+    END,
+    `email` = 
+    'tspace1@gmail.com' 
+    WHERE `users`.`id` = '1' LIMIT 1;
+ */
+
+const user = await new DB("users")
+  .updateMultiple([
+    {
+      when: {
+        id: 1,
+        name: "name1",
+      },
+      columns: {
+        name: "update row1",
+        email: "row1@example.com",
+      },
+    },
+    {
+      when: {
+        id: 2,
+      },
+      columns: {
+        name: "update row2",
+        email: "row2@example.com",
+      },
+    },
+  ])
+  .save();
+
+/** 
+ UPDATE `users` SET 
+ `users`.`name` = ( 
+  CASE WHEN `users`.`id` = '1' 
+    AND `users`.`name` = 'name1' 
+  THEN 'update row1' 
+    WHEN `users`.`id` = '2' 
+  THEN 'update row2' 
+    ELSE `users`.`name` 
+  END 
+  ), 
+  `users`.`email` = ( 
+    CASE WHEN `users`.`id` = '1' 
+      AND `users`.`name` = 'name1' 
+    THEN 'row1@example.com' 
+      WHEN `users`.`id` = '2' 
+    THEN 'row2@example.com' 
+      ELSE `users`.`email` 
+    END 
+  ) 
+  WHERE `users`.`id` IN ('1','2') LIMIT 2;
+
+ */
+
+const user = await new DB("users")
+  .where("id", 1)
+  .updateOrCreate({
+    name: "tspace1**",
+    email: "tspace1@gmail.com",
+  })
+  .save();
+// if has exists return update, if not exists created new data
+// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
+// INSERT INTO `users` (`name`,`email`) VALUES ('tspace1**','tspace1@gmail.com');
+```
+
+## Delete Statements
+
+```js
+const deleted = await new DB("users").where("id", 1).delete();
+// DELETE FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
+
+const deleted = await new DB("users").where("id", 1).deleteMany();
+// DELETE FROM `users` WHERE `users`.`id` = '1' ;
+```
+
 ## Ordering, Grouping, Limit and Offset
 
 ### Ordering
@@ -559,219 +771,6 @@ const pageTwoUsers = await new DB("users").paginate({ page: 2, limit: 5 });
 
 */
 ```
-
-## Insert Statements
-
-```js
-const user = await new DB("users")
-  .create({
-    name: "tspace3",
-    email: "tspace3@gmail.com",
-  })
-  .save();
-/**
-  INSERT INTO `users` 
-    (`users`.`name`,`users`.`email`) 
-  VALUES 
-    ('tspace3','tspace3@gmail.com');
-
-  -- then return the result inserted --
-  SELECT * FROM `users` WHERE `users`.`id` = ${INSERT ID};
-*/
-
-const users = await new DB("users")
-  .createMultiple([
-    {
-      name: "tspace4",
-      email: "tspace4@gmail.com",
-    },
-    {
-      name: "tspace5",
-      email: "tspace5@gmail.com",
-    },
-    {
-      name: "tspace6",
-      email: "tspace6@gmail.com",
-    },
-  ])
-  .save();
-
-/**
-  INSERT INTO `users` 
-    (`users`.`name`,`users`.`email`)
-  VALUES
-    ('tspace4','tspace4@gmail.com'), 
-    ('tspace5','tspace5@gmail.com'), 
-    ('tspace6','tspace6@gmail.com');
-*/
-
-const users = await new DB("users")
-  .where("name", "tspace4")
-  .where("email", "tspace4@gmail.com")
-  .createNotExists({
-    name: "tspace4",
-    email: "tspace4@gmail.com",
-  })
-  .save();
-/*
-  -- if exists return null, if not exists created new data --
-  SELECT EXISTS(
-    SELECT 1 FROM `users` 
-    WHERE `users`.`name` = 'tspace4' 
-    AND `users`.`email` = 'tspace4@gmail.com' 
-    LIMIT 1
-  ) AS 'exists';
-
-  INSERT INTO `users` (`users`.`name`,`users`.`email`) VALUES ('tspace4','tspace4@gmail.com');
-*/
-
-const users = await new DB("users")
-  .where("name", "tspace4")
-  .where("email", "tspace4@gmail.com")
-  .createOrSelect({
-    name: "tspace4",
-    email: "tspace4@gmail.com",
-  })
-  .save();
-/**
-  -- if has exists return data, if not exists created new data --
-  SELECT EXISTS(
-    SELECT 1 FROM `users` 
-    WHERE `users`.`name` = 'tspace4' 
-    AND `users`.`email` = 'tspace4@gmail.com' 
-    LIMIT 1
-  ) AS 'exists';
-
-  INSERT INTO `users` (`users`.`name`,`users`.`email`) VALUES ('tspace4','tspace4@gmail.com');
-
-  SELECT * FROM `users` WHERE `users`.`id` = '4';
-*/
-```
-
-## Update Statements
-
-```js
-const user = await new DB("users")
-  .where("id", 1)
-  .update({
-    name: "tspace1**",
-    email: "tspace1@gmail.com",
-  })
-  .save();
-/**
-
- UPDATE `users` SET 
-  `users`.`name` = 'tspace1',
-  `users`.`email` = 'tspace1@gmail.com' 
- WHERE `users`.`id` = '1' LIMIT 1;
-
- */
-
-const user = await new DB("users")
-  .where("id", 1)
-  .updateMany({
-    name: "tspace1",
-    email: "tspace1@gmail.com",
-  })
-  .save();
-/**
- UPDATE `users` SET 
- `users`.`name` = 'tspace1',
- `users`.`email` = 'tspace1@gmail.com' 
- WHERE `users`.`id` = '1';
- */
-
-const user = await new DB("users")
-  .where("id", 1)
-  .update(
-    {
-      name: "tspace1",
-      email: "tspace1@gmail.com",
-    },
-    ["name"]
-  )
-  .save();
-/**
-  UPDATE `users` SET 
-    `name` = 
-    CASE WHEN (`name` = '' OR `name` IS NULL) 
-    THEN 'tspace1' ELSE `name` 
-    END,
-    `email` = 
-    'tspace1@gmail.com' 
-    WHERE `users`.`id` = '1' LIMIT 1;
- */
-
-const user = await new DB("users")
-  .updateMultiple([
-    {
-      when: {
-        id: 1,
-        name: "name1",
-      },
-      columns: {
-        name: "update row1",
-        email: "row1@example.com",
-      },
-    },
-    {
-      when: {
-        id: 2,
-      },
-      columns: {
-        name: "update row2",
-        email: "row2@example.com",
-      },
-    },
-  ])
-  .save();
-
-/** 
- UPDATE `users` SET 
- `users`.`name` = ( 
-  CASE WHEN `users`.`id` = '1' 
-    AND `users`.`name` = 'name1' 
-  THEN 'update row1' 
-    WHEN `users`.`id` = '2' 
-  THEN 'update row2' 
-    ELSE `users`.`name` 
-  END 
-  ), 
-  `users`.`email` = ( 
-    CASE WHEN `users`.`id` = '1' 
-      AND `users`.`name` = 'name1' 
-    THEN 'row1@example.com' 
-      WHEN `users`.`id` = '2' 
-    THEN 'row2@example.com' 
-      ELSE `users`.`email` 
-    END 
-  ) 
-  WHERE `users`.`id` IN ('1','2') LIMIT 2;
-
- */
-
-const user = await new DB("users")
-  .where("id", 1)
-  .updateOrCreate({
-    name: "tspace1**",
-    email: "tspace1@gmail.com",
-  })
-  .save();
-// if has exists return update, if not exists created new data
-// UPDATE `users` SET `name` = 'tspace1**',`email` = 'tspace1@gmail.com' WHERE `users`.`id` = '1' LIMIT 1;
-// INSERT INTO `users` (`name`,`email`) VALUES ('tspace1**','tspace1@gmail.com');
-```
-
-## Delete Statements
-
-```js
-const deleted = await new DB("users").where("id", 1).delete();
-// DELETE FROM `users` WHERE `users`.`id` = '1' LIMIT 1;
-
-const deleted = await new DB("users").where("id", 1).deleteMany();
-// DELETE FROM `users` WHERE `users`.`id` = '1' ;
-```
-
 ## Hook Statements
 
 ```js
@@ -1003,7 +1002,7 @@ makeCreateTableStatement()
 ```
 
 <div class="page-nav-cards">
-  <a href="sql-like" class="prev-card">
+  <a href="#/sql-like" class="prev-card">
     <div class="nav-label"> 
         <span style="color:#fff; font-size:16px;">←</span> 
         Previous
@@ -1011,7 +1010,7 @@ makeCreateTableStatement()
     <div class="nav-title"> SQL Like</div>
   </a>
 
-  <a href="database-transactions" class="next-card">
+  <a href="#/database-transactions" class="next-card">
     <div class="nav-label">
         Next
         <span style="color:#fff; font-size:16px;">→</span>

@@ -87,15 +87,15 @@ try {
 ```
 
 <div class="page-nav-cards">
-  <a href="query-builder" class="prev-card">
+  <a href="#/query-builder" class="prev-card">
     <div class="nav-label"> 
         <span style="color:#fff; font-size:16px;">←</span> 
         Previous
     </div>
-    <div class="nav-title"> query-builder </div>
+    <div class="nav-title"> Query Builder </div>
   </a>
 
-  <a href="race-condition" class="next-card">
+  <a href="#/race-condition" class="next-card">
     <div class="nav-label">
         Next
         <span style="color:#fff; font-size:16px;">→</span>

@@ -15,3 +15,20 @@ const users = await new DB('users')
 .bind(connection) // don't forget this
 .findMany()
 ```
+<div class="page-nav-cards">
+  <a href="#/race-condition" class="prev-card">
+    <div class="nav-label"> 
+        <span style="color:#fff; font-size:16px;">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> Race Condition </div>
+  </a>
+
+  <a href="#/backup" class="next-card">
+    <div class="nav-label">
+        Next
+        <span style="color:#fff; font-size:16px;">→</span>
+    </div>
+    <div class="nav-title"> Backup </div>
+  </a>
+</div>

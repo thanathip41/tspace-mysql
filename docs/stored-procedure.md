@@ -82,3 +82,21 @@ storeProcedure.call('GetUsers',[])
 .catch(e => console.log(e))
 
 ```
+
+<div class="page-nav-cards">
+  <a href="#/view" class="prev-card">
+    <div class="nav-label"> 
+        <span style="color:#fff; font-size:16px;">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> View </div>
+  </a>
+
+  <a href="#/blueprint" class="next-card">
+    <div class="nav-label">
+        Next
+        <span style="color:#fff; font-size:16px;">→</span>
+    </div>
+    <div class="nav-title"> Blueprint </div>
+  </a>
+</div>

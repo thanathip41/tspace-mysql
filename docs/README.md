@@ -69,7 +69,7 @@ DB_DATABASE = database;
 ```
 
 <div class="page-nav-cards">
-  <a href="getting-started" class="prev-card">
+  <a href="#" class="prev-card">
     <div class="nav-label"> 
         <span style="color:#fff; font-size:16px;">←</span> 
         Previous
@@ -77,7 +77,7 @@ DB_DATABASE = database;
     <div class="nav-title"> Getting Started</div>
   </a>
 
-  <a href="sql-like" class="next-card">
+  <a href="#/sql-like" class="next-card">
     <div class="nav-label">
         Next
         <span style="color:#fff; font-size:16px;">→</span>
