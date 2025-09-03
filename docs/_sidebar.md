@@ -1,5 +1,5 @@
 
-- [Getting Started](getting-started)
+- [Getting Started]()
 - [SQL Like](sql-like)
 - [Query Builder](query-builder)
 - [Database Transactions](database-transactions)
