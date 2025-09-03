@@ -6,39 +6,103 @@
   <meta name="description" content="A magical documentation generator.">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css">
-  <title>tspace-mysql</title>
- <style>
-  .markdown-section pre[data-lang]::after {
-    display: none;
+  <title>TspaceMysql</title>
+  <style>
+    #app {
+      max-width: 100%; 
+      padding: 20px 40px;
+    }
+    .markdown-section {
+      max-width: 95%; 
+      margin: 0 auto; 
+      line-height: 1.8;
+      font-size: 16px;
+    }
+    .markdown-section pre[data-lang]::after {
+      display: none;
+    }
+    .copy-btn {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 10;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .app-name img {
+      width: 100%; 
+      height: 64px; 
+      object-fit: cover; 
+      border-radius: 5px;
+      padding: 0;
+      margin: 0;
+      vertical-align: middle;
+    }
+    .page-nav-cards {
+    display: flex;
+    justify-content: space-between;
+    margin: 2em 0;
+    gap: 1em;
   }
-  .copy-btn {
-    background: #333;
+
+  .page-nav-cards a {
+    flex: 1;
+    display: block;
+    padding: 1em 0.75em;
+    border-radius: 0.5em;
+    background-color: #14181d;
     color: #fff;
-    border: none;
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    z-index: 10;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    text-decoration: none;
+    transition: transform 0.2s, background-color 0.2s;
   }
-</style>
+
+  .page-nav-cards a:hover {
+    background-color: #374151;
+    transform: translateY(-2px);
+  }
+
+  .page-nav-cards .nav-label {
+    font-size: 0.8em;
+    opacity: 0.7;
+  }
+
+  .page-nav-cards .nav-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 0.2em;
+  }
+
+  .next-card {
+    text-align: right;
+  }
+
+  </style>
 </head>
 <body>
-  <div id="app">Loading...</div>
-
-  <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
-
-  <script>
+  <div id="app">
+  
+  </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
+<script>
     window.$docsify = {
-      name: 'tspace-mysql',
+      name: "TspaceMysql",
+      logo: 'https://raw.githubusercontent.com/thanathip41/tspace-mysql/refs/heads/master/docs/images/TspaceMysql-Logo.png',
       repo: 'https://github.com/thanathip41/tspace-mysql',
-        plugins: [
+      loadSidebar: true,
+      subMaxLevel: 3,
+      themeable: true,
+      routerMode: 'history',
+      auto2top: true,
+      plugins: [
         function (hook, vm) {
           hook.doneEach(function () {
             document.querySelectorAll('pre[data-lang]').forEach(block => {
@@ -62,6 +126,5 @@
         }
       ]
     }
-  </script>
-</body>
+</script>
 </html>
