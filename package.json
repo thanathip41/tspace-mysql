@@ -51,8 +51,8 @@
     "test:mysql" : "npm test --db=mysql",
     "test:mariadb" : "npm test --db=mariadb",
     "test:postgres" : "npm test --db=postgres",
-    "test": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './src/tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
-    "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./src/tests/benchmark.test.ts",
+    "test": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
+    "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./tests/benchmark.test.ts",
     "release:beta": "npm test && npm run build && npm publish --tag beta",
     "release": "npm test && npm run build && npm publish",
     "docs" : "npx docsify-cli serve docs"

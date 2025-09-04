@@ -3,7 +3,7 @@ import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
 import { userSchemaObject , userSchemaArray } from './schema-spec'
 import { userDataObject, userDataArray } from './mock-data-spec';
-import { DB }  from '../lib'
+import { DB }  from '../src/lib'
 
 chai.use(chaiJsonSchema)
 

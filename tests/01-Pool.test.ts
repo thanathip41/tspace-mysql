@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { Pool }  from '../lib'
+import { Pool }  from '../src/lib'
 
 describe('Testing Pool', function () {
   /* ##################################################### */

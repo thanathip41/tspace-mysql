@@ -1,7 +1,7 @@
 import chai , { expect  } from 'chai'
 import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
-import { DB }  from '../lib'
+import { DB }  from '../src/lib'
 import fs from "fs";
 import path from "path";
 

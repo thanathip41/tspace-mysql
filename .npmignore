@@ -1,5 +1,6 @@
 src
 test
+tests
 .env
 .env.production
 .env.test

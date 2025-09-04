@@ -1,4 +1,4 @@
-import { Blueprint, Model }  from '../../src/lib'
+import { Blueprint, Model }  from '../src/lib'
 
 export const pattern : 'snake_case' | 'camelCase'  = 'snake_case' 
 
