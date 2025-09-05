@@ -18,7 +18,7 @@ const users = await new DB('users')
 <div class="page-nav-cards">
   <a href="#/race-condition" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Race Condition </div>
@@ -27,7 +27,7 @@ const users = await new DB('users')
   <a href="#/backup" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> Backup </div>
   </a>

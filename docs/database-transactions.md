@@ -89,7 +89,7 @@ try {
 <div class="page-nav-cards">
   <a href="#/query-builder" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Query Builder </div>
@@ -98,7 +98,7 @@ try {
   <a href="#/race-condition" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title">Race Condition</div>
   </a>

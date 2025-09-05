@@ -92,7 +92,6 @@ const findFullName = await userRepository.findOne({
 ```
 ## Insert Statements
 ```js
-
 const userRepository = Repository(User)
 
 const created = await userRepository.create({
@@ -144,7 +143,6 @@ const createdOrSelected = await userRepository.createOrSelect({
 ```
 ## Update Statements
 ```js
-
 const userRepository = Repository(User)
 
 const updated = await userRepository.update({
@@ -160,7 +158,6 @@ const updated = await userRepository.update({
 ```
 ## Delete Statements
 ```js
-
 const userRepository = Repository(User)
 
 const deleted = await userRepository.delete({
@@ -261,7 +258,7 @@ const phoneBelongUser = await phoneRepository.findOne({
 <div class="page-nav-cards">
   <a href="#/repository" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Repository </div>
@@ -270,7 +267,7 @@ const phoneBelongUser = await phoneRepository.findOne({
   <a href="#/view" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> View </div>
   </a>

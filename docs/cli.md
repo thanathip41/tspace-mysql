@@ -164,7 +164,7 @@ tspace-mysql migrations:db --dir=migrations --push --filename=dump.sql --env=dev
 <div class="page-nav-cards">
   <a href="#/blueprint" class="prev-card" >
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Blueprint </div>
@@ -172,7 +172,7 @@ tspace-mysql migrations:db --dir=migrations --push --filename=dump.sql --env=dev
   <a href="#/" class="next-card">
       <div class="nav-label">
           Next
-          <span style="color:#fff; font-size:16px;">→</span>
+          <span class="page-nav-arrow">→</span>
       </div>
       <div class="nav-title"> Getting Started </div>
     </a>

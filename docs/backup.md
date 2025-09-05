@@ -47,7 +47,7 @@ await new DB().cloneDB('try-to-clone')
 <div class="page-nav-cards">
   <a href="#/condition" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Condition </div>
@@ -56,7 +56,7 @@ await new DB().cloneDB('try-to-clone')
   <a href="#/injection" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> Injection </div>
   </a>

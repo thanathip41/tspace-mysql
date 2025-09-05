@@ -17,7 +17,7 @@ DB.escapeXSS(input);
 <div class="page-nav-cards">
   <a href="#/backup" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Backup </div>
@@ -26,7 +26,7 @@ DB.escapeXSS(input);
   <a href="#/model" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> Model </div>
   </a>

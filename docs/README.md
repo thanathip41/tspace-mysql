@@ -34,15 +34,6 @@ npm install tspace-mysql --save
 
 ## Install tspace-mysql globally (optional)
 npm install -g tspace-mysql
-
-## Install database drivers if needed:
-## For MariaDB
-npm install mariadb --save
-
-## For PostgreSQL
-npm install pg --save
-
-## MySQL2 driver is installed by default with tspace-mysql
 ```
 
 ## Configuration
@@ -50,28 +41,76 @@ npm install pg --save
 To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
 
 ```js
-DB_DRIVER = mysql 
-// DB_DRIVER = mariadb
-// DB_DRIVER = postgres
 DB_HOST = localhost;
 DB_PORT = 3306;
 DB_USERNAME = root;
 DB_PASSWORD = password;
 DB_DATABASE = database;
-
 /**
  * @default
- *  DB_CONNECTION_LIMIT = 10
+ *  DB_CONNECTION_LIMIT = 20
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = false
  */
 ```
 
+### MySQL Database
+
+To connect the application to a MySQL database, using the following:
+
+```sh
+## mysql2 driver is installed by default with tspace-mysql
+npm install mysql2 --save
+```
+
+```js
+DB_DRIVER = mysql
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+
+### Mariadb Database
+
+To connect the application to a Mariadb database, using the following:
+
+```sh
+npm install mariadb --save
+```
+
+```js
+DB_DRIVER = mariadb
+DB_HOST = localhost;
+DB_PORT = 3306;
+DB_USERNAME = root;
+DB_PASSWORD = password;
+DB_DATABASE = database;
+```
+
+### Postgres Database
+
+To connect the application to a Postgres database, using the following:
+
+```sh
+npm install pg --save
+```
+
+```js
+DB_DRIVER = postgres
+DB_HOST = localhost;
+DB_PORT = 5432;
+DB_USERNAME = root;
+DB_PASSWORD = password;
+DB_DATABASE = database;
+```
+
 <div class="page-nav-cards">
   <a href="#" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Getting Started</div>
@@ -80,7 +119,7 @@ DB_DATABASE = database;
   <a href="#/sql-like" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> SQL Like </div>
   </a>

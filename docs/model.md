@@ -1852,7 +1852,7 @@ const enumsObj      = meta.enum('role') // { admin: 'admin', user: 'user' }
 <div class="page-nav-cards">
   <a href="#/injection" class="prev-card">
     <div class="nav-label"> 
-        <span style="color:#fff; font-size:16px;">←</span> 
+        <span class="page-nav-arrow">←</span> 
         Previous
     </div>
     <div class="nav-title"> Injection </div>
@@ -1861,7 +1861,7 @@ const enumsObj      = meta.enum('role') // { admin: 'admin', user: 'user' }
   <a href="#/repository" class="next-card">
     <div class="nav-label">
         Next
-        <span style="color:#fff; font-size:16px;">→</span>
+        <span class="page-nav-arrow">→</span>
     </div>
     <div class="nav-title"> Repository </div>
   </a>
