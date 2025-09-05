@@ -18,6 +18,7 @@
   "keywords": [
     "tspace",
     "tspace-mysql",
+    "tspaceMysql",
     "mysql",
     "mysql2",
     "orm",
