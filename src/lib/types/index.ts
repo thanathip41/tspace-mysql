@@ -75,6 +75,7 @@ export type TPagination<K = any> = {
 export type TBackup = { 
     database : string , 
     to ?: { 
+        driver ?: TDriver,
         host: string ,
         port : number , 
         username : string , 
@@ -108,10 +109,8 @@ export type TBackupTableToFile = {
 }
 
 export type TConnectionOptions = { 
-    connectionLimit ?: number,
-    dateStrings?: boolean,
-    waitForConnections ?: boolean,
-    charset ?: string,
+    [key: string]: any,
+    driver ?: TDriver,
     host: string, 
     port: number, 
     database : string, 
@@ -176,10 +175,7 @@ export type TCreateNewConnection = {
 
 export type TOptions = {
     [key: string]: any,
-    connectionLimit ?: number,
-    dateStrings?: boolean,
-    waitForConnections ?: boolean,
-    charset ?: string,
+    driver ?: TDriver,
     host: string, 
     port: number, 
     database : string, 

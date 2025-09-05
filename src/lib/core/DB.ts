@@ -379,6 +379,7 @@ class DB extends AbstractDB {
   /**
    * The 'getConnection' method is used to get a pool connection.
    * @param {Object} options options for connection database with credentials
+   * @property {string} option.driver
    * @property {string} option.host
    * @property {number} option.port
    * @property {string} option.database
@@ -393,6 +394,7 @@ class DB extends AbstractDB {
     }
 
     const {
+      driver,
       host,
       port,
       database,
@@ -402,6 +404,7 @@ class DB extends AbstractDB {
     } = options;
 
     const pool = new PoolConnection({
+      driver,
       host,
       port,
       database,
@@ -416,6 +419,7 @@ class DB extends AbstractDB {
   /**
    * The 'getConnection' method is used to get a pool connection.
    * @param {Object} options options for connection database with credentials
+   * @property {string} option.driver
    * @property {string} option.host
    * @property {number} option.port
    * @property {string} option.database

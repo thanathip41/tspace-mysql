@@ -2898,6 +2898,7 @@ class Builder extends AbstractBuilder {
    */
   connection(options: TConnectionOptions): this {
     const {
+      driver,
       host,
       port,
       database,
@@ -2907,6 +2908,7 @@ class Builder extends AbstractBuilder {
     } = options;
 
     const pool = new PoolConnection({
+      driver,
       host,
       port,
       database,
