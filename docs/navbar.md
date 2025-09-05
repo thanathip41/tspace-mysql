@@ -1,14 +1,14 @@
-* Quick start
+* [Getting Started]()
   * [Install](?id=install)
   * [Configuration](?id=configuration)
 
-* SQL Like
+* [SQL Like](sql-like)
   * [Select Statements](sql-like?id=select-statements)
   * [Insert Statements](sql-like?id=insert-statements)
   * [Update Statements](sql-like?id=update-statements)
   * [Delete Statements](sql-like?id=delete-statements)
 
-* Query Builder
+* [Query Builder](query-builder)
   * [Table Name & Alias Name](query-builder?id=table-name--alias-name)
   * [Returning Results](query-builder?id=returning-results)
   * [Query Statement](query-builder?id=query-statements)
@@ -18,7 +18,7 @@
   * [Delete Statements](query-builder?id=delete-statements)
   * [Raw Expressions](query-builder?id=raw-expressions)
 
-* Model
+* [Model](model?id=basic-model-setup)
   * [Basic Model Setup](model?id=basic-model-setup)
   * [Schema](model?id=schema)
   * [SoftDelete](model?id=softdelete)
@@ -26,7 +26,7 @@
   * [Cache](model?id=cache)
   * [Decorator](model?id=decorator)
 
-* Relationships
+* [Relationships](model?id=relationships)
   * [One To One](model?id=one-to-one)
   * [One To Many](model?id=one-to-many)
   * [Belongs To](model?id=belongs-to)

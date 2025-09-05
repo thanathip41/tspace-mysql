@@ -7,6 +7,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css">
   <title>TspaceMysql</title>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/thanathip41/tspace-mysql/refs/heads/master/docs/images/TspaceMysql-Logo.png">
+  <meta name="description" content="Type-safe MySQL ORM for Node.js with deeply nested relations, migrations, and more.">
+  <meta name="keywords" content="tspace, tspace-mysql, mysql, mysql2, orm, ORM, relations, deeply nested relations, object relation model, model, database, query builder, transaction, commit, rollback, cli, migrate, backup, blueprint, repository, type safety, typescript">
+  <meta name="author" content="Thanathip">
+
+  <meta property="og:title" content="tspace-mysql Documentation">
+  <meta property="og:description" content="Type-safe MySQL ORM for Node.js with deeply nested relations, migrations, and more.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://thanathip41.github.io/tspace-mysql">
+  <meta property="og:image" content="https://raw.githubusercontent.com/thanathip41/tspace-mysql/refs/heads/master/docs/images/TspaceMysql-Logo.png">
   <style>
     #app {
       max-width: 100%; 
@@ -99,6 +109,19 @@
       left: 0;
       right: 0;
     }
+
+    .app-nav .active {
+      color: #0B87DA;
+      font-size : 1.1rem
+    }
+
+    .app-nav p {
+      color: #D3D3D3
+    }
+    
+    .app-nav a {
+      color: #D3D3D3
+    }
     @media (max-width: 640px) {
       .app-nav {
         visibility: hidden;
@@ -109,7 +132,7 @@
       }
 
       .page-nav-cards {
-        font-size: 14px;
+        font-size: 12px;
       }
 
       .page-nav-cards a {
@@ -143,7 +166,6 @@
       themeable: true,
       auto2top: true,
       loadNavbar: 'navbar.md',
-      search: 'auto',
       plugins: [
         function (hook, vm) {
           hook.doneEach(function () {
