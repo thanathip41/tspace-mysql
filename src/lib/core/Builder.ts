@@ -48,6 +48,11 @@ class Builder extends AbstractBuilder {
     return this.$database;
   }
 
+  setDatabase (db : string) : this {
+    this.$database = db;
+    return this
+  }
+
   /**
    * The 'rowLock' method is used to row level locks
    * 
@@ -2580,7 +2585,7 @@ class Builder extends AbstractBuilder {
       "INSERT",
       [
         `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
+        `${this.getTableName()}`,
         `${query}`,
       ].join(" ")
     );
@@ -3937,7 +3942,11 @@ class Builder extends AbstractBuilder {
       }
 
       if (r.Default) {
-        schema.push(`DEFAULT '${r.Default}'`);
+        if (r.Default.includes('IS_CONST:')) {
+          schema.push(`DEFAULT ${String(r.Default).replace('IS_CONST:','')}`);
+        } else {
+          schema.push(`DEFAULT '${r.Default}'`);
+        }
       }
 
       if (r.Extra) {
@@ -3959,7 +3968,7 @@ class Builder extends AbstractBuilder {
    */
   async showValues(
     table: string = this.$state.get("TABLE_NAME")
-  ): Promise<string[]> {
+  ): Promise<any[]> {
     const sql: string = [
       `${this.$constants("SELECT")}`,
       "*",
@@ -3986,8 +3995,8 @@ class Builder extends AbstractBuilder {
         })
         .join(", ")})`;
     });
-
-    return values;
+    
+    return values
   }
 
   /**
@@ -4048,7 +4057,7 @@ class Builder extends AbstractBuilder {
       fakers.push(columnAndValue);
     }
 
-    const chunked = this.$utils.chunkArray([...fakers], 500);
+    const chunked = this.$utils.chunkArray([...fakers], 1000);
 
     const promises: Function[] = [];
 
@@ -4114,7 +4123,7 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  async drop({ force = false, view = false }: { force?: boolean; view?: boolean } = {}): Promise<boolean> {
+  async drop({ force = false, view = false, db = false }: { force?: boolean; view?: boolean; db?: boolean  } = {}): Promise<boolean> {
     if (
       this.$state.get("TABLE_NAME") == null ||
       this.$state.get("TABLE_NAME") === ""
@@ -4124,7 +4133,11 @@ class Builder extends AbstractBuilder {
     }
 
     const sql: string = [
-      view ? `${this.$constants("DROP_VIEW")}` : `${this.$constants("DROP_TABLE")}`,
+      db 
+        ? `${this.$constants("DROP_DATABASE")}` 
+        : view 
+          ? `${this.$constants("DROP_VIEW")}` 
+          : `${this.$constants("DROP_TABLE")}`,
       `${this.$state.get("TABLE_NAME")}`,
     ].join(" ");
 

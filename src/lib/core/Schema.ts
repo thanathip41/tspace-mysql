@@ -46,9 +46,9 @@ class Schema {
     }
   };
 
-  public createTable = (table: string, schema: Record<string, any>) => {
+  public createTable = (database:string, table: string, schema: Record<string, any> | string[]) => {
     const query =  this.$db['_queryBuilder']() as QueryBuilder;
-    return query.tableCreating({ table , schema })
+    return query.tableCreating({ database, table , schema })
   };
 
   public detectSchema(schema: Record<string, any>) {
@@ -326,6 +326,7 @@ class Schema {
     
       if (!checkTableIsExists) {
         const sql = this.createTable(
+          this.$db.database(),
           `\`${model.getTableName()}\``,
           schemaModel
         );
@@ -578,7 +579,7 @@ class Schema {
 
         if (!schemaModelOn) continue;
 
-        const tableSql = this.createTable(`\`${table}\``, schemaModelOn);
+        const tableSql = this.createTable(this.$db.database(), `\`${table}\``, schemaModelOn);
 
         await this.$db
         .debug(log)
@@ -646,7 +647,7 @@ class Schema {
         }));
       } catch (err: any) {
 
-        const tableSql = this.createTable(`\`${table}\``, schemaModel);
+        const tableSql = this.createTable(this.$db.database(),`\`${table}\``, schemaModel);
 
         await this.$db
         .debug(log)

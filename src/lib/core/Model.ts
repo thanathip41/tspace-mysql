@@ -5915,7 +5915,7 @@ class Model<
       updatedAt: new Blueprint().timestamp().null(),
     };
 
-    const sql = new Schema().createTable(`\`${tableLogger}\``, schemaLogger);
+    const sql = new Schema().createTable(this.database(), `\`${tableLogger}\``, schemaLogger);
 
     await new DB().debug(this.$state.get("DEBUG")).rawQuery(sql);
 
@@ -7293,7 +7293,7 @@ class Model<
 
       const tableName = this.$state.get("TABLE_NAME");
 
-      const sql = new Schema().createTable(tableName, schemaTable);
+      const sql = new Schema().createTable(this.database(), tableName, schemaTable);
 
       await this._queryStatement(sql);
 

@@ -123,12 +123,24 @@ export class MariadbQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public tableCreating ({ table , schema } : {
-        table: string;
-        schema: Record<string,Blueprint>
+    public tableCreating ({ database, table , schema } : {
+      database: string;
+      table: string;
+      schema: Record<string,Blueprint> | string[];
     }) {
 
       let columns: Array<any> = [];
+
+      if(Array.isArray(schema)) {
+
+        const sql = [
+          `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
+          `${table} (${columns.join(", ")})`,
+          `${this.$constants("ENGINE")}`,
+      ] ;
+
+        return this.format(sql)
+      }
 
       const detectSchema = (schema: Blueprint<any>) =>{
         try {

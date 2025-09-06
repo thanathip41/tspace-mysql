@@ -87,8 +87,9 @@ export class MysqlQueryBuilder extends QueryBuilder {
           COLUMN_DEFAULT as "Default"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database}'
+        WHERE TABLE_NAME    = '${table.replace(/\`/g, "")}'
+          AND TABLE_SCHEMA  = '${database}'
+        ORDER BY ORDINAL_POSITION
         `,
       ];
 
@@ -101,14 +102,27 @@ export class MysqlQueryBuilder extends QueryBuilder {
     }) {
       const sql = [
         `SELECT 
-          COLUMN_NAME as "Field", 
-          DATA_TYPE as "Type",
-          IS_NULLABLE as "Null",
-          COLUMN_DEFAULT as "Default"
+          COLUMN_NAME AS "Field", 
+          COLUMN_KEY  AS "Key",
+          CASE 
+            WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL 
+            THEN CONCAT(DATA_TYPE, '(', CHARACTER_MAXIMUM_LENGTH, ')')
+            ELSE DATA_TYPE
+          END AS "Type",
+          IS_NULLABLE AS "Null",
+          CASE 
+            WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP' 
+            ELSE COLUMN_DEFAULT 
+          END AS "Default",
+          CASE 
+            WHEN EXTRA = 'DEFAULT_GENERATED' THEN '' 
+            ELSE EXTRA 
+          END AS "Extra"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database}'
+        WHERE TABLE_NAME    = '${table.replace(/\`/g, "")}'
+          AND TABLE_SCHEMA  = '${database}'
+        ORDER BY ORDINAL_POSITION
         `,
       ];
 
@@ -123,12 +137,25 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public tableCreating ({ table , schema } : {
+    public tableCreating ({ database, table , schema } : {
+        database: string;
         table: string;
-        schema: Record<string,Blueprint>
+        schema: Record<string,Blueprint> | string[];
     }) {
 
       let columns: Array<any> = [];
+
+      if(Array.isArray(schema)) {
+
+        const sql = [
+          `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
+          `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
+          `(${schema.join(", ")})`,
+          `${this.$constants("ENGINE")}`,
+      ] ;
+
+        return this.format(sql)
+      }
 
       const detectSchema = (schema: Blueprint<any>) =>{
         try {
@@ -154,9 +181,9 @@ export class MysqlQueryBuilder extends QueryBuilder {
         columns = [...columns, `\`${key}\` ${type} ${attributes.join(" ")}`];
       }
 
-       const sql = [
+      const sql = [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-        `${table} (${columns.join(", ")})`,
+        `\`${table.replace(/`/g, "")}\` (${columns.join(", ")})`,
         `${this.$constants("ENGINE")}`,
       ];
 
@@ -196,7 +223,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
       const sql = [
         this.$constants("ALTER_TABLE"),
-        `\`${table}\``,
+        `\`${table.replace(/`/g, "")}\``,
         this.$constants("CHANGE"),
         `\`${column}\``,
         `\`${column}\` ${type} ${
@@ -222,8 +249,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
           SELECT 1
           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
           WHERE REFERENCED_TABLE_NAME IS NOT NULL
-          AND TABLE_SCHEMA    = '${database}'
-          AND TABLE_NAME      = '${table}'
+          AND TABLE_SCHEMA    = '${database.replace(/`/g, "")}'
+          AND TABLE_NAME      = '${table.replace(/`/g, "")}'
           AND CONSTRAINT_NAME = '${constraint}'
         ) AS "IS_EXISTS"
         `

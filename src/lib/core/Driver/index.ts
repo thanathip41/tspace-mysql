@@ -176,9 +176,10 @@ export abstract class QueryBuilder {
 
     public abstract tables (database: string) :string
 
-    public abstract tableCreating ({ table , schema } : {
+    public abstract tableCreating ({ database, table , schema } : {
+        database: string;
         table: string;
-        schema: Record<string,Blueprint>
+        schema: Record<string,Blueprint> | string[]
     }) :string
 
     public abstract addColumn ({ table , column , type , attributes , after } : {

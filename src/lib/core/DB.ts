@@ -587,16 +587,17 @@ class DB extends AbstractDB {
       )} '${database}'`
     );
 
-    if (Object.values(db[0] ?? []).length)
+    if (Object.values(db[0] ?? []).length) {
       throw new Error(`This database : '${database}' is already exists`);
-
-    const tables = await this.showTables();
-
-    const backup = await this._backup({ tables, database });
+    }
 
     await this._queryStatement(
       `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} \`${database}\``
     );
+
+    const tables = await this.showTables();
+
+    const backup = await this._backup({ tables, database });
 
     const creating = async ({
       table,
@@ -608,7 +609,9 @@ class DB extends AbstractDB {
       try {
         await this._queryStatement(table);
         if (values != null && values !== "") await this._queryStatement(values);
-      } catch (e) {}
+      } catch (e) {
+        console.log(e)
+      }
     };
 
     await Promise.all(
@@ -1006,13 +1009,8 @@ class DB extends AbstractDB {
     const backup: Array<{ table: string; values: string; name: string }> = [];
 
     for (const table of tables) {
-      const schemas = await this.showSchema(table);
-      const createTableSQL: string[] = [
-        `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-        `\`${database}\`.\`${table}\``,
-        `(${schemas.join(", ")})`,
-        `${this.$constants("ENGINE")};`,
-      ];
+      const schema = await this.showSchema(table);
+      const createTableSQL: string[] = [this._queryBuilder().tableCreating({ database , table , schema })]
       const values = await this.showValues(table);
 
       let valueSQL: string[] = [];
