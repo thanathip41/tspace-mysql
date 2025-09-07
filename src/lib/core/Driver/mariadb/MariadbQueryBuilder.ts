@@ -117,7 +117,25 @@ export class MariadbQueryBuilder extends QueryBuilder {
 
     public tables (database: string) {
       const sql = [
-        `SHOW TABLES FROM \`${database.replace(/\`/g, "")}\``
+        `SELECT TABLE_NAME AS "Tables"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
+      `,
+      ];
+
+      return this.format(sql);
+    }
+
+    public table ({ database, table } : {
+      database: string;
+      table: string;
+    }) {
+      const sql = [
+        `SELECT TABLE_NAME AS "Table"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}' 
+          AND TABLE_NAME   = '${table.replace(/\`/g, "")}'
+      `,
       ];
 
       return this.format(sql);
@@ -135,7 +153,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
 
         const sql = [
           `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-          `${table} (${columns.join(", ")})`,
+          `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
           `${this.$constants("ENGINE")}`,
       ] ;
 
@@ -282,7 +300,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
           FROM information_schema.STATISTICS
           WHERE TABLE_SCHEMA  = '${database}'
           AND TABLE_NAME      = '${table}'
-          AND INDEX_NAME = '${index}'
+          AND INDEX_NAME      = '${index}'
         ) AS "IS_EXISTS"
         `
       ]
@@ -302,6 +320,34 @@ export class MariadbQueryBuilder extends QueryBuilder {
         `${this.$constants("ON")}`,
         `${table}(\`${key}\`)`
       ]
+
+      return this.format(sql);
+    }
+
+    public showDatabase (database: string) : string {
+      const sql: string = [
+        `${this.$constants("SHOW_DATABASES")}`,
+        `${this.$constants("LIKE")}`,
+        `'${database.replace(/`/g, "")}'`
+      ].join(' ')
+
+      return this.format(sql);
+    }
+    public dropDatabase (database: string) : string {
+
+      const sql: string = `${this.$constants("DROP_DATABASE")} \`${database.replace(/`/g, "")}\``
+
+      return this.format(sql);
+    }
+    public dropView (view: string) : string {
+
+      const sql: string = `${this.$constants("DROP_VIEW")} \`${view.replace(/`/g, "")}\``
+
+      return this.format(sql);
+    }
+    public dropTable (table: string) : string {
+
+      const sql: string = `${this.$constants("DROP_TABLE")} \`${table.replace(/`/g, "")}\``
 
       return this.format(sql);
     }

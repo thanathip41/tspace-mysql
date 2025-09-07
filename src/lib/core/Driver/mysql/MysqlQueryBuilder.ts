@@ -104,18 +104,14 @@ export class MysqlQueryBuilder extends QueryBuilder {
         `SELECT 
           COLUMN_NAME AS "Field", 
           COLUMN_KEY  AS "Key",
-          CASE 
-            WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL 
-            THEN CONCAT(DATA_TYPE, '(', CHARACTER_MAXIMUM_LENGTH, ')')
-            ELSE DATA_TYPE
-          END AS "Type",
+          COALESCE(NULLIF(COLUMN_TYPE, ''), DATA_TYPE) AS "Type",
           IS_NULLABLE AS "Null",
           CASE 
             WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP' 
             ELSE COLUMN_DEFAULT 
           END AS "Default",
           CASE 
-            WHEN EXTRA = 'DEFAULT_GENERATED' THEN '' 
+            WHEN EXTRA = 'DEFAULT_GENERATED' THEN NULL 
             ELSE EXTRA 
           END AS "Extra"
         `,
@@ -130,6 +126,32 @@ export class MysqlQueryBuilder extends QueryBuilder {
     }
 
     public tables (database: string) {
+      const sql = [
+        `SELECT TABLE_NAME AS "Tables"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
+      `,
+      ];
+
+      return this.format(sql);
+    }
+
+    public table ({ database, table } : {
+      database: string;
+      table: string;
+    }) {
+      const sql = [
+        `SELECT TABLE_NAME AS "Table"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}' 
+          AND TABLE_NAME   = '${table.replace(/\`/g, "")}'
+      `,
+      ];
+
+      return this.format(sql);
+    }
+
+    public getTable ({ database , table } : { database: string , table : string }) {
       const sql = [
         `SHOW TABLES FROM \`${database.replace(/\`/g, "")}\``
       ];
@@ -317,6 +339,34 @@ export class MysqlQueryBuilder extends QueryBuilder {
         `${this.$constants("ON")}`,
         `${table}(\`${key}\`)`
       ]
+
+      return this.format(sql);
+    }
+
+    public showDatabase (database: string) : string {
+      const sql: string = [
+        `${this.$constants("SHOW_DATABASES")}`,
+        `${this.$constants("LIKE")}`,
+        `'${database.replace(/`/g, "")}'`
+      ].join(' ')
+
+      return this.format(sql);
+    }
+    public dropDatabase (database: string) : string {
+
+      const sql: string = `${this.$constants("DROP_DATABASE")} \`${database.replace(/`/g, "")}\``
+
+      return this.format(sql);
+    }
+    public dropView (view: string) : string {
+
+      const sql: string = `${this.$constants("DROP_VIEW")} \`${view.replace(/`/g, "")}\``
+
+      return this.format(sql);
+    }
+    public dropTable (table: string) : string {
+
+      const sql: string = `${this.$constants("DROP_TABLE")} \`${table.replace(/`/g, "")}\``
 
       return this.format(sql);
     }

@@ -581,18 +581,15 @@ class DB extends AbstractDB {
    * @returns {Promise<boolean>}
    */
   async cloneDB(database: string): Promise<void> {
-    const db = await this._queryStatement(
-      `${this.$constants("SHOW_DATABASES")} ${this.$constants(
-        "LIKE"
-      )} '${database}'`
-    );
+    const db = await this._queryStatement(this._queryBuilder().showDatabase(database));
 
+    console.log({ db , get : Object.values(db[0] ?? []).length })
     if (Object.values(db[0] ?? []).length) {
       throw new Error(`This database : '${database}' is already exists`);
     }
 
     await this._queryStatement(
-      `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} \`${database}\``
+      `${this.$constants("CREATE_DATABASE")} \`${database}\``
     );
 
     const tables = await this.showTables();

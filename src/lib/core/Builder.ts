@@ -827,7 +827,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  whereExists(sql: string): this {
+  whereExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -848,11 +848,53 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  whereNotExists(sql: string): this {
+  whereNotExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        `${this.$constants("NOT")} ${this.$constants("EXISTS")}`,
+        `(${sql})`,
+      ].join(" "),
+    ]);
+
+    return this;
+  }
+
+  /**
+   *
+   * The 'orWhereExists' method is used to add a conditional clause to a database query that checks for the existence of related records in a subquery or another table.
+   *
+   * It allows you to filter records based on whether a specified condition is true for related records.
+   * @param {string} sql
+   * @returns {this}
+   */
+  orWhereExists(sql: string | Builder): this {
+    this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      [
+        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        `${this.$constants("EXISTS")}`,
+        `(${sql})`,
+      ].join(" "),
+    ]);
+
+    return this;
+  }
+
+  /**
+   *
+   * The 'orWhereExists' method is used to add a conditional clause to a database query that checks for the existence of related records in a subquery or another table.
+   *
+   * It allows you to filter records based on whether a specified condition is true for related records.
+   * @param {string} sql
+   * @returns {this}
+   */
+  orWhereNotExists(sql: string | Builder): this {
+    this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      [
+        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.$constants("NOT")} ${this.$constants("EXISTS")}`,
         `(${sql})`,
       ].join(" "),
@@ -990,13 +1032,13 @@ class Builder extends AbstractBuilder {
   whereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
-
-    const values = `${array
-      .map((value: string) =>
-        this.$utils.checkValueHasRaw(this.$utils.escape(value))
-      )
-      .join(",")}`;
+    const values = array.length
+    ? `${array
+        .map((value: string) =>
+          this.$utils.checkValueHasRaw(this.$utils.escape(value))
+        )
+        .join(",")}`
+    : this.$constants(this.$constants("NULL"));
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1022,13 +1064,13 @@ class Builder extends AbstractBuilder {
   orWhereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
-
-    const values = `${array
-      .map((value: string) =>
-        this.$utils.checkValueHasRaw(this.$utils.escape(value))
-      )
-      .join(",")}`;
+    const values = array.length
+    ? `${array
+        .map((value: string) =>
+          this.$utils.checkValueHasRaw(this.$utils.escape(value))
+        )
+        .join(",")}`
+    : this.$constants(this.$constants("NULL"));
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3860,12 +3902,7 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showTables(): Promise<string[]> {
-    const sql: string = [
-      `${this.$constants("SHOW")}`,
-      `${this.$constants("TABLES")}`,
-    ].join(" ");
-
-    const results: any[] = await this._queryStatement(sql);
+    const results: any[] = await this._queryStatement(this._queryBuilder().tables(this.database()));
 
     return results
       .map((table) => String(Object.values(table)[0]))
@@ -3956,6 +3993,9 @@ class Builder extends AbstractBuilder {
       return schema.join(" ");
     });
 
+    console.log({
+      schema
+    })
     return schema
   }
 
@@ -4134,11 +4174,10 @@ class Builder extends AbstractBuilder {
 
     const sql: string = [
       db 
-        ? `${this.$constants("DROP_DATABASE")}` 
+        ? this._queryBuilder().dropDatabase(this.$state.get("TABLE_NAME")) 
         : view 
-          ? `${this.$constants("DROP_VIEW")}` 
-          : `${this.$constants("DROP_TABLE")}`,
-      `${this.$state.get("TABLE_NAME")}`,
+          ? this._queryBuilder().dropView(this.$state.get("TABLE_NAME")) 
+          : this._queryBuilder().dropTable(this.$state.get("TABLE_NAME")) 
     ].join(" ");
 
     if (!force) {
@@ -4583,9 +4622,8 @@ class Builder extends AbstractBuilder {
   private _queryInsert(data: Record<string, any>) {
     data = this.$utils.covertDateToDateString(data);
 
-    const columns: string[] = Object.keys(data).map((column: string) =>
-      this.bindColumn(column)
-    );
+    const columns: string[] = Object.keys(data)
+    .map((c: string) =>`\`${c.replace(/\`/g, "")}\``);
 
     const values = Object.values(data).map((value: any) => {
       if (
@@ -4628,9 +4666,8 @@ class Builder extends AbstractBuilder {
       values.push(`(${vals.join(",")})`);
     }
 
-    const columns: string[] = Object.keys([...data]?.shift()).map(
-      (column: string) => this.bindColumn(column)
-    );
+    const columns: string[] = Object.keys([...data]?.shift())
+    .map((c: string) => `\`${c.replace(/\`/g, "")}\``);
 
     return [
       `(${columns})`,
@@ -4712,24 +4749,39 @@ class Builder extends AbstractBuilder {
 
         if(poolCluster == null) {
           throw new Error(
-            'Cluster connection has not been initialized. Please call createCluster before executing queries.'
+            'Cluster connection has not been initialized. Please verify your confings'
           );
         }
       
         return {
           query: async (sql: string) => {
             const first = sql.trim().split(/\s+/)[0].toUpperCase();
-            const isReaded = ['SELECT', 'SHOW', 'DESCRIBE'].includes(first) &&
-            !sql.toUpperCase().includes('FOR UPDATE');
+            const isReaded = [
+              this.$constants('SELECT'), 
+              this.$constants('SHOW'), 
+              this.$constants('DESCRIBE')
+            ].includes(first) &&
+            
+            (!sql
+              .toUpperCase()
+              .includes(this.$constants('ROW_LEVEL_LOCK').update) ||
+              !sql
+              .toUpperCase()
+              .includes(this.$constants('ROW_LEVEL_LOCK').share)
+            )
            
             if(isReaded) {
               const length = poolCluster?.readers?.length ?? 0;
               const random = Math.floor(Math.random() * length);
 
-              return poolCluster?.query != null ? poolCluster.query(sql) : poolCluster?.readers[random].query(sql);
+              return poolCluster?.query != null 
+              ? poolCluster.query(sql) 
+              : poolCluster?.readers[random].query(sql);
             }
 
-            return poolCluster.query != null ? poolCluster.query(sql) : poolCluster?.writer.query(sql);
+            return poolCluster.query != null 
+            ? poolCluster.query(sql) 
+            : poolCluster?.writer.query(sql);
           },
           get: () => poolCluster,
           set: (newConnection: TPoolCusterConnected) => {

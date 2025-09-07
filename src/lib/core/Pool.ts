@@ -97,17 +97,43 @@ export class PoolConnection extends EventEmitter {
     }
 
     const options = Object.fromEntries(this.OPTIONS);
-    const hostWriter   = String(options.host).split(',')[0]
-    const hostReaders  = String(options.host).split(',').slice(1)
+
+    const parseList = (value : string) => {
+      return String(value).split(',').map(v => v.trim())
+    }
+
+    const getValue = (arr : any[], index: number) => {
+      return arr[index] != null ? arr[index] : arr[arr.length - 1]
+    }
+
+    const hosts = parseList(options.host).map(String)
+    const ports = parseList(options.ports).map(Number)
+    const usernames = parseList(options.username).map(String)
+    const passwords = parseList(options.password).map(String)
+
+    const writerOptions = {
+      host: getValue(hosts,0),
+      port: getValue(ports, 0),
+      username: getValue(usernames, 0),
+      password: getValue(passwords, 0)
+    }
+
+    const readerOptions = hosts.slice(1).map((host, i) => ({
+      host,
+      port: getValue(ports, i + 1),
+      username: getValue(usernames, i + 1),
+      password: getValue(passwords, i + 1)
+    }))
 
     const writer = new PoolConnection().connected({
       ...options,
-      host : hostWriter
+      ...writerOptions
     });
 
-    const readers = hostReaders.map((hostReader: string) => {
+    const readers = readerOptions.map((readerOption) => {
       return new PoolConnection().connected({ 
-        ...options, host: hostReader 
+        ...options,
+        ...readerOption,
       })
     })
 

@@ -1,6 +1,7 @@
 const CONSTANTS = Object.freeze({
     ID : 'ID',
     SHOW : 'SHOW',
+    DESCRIBE: 'DESCRIBE',
     BINARY: 'BINARY',
     FIELDS : 'FIELDS',
     COLUMNS : 'COLUMNS',

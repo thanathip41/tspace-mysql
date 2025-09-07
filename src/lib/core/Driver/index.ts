@@ -176,6 +176,11 @@ export abstract class QueryBuilder {
 
     public abstract tables (database: string) :string
 
+    public abstract table ({ database, table } : {
+        database: string;
+        table: string;
+    }) : string
+
     public abstract tableCreating ({ database, table , schema } : {
         database: string;
         table: string;
@@ -226,6 +231,11 @@ export abstract class QueryBuilder {
       index      : string;
       key        : string;
     }) : string
+
+    public abstract showDatabase (database: string) : string
+    public abstract dropDatabase (database: string) : string
+    public abstract dropView (view: string) : string
+    public abstract dropTable (table: string) : string
 
     public abstract format(sql: (string | null)[] | string): string
 

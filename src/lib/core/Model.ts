@@ -1520,7 +1520,7 @@ class Model<
     newInstance.$state.set("SAVE", "");
     newInstance.$state.set("DEBUG", false);
     newInstance.$state.set("LOGGER", false);
-
+  
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
     if (options?.insert == null || !options.insert)
@@ -1562,6 +1562,7 @@ class Model<
   ): Promise<any[]> {
     try {
       sql = this._queryBuilder().format([sql])
+
       const logger = async (results: any[]) => {
         const selectRegex = /^SELECT\b/i;
 
@@ -1569,24 +1570,9 @@ class Model<
 
         if (!(selectRegex.test(sql) && loggerOptions?.selected)) return;
 
-        await this._checkTableLoggerIsExists().catch((_) => null);
+        const { Logger } = await import("./Contracts/Logger")
 
-        await new DB(this.$state.get("TABLE_LOGGER"))
-          .create({
-            uuid: DB.generateUUID(),
-            model: this.$state.get("MODEL_NAME"),
-            query: sql,
-            action: "SELECT",
-            data: results.length
-              ? JSON.stringify(results.length === 1 ? results[0] : results)
-              : null,
-            changed: null,
-            createdAt: this.$utils.timestamp(),
-            updatedAt: this.$utils.timestamp(),
-          })
-          .void()
-          .save()
-          .catch((_) => null);
+        await Logger.detected(this, { sql, result })
       };
 
       if (this.$state.get("DEBUG")) {
@@ -1629,16 +1615,17 @@ class Model<
    *
    * execute the query using raw sql syntax actions for insert update and delete
    * @override
-   * @param {Object} actions
-   * @property {Function} actions.sqlresult
-   * @property {Function} actions.returnId
+   * @param {string} sql
    * @returns {this} this
    */
   protected async _actionStatement(sql: string): Promise<any> {
     try {
+
       sql = this._queryBuilder().format([sql])
+
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
+
           this.$utils.consoleDebug(sql);
 
           const startTime = +new Date();
@@ -1657,138 +1644,13 @@ class Model<
         return await this.$pool.query(sql);
       };
 
-      if (this.$state.get("LOGGER")) {
-        const updateRegex = /^UPDATE\b/i;
-        const insertRegex = /^INSERT\b/i;
-        const deleteRegex = /^DELETE\b/i;
-
-        const loggerOptions = this.$state.get("LOGGER_OPTIONS");
-
-        if (insertRegex.test(sql) && loggerOptions?.inserted) {
-          await this._checkTableLoggerIsExists().catch((_) => null);
-
-          const result = await getResults(sql);
-
-          const changed = await new Model()
-            .copyModel(this, {
-              where: false,
-              orderBy: true,
-              limit: true,
-            })
-            .whereIn("id", result.$meta.insertIds)
-            .disableVoid()
-            .bind(this.$pool.get())
-            .get();
-
-          await new DB(this.$state.get("TABLE_LOGGER"))
-            .create({
-              uuid: DB.generateUUID(),
-              model: this.$state.get("MODEL_NAME"),
-              query: sql,
-              action: "INSERTD",
-              data: changed.length
-                ? JSON.stringify(changed.length === 1 ? changed[0] : changed)
-                : null,
-              changed: null,
-              createdAt: this.$utils.timestamp(),
-              updatedAt: this.$utils.timestamp(),
-            })
-            .void()
-            .save()
-            .catch((_) => null);
-
-          return result;
-        }
-
-        if (updateRegex.test(sql) && loggerOptions?.updated) {
-          await this._checkTableLoggerIsExists().catch((err) => null);
-
-          const createdAt = this.$utils.timestamp();
-
-          const data = await new Model()
-            .copyModel(this, {
-              where: true,
-              orderBy: true,
-              limit: true,
-            })
-            .disableVoid()
-            .bind(this.$pool.get())
-            .get();
-
-          const result = await getResults(sql);
-
-          const changed = await new Model()
-            .copyModel(this, {
-              where: true,
-              orderBy: true,
-              limit: true,
-            })
-            .disableSoftDelete()
-            .disableVoid()
-            .bind(this.$pool.get())
-            .get();
-
-          const updatedAt = this.$utils.timestamp();
-
-          await new DB(this.$state.get("TABLE_LOGGER"))
-            .create({
-              uuid: DB.generateUUID(),
-              model: this.$state.get("MODEL_NAME"),
-              query: sql,
-              action: "UPDATED",
-              data: data.length
-                ? JSON.stringify(data.length === 1 ? data[0] : data)
-                : null,
-              changed: changed.length
-                ? JSON.stringify(changed.length === 1 ? changed[0] : changed)
-                : null,
-              createdAt,
-              updatedAt,
-            })
-            .void()
-            .save()
-            .catch((_) => null);
-
-          return result;
-        }
-
-        if (deleteRegex.test(sql) && loggerOptions?.deleted) {
-          await this._checkTableLoggerIsExists().catch((err) => null);
-
-          const data = await new Model()
-            .copyModel(this, {
-              where: true,
-              orderBy: true,
-              limit: true,
-            })
-            .disableVoid()
-            .bind(this.$pool.get())
-            .get();
-
-          const result = await getResults(sql);
-
-          await new DB(this.$state.get("TABLE_LOGGER"))
-            .create({
-              uuid: DB.generateUUID(),
-              model: this.$state.get("MODEL_NAME"),
-              query: sql,
-              action: "DELETED",
-              data: data.length
-                ? JSON.stringify(data.length === 1 ? data[0] : data)
-                : null,
-              changed: null,
-              createdAt: this.$utils.timestamp(),
-              updatedAt: this.$utils.timestamp(),
-            })
-            .void()
-            .save()
-            .catch((_) => null);
-
-          return result;
-        }
-      }
-
       const result = await getResults(sql);
+
+      if (!this.$state.get("LOGGER")) return result;
+
+      const { Logger } = await import("./Contracts/Logger");
+
+      await Logger.detected(this, { sql, result })
 
       return result;
     } catch (error: unknown) {
@@ -5892,14 +5754,9 @@ class Model<
     if (!this.$state.get("LOGGER")) return;
 
     const tableLogger = this.$state.get("TABLE_LOGGER");
-    const checkTables = await new DB().rawQuery(
-      `${this.$constants("SHOW_TABLES")} ${this.$constants(
-        "LIKE"
-      )} '${tableLogger}'`
-    );
-    const existsTables = checkTables.map(
-      (c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0]
-    )[0];
+    const checkTables = await new DB().showTables();
+    
+    const existsTables = checkTables.find(v => v === tableLogger)
 
     if (existsTables != null) return;
 
@@ -6713,9 +6570,8 @@ class Model<
       };
     }
 
-    const columns: string[] = Object.keys(data).map((column: string) =>
-      this.bindColumn(column)
-    );
+    const columns: string[] = Object.keys(data)
+    .map((c : string) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``);
 
     const values = Object.values(data).map((value: any) => {
       if (
@@ -6810,7 +6666,7 @@ class Model<
     this.$state.set("DATA", newData);
 
     return [
-      `(${[...new Set(columns.map((c) => this.bindColumn(c)))].join(",")})`,
+      `(${[...new Set(columns.map((c) => `\`${this._valuePattern(c).replace(/\`/g, "")}\`` ))].join(",")})`,
       `${this.$constants("VALUES")}`,
       `${values.join(", ")}`,
     ].join(" ");
@@ -6863,9 +6719,9 @@ class Model<
 
   private async _insertModel() {
     await this._validateSchema(this.$state.get("DATA"), "insert");
-
+    
     const result = await this._actionStatement(this._queryBuilder().insert());
-
+    
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
     if (!result) return this._resultHandler(null);
@@ -7300,6 +7156,7 @@ class Model<
       const beforeCreatingTheTable = this.$state.get("BEFORE_CREATING_TABLE");
 
       if (beforeCreatingTheTable != null) await beforeCreatingTheTable();
+
     } catch (e: unknown) {
       if (retry > 3) {
         throw throwError;

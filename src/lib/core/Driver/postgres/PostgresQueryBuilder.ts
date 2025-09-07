@@ -102,13 +102,31 @@ export class PostgresQueryBuilder extends QueryBuilder {
       const sql = [
         `SELECT 
           COLUMN_NAME as "Field", 
-          DATA_TYPE as "Type",
+          CASE
+              WHEN column_default LIKE 'nextval(%' THEN 'PRI'
+              ELSE ''
+          END AS "Key",
+          CASE
+            WHEN 
+              DATA_TYPE = 'character varying' AND CHARACTER_MAXIMUM_LENGTH IS NOT NULL
+              THEN DATA_TYPE || '(' || CHARACTER_MAXIMUM_LENGTH || ')'
+            ELSE DATA_TYPE
+          END AS "Type",
           IS_NULLABLE as "Null",
-          COLUMN_DEFAULT as "Default"
+
+          CASE
+              WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN NULL
+              WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP'
+              ELSE COLUMN_DEFAULT
+          END AS "Default",
+
+          
+          '' As "Extra"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
           AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+        ORDER BY ORDINAL_POSITION
         `,
       ];
 
@@ -128,6 +146,23 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
+    public table ({ database, table } : {
+      database: string;
+      table: string;
+    }) {
+      const sql = [
+        `SELECT TABLE_NAME AS "TABLES"
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = 'public'
+        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+        AND TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_NAME LIKE '${table.replace(/\`/g, "")}'
+      `,
+      ];
+
+      return this.format(sql);
+    }
+
     public tableCreating ({ database, table , schema } : {
       database: string;
       table: string;
@@ -139,9 +174,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
       if(Array.isArray(schema)) {
 
         const sql = [
+          `CREATE SCHEMA IF NOT EXISTS \`${database.replace(/`/g, "")}\`;`,
           `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-          `${table} (${columns.join(", ")})`,
-          `${this.$constants("ENGINE")}`,
+          `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
+          `(${schema.join(", ")})`,
       ] ;
 
         return this.format(sql)
@@ -348,6 +384,35 @@ export class PostgresQueryBuilder extends QueryBuilder {
         `${this.$constants("ON")}`,
         `${table}(\`${key}\`)`
       ]
+
+      return this.format(sql);
+    }
+
+     public showDatabase (database: string) : string {
+      const sql: string = [
+        `SELECT 
+          DATNAME AS Database
+        FROM PG_DATABASE
+        WHERE DATNAME = '${database.replace(/`/g, "")}'`
+      ].join(' ')
+
+      return this.format(sql);
+    }
+    public dropDatabase (database: string) : string {
+
+      const sql: string = `${this.$constants("DROP_DATABASE")} "${database.replace(/`/g, "")}"`
+
+      return this.format(sql);
+    }
+    public dropView (view: string) : string {
+
+      const sql: string = `${this.$constants("DROP_VIEW")} "${view.replace(/`/g, "")}"`
+
+      return this.format(sql);
+    }
+    public dropTable (table: string) : string {
+
+      const sql: string = `${this.$constants("DROP_TABLE")} "${table.replace(/`/g, "")}"`
 
       return this.format(sql);
     }
