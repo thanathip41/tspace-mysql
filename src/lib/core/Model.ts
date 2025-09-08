@@ -373,7 +373,12 @@ class Model<
     updated = true,
     deleted = true,
   } = {}): this {
-    this.$state.set("LOGGER", true);
+    this.$state.set("LOGGER", ![
+      selected,
+      inserted,
+      updated,
+      deleted
+    ].every(v => v === false));
     this.$state.set("LOGGER_OPTIONS", {
       selected,
       inserted,
@@ -954,6 +959,13 @@ class Model<
     return this;
   }
 
+  tracking (userId: number) {
+
+    this.$state.set("TRACKING",userId);
+
+    return this;
+  }
+
   meta(meta: "MAIN" | "SUBORDINATE") {
     this.$state.set("META", meta);
     return this;
@@ -1520,6 +1532,7 @@ class Model<
     newInstance.$state.set("SAVE", "");
     newInstance.$state.set("DEBUG", false);
     newInstance.$state.set("LOGGER", false);
+    newInstance.$state.set("TRACKING", null);
   
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
@@ -1563,41 +1576,41 @@ class Model<
     try {
       sql = this._queryBuilder().format([sql])
 
-      const logger = async (results: any[]) => {
-        const selectRegex = /^SELECT\b/i;
+      const getResults = async (sql: string) => {
+        if (this.$state.get("DEBUG")) {
 
-        const loggerOptions = this.$state.get("LOGGER_OPTIONS");
+          this.$utils.consoleDebug(sql);
 
-        if (!(selectRegex.test(sql) && loggerOptions?.selected)) return;
+          this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
-        const { Logger } = await import("./Contracts/Logger")
+          const startTime = +new Date();
 
-        await Logger.detected(this, { sql, result })
+          const results = await this.$pool.query(sql);
+
+          const endTime = +new Date();
+
+          this.$utils.consoleExec(startTime, endTime);
+
+          return results;
+        }
+
+        return await this.$pool.query(sql);
       };
 
-      if (this.$state.get("DEBUG")) {
-        this.$utils.consoleDebug(sql, retry);
+      let result = null;
 
-        this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
-
-        const startTime = +new Date();
-
-        const result = await this.$pool.query(sql);
-
-        const endTime = +new Date();
-
-        this.$utils.consoleExec(startTime, endTime);
-
-        if (this.$state.get("LOGGER")) await logger(result);
-
-        return result;
+      if (!this.$state.get('TRACKING') && this.$state.get("LOGGER")) {
+        const { Logger } = await import("./Contracts/Logger")
+        result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
       }
 
-      const result = await this.$pool.query(sql);
+      if(this.$state.get('TRACKING')) {
+        const { Audit } = await import("./Contracts/Audit")
+        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
+      }
 
-      if (this.$state.get("LOGGER")) await logger(result);
+      return result == null ? await getResults(sql) : result;
 
-      return result;
     } catch (error: any) {
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -1644,15 +1657,19 @@ class Model<
         return await this.$pool.query(sql);
       };
 
-      const result = await getResults(sql);
+      let result = null;
 
-      if (!this.$state.get("LOGGER")) return result;
+      if (!this.$state.get('TRACKING') && this.$state.get("LOGGER")) {
+        const { Logger } = await import("./Contracts/Logger")
+        result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
+      }
 
-      const { Logger } = await import("./Contracts/Logger");
+      if(this.$state.get('TRACKING')) {
+        const { Audit } = await import("./Contracts/Audit")
+        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
+      }
 
-      await Logger.detected(this, { sql, result })
-
-      return result;
+      return result == null ? await getResults(sql) : result;
     } catch (error: unknown) {
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -5748,35 +5765,6 @@ class Model<
       default:
         return column;
     }
-  }
-
-  private async _checkTableLoggerIsExists() {
-    if (!this.$state.get("LOGGER")) return;
-
-    const tableLogger = this.$state.get("TABLE_LOGGER");
-    const checkTables = await new DB().showTables();
-    
-    const existsTables = checkTables.find(v => v === tableLogger)
-
-    if (existsTables != null) return;
-
-    const schemaLogger = {
-      id: new Blueprint().int().notNull().primary().autoIncrement(),
-      uuid: new Blueprint().varchar(50).null(),
-      model: new Blueprint().varchar(50).null(),
-      query: new Blueprint().longText().null(),
-      action: new Blueprint().varchar(50).null(),
-      data: new Blueprint().json().null(),
-      changed: new Blueprint().json().null(),
-      createdAt: new Blueprint().timestamp().null(),
-      updatedAt: new Blueprint().timestamp().null(),
-    };
-
-    const sql = new Schema().createTable(this.database(), `\`${tableLogger}\``, schemaLogger);
-
-    await new DB().debug(this.$state.get("DEBUG")).rawQuery(sql);
-
-    return;
   }
 
   private _isPatternSnakeCase() {

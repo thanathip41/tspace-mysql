@@ -1,8 +1,6 @@
 import { Model }      from "../Model";
 import { Blueprint }  from '../Blueprint';
 import { T }          from "../UtilityTypes";
-import { AbstractModel } from "../Abstracts/AbstractModel";
-import { DB } from "../DB";
 
 const schema = {
     id: new Blueprint().int().notNull().primary().autoIncrement(),
@@ -19,18 +17,17 @@ const schema = {
 type TS = T.Schema<typeof schema>
 
 class Logger extends Model<TS> {
-    constructor(){
-        super()
+    protected boot(): void {
         this.useUUID();
         this.useSchema(schema);
         this.useTimestamp();
         this.useTable(this.$state.get('TABLE_LOGGER'));
     }
 
-    static async detected (instance : Model, { 
+    static async tracking (instance : Model, { 
         sql, 
-        result,
-    } : { sql : string; result : any }) : Promise<void> {
+        fn,
+    } : { sql : string;  fn : () => Promise<any> }) {
         try {
 
             const selectRegex = /^SELECT\b/i;
@@ -41,8 +38,12 @@ class Logger extends Model<TS> {
 
             await new this().sync({ force: true })
 
+            let result = null;
+
             if (insertRegex.test(sql) && options?.inserted) {
                     
+                result = await fn();
+
                 const changed = await new Model()
                 .copyModel(instance, {
                     select  : true,
@@ -56,10 +57,6 @@ class Logger extends Model<TS> {
                 .debug(instance['$state'].get('DEBUG'))
                 .get();
 
-                console.log({
-                    sql,
-                    formated : JSON.stringify(sql)
-                })
                 await new this()
                 .table(instance['$state'].get("TABLE_LOGGER"))
                 .create({
@@ -75,8 +72,6 @@ class Logger extends Model<TS> {
                 .bind(instance['$pool'].get())
                 .debug(instance['$state'].get('DEBUG'))
                 .save()
-
-                return result;
             }
 
             if (updateRegex.test(sql) && options?.updated) {
@@ -91,6 +86,8 @@ class Logger extends Model<TS> {
                 .bind(instance['$pool'].get())
                 .debug(instance['$state'].get('DEBUG'))
                 .get();
+
+                result = await fn();
 
                 const changed = await new Model()
                 .copyModel(instance, {
@@ -113,8 +110,6 @@ class Logger extends Model<TS> {
                     data: data.length
                     ? JSON.stringify(data.length === 1 ? data[0] : data)
                     : null,
-                    // data,
-                    // changed
                     changed: changed.length
                     ? JSON.stringify(changed.length === 1 ? changed[0] : changed)
                     : null,
@@ -135,9 +130,12 @@ class Logger extends Model<TS> {
                 })
                 .disableVoid()
                 .bind(instance['$pool'].get())
+                .debug(instance['$state'].get('DEBUG'))
                 .get();
 
-            await new this()
+                result = await fn();
+
+                await new this()
                 .table(instance['$state'].get("TABLE_LOGGER"))
                 .create({
                     model: instance['$state'].get("MODEL_NAME"),
@@ -149,14 +147,15 @@ class Logger extends Model<TS> {
                     changed: null
                 })
                 .bind(instance['$pool'].get())
+                .debug(instance['$state'].get('DEBUG'))
                 .void()
                 .save()
-
-            return result;
             }
 
             if (selectRegex.test(sql) && options?.selected) {
-                await new Logger()
+                result = await fn();
+
+                await new this()
                 .table(instance['$state'].get("TABLE_LOGGER"))
                 .create({
                     model: instance['$state'].get("MODEL_NAME"),
@@ -168,11 +167,13 @@ class Logger extends Model<TS> {
                     changed: null
                 })
                 .bind(instance['$pool'].get())
+                .debug(instance['$state'].get('DEBUG'))
                 .void()
                 .save()
             }
 
-            return;
+            return result == null ? await fn() : result;
+
         } catch (e) {
 
             console.log(e)

@@ -40,6 +40,7 @@ const STATE_DB = {
 
 const STATE_MODEL = {
   ...STATE_DEFAULT,
+  TRACKING : null,
   MODEL_NAME: 'MODEL' as string,
   UUID_FORMAT: 'uuid' as string,
   UUID: false as boolean,
@@ -65,6 +66,7 @@ const STATE_MODEL = {
     deleted  : boolean;
   } | null,
   TABLE_LOGGER: '$loggers' as string,
+  TABLE_AUDIT : '$audits' as string,
   VALIDATE_SCHEMA: false as boolean,
   VALIDATE_SCHEMA_DEFINED: null as string | null,
   FUNCTION_RELATION: false as boolean,
