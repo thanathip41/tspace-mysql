@@ -25,6 +25,8 @@
   * [Joins Model](model?id=joins-model)
   * [Cache](model?id=cache)
   * [Decorator](model?id=decorator)
+  * [Metadata](model?id=metadata)
+  * [Audit](model?id=audit)
 
 * [Relationships](model?id=relationships)
   * [One To One](model?id=one-to-one)
