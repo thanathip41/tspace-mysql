@@ -61,21 +61,21 @@ describe("Testing Model without Pattern & Schema", function () {
       changed: true,
       foreign: true,
       index: true,
-    });
+    }).catch((err) => console.log(err));
 
     await new Post().sync({
       force: true,
       changed: true,
       foreign: true,
       index: true,
-    });
+    }).catch((err) => console.log(err));
 
     await new PostUser().sync({
       force: true,
       changed: true,
       foreign: true,
       index: true,
-    });
+    }).catch((err) => console.log(err));
   });
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD

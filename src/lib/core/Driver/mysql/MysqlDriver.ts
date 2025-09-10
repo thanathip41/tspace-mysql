@@ -183,12 +183,9 @@ export class MysqlDriver extends BaseDriver {
     };
 
     if (command === "INSERT") {
-      const insertIds =
-        results.affectedRows <= 1
-          ? [results.affectedRows]
-          : [...Array(results.affectedRows)].map(
-              (_, i) => results.insertId - i
-            );
+       const insertIds = results.affectedRows <= 1 
+        ? [results.insertId]
+        : [...Array(results.affectedRows)].map((_, i) => results.insertId + i)
 
       results.$meta = {
         ...results.$meta,

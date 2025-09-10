@@ -150,6 +150,7 @@ See the [`docs`](https://thanathip41.github.io/tspace-mysql) directory for full 
     - [Relationships Type Safety](https://thanathip41.github.io/tspace-mysql/#/model?id=relationships-type-safety)
     - [Results Type Safety](https://thanathip41.github.io/tspace-mysql/#/model?id=results-type-safety)
   - [Metadata](https://thanathip41.github.io/tspace-mysql/#/model?id=metadata)
+  - [Audit](https://thanathip41.github.io/tspace-mysql/#/model?id=audit)
 - [Repository](https://thanathip41.github.io/tspace-mysql/#/repository)
   - [Select Statements](https://thanathip41.github.io/tspace-mysql/#/repository?id=select-statements)
   - [Insert Statements](https://thanathip41.github.io/tspace-mysql/#/repository?id=insert-statements)

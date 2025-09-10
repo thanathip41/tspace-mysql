@@ -3,15 +3,15 @@ import { Blueprint }  from '../Blueprint';
 import { T }          from "../UtilityTypes";
 
 const schema = {
-    id: new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid: new Blueprint().varchar(50).null(),
-    model: new Blueprint().varchar(50).null(),
-    query: new Blueprint().longText().null(),
-    action: new Blueprint().varchar(50).null(),
-    data: new Blueprint().json().null(),
-    changed: new Blueprint().json().null(),
-    created_at: new Blueprint().timestamp().null(),
-    updated_at: new Blueprint().timestamp().null(),
+    id          : Blueprint.int().notNull().primary().autoIncrement(),
+    uuid        : Blueprint.varchar(50).null(),
+    model       : Blueprint.varchar(50).null(),
+    query       : Blueprint.longText().null(),
+    action      : Blueprint.varchar(50).null(),
+    data        : Blueprint.json().null(),
+    changed     : Blueprint.json().null(),
+    created_at  : Blueprint.timestamp().null(),
+    updated_at  : Blueprint.timestamp().null(),
 };
 
 type TS = T.Schema<typeof schema>

@@ -959,9 +959,17 @@ class Model<
     return this;
   }
 
-  tracking (userId: number) {
+  /**
+   * The 'audit' method is used to sets the audit information for the tracking.
+   *
+   * @param {number} userId - The ID of the user performing the audit.
+   * @param {Record<string, any>} [metadata] - Optional metadata to store with the audit.
+   * @returns {this} this
+   */
+  audit (userId: number , metadata ?: Record<string,any>): this {
+    if(metadata) this.$state.set("AUDIT_METADATA",metadata);
 
-    this.$state.set("TRACKING",userId);
+    this.$state.set("AUDIT",userId);
 
     return this;
   }
@@ -1532,7 +1540,8 @@ class Model<
     newInstance.$state.set("SAVE", "");
     newInstance.$state.set("DEBUG", false);
     newInstance.$state.set("LOGGER", false);
-    newInstance.$state.set("TRACKING", null);
+    newInstance.$state.set("AUDIT", null);
+    newInstance.$state.set("AUDIT_METADATA", null);
   
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
@@ -1599,12 +1608,12 @@ class Model<
 
       let result = null;
 
-      if (!this.$state.get('TRACKING') && this.$state.get("LOGGER")) {
+      if (!this.$state.get("AUDIT") && this.$state.get("LOGGER")) {
         const { Logger } = await import("./Contracts/Logger")
         result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
       }
 
-      if(this.$state.get('TRACKING')) {
+      if(this.$state.get("AUDIT")) {
         const { Audit } = await import("./Contracts/Audit")
         result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
       }
@@ -1644,7 +1653,7 @@ class Model<
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
-
+          
           const endTime = +new Date();
 
           this.$utils.consoleExec(startTime, endTime);
@@ -1659,12 +1668,12 @@ class Model<
 
       let result = null;
 
-      if (!this.$state.get('TRACKING') && this.$state.get("LOGGER")) {
+      if (!this.$state.get("AUDIT") && this.$state.get("LOGGER")) {
         const { Logger } = await import("./Contracts/Logger")
         result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
       }
 
-      if(this.$state.get('TRACKING')) {
+      if(this.$state.get("AUDIT")) {
         const { Audit } = await import("./Contracts/Audit")
         result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
       }
@@ -5000,7 +5009,7 @@ class Model<
       "INSERT",
       [
         `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
+        `\`${this.getTableName()}\``,
         `${query}`,
       ].join(" ")
     );
@@ -5018,7 +5027,7 @@ class Model<
   create<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(
     data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }
   ): this {
-    return this.insert(data as any);
+    return this.insert(data);
   }
 
   /**
@@ -5382,7 +5391,7 @@ class Model<
       "INSERT",
       [
         `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
+        `\`${this.getTableName()}\``,
         `${query}`,
       ].join(" ")
     );
@@ -5398,7 +5407,43 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
+  createMany<
+    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
+  >(
+    data: (K extends TSchemaKeys<TS>
+      ? Partial<{
+          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
+        }>
+      : { [P in K]: any })[]
+  ): this {
+    return this.createMultiple(data);
+  }
+
+  /**
+   *
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this
+   */
   insertMultiple<
+    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
+  >(
+    data: (K extends TSchemaKeys<TS>
+      ? Partial<{
+          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
+        }>
+      : { [P in K]: any })[]
+  ): this {
+    return this.createMultiple(data);
+  }
+
+  /**
+   *
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this
+   */
+  insertMany<
     K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
   >(
     data: (K extends TSchemaKeys<TS>
@@ -5691,7 +5736,7 @@ class Model<
       fakers.push(columnAndValue);
     }
 
-    const chunkedData = this.$utils.chunkArray([...fakers], 500);
+    const chunkedData = this.$utils.chunkArray([...fakers], 1000);
 
     const promises: Function[] = [];
 
@@ -6568,6 +6613,11 @@ class Model<
       ) {
         value = this.$utils.escapeActions(value);
       }
+
+      if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
+        value = JSON.stringify(value)
+      }
+
       return `${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -6639,6 +6689,11 @@ class Model<
         ) {
           value = this.$utils.escapeActions(value);
         }
+
+        if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
+          value = JSON.stringify(value)
+        }
+
         return `${
           value == null || value === this.$constants("NULL")
             ? this.$constants("NULL")

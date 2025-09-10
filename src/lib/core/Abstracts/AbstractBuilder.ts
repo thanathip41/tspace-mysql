@@ -4,7 +4,8 @@ import { Join }         from '../Join'
 import Config           from "../../config";
 import type { 
     TPagination, 
-    TConstant 
+    TConstant, 
+    TDriver
 }  from '../../types'
 abstract class AbstractBuilder {
 
@@ -21,7 +22,14 @@ abstract class AbstractBuilder {
     protected $utils !: TUtils 
 
     protected $database : string = String(Config.DATABASE ?? '');
-    protected $driver : string = String(Config.DRIVER ?? 'mysql');
+    protected $credentials = {
+        host     : Config.HOST,
+        port     : Number(Config.PORT),
+        database : String(Config.DATABASE),
+        username : String(Config.USERNAME),
+        password : Config.PASSWORD
+    }
+    protected $driver  = String(Config.DRIVER ?? 'mysql') as TDriver;
     protected $cluster : boolean = Boolean(Config.CLUSTER ?? false);
     
     protected $constants !: (name ?: keyof TConstant) => any
@@ -87,8 +95,8 @@ abstract class AbstractBuilder {
     abstract inRandom (): this
     abstract limit (number : number): this
     abstract hidden (...columns: string[]): this
-    abstract insert(data: Record<string,any>): this
-    abstract create(data: Record<string,any>): this
+    abstract insert(data: Record<string,any>, { database }: { database?: string }): this
+    abstract create(data: Record<string,any>, { database }: { database?: string }): this
     abstract update (data: Record<string,any>,updateNotExists ?: string[]): this
     abstract updateMany (data: Record<string,any>,updateNotExists ?: string[]): this
     abstract insertNotExists(data: Record<string,any>) : this
@@ -97,8 +105,10 @@ abstract class AbstractBuilder {
     abstract createOrUpdate (data: Record<string,any>) : this
     abstract updateOrInsert (data: Record<string,any>) : this
     abstract updateOrCreate (data: Record<string,any>) : this
-    abstract createMultiple (data: Record<string,any>[]) : this
-    abstract insertMultiple (data: Record<string,any>[]) : this
+    abstract createMultiple (data: Record<string,any>[], { database }: { database?: string }) : this
+    abstract insertMultiple (data: Record<string,any>[], { database }: { database?: string }) : this
+    abstract createMany (data: Record<string,any>[], { database }: { database?: string }) : this
+    abstract insertMany (data: Record<string,any>[], { database }: { database?: string }) : this
     abstract except (...columns : string[]) : this
     abstract only (...columns : string[]) : this
     abstract drop (): Promise<any>

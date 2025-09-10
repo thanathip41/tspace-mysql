@@ -3,11 +3,28 @@
 Within a race condition, you can utilize the following:
 
 ```js
-import { Model, DB }  from 'tspace-mysql'
+import { Model, DB, Blueprint }  from 'tspace-mysql'
 
-class Product extends Model {}
+class Product extends Model {
+  protected boot() {
+    this.useSchema({
+      id     : Blueprint.int().notNull().primary().autoIncrement(),
+      name   : Blueprint.varchar(20).notNull(),
+      stock  : Blueprint.int().notNull()
+    });
+  }
+}
 
-class Order extends Model {}
+class Order extends Model {
+  protected boot() {
+    this.useSchema({
+      id          : Blueprint.int().notNull().primary().autoIncrement(),
+      user_id     : Blueprint.int().notNull(),
+      product_id  : Blueprint.int().notNull()
+      qty         : Blueprint.int().notNull()
+    });
+  }
+}
 
 const purchaseForUpdate = async({userId , productId , qty } : { 
   userId: number;
@@ -32,7 +49,7 @@ const purchaseForUpdate = async({userId , productId , qty } : {
     await new Product()
     .where('id',productId)
     .update({
-      stock : `${DB.raw('stock')} - ${qty}`,
+      stock : product.stock - qty,
       id: productId
     })
     .bind(trx)
@@ -59,6 +76,7 @@ const purchaseForUpdate = async({userId , productId , qty } : {
 }
 
 const simulateRaceConnection = async (): Promise<void> => {
+
   const MAX_CONNECTION = 500;
   const TASKS: Function[] = [];
   const STOCK = MAX_CONNECTION * 10

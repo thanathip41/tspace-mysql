@@ -1849,6 +1849,22 @@ const enums         = meta.enums('role') // [ 'admin', 'user' ]
 const enumsObj      = meta.enum('role') // { admin: 'admin', user: 'user' }
 ```
 
+## Audit
+Keeps a complete history of database changes, tracking who made changes and what was changed.
+
+```js
+await new User()
+// support actions SELECT, INSERT, UPDATE, and DELETE.
+// so you have a complete history of data changes and queries.
+.audit(99 , { name : 'userNumber-99' }) 
+.create({
+  username : 'hi audit',
+  email : 'tspace-mysql@gmail.com',
+  // ...
+})
+.save()
+```
+
 <div class="page-nav-cards">
   <a href="#/injection" class="prev-card">
     <div class="nav-label"> 

@@ -113,7 +113,7 @@ export type TConnectionOptions = {
     driver ?: TDriver,
     host: string, 
     port: number, 
-    database : string, 
+    database ?: string, 
     username : string, 
     password : string
 }
@@ -178,7 +178,7 @@ export type TOptions = {
     driver ?: TDriver,
     host: string, 
     port: number, 
-    database : string, 
+    database ?: string, 
     user : string, 
     password : string
 }

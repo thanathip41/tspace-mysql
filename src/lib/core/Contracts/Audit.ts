@@ -1,19 +1,20 @@
-import { Model }     from "../Model";
-import { Blueprint } from '../Blueprint';
-import { T }         from "../UtilityTypes";
+import { Model }      from "../Model";
+import { Blueprint }  from '../Blueprint';
+import type { T }     from "../UtilityTypes";
 
 const schema = {
-    id: new Blueprint().int().notNull().primary().autoIncrement(),
-    uuid: new Blueprint().varchar(50).null(),
-    model: new Blueprint().varchar(100).null(),
-    user_id: new Blueprint().int().notNull(),
-    query: new Blueprint().longText().notNull(),
-    event: new Blueprint().varchar(20).notNull(),
-    auditable_id: new Blueprint().longText().null(),
-    old_values : new Blueprint().json().null(),
-    new_values: new Blueprint().json().null(),
-    created_at: new Blueprint().timestamp().null(),
-    updated_at: new Blueprint().timestamp().null(),
+    id              : Blueprint.int().notNull().primary().autoIncrement(),
+    uuid            : Blueprint.varchar(50).null(),
+    model           : Blueprint.varchar(100).notNull(),
+    query           : Blueprint.longText().notNull(),
+    event           : Blueprint.varchar(20).notNull(),
+    user_id         : Blueprint.int().notNull(),
+    metadata        : Blueprint.json().null(),
+    auditable_ids   : Blueprint.longText().null(),
+    old_values      : Blueprint.json().null(),
+    new_values      : Blueprint.json().null(),
+    created_at      : Blueprint.timestamp().null(),
+    updated_at      : Blueprint.timestamp().null(),
 };
 
 type TS = T.Schema<typeof schema>
@@ -39,9 +40,20 @@ class Audit extends Model<TS> {
            
             await new this().sync({ force: true })
 
-            const userId = Number.isNaN(Number(instance['$state'].get('TRACKING'))) 
+            const userId = Number.isNaN(Number(instance['$state'].get('AUDIT'))) 
             ? 0
-            : Number(instance['$state'].get('TRACKING'))
+            : Number(instance['$state'].get('AUDIT'))
+
+            const metadata  = instance['$state'].get('AUDIT_METADATA')
+
+            const modelName = instance['$state'].get("MODEL_NAME")
+
+            const baseQuery = {
+                model: modelName,
+                query: sql,
+                user_id: userId,
+                metadata : metadata == null ? null : JSON.stringify(metadata),
+            }
 
             let result = null;
 
@@ -64,11 +76,9 @@ class Audit extends Model<TS> {
                 await new this()
                 .table(instance['$state'].get("TABLE_AUDIT"))
                 .create({
-                    model: instance['$state'].get("MODEL_NAME"),
-                    query: sql,
+                    ...baseQuery,
                     event: "INSERTD",
-                    user_id: userId,
-                    auditable_id: (result.$meta?.insertIds ?? []).length 
+                    auditable_ids: (result.$meta?.insertIds ?? []).length 
                         ? JSON.stringify(result.$meta?.insertIds ?? []) 
                         : null,
                     old_values: null,
@@ -112,11 +122,9 @@ class Audit extends Model<TS> {
                  await new this()
                 .table(instance['$state'].get("TABLE_AUDIT"))
                 .create({
-                    model: instance['$state'].get("MODEL_NAME"),
-                    query: sql,
+                    ...baseQuery,
                     event: "UPDATED",
-                    user_id: userId,
-                    auditable_id: values.length 
+                    auditable_ids: values.length 
                     ? JSON.stringify(values.map((v) => v.id)) 
                     : null,
                     old_values: values.length
@@ -149,16 +157,14 @@ class Audit extends Model<TS> {
                 await new this()
                 .table(instance['$state'].get("TABLE_AUDIT"))
                 .create({
-                    model: instance['$state'].get("MODEL_NAME"),
-                    query: sql,
+                    ...baseQuery,
                     event: "DELETED",
-                    user_id: userId,
-                    auditable_id: values.length 
+                    auditable_ids: values.length 
                         ? JSON.stringify(values.map((v) => v.id)) 
                         : null,
                     old_values: values.length
-                    ? JSON.stringify(values)
-                    : null,
+                        ? JSON.stringify(values)
+                        : null,
                     new_values: null
                 })
                 .void()
@@ -182,11 +188,9 @@ class Audit extends Model<TS> {
                 await new this()
                 .table(instance['$state'].get("TABLE_AUDIT"))
                 .create({
-                    model: instance['$state'].get("MODEL_NAME"),
-                    query: sql,
+                    ...baseQuery,
                     event: "SELECTED",
-                    user_id: userId,
-                    auditable_id: values.length 
+                    auditable_ids: values.length 
                         ? JSON.stringify(
                             values
                             .map((v: { id: number; }) => v?.id)

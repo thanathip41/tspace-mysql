@@ -1,8 +1,8 @@
-import { format } from "sql-formatter";
-import { AbstractDB } from "./Abstracts/AbstractDB";
-import { proxyHandler } from "./Handlers/Proxy";
-import { StateHandler } from "./Handlers/State";
-import { Tool } from "../tools";
+import { format }         from "sql-formatter";
+import { AbstractDB }     from "./Abstracts/AbstractDB";
+import { proxyHandler }   from "./Handlers/Proxy";
+import { StateHandler }   from "./Handlers/State";
+import { Tool }           from "../tools";
 import { PoolConnection } from "./Pool";
 import type {
   TConstant,
@@ -14,6 +14,7 @@ import type {
   TConnectionTransaction,
   TRawStringQuery,
   TFreezeStringQuery,
+  TDriver,
 } from "../types";
 
 /**
@@ -576,60 +577,6 @@ class DB extends AbstractDB {
 
   /**
    *
-   * This 'cloneDB' method is used to clone current database to new database
-   * @param {string} database clone current database to new database name
-   * @returns {Promise<boolean>}
-   */
-  async cloneDB(database: string): Promise<void> {
-    const db = await this._queryStatement(this._queryBuilder().showDatabase(database));
-
-    console.log({ db , get : Object.values(db[0] ?? []).length })
-    if (Object.values(db[0] ?? []).length) {
-      throw new Error(`This database : '${database}' is already exists`);
-    }
-
-    await this._queryStatement(
-      `${this.$constants("CREATE_DATABASE")} \`${database}\``
-    );
-
-    const tables = await this.showTables();
-
-    const backup = await this._backup({ tables, database });
-
-    const creating = async ({
-      table,
-      values,
-    }: {
-      table: string;
-      values?: string;
-    }) => {
-      try {
-        await this._queryStatement(table);
-        if (values != null && values !== "") await this._queryStatement(values);
-      } catch (e) {
-        console.log(e)
-      }
-    };
-
-    await Promise.all(
-      backup.map((b) => creating({ table: b.table, values: b.values }))
-    );
-
-    return;
-  }
-
-  /**
-   *
-   * This 'cloneDB' method is used to clone current database to new database
-   * @param {string} database clone current database to new database name
-   * @returns {Promise<boolean>}
-   */
-  static async cloneDB(database: string): Promise<void> {
-    return new this().cloneDB(database);
-  }
-
-  /**
-   *
    * This 'backup' method is used to backup database intro new database same server or to another server
    * @type     {Object} backup
    * @property {string} backup.database clone current 'db' in connection to this database
@@ -641,10 +588,29 @@ class DB extends AbstractDB {
    * @returns {Promise<void>}
    */
   async backup({ database, to }: TBackup): Promise<void> {
-    if (to != null && Object.keys(to).length)
-      this.connection({ ...to, database });
+   
+    const tables = await this.showTables();
 
-    return this.cloneDB(database);
+    const backup = await this._backup({ tables, database , to });
+
+    const creating = async ({
+      table,
+      values,
+    }: {
+      table: () => Promise<void>;
+      values: () => Promise<void>;
+    }) => {
+      try {
+        await table()
+        await values()
+      } catch (e) {}
+    };
+
+    await Promise.all(
+      backup.map((b) => creating({ table: b.table, values: b.values }))
+    );
+
+    return;
   }
 
   /**
@@ -686,25 +652,25 @@ class DB extends AbstractDB {
 
     const tables = await this.showTables();
 
-    const backup = (await this._backup({ tables, database })).map((b) => {
+    const backup = (await this._backupToString({ tables, database })).map((b) => {
       return {
         table: [
           `\n--`,
           `-- Table structure for table '${b.name}'`,
           `--\n`,
-          `${format(b.table, {
+          `${format(b.table(), {
             language: "spark",
             tabWidth: 2,
             linesBetweenQueries: 1,
           })}`,
         ].join("\n"),
         values:
-          b.values !== ""
+          b.values().length
             ? [
                 `\n--`,
                 `-- Dumping data for table '${b.name}'`,
                 `--\n`,
-                `${b.values}`,
+                `${b.values().map(v => `${v}\n`).join("\n")}`,
               ].join("\n")
             : "",
       };
@@ -791,10 +757,10 @@ class DB extends AbstractDB {
 
     const tables = await this.showTables();
 
-    const backup = (await this._backup({ tables, database })).map((b) => {
+    const backup = (await this._backupToString({ tables, database })).map((b) => {
       return {
         table:
-          format(b.table, {
+          format(b.table(), {
             language: "spark",
             tabWidth: 2,
             linesBetweenQueries: 1,
@@ -999,32 +965,121 @@ class DB extends AbstractDB {
   private async _backup({
     tables,
     database,
+    to
+  }: {
+    tables: string[];
+    database: string;
+    to ?: {
+      driver?: TDriver;
+      host: string;
+      port: number;
+      username: string;
+      password: string;
+    }
+  }) {
+    const backup: Array<{ 
+      table: () => Promise<void>; 
+      values: () => Promise<void>; 
+      name: string 
+    }> = [];
+
+    const conn = await new DB().getConnection({ ...(to ?? this.$credentials) })
+
+    const db = await new DB().bind(conn).query(this._queryBuilder().showDatabase(database))
+
+    if (Object.values(db[0] ?? []).length) {
+      throw new Error(`This database : '${database}' is already exists`);
+    }
+
+    await new DB().bind(conn).query(
+      `${this.$constants("CREATE_DATABASE")} \`${database}\``
+    );
+
+    const connWithDatabase = await new DB().getConnection({
+      ...(to ?? this.$credentials),
+      database
+    });
+
+    for (const table of tables) {
+      const schema = await new DB().debug(this.$state.get('DEBUG')).showSchema(table);
+      const values = await new DB(table).debug(this.$state.get('DEBUG')).get();
+
+      backup.push({
+        name: table == null ? "" : table,
+        table: async () => {
+          await new DB()
+          .debug(this.$state.get('DEBUG'))
+          .bind(connWithDatabase)
+          .query(this._queryBuilder().tableCreating({ database , table , schema }))
+
+          return;
+        },
+        values: async () => {
+          if(!values.length) return;
+
+          const chunked = this.$utils.chunkArray([...values], 1000);
+          const promises: Function[] = [];
+
+          for (const data of chunked) {
+            promises.push(() => {
+              return new DB(table)
+                .debug(this.$state.get("DEBUG"))
+                .createMultiple([...data])
+                .bind(connWithDatabase)
+                .void()
+                .save();
+            });
+          }
+
+          await Promise.all(promises.map((v) => v()));
+
+          return;
+        },
+      });
+    }
+
+    return backup;
+  }
+
+   private async _backupToString({
+    tables,
+    database,
   }: {
     tables: string[];
     database: string;
   }) {
-    const backup: Array<{ table: string; values: string; name: string }> = [];
+    const backup: Array<{ 
+      table: () =>string; 
+      values: () => string[]; 
+      name: string 
+    }> = [];
 
     for (const table of tables) {
       const schema = await this.showSchema(table);
-      const createTableSQL: string[] = [this._queryBuilder().tableCreating({ database , table , schema })]
-      const values = await this.showValues(table);
+      const values = await new DB(table).get();
 
-      let valueSQL: string[] = [];
-      if (values.length) {
-        const columns = await this.showColumns(table);
-        valueSQL = [
-          `${this.$constants("INSERT")}`,
-          `\`${database}\`.\`${table}\``,
-          `(${columns.map((column: string) => `\`${column}\``).join(", ")})`,
-          `${this.$constants("VALUES")}`,
-          `\n${values.join(",\n")};`,
-        ];
-      }
       backup.push({
         name: table == null ? "" : table,
-        table: createTableSQL.join(" "),
-        values: valueSQL.join(" "),
+        table: () => {
+          return this._queryBuilder().tableCreating({ database , table , schema })
+        },
+        values: () => {
+          if(!values.length) return [];
+
+          const chunked = this.$utils.chunkArray([...values], 500);
+          const str: string[] = [];
+
+          for (const data of chunked) {
+            const sql = new DB(table)
+            .debug(this.$state.get("DEBUG"))
+            .createMultiple([...data])
+            .toString();
+
+            str.push(sql);
+          }
+
+          return str
+        },
       });
     }
 

@@ -40,7 +40,8 @@ const STATE_DB = {
 
 const STATE_MODEL = {
   ...STATE_DEFAULT,
-  TRACKING : null,
+  AUDIT : null,
+  AUDIT_METADATA : null,
   MODEL_NAME: 'MODEL' as string,
   UUID_FORMAT: 'uuid' as string,
   UUID: false as boolean,

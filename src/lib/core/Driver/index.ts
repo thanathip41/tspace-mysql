@@ -119,25 +119,26 @@ export abstract class BaseDriver extends EventEmitter {
             Connection established to the database. 
             Version : ${message ?? ''} \x1b[0m
             ------------------------------- \x1b[34m
-                HOST     : ${this.options.get('host')}         
-                PORT     : ${this.options.get('port')}        
-                DATABASE : ${this.options.get('database')}
-                USERNAME : ${this.options.get('user')}          
-                PASSWORD : ${this.options.get('password')} \x1b[0m 
+                HOST     : ${this.options.host}         
+                PORT     : ${this.options.port}        
+                DATABASE : ${this.options.database}
+                USERNAME : ${this.options.user}          
+                PASSWORD : ${this.options.password} \x1b[0m 
             -------------------------------
         `
     }
 
     protected _messageError (message:string) : string {   
+        
         return `
             \x1b[1m\x1b[31m
             Connection lost to database ! \x1b[0m
             ------------------------------- \x1b[33m
-                HOST     : ${this.options.get('host')}         
-                PORT     : ${this.options.get('port')}        
-                DATABASE : ${this.options.get('database')} 
-                USERNAME : ${this.options.get('user')}          
-                PASSWORD : ${this.options.get('password')} \x1b[0m 
+                HOST     : ${this.options.host}         
+                PORT     : ${this.options.port}        
+                DATABASE : ${this.options.database} 
+                USERNAME : ${this.options.user}          
+                PASSWORD : ${this.options.password} \x1b[0m 
             -------------------------------
             \x1b[1m\x1b[31mError Message 
             : ${message ?? ''} \x1b[0m

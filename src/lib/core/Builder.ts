@@ -48,11 +48,6 @@ class Builder extends AbstractBuilder {
     return this.$database;
   }
 
-  setDatabase (db : string) : this {
-    this.$database = db;
-    return this
-  }
-
   /**
    * The 'rowLock' method is used to row level locks
    * 
@@ -2600,7 +2595,7 @@ class Builder extends AbstractBuilder {
       "INSERT",
       [
         `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
+        `\`${this.getTableName()}\``,
         `${query}`,
       ].join(" ")
     );
@@ -2622,12 +2617,12 @@ class Builder extends AbstractBuilder {
       throw new Error("This method must be required");
 
     const query = this._queryInsertMultiple(data);
-
+   
     this.$state.set(
       "INSERT",
       [
         `${this.$constants("INSERT")}`,
-        `${this.getTableName()}`,
+        `\`${this.getTableName()}\``,
         `${query}`,
       ].join(" ")
     );
@@ -2638,6 +2633,17 @@ class Builder extends AbstractBuilder {
   }
 
   /**
+   * The 'createMany' method is used to insert a new records into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records with an array.
+   * @param {array} data create multiple data
+   * @returns {this} this this
+   */
+  createMany(data: any[]): this {
+    return this.createMultiple(data);
+  }
+
+  /**
    * The 'insertMultiple' method is used to insert a new records into a database table associated.
    *
    * It simplifies the process of creating and inserting records with an array.
@@ -2645,6 +2651,17 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   insertMultiple(data: any[]): this {
+    return this.createMultiple(data);
+  }
+
+  /**
+   * The 'insertMany' method is used to insert a new records into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records with an array.
+   * @param {array} data create multiple data
+   * @returns {this} this this
+   */
+  insertMany(data: any[]): this {
     return this.createMultiple(data);
   }
 
@@ -3993,9 +4010,6 @@ class Builder extends AbstractBuilder {
       return schema.join(" ");
     });
 
-    console.log({
-      schema
-    })
     return schema
   }
 
@@ -4632,6 +4646,11 @@ class Builder extends AbstractBuilder {
       ) {
         value = this.$utils.escapeActions(value);
       }
+
+      if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
+        value = JSON.stringify(value)
+      }
+
       return `${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -4656,6 +4675,10 @@ class Builder extends AbstractBuilder {
           !value.includes(this.$constants("RAW"))
         ) {
           value = this.$utils.escapeActions(value);
+        }
+
+        if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
+          value = JSON.stringify(value)
         }
         return `${
           value == null || value === this.$constants("NULL")

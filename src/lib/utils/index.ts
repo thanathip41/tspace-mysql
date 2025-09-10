@@ -50,7 +50,8 @@ const escape = (str : any , hard = false) => {
 
 const escapeActions = (str : any) => {
     if(typeof str !== 'string') return str
-    return str.replace(/[\0\b\r\x1a\'\\]/g,"\\'")
+    if(str.includes('$RAW:')) return str
+    return str.replace(/[\0\b\r\x1a\'\\]/g,"''")
 }
 
 const escapeXSS = (str : any) => {
