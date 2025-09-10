@@ -99,7 +99,7 @@ export default (cmd : Record<string,any>) => {
       
             if(!schemaModel) continue
       
-            const createTable = new Schema().createTable(`\`${model.getTableName()}\``,schemaModel)
+            const createTable = new Schema().createTable(model.database(),`\`${model.getTableName()}\``,schemaModel)
                 
             createTableQueries.push(createTable)
       
