@@ -355,7 +355,7 @@ async function searchSection(keyword, head = true) {
                 const id = sectionName 
                   ? `?id=${sectionName.replace(/\s+/g, '-').toLowerCase()}` 
                   : '';
-                const link = `/#/${filename}${id}`;
+                const link = `/tspace-mysql/#/${filename}${id}`;
 
                 const botDiv = document.createElement('div');
                 botDiv.classList.add('message', 'bot');
