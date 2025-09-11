@@ -154,10 +154,82 @@
       }
     } 
 
+    /* --------- CHAT */
+    #chat-icon {
+      position: fixed; bottom: 20px; right: 20px;
+      width: 60px; height: 60px; background: #1e88e5;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 28px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      z-index: 999;
+    }
+
+    #chat-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: none; justify-content: center; align-items: center;
+      background: rgba(0,0,0,0.5); z-index: 1000;
+    }
+
+    #chat-modal strong {
+      font-size: 21px;
+      color: #0c0c0c;
+    }
+
+    #chat-window {
+      width: 800px; max-height: 650px; min-height: 400px; background: #fff; border-radius: 10px;
+      display: flex; flex-direction: column; overflow: hidden; color: #333;
+    }
+
+    #chat-window header {
+      background: #fff;
+      color: #000;
+      font-size: 20px;
+      font-weight: 600;
+      padding: 1rem;
+      border-bottom: 1px solid #000;
+    }
+
+    #chat-messages {
+      flex: 1; padding: 10px; overflow-y: auto; font-size: 14px;
+    }
+
+    .message { margin-bottom: 10px; display: flex; flex-direction: column; }
+
+    .message.user { align-items: flex-end; }
+    .message.user div {
+      background: #1e88e5; color: #fff; padding: 8px 12px; border-radius: 15px 15px 0 15px;
+      max-width: 80%; word-break: break-word;
+    }
+
+    .message.bot { align-items: flex-start; }
+    .message.bot div {
+      background: #f1f1f1; color: #333; padding: 8px 12px; border-radius: 15px 15px 15px 0;
+      max-width: 80%; word-break: break-word;
+    }
+
+    #chat-input {
+      border: none;
+      border-top: 2px solid #ddd; 
+      padding: 1.25rem 1rem; font-size: 14px; width: 100%;
+      box-sizing: border-box; background: #fff; color: #333;
+    }
+    #chat-input:focus { outline: none; }
+
+    pre { background: #272822; color: #f8f8f2; padding: 8px; border-radius: 5px; overflow-x: auto; width: 100%; }
+    code { font-family: monospace; color: #f8f8f2; }
+
+
   </style>
 </head>
 <body>
   <div id="app"></div>
+  <div id="chat-icon">💬</div>
+  <div id="chat-modal">
+    <div id="chat-window">
+      <header>TspaceMysql Docs</header>
+      <div id="chat-messages"></div>
+      <input type="text" id="chat-input" placeholder="Type keyword (e.g., 'model') and press Enter...">
+    </div>
+  </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
@@ -196,5 +268,143 @@
         }
       ]
     }
+</script>
+
+<script>
+const urls = [
+  "backup.md",
+  "blueprint.md",
+  "cli.md",
+  "connection.md",
+  "database-transactions.md",
+  "generating-model-classes.md",
+  "injection.md",
+  "model.md",
+  "query-builder.md",
+  "race-condition.md",
+  "README.md",
+  "repository.md",
+  "sql-like.md",
+  "stored-procedure.md",
+  "view.md"
+];
+
+document.getElementById('chat-icon').addEventListener('click', () => {
+  document.getElementById('chat-modal').style.display = 'flex';
+});
+document.getElementById('chat-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'chat-modal') e.target.style.display = 'none';
+});
+
+function typeMessage(element, html) {
+  return new Promise(resolve => {
+    let i = 0;
+    const chunkSize = 10; 
+    function type() {
+      element.innerHTML = html.slice(0, i);
+      i += chunkSize;
+      if (i <= html.length) {
+        setTimeout(type, 5);
+      } else {
+        element.innerHTML = html;
+        resolve();
+      }
+      element.parentElement.scrollTop = element.parentElement.scrollHeight;
+    }
+    type();
+  });
+}
+
+async function searchSection(keyword, head = true) {
+  const chatMessages = document.getElementById('chat-messages');
+  const lowerKey = keyword.toLowerCase();
+
+  const userDiv = document.createElement('div');
+  userDiv.classList.add('message', 'user');
+  userDiv.innerHTML = `<div>${keyword}</div>`;
+  chatMessages.appendChild(userDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  let foundAny = 0;
+  const MAX_CONTENT = 5;
+
+  async function searchLines(useHeader) {
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        const lines = text.split(/\r?\n/);
+
+        for (let i = 0; i < lines.length; i++) {
+          const lineMatch = useHeader 
+            ? lines[i].startsWith('#') && lines[i].toLowerCase().includes(lowerKey)
+            : lines[i].toLowerCase().includes(lowerKey);
+
+          if (lineMatch) {
+            for (let j = i + 1; j < lines.length; j++) {
+              if (lines[j].trim().startsWith('```js')) {
+                let code = '';
+                j++;
+                while (j < lines.length && !lines[j].trim().startsWith('```')) {
+                  code += lines[j] + '\n';
+                  j++;
+                }
+
+                const sectionName = useHeader ? lines[i].replace(/^##\s*/, '').trim() : '';
+                const filename = url.split('/').pop().replace('.md', '');
+                const id = sectionName 
+                  ? `?id=${sectionName.replace(/\s+/g, '-').toLowerCase()}` 
+                  : '';
+                const link = `/#/${filename}${id}`;
+
+                const botDiv = document.createElement('div');
+                botDiv.classList.add('message', 'bot');
+                chatMessages.appendChild(botDiv);
+
+                const html = `
+**${sectionName || 'Code'}**  
+🔗 <a href="${link}" target="_blank">${filename}</a>
+
+\`\`\`js
+${code}
+\`\`\`
+                `;
+                await typeMessage(botDiv, marked.parse(html));
+                foundAny += 1;
+                break;
+              }
+            }
+            if (foundAny >= MAX_CONTENT) break;
+          }
+        }
+      } catch (err) {
+        const botDiv = document.createElement('div');
+        botDiv.classList.add('message', 'bot');
+        chatMessages.appendChild(botDiv);
+        await typeMessage(botDiv, `<div>Error fetching ${url}: ${err.message}</div>`);
+      }
+      if (foundAny >= MAX_CONTENT) break;
+    }
+  }
+
+  await searchLines(head);
+
+  if (!foundAny && head) {
+    await searchLines(false);
+  }
+
+  if (!foundAny) {
+    const botDiv = document.createElement('div');
+    botDiv.classList.add('message', 'bot');
+    chatMessages.appendChild(botDiv);
+    await typeMessage(botDiv, `<div>No code block found for "${keyword}"</div>`);
+  }
+}
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.value.trim() !== '') {
+    searchSection(e.target.value.trim());
+    e.target.value = '';
+  }
+});
 </script>
 </html>
