@@ -413,7 +413,8 @@ async function searchSection(keyword, head = true) {
           if (isHeaderMatch || isNormalMatch) {
             let code = '';
             let language = '';
-
+            let n = 0
+            
             for (let j = i + 1; j < lines.length; j++) {
               if (lines[j].trim().startsWith('```')) {
                 language = lines[j].trim().slice(3).trim() || 'text';
@@ -422,7 +423,13 @@ async function searchSection(keyword, head = true) {
                   code += lines[j] + '\n';
                   j++;
                 }
-                break;
+                
+                n+=1
+
+                if(n >= 2) {
+                  break;
+                }
+                  
               }
             }
 
