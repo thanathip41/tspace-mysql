@@ -42,11 +42,11 @@ npm install -g tspace-mysql
 To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
 
 ```js
-DB_HOST = localhost;
-DB_PORT = 3306;
-DB_USERNAME = root;
-DB_PASSWORD = password;
-DB_DATABASE = database;
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
 /**
  * @default
  *  DB_CONNECTION_LIMIT = 20
@@ -82,11 +82,11 @@ npm install mariadb --save
 
 ```js
 DB_DRIVER = mariadb
-DB_HOST = localhost;
-DB_PORT = 3306;
-DB_USERNAME = root;
-DB_PASSWORD = password;
-DB_DATABASE = database;
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
 ```
 
 ### Postgres Database
@@ -99,11 +99,38 @@ npm install pg --save
 
 ```js
 DB_DRIVER = postgres
-DB_HOST = localhost;
-DB_PORT = 5432;
-DB_USERNAME = root;
-DB_PASSWORD = password;
-DB_DATABASE = database;
+DB_HOST = localhost
+DB_PORT = 5432
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+
+### Cluster Database
+If you need strict race condition control, it is required to use multiple nodes for write and read. <br>
+Avoid using a node load balancer in this case, as it may bypass proper write/read distribution and compromise consistency.<br>
+To connect your application to a Cluster database, use the following configuration:
+
+```js
+DB_DRIVER = mariadb
+DB_HOST = host-load-balncer ❌
+DB_PORT = 3306
+DB_USERNAME = root1
+DB_PASSWORD = password1
+DB_DATABASE = database
+
+// ----------------------------------------------------
+// example MariaDB Galera Cluster
+// host1 -> Writer node
+// host2, host3 -> Reader nodes
+
+DB_CLUSTER = true
+DB_DRIVER = mariadb
+DB_HOST = host1,host2,host3 ✅
+DB_PORT = 3306,3307,3308
+DB_USERNAME = root1,root2,root3
+DB_PASSWORD = password1,password2,password3
+DB_DATABASE = database
 ```
 
 <div class="page-nav-cards">

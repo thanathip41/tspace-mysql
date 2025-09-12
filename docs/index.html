@@ -249,9 +249,9 @@ code { font-family: monospace; color: #111; }
 </head>
 <body>
   <div id="app"></div>
-  <div id="chat-icon">💬</div>
+  <div id="chat-icon">🔍</div>
   
-<div id="chat-modal">
+  <div id="chat-modal">
   <div id="chat-window">
     <header>
       TspaceMysql Docs
@@ -327,25 +327,27 @@ const urls = [
   "stored-procedure.md",
   "view.md"
 ];
+ const $query = (element) => document.querySelector(element);
 
-const chatIcon = document.getElementById('chat-icon');
-const chatModal = document.getElementById('chat-modal');
-const chatClose = document.getElementById('chat-close');
+const chatIcon = $query('#chat-icon');
+const chatModal = $query('#chat-modal');
+const chatClose = $query('#chat-close');
 
 chatIcon.addEventListener('click', () => chatModal.style.display = 'flex');
 chatClose.addEventListener('click', () => chatModal.style.display = 'none');
 chatModal.addEventListener('click', (e) => { if (e.target === chatModal) chatModal.style.display = 'none'; });
 
-document.getElementById('chat-icon').addEventListener('click', () => {
-  document.getElementById('chat-modal').style.display = 'flex';
+$query('#chat-icon').addEventListener('click', () => {
+  $query('#chat-modal').style.display = 'flex';
 });
-document.getElementById('chat-modal').addEventListener('click', (e) => {
+
+$query('#chat-modal').addEventListener('click', (e) => {
   if (e.target.id === 'chat-modal') e.target.style.display = 'none';
 });
 
 
-const chatInput = document.getElementById('chat-input');
-const chatSend = document.getElementById('chat-send');
+const chatInput = $query('#chat-input');
+const chatSend = $query('#chat-send');
 
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && chatInput.value.trim() !== '') {
@@ -382,7 +384,7 @@ function typeMessage(element, html) {
 }
 
 async function searchSection(keyword, head = true) {
-  const chatMessages = document.getElementById('chat-messages');
+  const chatMessages = $query('#chat-messages');
 
   const userDiv = document.createElement('div');
   userDiv.classList.add('message', 'user');
