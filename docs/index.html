@@ -245,6 +245,20 @@ code { font-family: monospace; color: #111; }
   #chat-window header { font-size: 20px; padding: 1rem; }
   #chat-input { font-size: 15px; padding: 12px; }
 }
+
+.match-keyword {
+    background-color: #ffeb3b;
+    color: #000;              
+    padding: 2px 4px;        
+    border-radius: 3px;      
+    font-weight: bold;   
+    transition: background-color 0.3s ease;
+  }
+
+  .match-keyword:hover {
+    background-color: #fdd835; 
+    cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -423,7 +437,7 @@ async function searchSection(keyword, head = true) {
                   code += lines[j] + '\n';
                   j++;
                 }
-                
+
                 n+=1
 
                 if(n >= 2) {
@@ -442,7 +456,7 @@ async function searchSection(keyword, head = true) {
             chatMessages.appendChild(botDiv);
 
             const html = `
-**${sectionName}**  
+**${sectionName.toLowerCase().replace(lowerKey,`<span class="match-keyword">${keyword}</span>`)}**  
 🔗 <a href="${link}" target="_blank">${filename}</a>
 
 ${code
