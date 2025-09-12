@@ -381,21 +381,20 @@ function typeMessage(element, html) {
   });
 }
 
-async function searchSection(fullKeyword, head = true) {
+async function searchSection(keyword, head = true) {
   const chatMessages = document.getElementById('chat-messages');
 
   const userDiv = document.createElement('div');
   userDiv.classList.add('message', 'user');
-  userDiv.innerHTML = `<div>${fullKeyword}</div>`;
+  userDiv.innerHTML = `<div>${keyword}</div>`;
   chatMessages.appendChild(userDiv);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   let foundAny = 0;
-  const MAX_CONTENT = 3;
+  const MAX_CONTENT = 5;
 
   async function searchLines(keyword, useHeader) {
     const lowerKey = keyword.toLowerCase();
-
     for (const url of urls) {
       try {
         const res = await fetch(url);
@@ -404,6 +403,7 @@ async function searchSection(fullKeyword, head = true) {
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
+
           const cleanLine = line.replace(/^#+\s*/, '').trim();
           const isHeaderMatch = useHeader && line.startsWith('#') && cleanLine.toLowerCase().includes(lowerKey);
           const isNormalMatch = !useHeader && line.toLowerCase().includes(lowerKey);
@@ -422,7 +422,6 @@ async function searchSection(fullKeyword, head = true) {
                 }
                 break;
               }
-              if (lines[j].startsWith('#')) break;
             }
 
             const sectionName = cleanLine;
@@ -459,24 +458,25 @@ ${code
     }
   }
 
-  const words = fullKeyword.trim().split(' ');
-  for (let start = words.length - 1; start >= 0; start--) {
-    for (let end = start; end < words.length; end++) {
-      const keyword = words.slice(start, end + 1).join(' ');
-      await searchLines(keyword, head);
-      if (foundAny >= MAX_CONTENT) return;
-      foundAny+=0.5
-      head = false;
-    }
-  }
+  let currentKeyword = keyword.trim();
+  let useHead = head;
+  while (currentKeyword && foundAny < MAX_CONTENT) {
+    await searchLines(currentKeyword, useHead);
 
-   
+    if (foundAny) break;
+
+    const words = currentKeyword.split(' ');
+    words.pop();
+    currentKeyword = words.join(' ');
+
+    useHead = false;
+  }
 
   if (!foundAny) {
     const botDiv = document.createElement('div');
     botDiv.classList.add('message', 'bot');
     chatMessages.appendChild(botDiv);
-    await typeMessage(botDiv, `<div>No code block found for "${fullKeyword}"</div>`);
+    await typeMessage(botDiv, `<div>No code block found for "${keyword}"</div>`);
   }
 }
 
