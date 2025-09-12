@@ -153,83 +153,122 @@
         padding: 1rem 0.8rem;
       }
     } 
-
-    /* --------- CHAT */
-    #chat-icon {
-      position: fixed; bottom: 20px; right: 20px;
-      width: 60px; height: 60px; background: #1e88e5;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 28px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      z-index: 999;
-    }
-
-    #chat-modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      display: none; justify-content: center; align-items: center;
-      background: rgba(0,0,0,0.5); z-index: 1000;
-    }
-
-    #chat-modal strong {
-      font-size: 21px;
-      color: #0c0c0c;
-    }
-
-    #chat-window {
-      width: 800px; max-height: 650px; min-height: 400px; background: #fff; border-radius: 10px;
-      display: flex; flex-direction: column; overflow: hidden; color: #333;
-    }
-
-    #chat-window header {
-      background: #fff;
-      color: #000;
-      font-size: 20px;
-      font-weight: 600;
-      padding: 1rem;
-      border-bottom: 1px solid #000;
-    }
-
-    #chat-messages {
-      flex: 1; padding: 10px; overflow-y: auto; font-size: 14px;
-    }
-
-    .message { margin-bottom: 10px; display: flex; flex-direction: column; }
-
-    .message.user { align-items: flex-end; }
-    .message.user div {
-      background: #1e88e5; color: #fff; padding: 8px 12px; border-radius: 15px 15px 0 15px;
-      max-width: 80%; word-break: break-word;
-    }
-
-    .message.bot { align-items: flex-start; }
-    .message.bot div {
-      background: #f1f1f1; color: #333; padding: 8px 12px; border-radius: 15px 15px 15px 0;
-      max-width: 80%; word-break: break-word;
-    }
-
-    #chat-input {
-      border: none;
-      border-top: 2px solid #ddd; 
-      padding: 1.25rem 1rem; font-size: 14px; width: 100%;
-      box-sizing: border-box; background: #fff; color: #333;
-    }
-    #chat-input:focus { outline: none; }
-
-    pre { background: #272822; color: #f8f8f2; padding: 8px; border-radius: 5px; overflow-x: auto; width: 100%; }
-    code { font-family: monospace; color: #f8f8f2; }
-
-
   </style>
+
+<style>
+#chat-icon {
+  position: fixed; bottom: 20px; right: 20px;
+  width: 60px; height: 60px; background: #000; opacity: 0.9;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 28px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 999;
+}
+
+#chat-modal {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  display: none; justify-content: center; align-items: center;
+  background: rgba(255,255,255,0.8); z-index: 1000;
+}
+
+#chat-window {
+  width: 90%; max-width: 800px; min-width: 450px; max-height: 90%; min-height: 500px;
+  background: #f9f9f9; border-radius: 12px;
+  display: flex; flex-direction: column; overflow: hidden; color: #333;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+#chat-window header {
+  background: #000; color: #fff; font-size: 22px; font-weight: 600;
+  padding: 1rem 1.5rem; border-bottom: 1px solid #ccc;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+#chat-window strong {
+  color: #000;
+}
+
+#chat-close {
+  cursor: pointer;
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+}
+
+#chat-messages {
+  flex: 1; padding: 15px; overflow-y: auto; font-size: 15px;
+  background: #f9f9f9;
+}
+
+.message { margin-bottom: 12px; display: flex; flex-direction: column; }
+.message.user { align-items: flex-end; }
+.message.user div { background: #333; color: #fff; padding: 10px 14px; border-radius: 18px 18px 0 18px; max-width: 80%; word-break: break-word; }
+.message.bot { align-items: flex-start; }
+.message.bot div { background: #e0e0e0; color: #111; padding: 10px 14px; border-radius: 18px 18px 18px 0; max-width: 80%; word-break: break-word; }
+
+#chat-input-container {
+  display: flex;
+  border-top: 2px solid #ccc;
+  background: #333;
+  padding: 0.5rem;
+  gap: 0.5rem;
+}
+
+#chat-input {
+  flex: 1; padding: 12px 16px; font-size: 16px; border: 1px solid #ccc; border-radius: 25px;
+  background: #fff; color: #111;
+}
+
+#chat-input:focus { outline: none; border-color: #333; }
+
+#chat-send {
+  width: 45px; height: 45px;
+  border: none; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s;
+}
+#chat-send:hover { background: #555; }
+
+pre { background: #eee; color: #333; padding: 10px; border-radius: 6px; overflow-x: auto; width: 100%; }
+code { font-family: monospace; color: #111; }
+
+#chat-messages::-webkit-scrollbar { width: 8px; }
+#chat-messages::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
+#chat-messages::-webkit-scrollbar-track { background: #f9f9f9; }
+
+@media (max-width: 600px) {
+  #chat-window {
+    width: 100%; max-width: 100%; min-width: 100%;
+    height: 100%; max-height: 100%; min-height: 100%;
+    border-radius: 0;
+    top: 0; left: 0;
+  }
+  #chat-window header { font-size: 20px; padding: 1rem; }
+  #chat-input { font-size: 15px; padding: 12px; }
+}
+</style>
 </head>
 <body>
   <div id="app"></div>
   <div id="chat-icon">💬</div>
-  <div id="chat-modal">
-    <div id="chat-window">
-      <header>TspaceMysql Docs</header>
-      <div id="chat-messages"></div>
-      <input type="text" id="chat-input" placeholder="Type keyword (e.g., 'model') and press Enter...">
+  
+<div id="chat-modal">
+  <div id="chat-window">
+    <header>
+      TspaceMysql Docs
+      <span id="chat-close">&times;</span>
+    </header>
+    <div id="chat-messages"></div>
+    <div id="chat-input-container">
+      <input type="text" id="chat-input" placeholder="Type keyword (e.g., 'model')...">
+         <button id="chat-send">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="20" height="20">
+          <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+        </svg>
+      </button>
     </div>
   </div>
+</div>
+
 </body>
 <script src="https://cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
@@ -289,6 +328,14 @@ const urls = [
   "view.md"
 ];
 
+const chatIcon = document.getElementById('chat-icon');
+const chatModal = document.getElementById('chat-modal');
+const chatClose = document.getElementById('chat-close');
+
+chatIcon.addEventListener('click', () => chatModal.style.display = 'flex');
+chatClose.addEventListener('click', () => chatModal.style.display = 'none');
+chatModal.addEventListener('click', (e) => { if (e.target === chatModal) chatModal.style.display = 'none'; });
+
 document.getElementById('chat-icon').addEventListener('click', () => {
   document.getElementById('chat-modal').style.display = 'flex';
 });
@@ -296,15 +343,34 @@ document.getElementById('chat-modal').addEventListener('click', (e) => {
   if (e.target.id === 'chat-modal') e.target.style.display = 'none';
 });
 
+
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+    handleSend();
+  }
+});
+
+chatSend.addEventListener('click', handleSend);
+
+function handleSend() {
+  const keyword = chatInput.value.trim();
+  if (!keyword) return;
+  searchSection(keyword); 
+  chatInput.value = '';
+}
+
 function typeMessage(element, html) {
   return new Promise(resolve => {
     let i = 0;
-    const chunkSize = 10; 
+    const chunkSize = 20; 
     function type() {
       element.innerHTML = html.slice(0, i);
       i += chunkSize;
       if (i <= html.length) {
-        setTimeout(type, 5);
+        setTimeout(type, 2);
       } else {
         element.innerHTML = html;
         resolve();
@@ -315,20 +381,21 @@ function typeMessage(element, html) {
   });
 }
 
-async function searchSection(keyword, head = true) {
+async function searchSection(fullKeyword, head = true) {
   const chatMessages = document.getElementById('chat-messages');
-  const lowerKey = keyword.toLowerCase();
 
   const userDiv = document.createElement('div');
   userDiv.classList.add('message', 'user');
-  userDiv.innerHTML = `<div>${keyword}</div>`;
+  userDiv.innerHTML = `<div>${fullKeyword}</div>`;
   chatMessages.appendChild(userDiv);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   let foundAny = 0;
-  const MAX_CONTENT = 5;
+  const MAX_CONTENT = 3;
 
-  async function searchLines(useHeader) {
+  async function searchLines(keyword, useHeader) {
+    const lowerKey = keyword.toLowerCase();
+
     for (const url of urls) {
       try {
         const res = await fetch(url);
@@ -336,47 +403,52 @@ async function searchSection(keyword, head = true) {
         const lines = text.split(/\r?\n/);
 
         for (let i = 0; i < lines.length; i++) {
-          const lineMatch = useHeader 
-            ? lines[i].startsWith('#') && lines[i].toLowerCase().includes(lowerKey)
-            : lines[i].toLowerCase().includes(lowerKey);
+          const line = lines[i];
+          const cleanLine = line.replace(/^#+\s*/, '').trim();
+          const isHeaderMatch = useHeader && line.startsWith('#') && cleanLine.toLowerCase().includes(lowerKey);
+          const isNormalMatch = !useHeader && line.toLowerCase().includes(lowerKey);
 
-          if (lineMatch) {
+          if (isHeaderMatch || isNormalMatch) {
+            let code = '';
+            let language = '';
+
             for (let j = i + 1; j < lines.length; j++) {
-              if (lines[j].trim().startsWith('```js')) {
-                let code = '';
+              if (lines[j].trim().startsWith('```')) {
+                language = lines[j].trim().slice(3).trim() || 'text';
                 j++;
                 while (j < lines.length && !lines[j].trim().startsWith('```')) {
                   code += lines[j] + '\n';
                   j++;
                 }
-
-                const sectionName = useHeader ? lines[i].replace(/^##\s*/, '').trim() : '';
-                const filename = url.split('/').pop().replace('.md', '');
-                const id = sectionName 
-                  ? `?id=${sectionName.replace(/\s+/g, '-').toLowerCase()}` 
-                  : '';
-                const link = `/tspace-mysql/#/${filename}${id}`;
-
-                const botDiv = document.createElement('div');
-                botDiv.classList.add('message', 'bot');
-                chatMessages.appendChild(botDiv);
-
-                const html = `
-**${sectionName || 'Code'}**  
-🔗 <a href="${link}" target="_blank">${filename}</a>
-
-\`\`\`js
-${code}
-\`\`\`
-                `;
-                await typeMessage(botDiv, marked.parse(html));
-                foundAny += 1;
                 break;
               }
+              if (lines[j].startsWith('#')) break;
             }
+
+            const sectionName = cleanLine;
+            const filename = url.split('/').pop().replace('.md', '');
+            const id = sectionName ? `?id=${sectionName.replace(/\s+/g, '-').toLowerCase()}` : '';
+            const link = `/tspace-mysql/#/${filename}${id}`;
+            const botDiv = document.createElement('div');
+            botDiv.classList.add('message', 'bot');
+            chatMessages.appendChild(botDiv);
+
+            const html = `
+**${sectionName}**  
+🔗 <a href="${link}" target="_blank">${filename}</a>
+
+${code
+  ? `\`\`\`${language}\n${code}\`\`\``
+  : line}
+            `;
+
+            await typeMessage(botDiv, marked.parse(html));
+            foundAny += 1;
             if (foundAny >= MAX_CONTENT) break;
           }
         }
+
+        if (foundAny >= MAX_CONTENT) break;
       } catch (err) {
         const botDiv = document.createElement('div');
         botDiv.classList.add('message', 'bot');
@@ -387,24 +459,26 @@ ${code}
     }
   }
 
-  await searchLines(head);
-
-  if (!foundAny && head) {
-    await searchLines(false);
+  const words = fullKeyword.trim().split(' ');
+  for (let start = words.length - 1; start >= 0; start--) {
+    for (let end = start; end < words.length; end++) {
+      const keyword = words.slice(start, end + 1).join(' ');
+      await searchLines(keyword, head);
+      if (foundAny >= MAX_CONTENT) return;
+      foundAny+=0.5
+      head = false;
+    }
   }
+
+   
 
   if (!foundAny) {
     const botDiv = document.createElement('div');
     botDiv.classList.add('message', 'bot');
     chatMessages.appendChild(botDiv);
-    await typeMessage(botDiv, `<div>No code block found for "${keyword}"</div>`);
+    await typeMessage(botDiv, `<div>No code block found for "${fullKeyword}"</div>`);
   }
 }
-document.getElementById('chat-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.target.value.trim() !== '') {
-    searchSection(e.target.value.trim());
-    e.target.value = '';
-  }
-});
+
 </script>
 </html>
