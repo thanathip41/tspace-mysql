@@ -427,6 +427,7 @@ async function searchSection(keyword, head = true) {
           if (isHeaderMatch || isNormalMatch) {
             let code = '';
             let language = 'js';
+            let codes = [];
 
             let n = 0;
             const start = Date.now();
@@ -438,6 +439,8 @@ async function searchSection(keyword, head = true) {
                   code += lines[j] + '\n';
                   j++;
                 }
+                codes.push(code)
+                code = ''
                 break;
               }
 
@@ -451,17 +454,26 @@ async function searchSection(keyword, head = true) {
                   code += lines[j] + '\n';
                   j++;
                 }
+               
+                
+                codes.push(code)
+                code = ''
+
                 n+=1
-                if(n >= 2)
+                
+                if(n > 2) {
                   break;
-                  
+                } 
               }
             }
 
-            code = code
-            .replace(/<[^>]*>.*?<\/[^>]*>/gs, '')
-            .replace(/<[^>]+>/g, '')
-            .replace('Previous','')
+            codes = codes.map(c=>{
+              return c
+              .replace(/<[^>]*>.*?<\/[^>]*>/gs, '')
+              .replace(/<[^>]+>/g, '')
+              .replace('Previous','')
+            }).filter(Boolean)
+      
 
             const sectionName = cleanLine;
             const filename = url.split('/').pop().replace('.md', '');
@@ -475,8 +487,8 @@ async function searchSection(keyword, head = true) {
 **${sectionName.toLowerCase().replace(lowerKey,`<span class="match-keyword">${keyword}</span>`)}**  
 🔗 <a href="${link}" target="_blank">${filename}</a>
 
-${code
-  ? `\`\`\`${language}\n${code}\`\`\``
+${codes.length
+  ? codes.map(code =>`\`\`\`${language}\n${code}\`\`\``).join('\n')
   : line}
             `;
 
