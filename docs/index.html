@@ -454,16 +454,15 @@ async function searchSection(keyword, head = true) {
                   code += lines[j] + '\n';
                   j++;
                 }
-               
-                
-                codes.push(code)
-                code = ''
-
-                n+=1
-                
-                if(n > 2) {
+              
+                if(n >= 2) {
                   break;
                 } 
+
+                codes.push(code)
+                code = ''
+                n+=1
+                
               }
             }
 
