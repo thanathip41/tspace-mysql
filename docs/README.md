@@ -126,11 +126,195 @@ DB_DATABASE = database
 
 DB_CLUSTER = true
 DB_DRIVER = mariadb
-DB_HOST = host1,host2,host3 ✅
+DB_HOST = master@host1,slave@host2,slave@host3 ✅
 DB_PORT = 3306,3307,3308
 DB_USERNAME = root1,root2,root3
 DB_PASSWORD = password1,password2,password3
 DB_DATABASE = database
+```
+
+## NodeJs
+
+### http
+```js
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { DB , sql , Model } from 'tspace-mysql';
+
+class User extends Model {}
+
+const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+  try {
+  
+    const usersWithModel = await new User().get();
+    const usersWithDB = await new DB('users').get();
+    const usersWithSqlLike = await sql().from('users')
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
+    return res.end(JSON.stringify({ data: { usersWithModel , usersWithDB, usersWithSqlLike} }));
+
+  } catch (err : any) {
+    return res.end(JSON.stringify({
+      error: err.message
+    }));
+  }
+  
+});
+
+server.listen(5000, () => {
+  console.log('Server is running on http://localhost:5000');
+});
+
+```
+
+### ExpressJs
+```sh
+npm install express --save
+
+```
+
+```js
+import express, { Request, Response } from 'express'
+import { DB, sql, Model } from 'tspace-mysql'
+
+class User extends Model {}
+
+const app = express()
+
+app.get('/', async (req: Request, res: Response) => {
+  try {
+    const usersWithModel = await new User().get()
+    const usersWithDB = await new DB('users').get()
+    const usersWithSqlLike = await sql().from('users')
+
+    res.json({
+      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.listen(5000, () => {
+  console.log('Server is running on http://localhost:5000')
+})
+
+```
+### Fastify
+```sh
+npm install fastify --save
+
+```
+
+```js
+
+import Fastify from 'fastify'
+import { DB, sql, Model } from 'tspace-mysql'
+
+class User extends Model {}
+
+const fastify = Fastify({ logger: true })
+
+fastify.get('/', async (request, reply) => {
+  try {
+    const usersWithModel = await new User().get()
+    const usersWithDB = await new DB('users').get()
+    const usersWithSqlLike = await sql().from('users')
+
+    return reply.send({
+      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+    })
+  } catch (err: any) {
+    return reply.status(500).send({ error: err.message })
+  }
+})
+
+fastify.listen({ port: 5000 })
+.then(() => {
+  console.log('Server is running on http://localhost:5000')
+})
+
+```
+
+## Bun
+```sh
+## MacOS/Linux
+curl -fsSL https://bun.sh/install | bash
+
+## Windows
+powershell -c "irm bun.sh/install.ps1 | iex"
+
+```
+
+### Native
+```js
+import { DB, sql, Model } from 'tspace-mysql'
+
+class User extends Model {}
+
+const server = Bun.serve({
+  port: 5000,
+  async fetch(req) {
+    try {
+      if (new URL(req.url).pathname === '/users') {
+        const usersWithModel = await new User().get()
+        const usersWithDB = await new DB('users').get()
+        const usersWithSqlLike = await sql().from('users')
+
+        return new Response(
+          JSON.stringify({ data: { usersWithModel, usersWithDB, usersWithSqlLike } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response('Not Found', { status: 404 })
+    } catch (err: any) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+  }
+})
+
+console.log(`Server running on http://localhost:${server.port}`)
+
+```
+
+### Elysia
+```sh
+npm install elysia --save
+
+```
+
+```js
+import { Elysia } from 'elysia'
+import { DB, sql, Model } from 'tspace-mysql'
+
+class User extends Model {}
+
+const app = new Elysia()
+
+app.get('/', async () => {
+  try {
+    const usersWithModel = await new User().get()
+    const usersWithDB = await new DB('users').get()
+    const usersWithSqlLike = await sql().from('users')
+
+    return {
+      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+    }
+  } catch (err: any) {
+    return {
+      error: err.message
+    }
+  }
+})
+
+app.listen(5000)
+
+console.log('Server is running on http://localhost:5000')
+
 ```
 
 <div class="page-nav-cards">

@@ -516,9 +516,23 @@ export type TPoolCusterOptions = {
     }[];
 }
 
+type TClusterPool = {
+    pool: {
+        type: string
+        node: number
+        host: string
+        port: number
+        username: string
+    },
+    on : (event : TPoolEvent , data : (r : any) => any) => void
+    queryBuilder: typeof QueryBuilder
+    query: (sql: string) => Promise<any[]>
+    connection : () => Promise<TConnection>
+};
+
 export type TPoolCusterConnected = {
     query ?: Function | null;
     queryBuilder ?: QueryBuilder | null;
-    writer: TPoolConnected;
-    readers: TPoolConnected[];
+    masters: TClusterPool[];
+    slaves: TClusterPool[];
 }

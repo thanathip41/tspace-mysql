@@ -32,6 +32,18 @@ const purchaseForUpdate = async({userId , productId , qty } : {
   qty: number 
 }): Promise<void> => {
   const trx = await DB.beginTransaction()
+
+  // ********************************************************************************
+  // To verify the transaction correctly, do not use an IP load balancer; 
+  // use cluster mode instead.
+  
+  // If your cluster has more than one master node:
+  // Use `await DB.beginTransaction({ nodeId: <your node number> })` 
+  // to lock a specific node for writing.
+  
+  // Alternatively, use `await DB.beginTransaction({ primaryId: <your primary ID> })`
+  // In cases you cannot specify the node (for example, if the product ID is always 1).
+
   try {
    
     await trx.startTransaction()

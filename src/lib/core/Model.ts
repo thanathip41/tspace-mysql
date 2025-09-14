@@ -5715,6 +5715,7 @@ class Model<
 
         const virtualColumn = this._getBlueprintByKey(field, {
           mapQuery: true,
+          schemaColumns: schemaModel
         });
 
         if (virtualColumn) continue;
@@ -5744,7 +5745,7 @@ class Model<
 
     for (const data of chunkedData) {
       promises.push(() => {
-        return new Model()
+        return new DB()
           .from(table)
           .debug(this.$state.get("DEBUG"))
           .createMultiple([...data])
@@ -7308,30 +7309,23 @@ class Model<
 
   private _getBlueprintByKey(
     column: string,
-    { mapQuery }: { mapQuery?: boolean } = {}
+    { 
+      mapQuery,
+      schemaColumns
+    }: { mapQuery?: boolean; schemaColumns ?:any } = {}
   ) {
-    const schemaColumns = this.getSchemaModel();
+    schemaColumns = schemaColumns ?? this.getSchemaModel();
+    if (!schemaColumns) return null;
 
-    if (schemaColumns == null) return null;
+    const blueprint = schemaColumns[column];
+    if (!blueprint) return null;
 
-    for (const key in schemaColumns) {
-      if (key === column) {
-        const blueprint = schemaColumns[key];
-        const isMapQuery = blueprint.sql;
-        if (mapQuery && isMapQuery) {
-          return blueprint;
-        }
-
-        if (mapQuery && !isMapQuery) {
-          return null;
-        }
-
-        return blueprint;
-      }
+    if (mapQuery) {
+      return blueprint.sql ? blueprint : null;
     }
 
-    return null;
-  }
+    return blueprint;
+  } 
 
   private _initialModel(): this {
     this.$state = new StateHandler("model");

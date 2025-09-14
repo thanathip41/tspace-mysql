@@ -90,60 +90,129 @@ export class PoolConnection extends EventEmitter {
     }
   }
 
-  public clusterConnected () {
+  public clusterConnected() {
 
-    if(this.CLUSTER != null) {
+    if (this.CLUSTER != null) {
       return this.CLUSTER;
     }
 
     const options = Object.fromEntries(this.OPTIONS);
 
-    const parseList = (value : string) => {
-      return String(value).split(',').map(v => v.trim())
-    }
+    const parseList = (value: string) => String(value).split(',').map(v => v.trim());
+    const getValue = (arr: any[], index: number) => arr[index] != null ? arr[index] : arr[arr.length - 1];
 
-    const getValue = (arr : any[], index: number) => {
-      return arr[index] != null ? arr[index] : arr[arr.length - 1]
-    }
+    const hostList = parseList(options.host);
+    const hosts: string[] = [];
+    const ports: number[] = [];
+    const types: string[] = [];
 
-    const hosts = parseList(options.host).map(String)
-    const ports = parseList(options.ports).map(Number)
-    const usernames = parseList(options.username).map(String)
-    const passwords = parseList(options.password).map(String)
+    hostList.forEach(h => {
+      let type = 'master';
+      let host = h;
+      let port = null;
 
-    const writerOptions = {
-      host: getValue(hosts,0),
-      port: getValue(ports, 0),
-      username: getValue(usernames, 0),
-      password: getValue(passwords, 0)
-    }
+      if (h.includes('@')) {
+        [type, host] = h.split('@');
+      }
 
-    const readerOptions = hosts.slice(1).map((host, i) => ({
-      host,
-      port: getValue(ports, i + 1),
-      username: getValue(usernames, i + 1),
-      password: getValue(passwords, i + 1)
-    }))
+      if (host.includes(':')) {
+        const [hostname, portStr] = host.split(':');
+        host = hostname;
+        port = parseInt(portStr);
+      }
 
-    const writer = new PoolConnection().connected({
-      ...options,
-      ...writerOptions
+      hosts.push(host);
+      ports.push(port ?? 3306);
+      types.push(type);
     });
 
-    const readers = readerOptions.map((readerOption) => {
-      return new PoolConnection().connected({ 
-        ...options,
-        ...readerOption,
-      })
-    })
+    const usernames = parseList(options.user);
+    const passwords = parseList(options.password);
 
-    this.CLUSTER = {
-      writer,
-      readers
+    type TOptions = {
+      host: string;
+      port: number;
+      username: string;
+      password: string;
+    };
+
+    const writerOptions: {
+      host: string;
+      port: number;
+      username: string;
+      password: string;
+    }[] = hosts
+      .map((host, i) => {
+        if (types[i] !== 'master') return null;
+        return {
+          host,
+          port: getValue(ports, i),
+          username: getValue(usernames, i),
+          password: getValue(passwords, i)
+        };
+      })
+      .filter(Boolean) as TOptions[];
+
+    const writers = writerOptions.map((opt,i) => {
+      return {
+        pool : {
+          type: 'master',
+          node: +i+1,
+          host: opt.host,
+          port: opt.port,
+          username: opt.username
+        },
+        ...new PoolConnection().connected({
+          ...options,
+          ...opt
+        })
+      }
+    });
+
+    const readerOptions = hosts
+      .map((host, i) => {
+        if (types[i] !== 'slave') return null;
+        return {
+          host,
+          port: getValue(ports, i),
+          username: getValue(usernames, i),
+          password: getValue(passwords, i)
+        };
+      })
+      .filter(Boolean) as TOptions[];
+
+    const readers = readerOptions.map((opt,i) => {
+      return {
+         pool : {
+          type: 'slave',
+          node: +i+1,
+          host: opt.host,
+          port: opt.port,
+          username: opt.username
+        },
+        ...new PoolConnection().connected({
+          ...options,
+          ...opt
+        })
+      }
+    });
+
+    if (!writers.length) {
+      throw new Error('No master nodes found. Please verify your cluster config.');
+    }
+    
+    if (!readers.length) {
+      throw new Error('No slave nodes found. Please verify your cluster config.');
     }
 
-    return this.CLUSTER
+    this.CLUSTER = {
+      masters: writers,
+      slaves: readers
+    }
+
+    return this.CLUSTER;
   }
+
 
   private _defaultOptions() {
     return new Map<string, number | boolean | string>(

@@ -325,19 +325,19 @@ code { font-family: monospace; color: #111; }
 
 <script>
 const urls = [
+  "README.md",
+  "sql-like.md",
+  "query-builder.md",
+  "model.md",
+  "race-condition.md",
+  "repository.md",
+  "generating-model-classes.md",
+  "connection.md",
+  "database-transactions.md",
   "backup.md",
   "blueprint.md",
   "cli.md",
-  "connection.md",
-  "database-transactions.md",
-  "generating-model-classes.md",
   "injection.md",
-  "model.md",
-  "query-builder.md",
-  "race-condition.md",
-  "README.md",
-  "repository.md",
-  "sql-like.md",
   "stored-procedure.md",
   "view.md"
 ];
@@ -407,7 +407,7 @@ async function searchSection(keyword, head = true) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   let foundAny = 0;
-  const MAX_CONTENT = 5;
+  const MAX_CONTENT = 3;
 
   async function searchLines(keyword, useHeader) {
     const lowerKey = keyword.toLowerCase();
@@ -420,32 +420,48 @@ async function searchSection(keyword, head = true) {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
 
-          const cleanLine = line.replace(/^#+\s*/, '').trim();
+          const cleanLine = line.replace(/^#+\s*/, '').replace(/^\./, '').trim();
           const isHeaderMatch = useHeader && line.startsWith('#') && cleanLine.toLowerCase().includes(lowerKey);
-          const isNormalMatch = !useHeader && line.toLowerCase().includes(lowerKey);
+          const isNormalMatch = !useHeader && cleanLine.toLowerCase().includes(lowerKey);
 
           if (isHeaderMatch || isNormalMatch) {
             let code = '';
-            let language = '';
-            let n = 0
-            
-            for (let j = i + 1; j < lines.length; j++) {
-              if (lines[j].trim().startsWith('```')) {
-                language = lines[j].trim().slice(3).trim() || 'text';
+            let language = 'js';
+
+            let n = 0;
+            const start = Date.now();
+
+            for (let j = i; j < lines.length; j--) {
+              if (lines[j]?.trim().startsWith('```')) {
                 j++;
                 while (j < lines.length && !lines[j].trim().startsWith('```')) {
                   code += lines[j] + '\n';
                   j++;
                 }
+                break;
+              }
 
-                n+=1
+              if((Date.now() - start) / 1000 > 3) break
+            }
 
-                if(n >= 2) {
-                  break;
+            for (let j = i + 1; j < lines.length; j++) {
+              if (lines[j]?.trim().startsWith('```')) {
+                j++;
+                while (j < lines.length && !lines[j].trim().startsWith('```')) {
+                  code += lines[j] + '\n';
+                  j++;
                 }
+                n+=1
+                if(n >= 2)
+                  break;
                   
               }
             }
+
+            code = code
+            .replace(/<[^>]*>.*?<\/[^>]*>/gs, '')
+            .replace(/<[^>]+>/g, '')
+            .replace('Previous','')
 
             const sectionName = cleanLine;
             const filename = url.split('/').pop().replace('.md', '');

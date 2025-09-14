@@ -3,7 +3,7 @@ SQL (Structured Query Language) is used to manage data in relational databases.
 Here are the four most common commands with **tspace-mysql** examples:
 
 ## Select Statements
-Retrieve data from a table. You can select specific columns or all columns.
+SQL LIKE select statement Retrieve data from a table. You can select specific columns or all columns.
 
 ```js
 import { sql, OP } from 'tspace-mysql'
@@ -21,7 +21,7 @@ await sql()
 ```
 
 ## Insert Statements
-Add new data into a table.
+SQL LIKE insert statement Add new data into a table.
 
 ```js
 import { sql } from 'tspace-mysql'

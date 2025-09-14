@@ -4794,17 +4794,20 @@ class Builder extends AbstractBuilder {
             )
            
             if(isReaded) {
-              const length = poolCluster?.readers?.length ?? 0;
+              const length = poolCluster?.slaves?.length ?? 0;
               const random = Math.floor(Math.random() * length);
 
               return poolCluster?.query != null 
               ? poolCluster.query(sql) 
-              : poolCluster?.readers[random].query(sql);
+              : poolCluster?.slaves[random].query(sql);
             }
+
+            const length = poolCluster?.masters?.length ?? 0;
+            const random = Math.floor(Math.random() * length);
 
             return poolCluster.query != null 
             ? poolCluster.query(sql) 
-            : poolCluster?.writer.query(sql);
+            : poolCluster?.masters[random].query(sql);
           },
           get: () => poolCluster,
           set: (newConnection: TPoolCusterConnected) => {
@@ -4812,7 +4815,13 @@ class Builder extends AbstractBuilder {
             return;
           },
           queryBuilder: () => {
-            return poolCluster?.writer?.queryBuilder ?? poolCluster?.queryBuilder;
+            /**
+             * 
+             * queryBuilder can use every nodes
+             */
+            return poolCluster?.masters == null 
+            ? poolCluster?.queryBuilder
+            : poolCluster?.masters[0]?.queryBuilder
           },
         };
       }

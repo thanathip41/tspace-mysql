@@ -46,7 +46,7 @@ export class MysqlDriver extends BaseDriver {
       enableKeepAlive: options.enableKeepAlive,
       keepAliveInitialDelay: options.keepAliveInitialDelay,
     });
-
+    
     this._onPoolConnect(this.pool);
 
     this.pool.on("release", (connection: unknown) => {
