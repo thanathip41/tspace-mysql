@@ -118,7 +118,9 @@ DB_PORT = 3306
 DB_USERNAME = root1
 DB_PASSWORD = password1
 DB_DATABASE = database
+```
 
+```js
 // ----------------------------------------------------
 // example MariaDB Galera Cluster
 // host1 -> Writer node
