@@ -140,6 +140,14 @@ DB_DATABASE = database
 A collection of practical code samples to help you get started quickly. <br>
 Setup connection '.env', use the following configuration:
 
+```sh
+DB_DRIVER = postgres
+DB_HOST = localhost
+DB_PORT = 5432
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
 ### NodeJs
 #### Http
 This example demonstrates how to create a simple HTTP server using Node.js built-in `http` module.
