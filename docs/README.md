@@ -112,6 +112,9 @@ Avoid using a node load balancer in this case, as it may bypass proper write/rea
 To connect your application to a Cluster database, use the following configuration:
 
 ```js
+// ----------------------------------------------------
+// example MariaDB Galera Cluster
+
 DB_DRIVER = mariadb
 DB_HOST = host-load-balncer ❌
 DB_PORT = 3306
@@ -122,10 +125,9 @@ DB_DATABASE = database
 
 ```js
 // ----------------------------------------------------
-// example MariaDB Galera Cluster
-// host1 -> Writer node
-// host2, host3 -> Reader nodes
-
+// MariaDB Galera Cluster
+// host1 -> Master node
+// host2, host3 -> slave nodes
 DB_CLUSTER = true
 DB_DRIVER = mariadb
 DB_HOST = master@host1,slave@host2,slave@host3 ✅
@@ -134,10 +136,13 @@ DB_USERNAME = root1,root2,root3
 DB_PASSWORD = password1,password2,password3
 DB_DATABASE = database
 ```
+## Example Framework
+A collection of practical code samples to help you get started quickly. <br>
+Setup connection '.env', use the following configuration:
 
-## NodeJs
-
-### http
+### NodeJs
+#### Http
+This example demonstrates how to create a simple HTTP server using Node.js built-in `http` module.
 ```js
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { DB , sql , Model } from 'tspace-mysql';
@@ -169,7 +174,8 @@ server.listen(5000, () => {
 
 ```
 
-### ExpressJs
+#### ExpressJs
+An example showing how to create a web server using Express.js, a minimal and flexible Node.js web framework.
 ```sh
 npm install express --save
 
@@ -202,7 +208,9 @@ app.listen(5000, () => {
 })
 
 ```
-### Fastify
+#### Fastify
+An example demonstrating how to create a fast and low-overhead web server using Fastify, a high-performance Node.js framework.
+
 ```sh
 npm install fastify --save
 
@@ -237,8 +245,104 @@ fastify.listen({ port: 5000 })
 })
 
 ```
+#### Nestjs
+An example showing how to build a scalable, modular, and maintainable backend using NestJS, a progressive Node.js framework built with TypeScript.
+```sh
+npm install -g @nestjs/cli
 
-## Bun
+nest new my-project
+
+# my-project/
+#  ├─ src/
+#  |   ├─ models
+#  |   |  └─ User.ts
+#  │   ├─ app.controller.ts
+#  │   ├─ app.module.ts
+#  │   ├─ app.service.ts
+#  │   └─ main.ts
+#  ├─ package.json
+#  ├─ tsconfig.json
+#  └─ ...
+```
+```js
+// src/models/User.ts
+import { Model }  from 'tspace-mysql';
+export class User extends Model {}
+
+// --------------------------------------------------
+
+// src/app.service.ts
+import { Injectable, Inject } from '@nestjs/common';
+import { NestInject, NestRepository } from 'tspace-mysql';
+import { User } from './models/User'
+
+@Injectable()
+export class AppService {
+  constructor(
+    @Inject(NestInject(User)) // send by app.module
+    private userRepository: NestRepository<User>
+  ) {}
+  async findAll() {
+    const users = await this.userRepository.get();
+    return { users };
+  }
+}
+// --------------------------------------------------
+
+// src/app.controller.ts
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller('')
+export class UsersController {
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
+  async getData() {
+    return {
+      data: await this.appService.findAll()
+    };
+  }
+}
+
+// --------------------------------------------------
+
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { NestProvider } from 'tspace-mysql';
+import { User } from './models/User'
+
+@Module({
+  controllers: [AppController],
+  providers: [AppService, NestProvider(User)] // register this
+})
+export class AppModule {}
+// --------------------------------------------------
+
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { AppModule } from './app.module';
+
+@Module({
+  imports: [AppModule],
+})
+export class AppModule {}
+
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(5000);
+  console.log('Server is running on http://localhost:5000');
+}
+bootstrap();
+```
+
+### Bun
 ```sh
 ## MacOS/Linux
 curl -fsSL https://bun.sh/install | bash
@@ -248,7 +352,9 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 
 ```
 
-### Native
+#### Bun Native
+This example demonstrates how to create a simple HTTP server using Bun's built-in runtime capabilities without any additional frameworks.
+
 ```js
 import { DB, sql, Model } from 'tspace-mysql'
 
@@ -258,7 +364,7 @@ const server = Bun.serve({
   port: 5000,
   async fetch(req) {
     try {
-      if (new URL(req.url).pathname === '/users') {
+      if (new URL(req.url).pathname === '/') {
         const usersWithModel = await new User().get()
         const usersWithDB = await new DB('users').get()
         const usersWithSqlLike = await sql().from('users')
@@ -283,7 +389,9 @@ console.log(`Server running on http://localhost:${server.port}`)
 
 ```
 
-### Elysia
+#### Elysia
+An example showing how to build a fast and modern web server using Elysia, a lightweight and high-performance framework.
+
 ```sh
 npm install elysia --save
 
@@ -317,6 +425,39 @@ app.listen(5000)
 
 console.log('Server is running on http://localhost:5000')
 
+```
+
+#### Hono
+An example showing how to build a fast and modern web server using Hono, optimized for performance and simplicity.
+```sh
+npm install hono --save
+
+```
+
+```js
+import { Hono } from 'hono'
+import { DB, sql, Model } from 'tspace-mysql'
+
+class User extends Model {}
+
+const app = new Hono()
+
+app.get('/', async (c) => {
+  try {
+    const usersWithModel = await new User().get()
+    const usersWithDB = await new DB('users').get()
+    const usersWithSqlLike = await sql().from('users')
+
+    return c.json({ data: { usersWithModel, usersWithDB, usersWithSqlLike } })
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500)
+  }
+})
+
+app.get('*', (c) => c.text('Not Found', 404))
+
+app.fire({ port : 5000 })
+console.log('Server running on http://localhost:5000')
 ```
 
 <div class="page-nav-cards">
