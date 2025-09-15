@@ -262,7 +262,7 @@ nest new my-project
 
 # my-project/
 #  ├─ src/
-#  |   ├─ models
+#  |   ├─ entities
 #  |   |  └─ User.ts
 #  │   ├─ app.controller.ts
 #  │   ├─ app.module.ts
@@ -273,7 +273,7 @@ nest new my-project
 #  └─ ...
 ```
 ```js
-// src/models/User.ts
+// src/entities/User.ts
 import { Model }  from 'tspace-mysql';
 export class User extends Model {}
 
@@ -282,7 +282,7 @@ export class User extends Model {}
 // src/app.service.ts
 import { Injectable, Inject } from '@nestjs/common';
 import { NestInject, NestRepository } from 'tspace-mysql';
-import { User } from './models/User'
+import { User } from './entities/User'
 
 @Injectable()
 export class AppService {
@@ -320,7 +320,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NestProvider } from 'tspace-mysql';
-import { User } from './models/User'
+import { User } from './entities/User'
 
 @Module({
   controllers: [AppController],

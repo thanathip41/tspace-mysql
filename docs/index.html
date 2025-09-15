@@ -341,27 +341,25 @@ const urls = [
   "stored-procedure.md",
   "view.md"
 ];
- const $query = (element) => document.querySelector(element);
+ const $query   = (element) => document.querySelector(element);
 
-const chatIcon = $query('#chat-icon');
+const chatIcon  = $query('#chat-icon');
 const chatModal = $query('#chat-modal');
 const chatClose = $query('#chat-close');
+const chatInput = $query('#chat-input');
+const chatSend  = $query('#chat-send');
 
 chatIcon.addEventListener('click', () => chatModal.style.display = 'flex');
 chatClose.addEventListener('click', () => chatModal.style.display = 'none');
 chatModal.addEventListener('click', (e) => { if (e.target === chatModal) chatModal.style.display = 'none'; });
 
-$query('#chat-icon').addEventListener('click', () => {
+chatIcon.addEventListener('click', () => {
   $query('#chat-modal').style.display = 'flex';
 });
 
-$query('#chat-modal').addEventListener('click', (e) => {
+chatModal.addEventListener('click', (e) => {
   if (e.target.id === 'chat-modal') e.target.style.display = 'none';
 });
-
-
-const chatInput = $query('#chat-input');
-const chatSend = $query('#chat-send');
 
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && chatInput.value.trim() !== '') {
@@ -370,6 +368,10 @@ chatInput.addEventListener('keydown', (e) => {
 });
 
 chatSend.addEventListener('click', handleSend);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') chatModal.style.display = 'none';
+});
 
 function handleSend() {
   const keyword = chatInput.value.trim();
@@ -386,7 +388,7 @@ function typeMessage(element, html) {
       element.innerHTML = html.slice(0, i);
       i += chunkSize;
       if (i <= html.length) {
-        setTimeout(type, 2);
+        setTimeout(type, 3);
       } else {
         element.innerHTML = html;
         resolve();
@@ -407,7 +409,7 @@ async function searchSection(keyword, head = true) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   let foundAny = 0;
-  const MAX_CONTENT = 3;
+  const MAX_CONTENT = 2;
 
   async function searchLines(keyword, useHeader) {
     const lowerKey = keyword.toLowerCase();
@@ -420,7 +422,7 @@ async function searchSection(keyword, head = true) {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
 
-          const cleanLine = line.replace(/^#+\s*/, '').replace(/^\./, '').trim();
+          const cleanLine = line.replace(/^#+\s*/, '').trim();
           const isHeaderMatch = useHeader && line.startsWith('#') && cleanLine.toLowerCase().includes(lowerKey);
           const isNormalMatch = !useHeader && cleanLine.toLowerCase().includes(lowerKey);
 
@@ -477,23 +479,32 @@ async function searchSection(keyword, head = true) {
             const sectionName = cleanLine;
             const filename = url.split('/').pop().replace('.md', '');
             const id = sectionName ? `?id=${sectionName.replace(/\s+/g, '-').toLowerCase()}` : '';
-            const link = `/tspace-mysql/#/${filename}${id}`;
+            const link = `https://thanathip41.github.io/tspace-mysql/#/${filename}${id}`;
             const botDiv = document.createElement('div');
             botDiv.classList.add('message', 'bot');
             chatMessages.appendChild(botDiv);
 
             const html = `
 **${sectionName.toLowerCase().replace(lowerKey,`<span class="match-keyword">${keyword}</span>`)}**  
-🔗 <a href="${link}" target="_blank">${filename}</a>
+${/"/.test(link) 
+? `🔗 <a href="https://thanathip41.github.io/tspace-mysql/#/${filename}" target="_blank">${filename}</a>` 
+: `🔗 <a href="${link}" target="_blank">${filename}</a>`}
 
 ${codes.length
-  ? codes.map(code =>`\`\`\`${language}\n${code}\`\`\``).join('\n')
+  ? codes.map((code,i) => {
+    return code.trim() === '' || code.trim().includes('#') && i
+    ? '' 
+    :`\`\`\`${language}\n${code}\`\`\``
+  }).join('\n')
   : line}
             `;
 
             await typeMessage(botDiv, marked.parse(html));
             foundAny += 1;
+            codes = []
+            
             if (foundAny >= MAX_CONTENT) break;
+          
           }
         }
 
@@ -510,14 +521,19 @@ ${codes.length
 
   let currentKeyword = keyword.trim();
   let useHead = head;
+  let i = 0
   while (currentKeyword && foundAny < MAX_CONTENT) {
     await searchLines(currentKeyword, useHead);
 
     if (foundAny) break;
-
+    
     const words = currentKeyword.split(' ');
     words.pop();
     currentKeyword = words.join(' ');
+
+    if(currentKeyword === '' && useHead) {
+      currentKeyword  = keyword.trim()
+    }
 
     useHead = false;
   }
@@ -526,7 +542,7 @@ ${codes.length
     const botDiv = document.createElement('div');
     botDiv.classList.add('message', 'bot');
     chatMessages.appendChild(botDiv);
-    await typeMessage(botDiv, `<div>No code block found for "${keyword}"</div>`);
+    await typeMessage(botDiv, `<div>No results found for "${keyword}"</div>`);
   }
 }
 
