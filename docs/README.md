@@ -137,11 +137,18 @@ DB_PASSWORD = password1,password2,password3
 DB_DATABASE = database
 ```
 ## Example Framework
-A collection of practical code samples to help you get started quickly. <br>
-Setup connection '.env', use the following configuration:
+A collection of practical code samples to help you get started quickly.
+Examples of fetching data from a database in four ways:
+
+- SQL-like
+- DB
+- Model
+- Repository
+
+The connection is configured using a .env file with the following settings:
 
 ```sh
-DB_DRIVER = postgres
+DB_DRIVER = postgres ## mysql mariadb choose one for connection
 DB_HOST = localhost
 DB_PORT = 5432
 DB_USERNAME = root
@@ -151,22 +158,32 @@ DB_DATABASE = database
 ### NodeJs
 #### Http
 This example demonstrates how to create a simple HTTP server using Node.js built-in `http` module.
+```sh
+npm intall tspace-mysql --save
+```
 ```js
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { DB , sql , Model } from 'tspace-mysql';
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
 const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   try {
   
-    const usersWithModel = await new User().get();
-    const usersWithDB = await new DB('users').get();
-    const usersWithSqlLike = await sql().from('users')
+    const usersWithSqlLike = await sql().from('users');
+    const usersWithDB = await new DB('users').findMany();
+    const usersWithModel = await new User().findMany();
+    const usersWithRepository = await Repository(User).findMany();
+
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    return res.end(JSON.stringify({ data: { usersWithModel , usersWithDB, usersWithSqlLike} }));
+    return res.end(JSON.stringify({
+      usersWithRepository
+      usersWithModel, 
+      usersWithDB, 
+      usersWithSqlLike
+    }));
 
   } catch (err : any) {
     return res.end(JSON.stringify({
@@ -186,12 +203,12 @@ server.listen(5000, () => {
 An example showing how to create a web server using Express.js, a minimal and flexible Node.js web framework.
 ```sh
 npm install express --save
-
+npm intall tspace-mysql --save
 ```
 
 ```js
 import express, { Request, Response } from 'express'
-import { DB, sql, Model } from 'tspace-mysql'
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
@@ -199,15 +216,20 @@ const app = express()
 
 app.get('/', async (req: Request, res: Response) => {
   try {
-    const usersWithModel = await new User().get()
-    const usersWithDB = await new DB('users').get()
-    const usersWithSqlLike = await sql().from('users')
 
-    res.json({
-      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+    const usersWithSqlLike = await sql().from('users');
+    const usersWithDB = await new DB('users').findMany();
+    const usersWithModel = await new User().findMany(); 
+    const usersWithRepository = await Repository(User).findMany();
+
+    return res.json({
+      usersWithRepository
+      usersWithModel, 
+      usersWithDB, 
+      usersWithSqlLike
     })
   } catch (err: any) {
-    res.status(500).json({ error: err.message })
+    return res.status(500).json({ error: err.message })
   }
 })
 
@@ -221,13 +243,13 @@ An example demonstrating how to create a fast and low-overhead web server using 
 
 ```sh
 npm install fastify --save
-
+npm intall tspace-mysql --save
 ```
 
 ```js
 
 import Fastify from 'fastify'
-import { DB, sql, Model } from 'tspace-mysql'
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
@@ -235,12 +257,18 @@ const fastify = Fastify({ logger: true })
 
 fastify.get('/', async (request, reply) => {
   try {
-    const usersWithModel = await new User().get()
-    const usersWithDB = await new DB('users').get()
-    const usersWithSqlLike = await sql().from('users')
+    
+    const usersWithSqlLike = await sql().from('users');
+    const usersWithDB = await new DB('users').findMany();
+    const usersWithModel = await new User().findMany();
+    const usersWithRepository = await Repository(User).findMany();
+
 
     return reply.send({
-      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+      usersWithRepository
+      usersWithModel, 
+      usersWithDB, 
+      usersWithSqlLike
     })
   } catch (err: any) {
     return reply.status(500).send({ error: err.message })
@@ -252,18 +280,21 @@ fastify.listen({ port: 5000 })
   console.log('Server is running on http://localhost:5000')
 })
 
+// ts-node run src/index.ts
 ```
 #### Nestjs
 An example showing how to build a scalable, modular, and maintainable backend using NestJS, a progressive Node.js framework built with TypeScript.
 ```sh
 npm install -g @nestjs/cli
 
-nest new my-project
+nest new nestjs
 
-# my-project/
+npm intall tspace-mysql --save
+
+# nestjs/
 #  ├─ src/
 #  |   ├─ entities
-#  |   |  └─ User.ts
+#  |   |  └─ user.entity.ts
 #  │   ├─ app.controller.ts
 #  │   ├─ app.module.ts
 #  │   ├─ app.service.ts
@@ -273,7 +304,7 @@ nest new my-project
 #  └─ ...
 ```
 ```js
-// src/entities/User.ts
+// src/entities/user.entity.ts
 import { Model }  from 'tspace-mysql';
 export class User extends Model {}
 
@@ -291,7 +322,7 @@ export class AppService {
     private userRepository: NestRepository<User>
   ) {}
   async findAll() {
-    const users = await this.userRepository.get();
+    const users = await this.userRepository.findMany();
     return { users };
   }
 }
@@ -308,7 +339,7 @@ export class UsersController {
   @Get()
   async getData() {
     return {
-      data: await this.appService.findAll()
+      ...await this.appService.findAll()
     };
   }
 }
@@ -320,7 +351,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NestProvider } from 'tspace-mysql';
-import { User } from './entities/User'
+import { User } from './entities/user.entity'
 
 @Module({
   controllers: [AppController],
@@ -348,6 +379,8 @@ async function bootstrap() {
   console.log('Server is running on http://localhost:5000');
 }
 bootstrap();
+
+// npm run dev
 ```
 
 ### Bun
@@ -364,7 +397,7 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 This example demonstrates how to create a simple HTTP server using Bun's built-in runtime capabilities without any additional frameworks.
 
 ```js
-import { DB, sql, Model } from 'tspace-mysql'
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
@@ -373,12 +406,19 @@ const server = Bun.serve({
   async fetch(req) {
     try {
       if (new URL(req.url).pathname === '/') {
-        const usersWithModel = await new User().get()
-        const usersWithDB = await new DB('users').get()
-        const usersWithSqlLike = await sql().from('users')
+
+        const usersWithSqlLike = await sql().from('users');
+        const usersWithDB = await new DB('users').findMany();
+        const usersWithModel = await new User().findMany();
+        const usersWithRepository = await Repository(User).findMany();
 
         return new Response(
-          JSON.stringify({ data: { usersWithModel, usersWithDB, usersWithSqlLike } }),
+          JSON.stringify({ 
+            usersWithRepository
+            usersWithModel, 
+            usersWithDB, 
+            usersWithSqlLike
+          }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         )
       }
@@ -394,6 +434,7 @@ const server = Bun.serve({
 })
 
 console.log(`Server running on http://localhost:${server.port}`)
+// bun run src/index.ts
 
 ```
 
@@ -401,13 +442,15 @@ console.log(`Server running on http://localhost:${server.port}`)
 An example showing how to build a fast and modern web server using Elysia, a lightweight and high-performance framework.
 
 ```sh
-npm install elysia --save
+bun create elysia elysia
+cd elysia
+bun add tspace-mysql
 
 ```
 
 ```js
 import { Elysia } from 'elysia'
-import { DB, sql, Model } from 'tspace-mysql'
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
@@ -415,12 +458,18 @@ const app = new Elysia()
 
 app.get('/', async () => {
   try {
-    const usersWithModel = await new User().get()
-    const usersWithDB = await new DB('users').get()
-    const usersWithSqlLike = await sql().from('users')
+
+    const usersWithSqlLike = await sql().from('users');
+    const usersWithDB = await new DB('users').findMany();
+    const usersWithModel = await new User().findMany();
+    const usersWithRepository = await Repository(User).findMany();
+
 
     return {
-      data: { usersWithModel, usersWithDB, usersWithSqlLike }
+      usersWithRepository
+      usersWithModel, 
+      usersWithDB, 
+      usersWithSqlLike
     }
   } catch (err: any) {
     return {
@@ -433,18 +482,22 @@ app.listen(5000)
 
 console.log('Server is running on http://localhost:5000')
 
+// bun run src/index.ts
+
 ```
 
 #### Hono
 An example showing how to build a fast and modern web server using Hono, optimized for performance and simplicity.
 ```sh
-npm install hono --save
+bun create hono@latest hono
+cd hono
+bun add tspace-mysql
 
 ```
 
 ```js
 import { Hono } from 'hono'
-import { DB, sql, Model } from 'tspace-mysql'
+import { DB, sql, Model, Repository } from 'tspace-mysql';
 
 class User extends Model {}
 
@@ -452,20 +505,32 @@ const app = new Hono()
 
 app.get('/', async (c) => {
   try {
-    const usersWithModel = await new User().get()
-    const usersWithDB = await new DB('users').get()
-    const usersWithSqlLike = await sql().from('users')
 
-    return c.json({ data: { usersWithModel, usersWithDB, usersWithSqlLike } })
+    const usersWithSqlLike = await sql().from('users');
+    const usersWithDB = await new DB('users').findMany();
+    const usersWithModel = await new User().findMany();
+    const usersWithRepository = await Repository(User).findMany();
+
+
+    return c.json({ 
+      usersWithRepository
+      usersWithModel, 
+      usersWithDB, 
+      usersWithSqlLike
+    })
   } catch (err: any) {
     return c.json({ error: err.message }, 500)
   }
 })
 
-app.get('*', (c) => c.text('Not Found', 404))
-
-app.fire({ port : 5000 })
 console.log('Server running on http://localhost:5000')
+
+export default { 
+  port: 5000, 
+  fetch: app.fetch, 
+} 
+
+// bun run src/index.ts
 ```
 
 <div class="page-nav-cards">

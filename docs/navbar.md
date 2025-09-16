@@ -44,7 +44,7 @@
   * [Relation Trashed](model?id=relation-trashed)
   * [Built in Relation Functions](model?id=built-in-relation-functions)
 
-* Type Safety
+* [Type Safety](model?id=type-safety)
   * [Select Type Safety](model?id=select-type-safety)
   * [OrderBy Type Safety](model?id=order-by-type-safety)
   * [GroupBy Type Safety](model?id=group-by-type-safety)
@@ -55,11 +55,11 @@
   * [Relationships Type Safety](model?id=relationships-type-safety)
   * [Results Type Safety](model?id=results-type-safety)
 
-* Transactions
+* [Transactions](database-transactions)
   * [Database Transactions](database-transactions)
   * [Race Condition](race-condition)
 
-* Cli
+* [Cli](cli)
   * [Make Model](cli?id=make-model)
   * [Make Migration](cli?id=make-migration)
   * [Migrate](cli?id=migrate)
