@@ -74,7 +74,7 @@ export abstract class BaseDriver extends EventEmitter {
 
     protected _onPoolConnect (pool:any) : void {
     
-        const delay = 1000 * 3
+        const delay = 0
 
         setTimeout(() => {
             pool.getConnection((err : any , connection:any) : void => {

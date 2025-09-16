@@ -46,8 +46,37 @@ export class MysqlDriver extends BaseDriver {
       enableKeepAlive: options.enableKeepAlive,
       keepAliveInitialDelay: options.keepAliveInitialDelay,
     });
-    
-    this._onPoolConnect(this.pool);
+
+    this.pool.getConnection((err : any , connection:any) : void => {
+      if(err) {
+          const message = this._messageError.bind(this)
+
+          process.nextTick(() => {
+              if(String(err.message).includes('Pool is close')) {
+                  return
+              }
+              console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
+              if(this.options.CONNECTION_ERROR) return process.exit()
+          })
+
+          return
+      }
+
+      this.emit('connected', connection)
+      
+      if(this.options.CONNECTION_SUCCESS) {
+          connection.query(`SHOW VARIABLES LIKE 'version%'`, (err: any, results : any[]) => {
+              connection.release()
+              if (err) return
+              const message = [
+                  results.find(v => v?.Variable_name === 'version'),
+                  results.find(v => v?.Variable_name === 'version_comment')   
+              ].map(v => v?.Value).join(' - ')
+
+              console.log(this._messageConnected.bind(this)(`${message}`))
+          })
+      }
+    })
 
     this.pool.on("release", (connection: unknown) => {
       this.emit("release", connection);

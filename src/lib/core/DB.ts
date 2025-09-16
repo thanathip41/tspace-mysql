@@ -45,6 +45,27 @@ class DB extends AbstractDB {
   }
 
   /**
+   * The 'initialize' method is used to initialize the database,
+   * and check if it is connected properly.
+   * 
+   * @returns {promise<void>}
+   */
+  async initialize (): Promise<void> {
+    await this.query(`${this.$constants('SELECT')} 1`);
+    return;
+  }
+
+  /**
+   * The 'initialize' method is used to initialize the database,
+   * and check if it is connected properly.
+   * 
+   * @returns {promise<void>}
+   */
+  static async initialize (): Promise<void> {
+    return await new this().initialize();
+  }
+
+  /**
    * The 'query' method is used to execute sql statement
    *
    * @param {string} sql
@@ -52,34 +73,38 @@ class DB extends AbstractDB {
    * @returns {promise<any[]>}
    */
   async query(sql: string, parameters: Record<string, any> = {}): Promise<any> {
-    if (Object.keys(parameters).length) {
-      let bindSql = sql;
-      for (const key in parameters) {
-        const parameter = parameters[key];
+    
+    if (!Object.keys(parameters).length) {
+      return await this.rawQuery(sql);
+    }
+    
+    let bindSql = sql;
 
-        if (parameter === null) {
-          bindSql = bindSql.replace(`:${key}`, this.$constants("NULL"));
-          continue;
-        }
+    for (const key in parameters) {
+      const parameter = parameters[key];
 
-        if (parameter === true || parameter === false) {
-          bindSql = bindSql.replace(
-            `:${key}`,
-            `'${parameter === true ? 1 : 0}'`
-          );
-          continue;
-        }
+      if (parameter === null) {
+        bindSql = bindSql.replace(`:${key}`, this.$constants("NULL"));
+        continue;
+      }
 
+      if (parameter === true || parameter === false) {
         bindSql = bindSql.replace(
           `:${key}`,
-          Array.isArray(parameter)
-            ? `(${parameter.map((p) => `'${this.escape(p)}'`).join(",")})`
-            : `'${this.escape(parameter)}'`
+          `'${parameter === true ? 1 : 0}'`
         );
+        continue;
       }
-      return await this.rawQuery(bindSql);
+
+      bindSql = bindSql.replace(
+        `:${key}`,
+        Array.isArray(parameter)
+          ? `(${parameter.map((p) => `'${this.escape(p)}'`).join(",")})`
+          : `'${this.escape(parameter)}'`
+      );
     }
-    return await this.rawQuery(sql);
+
+    return await this.rawQuery(bindSql);
   }
 
   /**
