@@ -3083,34 +3083,6 @@ class Model<
 
       const c = String(column);
 
-      const virtualColumn = this._getBlueprintByKey(String(column), {
-        mapQuery: true,
-      });
-
-      if (virtualColumn) {
-        const sql = virtualColumn.sql?.where;
-
-        if (sql) {
-          if (value === null) {
-            return this.whereRaw(`${sql} ${this.$constants("IS_NULL")}`);
-          }
-
-          if (Array.isArray(value)) {
-            const values = value
-              ? `${value
-                  .map((value: string) =>
-                    this.$utils.checkValueHasRaw(this.$utils.escape(value))
-                  )
-                  .join(",")}`
-              : this.$constants(this.$constants("NULL"));
-
-            return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
-          }
-
-          return this.whereRaw(`${sql} ${operator} '${value}'`);
-        }
-      }
-
       if (value === null) {
         this.whereNull(column);
         continue;
@@ -3124,10 +3096,11 @@ class Model<
       }
 
       switch (useOp.op) {
+       
         case "IN": {
           this.whereIn(
             c,
-            Array.isArray(useOp.value) ? useOp.value : useOp.value.split(",")
+            Array.isArray(useOp.value) ? useOp.value : useOp.value.split(",").map(v => Number.isNaN(+v) ? `${v}` : +v)
           );
           break;
         }
