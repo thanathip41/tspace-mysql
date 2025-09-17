@@ -104,15 +104,17 @@ export class PoolConnection extends EventEmitter {
     const hostList = parseList(options.host);
     const hosts: string[] = [];
     const ports: number[] = [];
-    const types: string[] = [];
+    const types: ('master' | 'slave')[] = [];
 
-    hostList.forEach(h => {
-      let type = 'master';
+    hostList.forEach((h, i) => {
+      let type : 'master' | 'slave' = i === 0 ? 'master' : 'slave';
       let host = h;
       let port = null;
 
       if (h.includes('@')) {
-        [type, host] = h.split('@');
+        const [_t, _h] = h.split('@');
+        type = _t === 'master' ? 'master' : 'slave'
+        host = _h
       }
 
       if (host.includes(':')) {
