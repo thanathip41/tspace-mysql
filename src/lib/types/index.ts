@@ -446,7 +446,7 @@ type TRepositoryRelation<R = unknown> = Partial<{
     : never;
 }>
 
-export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> = {
+export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown, M extends Model<any, any> = Model<any, any>> = {
     debug ?: boolean
     cache ?: { key : string, expires : number },
     when ?: {condition : boolean , query : () => TRepositoryRequest<T,R>}
@@ -465,13 +465,28 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown> 
     offset ?: number;
     relations ?: TRepositoryRelation<R>;
     relationsExists ?: TRepositoryRelation<R>;
+    model ?: (model: M) => M
+    hooks ?: Function[]
+    
 }
 
-export type TRepositoryRequestHandler<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R> & { instance ?: Model }>
+export type TRepositoryRequestHandler<
+    T extends Record<string, any> = any,
+    R = any,
+    M extends Model<any, any> = Model<any, any>
+> = Partial<TRepositoryRequest<T,R,M> & { instance ?: Model }>
 
-export type TRepositoryRequestPagination<T extends Record<string, any> = any,R = any> = Partial<TRepositoryRequest<T,R>> & { page ?: number }
+export type TRepositoryRequestPagination<
+    T extends Record<string, any> = any,
+    R = any,
+    M extends Model<any, any> = Model<any, any>
+> = Partial<TRepositoryRequest<T,R,M>> & { page ?: number }
 
-export type TRepositoryRequestAggregate<T extends Record<string, any> = any,R = any> = Partial<Omit<TRepositoryRequest<T,R>,'relations' | 'relationQuery'>>
+export type TRepositoryRequestAggregate<
+    T extends Record<string, any> = any,
+    R = any,
+    M extends Model<any, any> = Model<any, any>
+> = Partial<Omit<TRepositoryRequest<T,R,M>,'relations' | 'relationQuery'>>
 
 export type TModelConstructorOrObject= { 
     model: new () => Model<any, any>

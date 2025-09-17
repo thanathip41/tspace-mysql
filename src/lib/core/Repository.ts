@@ -1,7 +1,6 @@
 import { Model } from "./Model"
 import type { 
-    TRelationModel, 
-    TSchemaModel 
+    T
 } from "./UtilityTypes"
 import type { 
     TPagination, 
@@ -18,8 +17,11 @@ import type {
     TRelationResults
 } from "../types"
 
-class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
-
+class RepositoryHandler<
+    TS extends Record<string, any> = any, 
+    TR = unknown, 
+    TM extends Model<TS, TR> = Model<TS, TR>
+> {
     constructor(private _model: { new(): Model<TS, TR> }) {}
     /**
      * 
@@ -62,16 +64,16 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const user = await userRepository.findOne()
      */
-    async first<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
+    async first<
+        K, 
+        R = TRelationResults<TR>
+    >(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
-        
-        // @ts-ignore
-        return await instance.first()
+ 
+        return await instance.first();
     }
 
     /**
@@ -115,7 +117,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const user = await userRepository.findOne()
      */
-    async findOne<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
+    async findOne<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
         return await this.first(options)
     }
 
@@ -160,14 +162,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.get()
      */
-    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
-        // @ts-ignore
+       
         return await instance.get()
     }
 
@@ -212,7 +212,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.findMany()
      */
-    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
         return await this.get(options)
     }
 
@@ -259,13 +259,11 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
      */
-    async pagination<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async pagination<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR,TM> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
         
         return await instance.pagination({
             limit : options.limit,
@@ -316,7 +314,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * 
      *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
      */
-    async paginate<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async paginate<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR,TM> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
         return await this.pagination(options)
     }
 
@@ -342,13 +340,11 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?boolean} options.debug
      * @property {?number} options.page
      */
-    async exists (options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<boolean> {
+    async exists (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<boolean> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
         
         return await instance.exists()
     }
@@ -376,13 +372,11 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @returns {string}
      */
-    toString (options : TRepositoryRequestAggregate<TS,TR> = {}) : string {
+    toString (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : string {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
         
         return instance.toString()
     }
@@ -412,15 +406,13 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @returns {string} json
      */
-    async toJSON (options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<string> {
+    async toJSON (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<string> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
-        
-        return await instance.toJSON()
+        if(instance == null) throw new Error('The instance is not initialized');
+;        
+        return await instance.toJSON();
     }
 
     /**
@@ -449,13 +441,11 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async toArray (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<(any)[]> {
+    async toArray (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<(any)[]> {
 
         const instance = this._handlerRequest(options)
 
-        if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
+        if(instance == null) throw new Error('The instance is not initialized');
         
         return await instance.toArray(column as string)
     }
@@ -484,14 +474,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async count (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<number> {
+    async count (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<number> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
-        
+        if(instance == null) throw new Error('The instance is not initialized');
+;        
         return await instance.count(column as string)
     }
 
@@ -519,14 +507,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async avg (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<number> {
+    async avg (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<number> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
-
-        if(options.debug != null && options.debug) instance.debug()
-        
+        if(instance == null) throw new Error('The instance is not initialized');
+;        
         return await instance.avg(column as string)
     }
 
@@ -554,14 +540,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async sum (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
+    async sum (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
+        if(instance == null) throw new Error('The instance is not initialized');
 
-        if(options.debug != null && options.debug) instance.debug()
-        
         return await instance.sum(column as string)
     }
 
@@ -589,14 +573,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async max (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
+    async max (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
+        if(instance == null) throw new Error('The instance is not initialized');
 
-        if(options.debug != null && options.debug) instance.debug()
-        
         return await instance.max(column as string)
     }
 
@@ -624,15 +606,13 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async min (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR> = {}) : Promise<Number> {
+    async min (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
 
-        const instance = this._handlerRequest(options)
+        const instance = this._handlerRequest(options);
 
-        if(instance == null) throw new Error('The instance is not initialized')
+        if(instance == null) throw new Error('The instance is not initialized');
 
-        if(options.debug != null && options.debug) instance.debug()
-        
-        return await instance.min(column as string)
+        return await instance.min(column as string);
     }
 
     /**
@@ -654,7 +634,7 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
         const instance = new this._model() as Model
-
+        
         if(debug != null && debug) {
             instance.debug()
         }
@@ -816,14 +796,15 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         debug
     } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
+        if(where == null  || !Object.keys(where).length) throw new Error("The method createOrUpdate can't use without where condition")
+
         let instance = new this._model() as Model
 
         if(debug != null && debug) {
             instance.debug()
         }
 
-        if(where == null  || !Object.keys(where).length) throw new Error("The method createOrUpdate can't use without where condition")
-
+       
         instance.where(where)
 
         return await instance.createOrUpdate(data as Record<string,any>).save() as Promise<TS>
@@ -874,13 +855,15 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         debug
     } : TRepositoryCreateOrThings<TS>): Promise<TS> {
 
+        if(where == null  || !Object.keys(where).length) {
+            throw new Error("The method createOrSelect can't use without where condition")
+        }
+
         let instance = new this._model() as Model
 
         if(debug != null && debug) {
             instance.debug()
         }
-
-        if(where == null  || !Object.keys(where).length) throw new Error("The method createOrSelect can't use without where condition")
 
         instance.where(where)
 
@@ -935,7 +918,9 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         transaction
     } : TRepositoryUpdate<TS>): Promise<TS> {
 
-        if(where == null || !Object.keys(where).length) throw new Error("The method update can't use without where condition")
+        if(where == null || !Object.keys(where).length) {
+            throw new Error("The method update can't use without where condition")
+        }
 
         const instance = new this._model() as Model
 
@@ -973,7 +958,9 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         transaction
     } : TRepositoryUpdate<TS>): Promise<TS[]> {
 
-        if(where == null  || !Object.keys(where).length) throw new Error("The method updateMany can't use without where condition")
+        if(where == null  || !Object.keys(where).length) {
+            throw new Error("The method updateMany can't use without where condition")
+        }
 
         const instance = new this._model() as Model
 
@@ -1068,7 +1055,9 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         transaction
     } : TRepositoryDelete<TS>): Promise<boolean> {
 
-        if(where == null  || !Object.keys(where).length) throw new Error("The method delete can't use without where condition")
+        if(where == null  || !Object.keys(where).length) {
+            throw new Error("The method delete can't use without where condition")
+        }
 
         const instance = new this._model() as Model
 
@@ -1102,7 +1091,9 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         transaction
     } : TRepositoryDelete<TS>): Promise<boolean> {
 
-        if(where == null  || !Object.keys(where).length) throw new Error("The method deleteMany can't use without where condition")
+        if(where == null  || !Object.keys(where).length) {
+            throw new Error("The method deleteMany can't use without where condition")
+        }
 
         const instance = new this._model() as Model
 
@@ -1119,7 +1110,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         return await instance.deleteMany()
     }
 
-    private _handleRelationQuery ({ instance , name , options , exists } : { instance : Model , name : string , options : any , exists ?: boolean }) {
+    private _handleRelationQuery ({ instance , name , options , exists } : { 
+        instance : Model , 
+        name : string , 
+        options : any , 
+        exists ?: boolean 
+    }) {
         
         const cbRelation = instance.findWithQuery(name)
     
@@ -1157,11 +1153,10 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
         }
 
         return cbRelation
-        
     }
 
 
-    private _handlerRequest (options : TRepositoryRequestHandler<TS,TR>) {
+    private _handlerRequest (options : TRepositoryRequestHandler<TS,TR,TM>) {
 
         let {
             cache,
@@ -1181,10 +1176,13 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
             relations,
             relationsExists,
             when,
+            hooks,
+            debug,
+            model,
             instance
         } = options
 
-        instance = (instance == null ? new this._model() as Model : instance) as Model
+        instance = (instance == null ? new this._model() as Model : instance) as TM
 
         if(relations != null) {
             const filterRelations : string[] = []
@@ -1427,10 +1425,18 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
                 relations,
                 when : whenCb,
                 instance
-            }) as any
+            }) as TM
         }
 
-        return instance 
+        if(model) model(instance as TM);
+
+        if(debug != null && debug) instance.debug();
+
+        if(hooks != null && Array.isArray(hooks)) {
+            hooks.forEach(hook => instance.hook(hook))
+        }
+
+        return instance as TM
     }
 }
 
@@ -1456,11 +1462,12 @@ class RepositoryHandler<TS extends Record<string,any> = any, TR = unknown> {
  * const users = await userRepository.findMany()
  * 
  */
-export const Repository = <M extends Model>(model: new () => M) : RepositoryHandler<TSchemaModel<M>, TRelationModel<M>> => {
+export const Repository = <M extends Model<any,any>>(model: new () => M): RepositoryHandler<T.SchemaModel<M>, T.RelationModel<M>, M> => {
     return new RepositoryHandler<
-        TSchemaModel<M>, 
-        TRelationModel<M>
-    >(model as new() => Model<TSchemaModel<M>,TRelationModel<M>>);
+        T.SchemaModel<M>, 
+        T.RelationModel<M>,
+        M
+    >(model);
 }
 
 export default Repository

@@ -47,6 +47,11 @@ const user = await userRepository.findOne({
         */
       }
     })
+  },
+  model : (query) => {
+    return query // returning self model you can using any method in your model.
+    // query.where('id',1)
+    // query.customMethodWhereUser(1)
   }
 })
 
@@ -249,19 +254,27 @@ const phoneBelongUser = await phoneRepository.findOne({
     id: 1
   },
   relations : {
-    user : true
+    user : { // you can using any options in method findOne too
+      select: {
+        id: true,
+        name: true
+      },
+      where: {
+        id: 2
+      }
+    }
   }
 })
 
 ```
 
 <div class="page-nav-cards">
-  <a href="#/repository" class="prev-card">
+  <a href="#/model" class="prev-card">
     <div class="nav-label"> 
         <span class="page-nav-arrow">←</span> 
         Previous
     </div>
-    <div class="nav-title"> Repository </div>
+    <div class="nav-title"> Model </div>
   </a>
 
   <a href="#/view" class="next-card">
