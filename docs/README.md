@@ -137,13 +137,13 @@ DB_PASSWORD = password1,password2,password3
 DB_DATABASE = database
 ```
 ## Example Framework
-A collection of practical code samples to help you get started quickly.
+A collection of practical code samples to help you get started quickly.<br>
 Examples of fetching data from a database in four ways:
 
-- SQL-like
-- DB
-- Model
-- Repository
+- [SQL-like](sql-like?id=select-statements)
+- [DB](query-builder?id=select-statements)
+- [Model](model)
+- [Repository](repository?id=select-statements)
 
 The connection is configured using a .env file with the following settings:
 
