@@ -316,7 +316,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
         `
         SELECT EXISTS(
           SELECT 1
-          FROM information_schema.STATISTICS
+          FROM INFORMATION_SCHEMA.STATISTICS
           WHERE TABLE_SCHEMA  = '${database}'
           AND TABLE_NAME      = '${table}'
           AND INDEX_NAME = '${index}'

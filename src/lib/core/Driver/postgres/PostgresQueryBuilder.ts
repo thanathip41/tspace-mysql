@@ -135,7 +135,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
     public tables (database : string) {
       const sql = [
-        `SELECT TABLE_NAME AS "TABLES"
+        `SELECT TABLE_NAME AS "Tables"
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = 'public'
         AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'

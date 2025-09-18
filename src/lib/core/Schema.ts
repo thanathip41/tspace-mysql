@@ -1,14 +1,14 @@
-import { Builder } from "./Builder";
-import { Model } from "./Model";
-import { Tool } from "../tools";
-import Blueprint from "./Blueprint";
+import { Builder }      from "./Builder";
+import { Model }        from "./Model";
+import { Tool }         from "../tools";
+import { Blueprint}     from "./Blueprint";
 import { QueryBuilder } from "./Driver";
 class Schema {
   private $db: Builder = new Builder();
 
   public table = async (
     table: string,
-    schemas: Record<string, any>
+    schemas: Record<string, Blueprint>
   ): Promise<void> => {
     try {
       let columns: Array<any> = [];
@@ -363,21 +363,30 @@ class Schema {
       );
       const schemaModelKeys = Object.keys(schemaModel);
 
-       const isTypeMatch = ({ typeTable, typeSchema } : { typeTable : string, typeSchema : string}) => {
+      // Is main matching for postgres
+      const isTypeMatch = ({ typeTable, typeSchema } : { typeTable : string, typeSchema : string}) => {
         const mappings: Record<string, (string | RegExp)[]> = {
           integer: ['int', 'integer'],
-          'character varying': [/^varchar\(\d+\)$/i, 'varchar'],
           boolean: ['boolean', 'tinyint(1)'],
           smallint: ['smallint', 'tinyint(1)'],
+          'tinyint(1)': ['boolean'],
           json: ['json'],
           text: ['text', /^longtext$/i],
           'timestamp without time zone': ['timestamp', 'datetime'],
         };
 
-        if (typeTable === 'character varying' && /^enum\(.+\)$/i.test(typeSchema)) {
+        // Enum in postgres too hard for maping
+        // if have value add in Blueprint.enum, The sync column is not supported
+        if (/^character varying(\(\d+\))?$/i.test(typeTable) && /^enum\(.+\)$/i.test(typeSchema)) {
           return true;
         }
 
+        if(typeTable.startsWith('character varying')) {
+          const typeTableFormated = typeTable.replace('character varying','varchar')
+          if(typeTableFormated === typeSchema) return true
+          return false
+        }
+       
         if (typeTable in mappings) {
           return mappings[typeTable].some((pattern) => {
             if (typeof pattern === 'string') {
@@ -388,6 +397,10 @@ class Schema {
             }
             return false;
           });
+        }
+
+        if(typeTable === typeSchema) {
+          return true;
         }
 
         return false;
@@ -401,12 +414,13 @@ class Schema {
 
               if (find == null) return null;
 
-              const typeTable = String(find.Type).toLowerCase()
-              const typeSchema = String(value.type).toLowerCase()
+              const typeTable = String(find.Type).toLowerCase();
 
-              const changed = !isTypeMatch({ typeTable, typeSchema }) 
-             
-              return changed ? key : null;
+              const typeSchema = String(value.type).toLowerCase();
+
+              const sameType = isTypeMatch({ typeTable, typeSchema }) 
+
+              return sameType ? null : key;
             })
             .filter((d) => d != null)
         : [];
@@ -419,20 +433,6 @@ class Schema {
 
           if (type == null || attributes == null) continue;
 
-          const sql = [
-            this.$db["$constants"]("ALTER_TABLE"),
-            `\`${model.getTableName()}\``,
-            this.$db["$constants"]("CHANGE"),
-            `\`${column}\``,
-            `\`${column}\` ${type} ${
-              attributes != null && attributes.length
-                ? `${attributes
-                .filter((v:string) => !['PRIMARY KEY']
-                .includes(v)).join(" ")}`
-                : ""
-            }`,
-          ].join(" ");
-
           await this.$db
           .debug(log)
           .rawQuery(query.changeColumn({
@@ -440,8 +440,12 @@ class Schema {
             type,
             column,
             attributes
-          }));
-         
+          }))
+          .catch(err => {
+            console.log(
+              `\x1b[31mERROR: Failed to change the column '${column}' caused by '${err.message}'\x1b[0m`
+            );
+          })
         }
       }
 
@@ -474,7 +478,12 @@ class Schema {
           column,
           attributes,
           after: findAfterIndex
-        }));
+        }))
+        .catch(err => {
+          console.log(
+            `\x1b[31mERROR: Failed to add the column '${column}' caused by '${err.message}'\x1b[0m`
+          );
+        })
       }
 
       await this._syncForeignKey({
@@ -579,12 +588,14 @@ class Schema {
 
         if (!schemaModelOn) continue;
 
-        const tableSql = this.createTable(this.$db.database(), `\`${table}\``, schemaModelOn);
-
         await this.$db
         .debug(log)
-        .rawQuery(tableSql)
-        .catch((e) => console.log(e));
+        .rawQuery(this.createTable(this.$db.database(), `\`${table}\``, schemaModelOn))
+        .catch((err) => {
+          console.log(
+            `\x1b[31mERROR: Failed to create table '${table}' caused by '${err.message}'\x1b[0m`
+          );
+        });
 
         await this.$db
         .debug(log)
@@ -601,7 +612,11 @@ class Schema {
             }
           })
         )
-        .catch((e) => console.log(e));
+        .catch((err) => {
+          console.log(
+            `\x1b[31mERROR: Failed to create foreign key on table '${table}' with constraint ${constraintName}  caused by '${err.message}'\x1b[0m`
+          );
+        });
       }
     }
   }
@@ -652,7 +667,11 @@ class Schema {
         await this.$db
         .debug(log)
         .rawQuery(tableSql)
-        .catch((e) => console.log(e));
+        .catch(err => {
+          console.log(
+            `\x1b[31mERROR: Failed to create the table '${table}' caused by '${err.message}'\x1b[0m`
+          );
+        })
 
         await this.$db
         .debug(log)
@@ -661,7 +680,11 @@ class Schema {
           index   : index,
           key     : key
         }))
-        .catch((e) => console.log(e));
+        .catch(err => {
+          console.log(
+            `\x1b[31mERROR: Failed to craete index key '${index}' with name ${key} caused by '${err.message}'\x1b[0m`
+          );
+        })
       }
     }
   }

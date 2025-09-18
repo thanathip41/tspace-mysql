@@ -1,5 +1,4 @@
 const CONSTANTS = Object.freeze({
-    ID : 'ID',
     SHOW : 'SHOW',
     DESCRIBE: 'DESCRIBE',
     BINARY: 'BINARY',
@@ -97,6 +96,10 @@ const CONSTANTS = Object.freeze({
     UNION : 'UNION',
     UNION_ALL : 'UNION ALL',
     WITH: 'WITH',
+    COALESCE: 'COALESCE',
+    NULLIF: 'NULLIF',
+    INFORMATION_SCHEMA: 'INFORMATION_SCHEMA',
+    STATISTICS: 'STATISTICS',
     RELATIONSHIP : {
         hasOne : 'hasOne',
         hasMany : 'hasMany',

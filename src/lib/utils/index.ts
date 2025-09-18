@@ -213,15 +213,45 @@ const camelCase = (data : any) => {
 
 
 const consoleDebug  = (sql ?: string , retry = false) => {
-    if(typeof sql !== "string" || sql == null) return
+    if(typeof sql !== "string" || sql == null) return;
 
-    if(!retry) { 
-        console.log(`\n\x1b[34mQUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`) 
+    const colors = {
+        keyword: '\x1b[35m',
+        string: '\x1b[32m',
+        special: '\x1b[38;2;77;215;240m',
+        operator: '\x1b[31m',
+        reset: '\x1b[0m'
+    };
+
+    const extractKeywords = (obj : Record<string,any>) => {
+        return Object.values(obj)
+        .flatMap(v => typeof v === 'object' ? [] : v)
+        .filter(v => typeof v === 'string')
+        .filter(v =>
+        !v.startsWith('$') &&              
+        !/[a-z][A-Z]/.test(v)
+        )
+        .map(v => v.toUpperCase());
+    }
+
+    const sqlKeywords = extractKeywords(CONSTANTS);
+
+    const colorSQL = (query: string) => {
+        return query
+        .replace(/'[^']*'/g, m => `${colors.string}${m}${colors.reset}`)
+        .replace(/([`"])(?:\\.|(?!\1).)*\1/g, m => `${colors.special}${m}${colors.reset}`)
+        .replace(
+            new RegExp(`\\b(${sqlKeywords.join('|').replace(/ /g, '\\s+')})\\b`, 'g'),
+            (m) => `${colors.keyword}${m}${colors.reset}`
+        );
+    }
+
+    if(retry) { 
+        console.log(`\n\x1b[31mRETRY QUERY:\x1b[0m ${colorSQL(sql.trim())};`)
         return 
     } 
 
-    console.log(`\n\x1b[31mRETRY QUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`)
-  
+    console.log(`\n\x1b[34mQUERY:\x1b[0m ${colorSQL(sql.trim())};`)
 }
 
 const consoleExec  = (startTime : number , endTime : number) => {
