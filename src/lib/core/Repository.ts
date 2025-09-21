@@ -14,11 +14,45 @@ import type {
     TRepositoryDelete, 
     TRepositoryUpdate,
     TRepositoryUpdateMultiple,
-    TRelationResults
+    TRelationResults,
+    TDResult
 } from "../types"
 
+type ColumnPrimitive = string | number | boolean | Date;
+
+type ColumnsOf<T> = {
+  [K in keyof T]: T[K] extends ColumnPrimitive ? K : never
+}[keyof T];
+
+type RelationsOf<T> = {
+  [K in keyof T]: T[K] extends Model ? K : never
+}[keyof T];
+
+type Columns<T> = Pick<
+  T,
+  {
+    [K in keyof T]: T[K] extends ColumnPrimitive ? K : never
+  }[keyof T]
+>;
+
+
+
+type Result<T extends Model> = {
+  [K in keyof T as T[K] extends ColumnPrimitive ? K : never]: T[K]
+} & {
+   //@ts-expect-error
+  [K in keyof T as T[K] extends Model ? K : never]?: Result<T[K]>
+} & {
+  [K in keyof T as T[K] extends Array<infer U>
+    ? U extends Model
+      ? K
+      : never
+    //@ts-expect-error
+    : never]?: Result<Extract<T[K][number], Model>>[]
+};
+
 class RepositoryHandler<
-    TS extends Record<string, any> = any, 
+    TS extends Record<string, any> = Record<string, any>, 
     TR = unknown, 
     TM extends Model<TS, TR> = Model<TS, TR>
 > {
@@ -73,6 +107,20 @@ class RepositoryHandler<
 
         if(instance == null) throw new Error('The instance is not initialized')
  
+        return await instance.first();
+    }
+
+    async firstx<K>(options : TRepositoryRequest<TS,TR,TM> = {}) : 
+    Promise<
+        (K & T.ResultV2<TM>) | null
+    >
+    {
+
+        const instance = this._handlerRequest(options)
+
+        if(instance == null) throw new Error('The instance is not initialized')
+ 
+        // @ts-ignore
         return await instance.first();
     }
 
@@ -1179,10 +1227,13 @@ class RepositoryHandler<
             hooks,
             debug,
             model,
+            audit,
             instance
         } = options
 
         instance = (instance == null ? new this._model() as Model : instance) as TM
+
+        const registryRelations :any[] = [];
 
         if(relations != null) {
             const filterRelations : string[] = []
@@ -1196,20 +1247,14 @@ class RepositoryHandler<
                     continue
                 }
 
-                const cbRelation = this._handleRelationQuery({
+                const cb = this._handleRelationQuery({
                     instance,
                     name,
-                    options : { relations : value }
+                    options : { relations: value , ...value }
                 })
-                
 
-                if(cbRelation == null)  continue
+                if(cb) registryRelations.push({ name, cb })
 
-                this._handleRelationQuery({
-                    instance,
-                    name,
-                    options : value
-                })
             }
 
             instance.relations(...filterRelations as any[])
@@ -1228,21 +1273,14 @@ class RepositoryHandler<
                     continue
                 }
 
-                const cbRelation = this._handleRelationQuery({
+                const cb = this._handleRelationQuery({
                     instance,
                     name,
-                    options : { relationsExists : value },
+                    options : { ...value },
                     exists : true
                 })
 
-                if(cbRelation == null) continue
-
-                this._handleRelationQuery({
-                    instance,
-                    name,
-                    options : value,
-                    exists : true
-                })
+                if(cb) registryRelations.push({ name, cb })
             }
 
             instance.relationsExists(...filterRelations as any[])
@@ -1256,41 +1294,31 @@ class RepositoryHandler<
         }
 
         if(select != null) {
-
-            if(select === '*') {
-                //@ts-ignore
-                instance.select(select)
-            }
-
-            else {
-                const selects : string[] = []
-
+            if (select === '*') {
+                instance.select('*')
+            } else {
                 for(const column in select) {
-    
-                    //@ts-ignore
+
                     const value = select[column]
                     
                     const cbRelation = this._handleRelationQuery({
                         instance,
                         name : column,
-                        options : { select: value }
+                        options : { select : value }
                     })
 
                     if(cbRelation != null) continue
 
-                    selects.push(column)
-                }
+                    if (value === true) instance.select(column)
 
-                instance.select(...selects)
+                }
             }
         }
 
+    
         if(except != null) {
-            const excepts : string[] = []
-
             for(const column in except) {
 
-                //@ts-ignore
                 const value = except[column]
                 
                 const cbRelation = this._handleRelationQuery({
@@ -1301,10 +1329,10 @@ class RepositoryHandler<
 
                 if(cbRelation != null) continue
 
-                excepts.push(column)
+               if(value === true) {
+                instance.except(column)
+               }
             }
-
-            instance.except(...excepts)
         }
 
         if(join != null) {
@@ -1328,10 +1356,7 @@ class RepositoryHandler<
         if(where != null) {
 
             for(const column in where) {
-
-                //@ts-ignore
                 const value = where[column]
-      
                 const cbRelation = this._handleRelationQuery({
                     instance,
                     name : column,
@@ -1339,8 +1364,6 @@ class RepositoryHandler<
                 })
 
                 if(cbRelation == null) continue
-
-                //@ts-ignore
                 delete where[column]
             }
 
@@ -1360,7 +1383,20 @@ class RepositoryHandler<
         }
 
         if(groupBy != null) {
-            instance.groupBy(...groupBy as string[])
+             for(const column in groupBy) {
+
+                const value = groupBy[column]
+                
+                const cbRelation = this._handleRelationQuery({
+                    instance,
+                    name : column,
+                    options : { groupBy : value }
+                })
+
+                if(cbRelation != null) continue
+
+                instance.groupBy(column)
+            }
         }
 
         if(having != null) {
@@ -1369,7 +1405,7 @@ class RepositoryHandler<
 
         if(orderBy != null) {
             for(const column  in orderBy) {
-                //@ts-ignore
+
                 const value = orderBy[column]
                 
                 const cbRelation = this._handleRelationQuery({
@@ -1380,7 +1416,7 @@ class RepositoryHandler<
 
                 if(cbRelation != null) continue
 
-                instance.orderBy(column , value)
+                instance.orderBy(column , value as 'ASC' | 'DESC')
             }
         }
 
@@ -1408,7 +1444,7 @@ class RepositoryHandler<
                 offset,
                 relations,
                 when : whenCb
-            } = when.query()
+            } = when.query() as TRepositoryRequest<TS, TR, TM>
 
             instance = this._handlerRequest({
                 select,
@@ -1430,10 +1466,14 @@ class RepositoryHandler<
 
         if(model) model(instance as TM);
 
-        if(debug != null && debug) instance.debug();
+        if(debug) instance.debug();
 
         if(hooks != null && Array.isArray(hooks)) {
             hooks.forEach(hook => instance.hook(hook))
+        }
+
+        if(audit != null && Object.keys(audit).length) {
+            instance.audit(audit.userId,audit.metadata)
         }
 
         return instance as TM
@@ -1462,7 +1502,10 @@ class RepositoryHandler<
  * const users = await userRepository.findMany()
  * 
  */
-export const Repository = <M extends Model<any,any>>(model: new () => M): RepositoryHandler<T.SchemaModel<M>, T.RelationModel<M>, M> => {
+export const Repository = <M extends Model<any,any>>
+(model: new () => M): RepositoryHandler<
+    T.SchemaModel<M>, T.RelationModel<M>, M
+> => {
     return new RepositoryHandler<
         T.SchemaModel<M>, 
         T.RelationModel<M>,

@@ -1091,7 +1091,11 @@ class User extends Model {
         length : 50,
         match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
         unique : true,
-        fn : (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+        fn : (email : string) => {
+          const matched = /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+          if(matched) return null;
+          return `This column "${email}" is not match a regular expression`;
+        }
     })
     public email!: string
 
@@ -1260,8 +1264,10 @@ class User extends Model {
         length: 191,
         match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
         unique: true,
-        fn: (email: string) => {
-          return /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+        fn: async (email: string) => {
+          const exists = await new User().where('email',email).exists()
+          if(exists) return `This column "${email}" is dupicate`;
+          return null;
         }
       },
       createdAt: Date,

@@ -55,6 +55,14 @@
   * [Relationships Type Safety](model?id=relationships-type-safety)
   * [Results Type Safety](model?id=results-type-safety)
 
+* [Repository](repository)
+  - [Select Statements](repository?id=select-statements)
+  - [Insert Statements](repository?id=insert-statements)
+  - [Update Statements](repository?id=update-statements)
+  - [Delete Statements](repository?id=delete-statements)
+  - [Transactions](repository?id=transactions)
+  - [Relations](repository?id=relations)
+
 * [Transactions](database-transactions)
   * [Database Transactions](database-transactions)
   * [Race Condition](race-condition)

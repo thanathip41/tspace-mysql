@@ -26,6 +26,7 @@ import type {
   TModelConstructorOrObject,
   TRelationResults,
   TRelationKeys,
+  TRelationQueryDecoratorOptions,
 } from "../types";
 
 let globalSettings: TGlobalSetting = {
@@ -1067,6 +1068,29 @@ class Model<
     return this;
   }
 
+  addSelect<
+    K extends
+      | Extract<TSchemaKeys<TS>, string>
+      | `${string}.${string}`
+      | TRawStringQuery
+      | "*"
+  >(...columns: K[]): this {
+
+    let select: string[] = columns.map((c) => {
+      const column = String(c);
+
+      if (column.includes(this.$constants("RAW"))) {
+        return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
+      }
+
+      return this.bindColumn(column);
+    });
+
+    this.$state.set("ADD_SELECT", [...select,...this.$state.get("ADD_SELECT")]);
+
+    return this
+  }
+
   /**
    *
    * @override
@@ -1583,12 +1607,12 @@ class Model<
     { retry = false } = {}
   ): Promise<any[]> {
     try {
-      sql = this._queryBuilder().format([sql])
+      sql = this._queryBuilder({ onFormat : true }).format([sql])
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
 
-          this.$utils.consoleDebug(sql);
+          this.$utils.consoleDebug(sql,retry);
 
           this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
@@ -1643,7 +1667,7 @@ class Model<
   protected async _actionStatement(sql: string): Promise<any> {
     try {
 
-      sql = this._queryBuilder().format([sql])
+      sql = this._queryBuilder({ onFormat : true }).format([sql])
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
@@ -3888,6 +3912,14 @@ class Model<
     return this;
   }
 
+  /**
+   * The 'whereHas' method is used to checks if a relationship exists.
+   * Only get the parent models where the related model(s) match a given condition.
+   * 
+   * @param {string} nameRelation
+   * @param {model} callback callback query
+   * @returns {this}
+   */
   whereHas<
     K extends TR extends object ? TRelationKeys<TR> : string,
     M = `$${K & string}` extends keyof TR
@@ -3901,6 +3933,30 @@ class Model<
     if (sql == null) return this;
 
     this.whereExists(sql);
+
+    return this;
+  }
+
+  /**
+   * The 'whereNotHas' method is used to checks if a relationship not exists.
+   * 
+   * @param {string} nameRelation
+   * @param {model} callback callback query
+   * @returns {this}
+   */
+  whereNotHas<
+    K extends TR extends object ? TRelationKeys<TR> : string,
+    M = `$${K & string}` extends keyof TR
+      ? TR[`$${K & string}`] extends (infer T)[]
+        ? T
+        : TR[`$${K & string}`]
+      : Model
+  >(nameRelation: K, callback: (query: M) => M): this {
+    const sql = this.$relation.getSqlExists(nameRelation as string, callback);
+
+    if (sql == null) return this;
+
+    this.whereNotExists(sql);
 
     return this;
   }
@@ -5850,14 +5906,34 @@ class Model<
    */
   protected _handleSelect(): this {
     const selects = this.$state.get("SELECT") as string[];
+    const addSelects = this.$state.get("ADD_SELECT") as string[];
 
     const hasStart = selects?.some((s) => s.includes("*"));
 
-    if (selects.length || hasStart) return this;
+    if (hasStart) return this;
+
+    if(selects.length && !addSelects.length) return this;
+
+    if(selects.length && addSelects.length) {
+      const columns = [...selects,...addSelects]
+      this.$state.set("ADD_SELECT", []);
+      this.$state.set("SELECT", [...new Set(columns)]);
+      return this
+    }
 
     const schemaColumns = this.getSchemaModel();
 
-    if (schemaColumns == null) return this;
+    if (schemaColumns == null) {
+      if(addSelects.length) {
+        this.$state.set("SELECT", 
+          !selects.length 
+            ? ['*']
+            : [...selects,...addSelects]
+        );
+        this.$state.set("ADD_SELECT",[])
+      }
+      return this;
+    }
 
     const columns: string[] = [];
 
@@ -5886,7 +5962,12 @@ class Model<
 
     if (!columns.length) return this;
 
-    this.$state.set("SELECT", columns);
+    if (addSelects.length) {
+      columns.push(...addSelects.filter(c => !columns.includes(c)));
+      this.$state.set("ADD_SELECT", []);
+    }
+
+    this.$state.set("SELECT", [...new Set(columns)]);
 
     return this;
   }
@@ -5896,7 +5977,10 @@ class Model<
    * generate sql statements
    * @override
    */
-  protected _queryBuilder() {
+  protected _queryBuilder({ onFormat = false } = {}) {
+
+    if(onFormat) return this._buildQueryStatement();
+    
     this._handleGlobalScope();
 
     this._handleSelect();
@@ -6059,10 +6143,11 @@ class Model<
         );
       }
 
-      if (s.fn && !(await s.fn(r))) {
-        throw this._assertError(
-          `This column "${column}" is not valid with function`
-        );
+      if (s.fn) {
+        const message = await s.fn(r)
+        if(message) {
+           throw this._assertError(message);
+        }
       }
 
       if (s.unique && action === "insert") {
@@ -7116,63 +7201,10 @@ class Model<
 
       if (!(e instanceof Error)) return this._stoppedRetry(throwError);
 
-      const errorMessage = e?.message ?? "";
-
-      if (errorMessage.toLocaleLowerCase().includes("unknown column")) {
-        const pattern = /'([^']+)'/;
-        const isPattern = errorMessage.match(pattern);
-        const column = isPattern
-          ? String(Array.isArray(isPattern) ? isPattern[0] : "")
-              .replace(/'/g, "")
-              .split(".")
-              .pop()
-          : null;
-
-        if (column == null) return this._stoppedRetry(throwError);
-
-        const { type, attributes } = Schema.detectSchema(schemaTable[column]);
-
-        if (type == null || attributes == null)
-          return this._stoppedRetry(throwError);
-
-        const entries = Object.entries(schemaTable);
-        const indexWithColumn = entries.findIndex(([key]) => key === column);
-        const findAfterIndex = indexWithColumn
-          ? entries[indexWithColumn - 1][0]
-          : null;
-
-        if (findAfterIndex == null) return this._stoppedRetry(throwError);
-
-        const sql = [
-          `${this.$constants("ALTER_TABLE")}`,
-          `${this.$state.get("TABLE_NAME")}`,
-          `${this.$constants("ADD")}`,
-          `\`${column}\` ${type} ${
-            attributes != null && attributes.length
-              ? `${attributes.join(" ")}`
-              : ""
-          }`,
-          `${this.$constants("AFTER")}`,
-          `\`${findAfterIndex ?? ""}\``,
-        ].join(" ");
-
-        await this._queryStatement(sql);
-
-        return;
-      }
-
-      if (!errorMessage.toLocaleLowerCase().includes("doesn't exist"))
-        return this._stoppedRetry(e);
-
-      const tableName = this.$state.get("TABLE_NAME");
-
-      const sql = new Schema().createTable(this.database(), tableName, schemaTable);
-
-      await this._queryStatement(sql);
-
-      const beforeCreatingTheTable = this.$state.get("BEFORE_CREATING_TABLE");
-
-      if (beforeCreatingTheTable != null) await beforeCreatingTheTable();
+      await this.sync({
+        force: true,
+        changed:true
+      })
 
     } catch (e: unknown) {
       if (retry > 3) {
@@ -7202,45 +7234,95 @@ class Model<
     await ob[type](result);
   }
 
-  private _makeRelations<
+  private _mapReflectMetadata<
     K extends TR extends object ? TRelationKeys<TR> : string
   >(): this {
-    if (this.$hasOne != null) {
-      for (const hasOne of this.$hasOne) {
-        this.hasOne({
-          ...hasOne,
-          name: hasOne.name as K,
-        });
-      }
+
+    const table = Reflect.getMetadata("table:name", this.constructor) || null;
+
+    if(table) this.$table = table;
+
+    const observer = Reflect.getMetadata("model:observer", this.constructor) || null;
+
+    if(observer) this.$observer = observer;
+
+    const uuid = Reflect.getMetadata("uuid:enabled", this.constructor) || null;
+
+    if (uuid) {
+      this.$uuid = true;
+      this.$uuidColumn = Reflect.getMetadata("uuid:column", this.constructor) || null;
     }
 
-    if (this.$hasMany != null) {
-      for (const hasMany of this.$hasMany) {
-        this.hasMany({
-          ...hasMany,
-          name: hasMany.name as K,
-        });
-      }
+    const timestamp = Reflect.getMetadata("timestamp:enabled", this.constructor) || null;
+
+    if (timestamp) {
+      this.$timestamp = true;
+      this.$timestampColumns = Reflect.getMetadata("timestamp:columns", this.constructor) || null;
     }
 
-    if (this.$belongsTo != null) {
-      for (const belongsTo of this.$belongsTo) {
-        this.belongsTo({
-          ...belongsTo,
-          name: belongsTo.name as K,
-        });
-      }
+    const pattern = Reflect.getMetadata("model:pattern", this.constructor) || null;
+    
+    if (pattern) this.$pattern = pattern;
+
+    const softDelete = Reflect.getMetadata("softDelete:enabled", this.constructor) || null;
+
+    if (softDelete) {
+      this.$softDelete = true;
+      this.$softDeleteColumn = Reflect.getMetadata("softDelete:column", this.constructor) || null;
     }
 
-    if (this.$belongsToMany != null) {
-      for (const belongsToMany of this.$belongsToMany) {
-        this.belongsToMany({
-          ...belongsToMany,
-          name: belongsToMany.name as K,
-        });
-      }
+    const schema = Reflect.getMetadata("model:schema", this) || null;
+
+    if(schema) this.$schema = schema;
+
+    const validate = Reflect.getMetadata("validate:schema", this) || null;
+
+    if(validate) this.$validateSchema = validate;
+
+    const hasOnes: TRelationQueryDecoratorOptions[] =
+      Reflect.getMetadata("relation:hasOne", this) || [];
+
+    for (const v of hasOnes) {
+      this.hasOne({
+        ...v,
+        name: v.name as K,
+        model: v.model()
+      });
+    }
+    
+    const hasManys: TRelationQueryDecoratorOptions[] =
+      Reflect.getMetadata("relation:hasMany", this) || [];
+
+    for (const v of hasManys) {
+      this.hasMany({
+        ...v,
+        name: v.name as K,
+        model: v.model()
+      });
     }
 
+    const belongsTos: TRelationQueryDecoratorOptions[] =
+      Reflect.getMetadata("relation:belongsTo", this) || [];
+
+    for (const v of belongsTos) {
+      this.belongsTo({
+        ...v,
+        name: v.name as K,
+        model: v.model()
+      });
+    }
+
+    const belongsToManys: TRelationQueryDecoratorOptions[] =
+      Reflect.getMetadata("relation:belongsToMany", this) || [];
+
+    for (const v of belongsToManys) {
+      this.belongsToMany({
+        ...v,
+        name: v.name as K,
+        model: v.model()
+      });
+    }
+    
     return this;
   }
 
@@ -7311,7 +7393,7 @@ class Model<
 
     this.$relation = new RelationHandler(this);
 
-    this._makeRelations();
+    this._mapReflectMetadata();
 
     if (globalSettings.debug) this.useDebug();
 

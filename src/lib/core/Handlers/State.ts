@@ -10,6 +10,7 @@ const STATE_DEFAULT = {
   UPDATE: '' as string,
   INSERT: '' as string,
   SELECT: [] as string[],
+  ADD_SELECT: [] as string[],
   ONLY: [] as string[],
   EXCEPTS: [] as string[],
   FROM: 'FROM' as string,

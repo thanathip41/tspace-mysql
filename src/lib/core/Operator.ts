@@ -1,5 +1,5 @@
 import { CONSTANTS } from '../constants'
-import { TOperator } from '../types'
+import { TOperator, TOperatorQuery } from '../types'
 
 const OPERATOR = {
     'eq': '=',
@@ -45,19 +45,21 @@ const OPERATOR = {
  */
 export class Operator {
 
-    private static _handlerResult (operator : keyof TOperator,value ?: any) {
+    private static _handlerResult (operator : keyof TOperator,value ?: any) : TOperatorQuery {
 
-        if(value == null) {
+        const formated = value == null 
+        ?   
             [
                 `${CONSTANTS.OP}(${OPERATOR[operator]})`,
                 `${CONSTANTS.VALUE}(NULL)`
             ].join(' ')
-        }
+        :   
+            [
+                `${CONSTANTS.OP}(${OPERATOR[operator]})`,
+                `${CONSTANTS.VALUE}(${value})`
+            ].join(' ') 
 
-        return [
-            `${CONSTANTS.OP}(${OPERATOR[operator]})`,
-            `${CONSTANTS.VALUE}(${value})`
-        ].join(' ')
+        return formated as TOperatorQuery
     }
 
     static eq (value : string | number | boolean) {

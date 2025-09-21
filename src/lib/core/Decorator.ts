@@ -1,265 +1,459 @@
+import "reflect-metadata";
 import pluralize      from "pluralize"
 import { Blueprint }  from "./Blueprint"
 import type { 
-  TRelationQueryOptions, 
+  TRelationQueryDecoratorOptions, 
   TValidateSchemaDecorator 
 } from "../types"
 
 /**
- * 
- * @param   {string} name 
- * @returns {Function}
- * 
+ * Decorator to mark a class with a database table name.
+ *
+ * Attaches the given table name to the class using Reflect metadata.
+ * This can be retrieved later to map the class to the corresponding database table.
+ *
+ * @param {string} name - The name of the database table.
+ * @returns {ClassDecorator} A class decorator that sets the table name metadata.
+ *
  * @example
- * 
+ * ```ts
  * @Table('users')
  * class User extends Model {}
+ * ```
  */
-export const Table = (name : string): Function => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$table = name
-  }
-}
+export const Table = (name: string): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("table:name", name, target);
+  };
+};
 
 /**
- * 
- * @returns {Function}
- * 
+ * Decorator to automatically generate a singular table name from a class name.
+ *
+ * Converts the class name from PascalCase to snake_case, then converts it to singular form.
+ * The resulting table name is stored as metadata on the class.
+ *
+ * @returns {ClassDecorator} A class decorator that sets the singular table name metadata.
+ *
  * @example
- * 
+ * ```ts
  * @TableSingular()
- * class User extends Model {}
+ * class Users extends Model {}
+ * ```
  */
-export const TableSingular = (): Function => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    const name = String(constructor.name).replace(/([A-Z])/g, ( str:string ) => `_${str.toLowerCase()}`).slice(1)
-    constructor.prototype.$table = pluralize.singular(name)
-  }
-}
+export const TableSingular = (): ClassDecorator => {
+  return (target) => {
+    const name = target.name
+      .replace(/([A-Z])/g, (str: string) => `_${str.toLowerCase()}`)
+      .slice(1);
+
+    const singular = pluralize.singular(name);
+
+    Reflect.defineMetadata("table:name", singular, target);
+  };
+};
 
 /**
- * 
- * @returns {Function}
- * 
+ * Decorator to automatically generate a plural table name from a class name.
+ *
+ * Converts the class name from PascalCase to snake_case, then converts it to plural form.
+ * The resulting table name is stored as metadata on the class.
+ *
+ * @returns {ClassDecorator} A class decorator that sets the plural table name metadata.
+ *
  * @example
- * 
+ * ```ts
  * @TablePlural()
  * class User extends Model {}
+ *
+ * ```
  */
-export const TablePlural = (): Function => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    const name = constructor.name.replace(/([A-Z])/g, ( str:string ) => `_${str.toLowerCase()}`).slice(1)
-    constructor.prototype.$table =  pluralize.plural(name)
-  }
-}
+export const TablePlural = (): ClassDecorator => {
+  return (target) => {
+    const name = target.name
+      .replace(/([A-Z])/g, (str: string) => `_${str.toLowerCase()}`)
+      .slice(1);
+
+    const plural = pluralize.plural(name);
+
+    Reflect.defineMetadata("table:name", plural, target);
+  };
+};
 
 /**
- * 
- * @param   {Blueprint}  blueprint
- * @returns {Function}
- * 
+ * Decorator to enable automatic UUID generation for a model.
+ *
+ * Stores metadata indicating UUID usage and optional column name.
+ *
+ * @param {string} [column] - Optional column name to store the UUID.
+ * @returns {ClassDecorator} A class decorator that enables UUID metadata.
+ *
  * @example
- * 
- * class User extends Model {
- * 
- *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
- *   public id!: number
- * 
- *   @Column(() => Blueprint.varchar(50).null())
- *   public uuid!: string
+ * ```ts
+ * @UUID('id')
+ * class User extends Model {}
+ * ```
+ */
+export const UUID = (column?: string): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("uuid:enabled", true, target);
+    Reflect.defineMetadata("uuid:column", column, target);
+  };
+};
+
+/**
+ * Decorator to attach an observer class to a model.
+ *
+ * The observer class should have `selected`, `created`, `updated`, and `deleted` methods.
+ *
+ * @param {new () => { selected: Function; created: Function; updated: Function; deleted: Function }} observer - Observer class constructor.
+ * @returns {ClassDecorator} A class decorator that sets the model observer.
+ *
+ * @example
+ * ```ts
+ * class UserObserver {
+ *   selected() {}
+ *   created() {}
+ *   updated() {}
+ *   deleted() {}
  * }
+ *
+ * @Observer(UserObserver)
+ * class User extends Model {}
+ * ```
+ */
+export const Observer = (observer: new () => {
+  selected: Function;
+  created: Function;
+  updated: Function;
+  deleted: Function;
+}): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("model:observer", observer, target);
+  };
+};
+
+/**
+ * Decorator to enable automatic timestamps on a model.
+ *
+ * Stores metadata indicating that `createdAt` and `updatedAt` columns should be handled.
+ *
+ * @param {{ createdAt: string; updatedAt: string }} [columns] - Optional custom column names for timestamps.
+ * @returns {ClassDecorator} A class decorator that enables timestamp metadata.
+ *
+ * @example
+ * ```ts
+ * @Timestamp({ createdAt: 'created_at', updatedAt: 'updated_at' })
+ * class User extends Model {}
+ * ```
+ */
+export const Timestamp = (columns?: { createdAt: string; updatedAt: string }): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("timestamp:enabled", true, target);
+    Reflect.defineMetadata("timestamp:columns", columns, target);
+  };
+};
+
+/**
+ * Decorator to enable soft deletion on a model.
+ *
+ * Stores metadata indicating soft delete usage and optional column name.
+ *
+ * @param {string} [column] - Optional column name to track soft deletion.
+ * @returns {ClassDecorator} A class decorator that enables soft delete metadata.
+ *
+ * @example
+ * ```ts
+ * @SoftDelete('deleted_at')
+ * class User extends Model {}
+ * ```
+ */
+export const SoftDelete = (column?: string): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("softDelete:enabled", true, target);
+    Reflect.defineMetadata("softDelete:column", column, target);
+  };
+};
+
+/**
+ * Decorator to set the naming pattern for a model.
+ *
+ * Can be `camelCase` or `snake_case`.
+ *
+ * @param {"camelCase" | "snake_case"} pattern - The naming convention to use.
+ * @returns {ClassDecorator} A class decorator that sets the naming pattern metadata.
+ *
+ * @example
+ * ```ts
+ * @Pattern('snake_case')
+ * class User extends Model {}
+ * ```
+ */
+export const Pattern = (pattern: "camelCase" | "snake_case"): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("model:pattern", pattern, target);
+  };
+};
+
+/**
+ * Decorator to set the model naming pattern to camelCase.
+ *
+ * @returns {ClassDecorator} A class decorator that sets camelCase naming metadata.
+ *
+ * @example
+ * ```ts
+ * @CamelCase()
+ * class User extends Model {}
+ * ```
+ */
+export const CamelCase = (): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("model:pattern", "camelCase", target);
+  };
+};
+
+/**
+ * Decorator to set the model naming pattern to snake_case.
+ *
+ * @returns {ClassDecorator} A class decorator that sets snake_case naming metadata.
+ *
+ * @example
+ * ```ts
+ * @SnakeCase()
+ * class User extends Model {}
+ * ```
+ */
+export const SnakeCase = (): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata("model:pattern", "snake_case", target);
+  };
+};
+
+/**
+ * Decorator to define a database column for a model property.
+ *
+ * Accepts a `Blueprint` function that defines the column type, constraints, and other attributes.
+ * The resulting column schema is stored as metadata on the target class.
+ *
+ * @param {() => Blueprint} blueprint - A function returning a `Blueprint` instance describing the column.
+ * @returns {Function} A property decorator that registers the column schema.
+ *
+ * @throws {Error} If the property name cannot be determined.
+ *
+ * @example
+ * ```ts
+ * class User extends Model {
+ *
+ *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+ *   public id!: number;
+ *
+ *   @Column(() => Blueprint.varchar(50).null())
+ *   public uuid!: string;
+ * }
+ *
+ * ```
  */
 export const Column = (blueprint: () => Blueprint): Function => {
-  return (target: any, key: string) => {
-    if(!(blueprint() instanceof Blueprint)) return
-    if (target.$schema == null) target.$schema = {}
-    target.$schema = {
-      ...target.$schema,
-      [key]: blueprint()
+  return (target: any, propertyKey: string) => {
+    if (!propertyKey) {
+      throw new Error("Unable to determine property name for Column decorator");
     }
-  }
-}
+    if (!(blueprint() instanceof Blueprint)) return;
+
+    const schema = Reflect.getMetadata("model:schema", target) || {};
+
+    Reflect.defineMetadata("model:schema", {
+      ...schema,
+      [propertyKey]: blueprint()
+    }, target);
+  };
+};
+
 
 /**
- * 
- * @param   {TValidateSchemaDecorator}  validate
- * @returns {Function}
- * 
+ * Decorator to attach validation rules to a model property.
+ *
+ * Accepts a `TValidateSchemaDecorator` object describing the validation rules
+ * (e.g., type, required, length, regex match, uniqueness, or custom validation function).
+ * The validation schema is stored as metadata on the target class.
+ *
+ * @param {TValidateSchemaDecorator} validate - An object defining validation rules for the property.
+ * @returns {PropertyDecorator} A decorator that registers the validation schema.
+ *
  * @example
- * 
+ * ```ts
  * class User extends Model {
- * 
+ *
  *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
- *   public id!: number
- *    
- *   
+ *   public id!: number;
+ *
  *   @Column(() => Blueprint.varchar(50).null())
- *   public uuid!: string
- * 
+ *   public uuid!: string;
+ *
  *   @Column(() => Blueprint.varchar(50).null())
  *   @Validate({
- *         type : String,
- *         require : true,
- *         length : 50,
- *         match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
- *         unique : true,
- *         fn : (email : string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
- *    })
- *    public email!: string
+ *       type: String,
+ *       require: true,
+ *       length: 50,
+ *       match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+ *       unique: true,
+ *       fn: (email: string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+ *   })
+ *   public email!: string;
  * }
+ *
+ * // Retrieve validation metadata
+ * const validationSchema = Reflect.getMetadata("validate:schema", User.prototype);
+ * console.log(validationSchema.email); // { type: String, require: true, ... }
+ * ```
  */
-export const Validate = (validate : TValidateSchemaDecorator): Function => {
-  return (target: any, key: string) => {
-    if (target.$validateSchema == null) target.$validateSchema = {}
-    target.$validateSchema = {
-      ...target.$validateSchema,
-      [key]: validate
-    }
-  }
-}
+export const Validate = (validate: TValidateSchemaDecorator): PropertyDecorator => {
+  return (target, key) => {
+    const existing = Reflect.getMetadata("validate:schema", target) || {};
 
-export const UUID = (column ?: string) => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$uuid = true
-    constructor.prototype.$uuidColumn = column
-  }
-}
+    Reflect.defineMetadata("validate:schema", { 
+      ...existing, 
+      [key]: validate 
+    }, target);
+  };
+};
 
-export const Observer = (observer: new () => {
-  selected: Function
-  created:  Function
-  updated:  Function
-  deleted:  Function
-}) => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$observer = observer
-  }
-}
+/**
+ * Decorator to define a HasOne relationship on a model property.
+ *
+ * Stores the relation metadata under "relation:hasOne".
+ *
+ * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @returns {PropertyDecorator} A decorator that registers the HasOne relationship.
+ *
+ * @example
+ * ```ts
+ * class Profile extends Model {}
+ *
+ * class User extends Model {
+ *   @HasOne({ model: Profile })
+ *   public profile!: Profile;
+ * }
+ *
+ * const hasOneRelations = Reflect.getMetadata("relation:hasOne", User.prototype);
+ * console.log(hasOneRelations);
+ * ```
+ */
+export const HasOne = (options: TRelationQueryDecoratorOptions) => {
+  return (target: any, propertyKey: string) => {
+    if (!propertyKey) throw new Error("Unable to determine property name for HasOne decorator");
 
-export const Timestamp = (timestampColumns ?: { createdAt : string , updatedAt : string }) => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$timestamp = true
-    constructor.prototype.$timestampColumns = timestampColumns
-  }
-}
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:hasOne", target) || [];
 
-export const SoftDelete = (column ?: string) => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$softDelete = true
-    constructor.prototype.$softDeleteColumn = column
-  }
-}
+    Reflect.defineMetadata(
+      "relation:hasOne",
+      [...existing, { ...options, name: options.name ?? propertyKey }],
+      target
+    );
+  };
+};
 
-export const Pattern = (pattern : 'camelCase' | 'snake_case') => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$pattern = pattern
-  }
-}
+/**
+ * Decorator to define a HasMany relationship on a model property.
+ *
+ * Stores the relation metadata under "relation:hasMany".
+ *
+ * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @returns {PropertyDecorator} A decorator that registers the HasMany relationship.
+ *
+ * @example
+ * ```ts
+ * class Post extends Model {}
+ *
+ * class User extends Model {
+ *   @HasMany({ model: Post })
+ *   public posts!: Post[];
+ * }
+ *
+ * const hasManyRelations = Reflect.getMetadata("relation:hasMany", User.prototype);
+ * console.log(hasManyRelations);
+ * ```
+ */
+export const HasMany = (options: TRelationQueryDecoratorOptions) => {
+  return (target: any, propertyKey: string) => {
+    if (!propertyKey) throw new Error("Unable to determine property name for HasMany decorator");
 
-export const CamelCase = () => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$pattern = 'camelCase'
-  }
-}
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:hasMany", target) || [];
 
-export const SnakeCase = () => {
-  return (constructor: Function) => {
-    if(constructor.prototype == null) return
-    constructor.prototype.$pattern = 'snake_case'
-  }
-}
+    Reflect.defineMetadata(
+      "relation:hasMany",
+      [...existing, { ...options, name: options.name ?? propertyKey }],
+      target
+    );
+  };
+};
 
-export const HasOne = ({ 
-  name, 
-  as, 
-  model , 
-  localKey, 
-  foreignKey, 
-  freezeTable 
-} : TRelationQueryOptions ) => {
-  return (target: any, key: string) => {
-    
-    if (target.$hasOne == null) target.$hasOne = []
-    target.$hasOne.push({
-      name : name == null ? key : name , 
-      as , 
-      model, 
-      localKey, 
-      foreignKey, 
-      freezeTable
-    })
-  }
-}
+/**
+ * Decorator to define a BelongsTo relationship on a model property.
+ *
+ * Stores the relation metadata under "relation:belongsTo".
+ *
+ * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @returns {PropertyDecorator} A decorator that registers the BelongsTo relationship.
+ *
+ * @example
+ * ```ts
+ * class User extends Model {}
+ *
+ * class Post extends Model {
+ *   @BelongsTo({ model: User })
+ *   public author!: User;
+ * }
+ *
+ * const belongsToRelations = Reflect.getMetadata("relation:belongsTo", Post.prototype);
+ * console.log(belongsToRelations);
+ * ```
+ */
+export const BelongsTo = (options: TRelationQueryDecoratorOptions) => {
+  return (target: any, propertyKey: string) => {
+    if (!propertyKey) throw new Error("Unable to determine property name for BelongsTo decorator");
 
-export const HasMany = ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationQueryOptions ) => {
-  return (target: any, key: string) => {
-    
-    if (target.$hasMany == null) target.$hasMany = []
-    target.$hasMany.push({
-      name : name == null ? key : name , 
-      as , 
-      model, 
-      localKey, 
-      foreignKey, 
-      freezeTable
-    })
-  }
-}
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:belongsTo", target) || [];
 
-export const BelongsTo = ({ 
-  name , 
-  as , 
-  model  , 
-  localKey , 
-  foreignKey , 
-  freezeTable 
-} : TRelationQueryOptions ) => {
-  return (target : any, key: string) => {
-    if (target.$belongsTo == null) target.$belongsTo = []
+    Reflect.defineMetadata(
+      "relation:belongsTo",
+      [...existing, { ...options, name: options.name ?? propertyKey }],
+      target
+    );
+  };
+};
 
-    target.$belongsTo.push({
-      name : name == null ? key : name , 
-      as , 
-      model, 
-      localKey, 
-      foreignKey, 
-      freezeTable
-    })
-  }
-}
+/**
+ * Decorator to define a BelongsToMany (many-to-many) relationship on a model property.
+ *
+ * Stores the relation metadata under "relation:belongsToMany".
+ *
+ * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @returns {PropertyDecorator} A decorator that registers the BelongsToMany relationship.
+ *
+ * @example
+ * ```ts
+ * class Role extends Model {}
+ *
+ * class User extends Model {
+ *   @BelongsToMany({ model: Role, pivotTable: 'user_roles' })
+ *   public roles!: Role[];
+ * }
+ *
+ * const belongsToManyRelations = Reflect.getMetadata("relation:belongsToMany", User.prototype);
+ * console.log(belongsToManyRelations);
+ * ```
+ */
+export const BelongsToMany = (options: TRelationQueryDecoratorOptions) => {
+  return (target: any, propertyKey: string) => {
+    if (!propertyKey) throw new Error("Unable to determine property name for BelongsToMany decorator");
 
-export const BelongsToMany = ({ 
-  name, 
-  as, 
-  model, 
-  localKey, 
-  foreignKey, 
-  freezeTable, 
-  pivot, 
-  oldVersion, 
-  modelPivot 
-} : TRelationQueryOptions ) => {
-  return (target: any, key: string) => {
-    if (target.$belongsToMany == null) target.$belongsToMany = []
-    target.$belongsToMany.push({
-      name : name == null ? key : name , 
-      as, 
-      model, 
-      localKey, 
-      foreignKey, 
-      freezeTable,
-      pivot, 
-      oldVersion, 
-      modelPivot
-    })
-  }
-}
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:belongsToMany", target) || [];
+
+    Reflect.defineMetadata(
+      "relation:belongsToMany",
+      [...existing, { ...options, name: options.name ?? propertyKey }],
+      target
+    );
+  };
+};

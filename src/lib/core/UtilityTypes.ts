@@ -2,6 +2,7 @@ import { Blueprint }    from "./Blueprint";
 import { Model }        from "./Model";
 import { Repository }   from "./Repository";
 import type { 
+    TDResult,
     TPagination, 
     TRelationResults, 
     TRepositoryRequest 
@@ -305,6 +306,12 @@ export namespace T {
     export type Repository<M extends Model> = TRepository<M>;
     export type RepositoryTypeOf<M extends Model> = TRepositoryTypeOf<M>;
 
+    export type ResultV2<M extends Model> =  unknown extends T.Result<M>
+    ? unknown extends TDResult<M>
+        ? Record<string, any>
+        : {} extends TDResult<M> ? Record<string, any>: TDResult<M>
+    : T.Result<M>
+
 
     export type Result<
         M extends Model,
@@ -318,5 +325,5 @@ export namespace T {
         Opts extends { paginate?: boolean } = {}
     > = Opts['paginate'] extends true
         ? TResultPaginate<M>
-        : TResult<M>;
+        : TResult<M>[];
 }

@@ -82,6 +82,7 @@ class RelationHandler  {
 
         const childs = await query
         .meta('SUBORDINATE')
+        .addSelect(foreignKey)
         .whereIn(foreignKey,parentIds)
         .debug(this.$model['$state'].get('DEBUG'))
         .when(relation.trashed, (query : Model) => query.onlyTrashed())
@@ -993,6 +994,7 @@ class RelationHandler  {
 
         const pivotResults: Record<string,any>[] = await queryPivot
         .meta('SUBORDINATE')
+        .addSelect(localKeyPivotTable)
         .whereIn(localKeyPivotTable,mainResultIds)
         .when(relation.query != null , (query : Model) => query.select(localKeyPivotTable,localKey))
         .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))
@@ -1012,6 +1014,7 @@ class RelationHandler  {
 
         const relationResults: Record<string,any>[] = await modelRelation
         .meta('SUBORDINATE')
+        .addSelect(mainlocalKey)
         .whereIn(mainlocalKey ,relationIds)
         .when(relation.trashed , (query : Model) => query.disableSoftDelete())
         .bind(this.$model['$pool'].get())
