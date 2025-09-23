@@ -1,9 +1,19 @@
 {
   "name": "tspace-mysql",
-  "version": "1.8.9",
+  "version": "1.8.9-beta.1",
   "description": "Tspace MySQL is a promise-based ORM for Node.js, designed with modern TypeScript and providing type safety for schema databases.",
   "main": "build/lib/index.js",
   "types": "build/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./build/lib/index.js",
+      "types": "./build/lib/index.d.ts"
+    },
+    "./Nest": {
+      "import": "./build/lib/core/Nest/index.js",
+      "types": "./build/lib/core/Nest/index.d.ts"
+    }
+  },
   "files": [
     "build"
   ],

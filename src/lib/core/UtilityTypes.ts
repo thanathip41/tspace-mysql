@@ -2,10 +2,14 @@ import { Blueprint }    from "./Blueprint";
 import { Model }        from "./Model";
 import { Repository }   from "./Repository";
 import type { 
+    TDColumns,
     TDResult,
+    TFreezeStringQuery,
     TPagination, 
+    TRawStringQuery, 
     TRelationResults, 
-    TRepositoryRequest 
+    TRepositoryRequest, 
+    TRepositoryWhere
 } from "../types";
 
 /**
@@ -297,22 +301,11 @@ export namespace T {
     export type Schema<T, S = {}> = TSchema<T, S>;
     export type SchemaStrict<T, S = {}> = TSchemaStrict<T, S>;
     export type SchemaModel<M extends Model> = TSchemaModel<M>;
-    export type KeyOf<M extends Model> = TSchemaKeyOf<M>;
-    export type Column<M extends Model> = TSchemaKeyOf<M>;
-
     export type Relation<R> = TRelation<R>;
     export type RelationModel<M extends Model> = TRelationModel<M>;
 
-    export type Repository<M extends Model> = TRepository<M>;
-    export type RepositoryTypeOf<M extends Model> = TRepositoryTypeOf<M>;
-
-    export type ResultV2<M extends Model> =  unknown extends T.Result<M>
-    ? unknown extends TDResult<M>
-        ? Record<string, any>
-        : {} extends TDResult<M> ? Record<string, any>: TDResult<M>
-    : T.Result<M>
-
-
+    export type Repository<M extends Model> =  ReturnType<typeof Repository<M>>;
+   
     export type Result<
         M extends Model,
         Opts extends { paginate?: boolean } = {}
@@ -320,10 +313,18 @@ export namespace T {
         ? TResultPaginate<M>
         : TResult<M>;
         
-    export type Results<
-        M extends Model,
-        Opts extends { paginate?: boolean } = {}
-    > = Opts['paginate'] extends true
-        ? TResultPaginate<M>
-        : TResult<M>[];
+    export type ResultV2<M extends Model> =  unknown extends Result<M>
+    ? unknown extends TDResult<M>
+        ? Record<string, any>
+        : {} extends TDResult<M> ? Record<string, any>: TDResult<M>
+    : Result<M>
+
+    export type ColumnKeys<M extends Model> = (keyof TDColumns<M> extends never
+    ? TSchemaKeyOf<M> 
+    : keyof TDColumns<M> ) | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+    
+
+    // write options select , execpt , where , group by , order by , relations
+    export type WhereOptions<M extends Model> = TRepositoryWhere<TSchemaModel<M>,TRelationModel<M>,M>
+    export type SelectOptions<M extends Model> = TRepositoryWhere<any,any,M>
 }

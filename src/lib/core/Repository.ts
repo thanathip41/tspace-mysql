@@ -120,8 +120,7 @@ class RepositoryHandler<
 
         if(instance == null) throw new Error('The instance is not initialized')
  
-        // @ts-ignore
-        return await instance.first();
+        return await instance.firstx();
     }
 
     /**

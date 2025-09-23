@@ -372,7 +372,7 @@ export type TRelationKeys<T> = keyof {
 }
 
 
-type TDColumns<
+export type TDColumns<
   T,
   O extends { type: "original" | "any" } = { type: "original" }
 > = {
@@ -380,7 +380,7 @@ type TDColumns<
     O["type"] extends "any" ? T[K] | TOperatorQuery : T[K]
 }
 
-type TDRelations<T> = Pick<
+export type TDRelations<T> = Pick<
   T,
   {
     [K in keyof T]: T[K] extends Model | Model[] ? K : never
@@ -455,7 +455,7 @@ type TRepositorySelect<
         : never;
 }>
 
-type TRepositoryWhere<
+export type TRepositoryWhere<
   T extends Record<string, any> = any,
   R = unknown,
   M extends Model = Model

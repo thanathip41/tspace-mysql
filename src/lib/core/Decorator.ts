@@ -278,7 +278,7 @@ export const Column = (blueprint: () => Blueprint): Function => {
  * The validation schema is stored as metadata on the target class.
  *
  * @param {TValidateSchemaDecorator} validate - An object defining validation rules for the property.
- * @returns {PropertyDecorator} A decorator that registers the validation schema.
+ * @returns {Function} A decorator that registers the validation schema.
  *
  * @example
  * ```ts
@@ -297,23 +297,24 @@ export const Column = (blueprint: () => Blueprint): Function => {
  *       length: 50,
  *       match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
  *       unique: true,
- *       fn: (email: string) => /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+ *       fn: async (email: string) => {
+ *         const exists = await new User().where('email',email).exists();
+ *         if(exists) return `This column "${email}" is dupicate`;
+ *         return null;
+ *       }
  *   })
  *   public email!: string;
  * }
  *
- * // Retrieve validation metadata
- * const validationSchema = Reflect.getMetadata("validate:schema", User.prototype);
- * console.log(validationSchema.email); // { type: String, require: true, ... }
  * ```
  */
-export const Validate = (validate: TValidateSchemaDecorator): PropertyDecorator => {
-  return (target, key) => {
+export const Validate = (validate: TValidateSchemaDecorator): Function => {
+  return (target: Object, propertyKey: string | symbol) => {
     const existing = Reflect.getMetadata("validate:schema", target) || {};
 
     Reflect.defineMetadata("validate:schema", { 
       ...existing, 
-      [key]: validate 
+      [propertyKey]: validate 
     }, target);
   };
 };
@@ -321,10 +322,8 @@ export const Validate = (validate: TValidateSchemaDecorator): PropertyDecorator 
 /**
  * Decorator to define a HasOne relationship on a model property.
  *
- * Stores the relation metadata under "relation:hasOne".
- *
  * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
- * @returns {PropertyDecorator} A decorator that registers the HasOne relationship.
+ * @returns {Function} A decorator that registers the HasOne relationship.
  *
  * @example
  * ```ts
@@ -335,11 +334,9 @@ export const Validate = (validate: TValidateSchemaDecorator): PropertyDecorator 
  *   public profile!: Profile;
  * }
  *
- * const hasOneRelations = Reflect.getMetadata("relation:hasOne", User.prototype);
- * console.log(hasOneRelations);
  * ```
  */
-export const HasOne = (options: TRelationQueryDecoratorOptions) => {
+export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
   return (target: any, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasOne decorator");
 
@@ -356,10 +353,8 @@ export const HasOne = (options: TRelationQueryDecoratorOptions) => {
 /**
  * Decorator to define a HasMany relationship on a model property.
  *
- * Stores the relation metadata under "relation:hasMany".
- *
  * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
- * @returns {PropertyDecorator} A decorator that registers the HasMany relationship.
+ * @returns {Function} A decorator that registers the HasMany relationship.
  *
  * @example
  * ```ts
@@ -370,11 +365,9 @@ export const HasOne = (options: TRelationQueryDecoratorOptions) => {
  *   public posts!: Post[];
  * }
  *
- * const hasManyRelations = Reflect.getMetadata("relation:hasMany", User.prototype);
- * console.log(hasManyRelations);
  * ```
  */
-export const HasMany = (options: TRelationQueryDecoratorOptions) => {
+export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
   return (target: any, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasMany decorator");
 
@@ -391,10 +384,8 @@ export const HasMany = (options: TRelationQueryDecoratorOptions) => {
 /**
  * Decorator to define a BelongsTo relationship on a model property.
  *
- * Stores the relation metadata under "relation:belongsTo".
- *
  * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
- * @returns {PropertyDecorator} A decorator that registers the BelongsTo relationship.
+ * @returns {Function} A decorator that registers the BelongsTo relationship.
  *
  * @example
  * ```ts
@@ -405,11 +396,9 @@ export const HasMany = (options: TRelationQueryDecoratorOptions) => {
  *   public author!: User;
  * }
  *
- * const belongsToRelations = Reflect.getMetadata("relation:belongsTo", Post.prototype);
- * console.log(belongsToRelations);
  * ```
  */
-export const BelongsTo = (options: TRelationQueryDecoratorOptions) => {
+export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => {
   return (target: any, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsTo decorator");
 
@@ -426,10 +415,8 @@ export const BelongsTo = (options: TRelationQueryDecoratorOptions) => {
 /**
  * Decorator to define a BelongsToMany (many-to-many) relationship on a model property.
  *
- * Stores the relation metadata under "relation:belongsToMany".
- *
  * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
- * @returns {PropertyDecorator} A decorator that registers the BelongsToMany relationship.
+ * @returns {Function} A decorator that registers the BelongsToMany relationship.
  *
  * @example
  * ```ts
@@ -440,11 +427,9 @@ export const BelongsTo = (options: TRelationQueryDecoratorOptions) => {
  *   public roles!: Role[];
  * }
  *
- * const belongsToManyRelations = Reflect.getMetadata("relation:belongsToMany", User.prototype);
- * console.log(belongsToManyRelations);
  * ```
  */
-export const BelongsToMany = (options: TRelationQueryDecoratorOptions) => {
+export const BelongsToMany = (options: TRelationQueryDecoratorOptions): Function => {
   return (target: any, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsToMany decorator");
 

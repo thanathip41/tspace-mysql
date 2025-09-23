@@ -6,7 +6,7 @@ import { proxyHandler }     from "./Handlers/Proxy";
 import { RelationHandler }  from "./Handlers/Relation";
 import { Blueprint }        from "./Blueprint";
 import { StateHandler }     from "./Handlers/State";
-import { TSchemaModel }     from "./UtilityTypes";
+import { T, TSchemaModel }     from "./UtilityTypes";
 import { Cache }            from "./Cache";
 import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
@@ -4743,6 +4743,13 @@ class Model<
         : TS & K & Partial<R extends any ? TS & Partial<R> : R>)
     | null
   > {
+    return await this.first(cb);
+  }
+
+  async firstx<K>(
+    cb?: Function
+  ): Promise< (K & T.ResultV2<this>) | null> {
+    //@ts-expect-error
     return await this.first(cb);
   }
 
