@@ -372,15 +372,15 @@ export type TRelationKeys<T> = keyof {
 }
 
 
-export type TDColumns<
+export type TColumnsDecorator<
   T,
   O extends { type: "original" | "any" } = { type: "original" }
 > = {
   [K in keyof T as T[K] extends string | number | boolean | Date ? K : never]:
     O["type"] extends "any" ? T[K] | TOperatorQuery : T[K]
 }
-
-export type TDRelations<T> = Pick<
+ 
+export type TRelationsDecorator<T> = Pick<
   T,
   {
     [K in keyof T]: T[K] extends Model | Model[] ? K : never
@@ -388,37 +388,36 @@ export type TDRelations<T> = Pick<
 >;
 
 
-export type TDResult<T extends Model> = {
-  [K in keyof T as T[K] extends string | number | boolean | Date ? K : never]: T[K]
-} & {
-   //@ts-ignore
-  [K in keyof T as T[K] extends Model ? K : never]?: TDResult<T[K]>
-} & {
-  [K in keyof T as T[K] extends Array<infer U>
-    ? U extends Model
-      ? K
-      : never
-    //@ts-expect-error
-    : never]?: TDResult<Extract<T[K][number], Model>>[]
+export type TResultDecorator<M extends Model> = {
+  [K in keyof M as M[K] extends Function ? never : K]-?: 
+    M[K] extends string | number | boolean | Date
+      ? M[K]
+      : M[K] extends Model
+        ? TResultDecorator<M[K]> | undefined
+        : M[K] extends Array<infer U>
+          ? U extends Model
+            ? TResultDecorator<U>[] | undefined
+            : M[K]
+          : M[K];
 };
 
-type TNestedBoolean = boolean | { [key: string]: TNestedBoolean };
+export type TNestedBoolean = boolean | { [key: string]: TNestedBoolean };
 
-type TRepositorySelect<
+export type TRepositorySelect<
   T extends Record<string, any> = any,
   R = unknown,
   M extends Model = Model
 > = 
 [unknown, unknown] extends [T, R]
-? keyof TDColumns<M> extends never
+? keyof TColumnsDecorator<M> extends never
     ? TNestedBoolean
     : Partial<{
-        [K in keyof TDColumns<M> | keyof TDRelations<M>] :
+        [K in keyof TColumnsDecorator<M> | keyof TRelationsDecorator<M>] :
 
           K extends `${string}.${string}` | TRawStringQuery
             ? boolean
 
-          : K extends keyof TDRelations<M>
+          : K extends keyof TRelationsDecorator<M>
             ? M[K] extends (infer U)[]
               ? U extends Model
                 ? '*' | TRepositorySelect<any, unknown, U>
@@ -428,7 +427,7 @@ type TRepositorySelect<
                 : boolean
 
 
-          : K extends keyof TDColumns<M>
+          : K extends keyof TColumnsDecorator<M>
             ? boolean
 
           : boolean;
@@ -461,20 +460,20 @@ export type TRepositoryWhere<
   M extends Model = Model
 > =
 [unknown, unknown] extends [T, R]
-    ? keyof TDColumns<M> extends never
+    ? keyof TColumnsDecorator<M> extends never
         ? Record<string,any>
         : Partial<{
-        [K in keyof TDColumns<M> | keyof TDRelations<M> | `${string}.${string}` | TRawStringQuery]:
-            K extends keyof TDRelations<M>
-            ? TDRelations<M>[K] extends (infer U)[]
+        [K in keyof TColumnsDecorator<M> | keyof TRelationsDecorator<M> | `${string}.${string}` | TRawStringQuery]:
+            K extends keyof TRelationsDecorator<M>
+            ? TRelationsDecorator<M>[K] extends (infer U)[]
                 ? U extends Model
                 ? TRepositoryWhere<any, unknown, U> 
                 : never
-                : TDRelations<M>[K] extends Model
-                ? TRepositoryWhere<any, unknown, TDRelations<M>[K]>
+                : TRelationsDecorator<M>[K] extends Model
+                ? TRepositoryWhere<any, unknown, TRelationsDecorator<M>[K]>
                 : never
-            : K extends keyof TDColumns<M>
-                ? TDColumns<M,{ type : "any" }>[K]                    
+            : K extends keyof TColumnsDecorator<M>
+                ? TColumnsDecorator<M,{ type : "any" }>[K]                    
                 : never;
         }>
     : Partial<{
@@ -498,21 +497,21 @@ export type TRepositoryWhere<
               : never;
       }>;
 
-type TRepositoryOrderBy<
+export type TRepositoryOrderBy<
   T extends Record<string, any> = any,
   R = unknown,
   M extends Model = Model
 > = 
 [unknown, unknown] extends [T, R]
-? keyof TDColumns<M> extends never
+? keyof TColumnsDecorator<M> extends never
     ? Record<string, 'ASC' | 'DESC'>
     : Partial<{
-        [K in keyof TDColumns<M> | keyof TDRelations<M>] :
+        [K in keyof TColumnsDecorator<M> | keyof TRelationsDecorator<M>] :
 
           K extends `${string}.${string}` | TRawStringQuery
             ? 'ASC' | 'DESC'
 
-          : K extends keyof TDRelations<M>
+          : K extends keyof TRelationsDecorator<M>
             ? M[K] extends (infer U)[]
               ? U extends Model
                 ? TRepositoryOrderBy<any, unknown, U>
@@ -521,7 +520,7 @@ type TRepositoryOrderBy<
                 ? TRepositoryOrderBy<any, unknown, M[K]>
                 : never
 
-          : K extends keyof TDColumns<M>
+          : K extends keyof TColumnsDecorator<M>
             ? 'ASC' | 'DESC'
 
           : never;
@@ -548,21 +547,21 @@ type TRepositoryOrderBy<
         : never;
 }>
 
-type TRepositoryGroupBy<
+export type TRepositoryGroupBy<
   T extends Record<string, any> = any,
   R = unknown,
   M extends Model = Model
 > = 
 [unknown, unknown] extends [T, R]
-? keyof TDColumns<M> extends never
+? keyof TColumnsDecorator<M> extends never
     ? Record<string,boolean>
     : Partial<{
-        [K in keyof TDColumns<M> | keyof TDRelations<M>] :
+        [K in keyof TColumnsDecorator<M> | keyof TRelationsDecorator<M>] :
 
           K extends `${string}.${string}` | TRawStringQuery
             ? boolean
 
-          : K extends keyof TDRelations<M>
+          : K extends keyof TRelationsDecorator<M>
             ? M[K] extends (infer U)[]
               ? U extends Model
                 ? '*' | TRepositoryGroupBy<any, unknown, U>
@@ -572,7 +571,7 @@ type TRepositoryGroupBy<
                 : boolean
 
 
-          : K extends keyof TDColumns<M>
+          : K extends keyof TColumnsDecorator<M>
             ? boolean
 
           : boolean;
@@ -599,17 +598,17 @@ type TRepositoryGroupBy<
         : never;
 }>
 
-type TRepositoryRelation<
+export type TRepositoryRelation<
   R = unknown,
   M extends Model = Model
 > = 
 [unknown] extends [R]
-  ? keyof TDRelations<M> extends never
+  ? keyof TRelationsDecorator<M> extends never
     ? Record<string, any>
     : Partial<{
-        [K in keyof TDRelations<M>]:
-          K extends keyof TDRelations<M>
-            ? TDRelations<M>[K] extends (infer U)[]
+        [K in keyof TRelationsDecorator<M>]:
+          K extends keyof TRelationsDecorator<M>
+            ? TRelationsDecorator<M>[K] extends (infer U)[]
               ? U extends Model
                 ? boolean | 
                     (
@@ -617,11 +616,11 @@ type TRepositoryRelation<
                         TRepositoryRelation<unknown, U>
                     ) 
                 : never
-              : TDRelations<M>[K] extends Model
+              : TRelationsDecorator<M>[K] extends Model
                 ? boolean | 
                 (
-                    TRepositoryRequest<any,unknown, TDRelations<M>[K]> & 
-                    TRepositoryRelation<unknown, TDRelations<M>[K]>
+                    TRepositoryRequest<any,unknown, TRelationsDecorator<M>[K]> & 
+                    TRepositoryRelation<unknown, TRelationsDecorator<M>[K]>
                 ) 
                 : never
             : never
@@ -656,7 +655,7 @@ type TRepositoryRelation<
 export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown, M extends Model<any, any> = Model<any, any>> = {
     debug ?: boolean;
     cache ?: { key : string, expires : number };
-    when ?: {condition : boolean , query : () => TRepositoryRequest<T,R>};
+    when ?: {condition : boolean , query : () => TRepositoryRequest<T,R,M>};
     select?: '*' |  TRepositorySelect<T,R,M>;
     except ?: TRepositorySelect<T,R,M>;
     join ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[];
@@ -664,7 +663,7 @@ export type TRepositoryRequest<T extends Record<string, any> = any,R = unknown, 
     rightJoin ?: {localKey : `${string}.${string}` , referenceKey : `${string}.${string}`}[];
     where ?: TRepositoryWhere<T,R,M>;
     whereRaw ?: string[];
-    whereQuery ?: Partial<Record<TSchemaColumns<T> | `${string}.${string}`, any>>;
+    whereQuery ?: TRepositoryWhere<T,R,M>;
     groupBy?: TRepositoryGroupBy <T,R,M>;
     having ?: string;
     orderBy?:  TRepositoryOrderBy<T,R,M>
@@ -759,3 +758,9 @@ export type TPoolCusterConnected = {
     masters: TClusterPool[];
     slaves: TClusterPool[];
 }
+
+export type TIsEnum<T> =
+    string extends T ? false :
+    number extends T ? false :
+    boolean extends T ? false :
+    [T] extends [string | number] ? true : false;

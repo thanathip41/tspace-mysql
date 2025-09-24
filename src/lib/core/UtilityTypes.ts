@@ -2,14 +2,21 @@ import { Blueprint }    from "./Blueprint";
 import { Model }        from "./Model";
 import { Repository }   from "./Repository";
 import type { 
-    TDColumns,
-    TDResult,
     TFreezeStringQuery,
+    TIsEnum,
     TPagination, 
     TRawStringQuery, 
     TRelationResults, 
+    TRepositoryGroupBy, 
+    TRepositoryOrderBy, 
+    TRepositoryRelation, 
     TRepositoryRequest, 
-    TRepositoryWhere
+    TRepositorySelect, 
+    TRepositoryWhere,
+    TResultDecorator,
+    TColumnsDecorator,
+    TRelationsDecorator,
+    TOperatorQuery, 
 } from "../types";
 
 /**
@@ -238,7 +245,10 @@ export type RelationType<R> = {
  *   }
  * 
  */
-export type TSchemaModel<M extends Model> = ReturnType<M['typeOfSchema']>;
+export type TSchemaModel<M extends Model> = {
+  [K in keyof ReturnType<M['typeOfSchema']>]: ReturnType<M['typeOfSchema']>[K] | TOperatorQuery;
+};
+
 
 /**
  * The 'TRelationModel' type is used to get type of schema in the model
@@ -308,23 +318,60 @@ export namespace T {
    
     export type Result<
         M extends Model,
-        Opts extends { paginate?: boolean } = {}
-    > = Opts['paginate'] extends true
-        ? TResultPaginate<M>
-        : TResult<M>;
-        
-    export type ResultV2<M extends Model> =  unknown extends Result<M>
-    ? unknown extends TDResult<M>
-        ? Record<string, any>
-        : {} extends TDResult<M> ? Record<string, any>: TDResult<M>
-    : Result<M>
+        K = {}
+    > =  unknown extends TResult<M>
+    ? unknown extends TResultDecorator<M>
+        ?  Record<K & string, any>
+        : {} extends TResultDecorator<M> 
+            ? Record<K & string, any>
+            : TResultDecorator<K & M>
+    : TResult<K & M>;
 
-    export type ColumnKeys<M extends Model> = (keyof TDColumns<M> extends never
+    export type ResultPaginate<
+        M extends Model,
+        K = {}
+    > =  unknown extends TResult<M>
+    ? unknown extends TResultDecorator<M>
+        ? TPagination<K & Record<string, any>>
+        : {} extends TResultDecorator<M> 
+            ? TPagination<K & Record<string, any>>
+            : TPagination<K & TResultDecorator<M>>
+    : TPagination<K & TResult<M>>;
+
+    export type Columns<M extends Model> = keyof TColumnsDecorator<M> extends never
+    ? T.SchemaModel<M> 
+    : TColumnsDecorator<M>
+
+    export type Relations<M extends Model> = keyof TColumnsDecorator<M> extends never
+    ? T.RelationModel<M> 
+    : TRelationsDecorator<M>
+
+    export type ColumnKeys<M extends Model> = (keyof TColumnsDecorator<M> extends never
+    ? TSchemaKeyOf<M>
+    : keyof TColumnsDecorator<M> ) | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+
+
+    export type ColumnEnumKeys<M extends Model> = (
+        keyof TColumnsDecorator<M> extends never
+        ? {
+            [K in TSchemaKeyOf<M>]:
+                //@ts-ignore
+                TIsEnum<NonNullable<M[K]>> extends true ? K : never
+            }[TSchemaKeyOf<M>]
+        : {
+            [K in keyof TColumnsDecorator<M>]:
+                TIsEnum<NonNullable<TColumnsDecorator<M>[K]>> extends true ? K : never
+            }[keyof TColumnsDecorator<M>]
+    )
+
+    export type RelationKeys<M extends Model> = (keyof TColumnsDecorator<M> extends never
     ? TSchemaKeyOf<M> 
-    : keyof TDColumns<M> ) | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+    : keyof TColumnsDecorator<M> ) | `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
     
-
-    // write options select , execpt , where , group by , order by , relations
-    export type WhereOptions<M extends Model> = TRepositoryWhere<TSchemaModel<M>,TRelationModel<M>,M>
-    export type SelectOptions<M extends Model> = TRepositoryWhere<any,any,M>
+    export type WhereOptions<M extends Model>      = TRepositoryWhere<T.SchemaModel<M>,T.RelationModel<M>,M>
+    export type SelectOptions<M extends Model>     = TRepositorySelect<T.SchemaModel<M>,T.RelationModel<M>,M>
+    export type OrderByOptions<M extends Model>    = TRepositoryOrderBy<T.SchemaModel<M>,T.RelationModel<M>,M>
+    export type GroupByOptions<M extends Model>    = TRepositoryGroupBy<T.SchemaModel<M>,T.RelationModel<M>,M>
+    export type RelationOptions<M extends Model>   = TRepositoryRelation<T.RelationModel<M>,M>
+    export type RepositoryOptions<M extends Model> = TRepositoryRequest<T.SchemaModel<M>,T.RelationModel<M>,M>
 }

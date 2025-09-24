@@ -3,53 +3,13 @@ import type {
     T
 } from "./UtilityTypes"
 import type { 
-    TPagination, 
-    TRepositoryRequest, 
-    TRepositoryRequestHandler,
-    TRepositoryRequestPagination, 
-    TRepositoryRequestAggregate,
     TRepositoryCreateMultiple, 
     TRepositoryCreateOrThings, 
     TRepositoryCreate, 
     TRepositoryDelete, 
     TRepositoryUpdate,
     TRepositoryUpdateMultiple,
-    TRelationResults,
-    TDResult
 } from "../types"
-
-type ColumnPrimitive = string | number | boolean | Date;
-
-type ColumnsOf<T> = {
-  [K in keyof T]: T[K] extends ColumnPrimitive ? K : never
-}[keyof T];
-
-type RelationsOf<T> = {
-  [K in keyof T]: T[K] extends Model ? K : never
-}[keyof T];
-
-type Columns<T> = Pick<
-  T,
-  {
-    [K in keyof T]: T[K] extends ColumnPrimitive ? K : never
-  }[keyof T]
->;
-
-
-
-type Result<T extends Model> = {
-  [K in keyof T as T[K] extends ColumnPrimitive ? K : never]: T[K]
-} & {
-   //@ts-expect-error
-  [K in keyof T as T[K] extends Model ? K : never]?: Result<T[K]>
-} & {
-  [K in keyof T as T[K] extends Array<infer U>
-    ? U extends Model
-      ? K
-      : never
-    //@ts-expect-error
-    : never]?: Result<Extract<T[K][number], Model>>[]
-};
 
 class RepositoryHandler<
     TS extends Record<string, any> = Record<string, any>, 
@@ -98,29 +58,14 @@ class RepositoryHandler<
      * 
      *  const user = await userRepository.findOne()
      */
-    async first<
-        K, 
-        R = TRelationResults<TR>
-    >(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
+    async first<K>(options : T.RepositoryOptions<TM> = {}) : Promise<T.Result<TM,K> | null> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
  
+        //@ts-ignore
         return await instance.first();
-    }
-
-    async firstx<K>(options : TRepositoryRequest<TS,TR,TM> = {}) : 
-    Promise<
-        (K & T.ResultV2<TM>) | null
-    >
-    {
-
-        const instance = this._handlerRequest(options)
-
-        if(instance == null) throw new Error('The instance is not initialized')
- 
-        return await instance.firstx();
     }
 
     /**
@@ -164,7 +109,7 @@ class RepositoryHandler<
      * 
      *  const user = await userRepository.findOne()
      */
-    async findOne<K , R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<R extends any ? TS & Partial<R> : R>) | null> {
+    async findOne<K>(options : T.RepositoryOptions<TM> = {}) : Promise<T.Result<TM,K> | null> {
         return await this.first(options)
     }
 
@@ -209,12 +154,13 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.get()
      */
-    async get<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async get<K>(options : T.RepositoryOptions<TM> = {}) : Promise<(T.Result<TM,K>)[]> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-       
+        
+        //@ts-ignore
         return await instance.get()
     }
 
@@ -259,7 +205,7 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.findMany()
      */
-    async findMany<K,R = TRelationResults<TR>>(options : TRepositoryRequest<TS,TR,TM> = {}) : Promise<(unknown extends TS ? Record<string, any> : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]> {
+    async findMany<K>(options : T.RepositoryOptions<TM> = {}) : Promise<T.Result<TM,K>[]> {
         return await this.get(options)
     }
 
@@ -306,12 +252,13 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
      */
-    async pagination<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR,TM> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async pagination<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.ResultPaginate<TM,K>> {
 
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
         
+        //@ts-ignore
         return await instance.pagination({
             limit : options.limit,
             page : options.page
@@ -361,7 +308,7 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
      */
-    async paginate<K,R = TRelationResults<TR>>(options : TRepositoryRequestPagination<TS,TR,TM> = {}) : Promise<TPagination<(TS & K & Partial<R extends any ? TS & Partial<R> : R>)>> {
+    async paginate<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.ResultPaginate<TM,K>> {
         return await this.pagination(options)
     }
 
@@ -387,7 +334,7 @@ class RepositoryHandler<
      * @property {?boolean} options.debug
      * @property {?number} options.page
      */
-    async exists (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<boolean> {
+    async exists (options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>>) : Promise<boolean> {
 
         const instance = this._handlerRequest(options)
 
@@ -419,7 +366,7 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @returns {string}
      */
-    toString (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : string {
+    toString (options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}) : string {
 
         const instance = this._handlerRequest(options)
 
@@ -453,7 +400,7 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @returns {string} json
      */
-    async toJSON (options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<string> {
+    async toJSON (options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}) : Promise<string> {
 
         const instance = this._handlerRequest(options);
 
@@ -488,7 +435,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async toArray (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<(any)[]> {
+    async toArray (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<(T.Result<TM>)[]> {
 
         const instance = this._handlerRequest(options)
 
@@ -521,7 +471,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async count (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<number> {
+    async count (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<number> {
 
         const instance = this._handlerRequest(options);
 
@@ -554,7 +507,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async avg (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<number> {
+    async avg (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<number> {
 
         const instance = this._handlerRequest(options);
 
@@ -587,7 +543,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async sum (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
+    async sum (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<number> {
 
         const instance = this._handlerRequest(options);
 
@@ -620,7 +579,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async max (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
+    async max (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<number> {
 
         const instance = this._handlerRequest(options);
 
@@ -653,7 +615,10 @@ class RepositoryHandler<
      * @property {?number} options.page
      * @return {promise<any[]>}
      */
-    async min (column : (keyof Partial<TS> | `${string}.${string}`), options : TRepositoryRequestAggregate<TS,TR,TM> = {}) : Promise<Number> {
+    async min (
+        column : (keyof Partial<TS> | `${string}.${string}`), 
+        options : Partial<Omit<T.RepositoryOptions<TM>,'relations' | 'relationQuery'>> = {}
+    ) : Promise<number> {
 
         const instance = this._handlerRequest(options);
 
@@ -676,7 +641,7 @@ class RepositoryHandler<
         data,
         debug,
         transaction
-    } : TRepositoryCreate<TS>): Promise<TS> {
+    } : TRepositoryCreate<TS>): Promise<T.Result<TM>> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -690,7 +655,7 @@ class RepositoryHandler<
             instance.bind(transaction)
         }
 
-        return await instance.create(data as Record<string,any>).save() as Promise<TS>
+        return await instance.create(data as Record<string,any>).save() as Promise<T.Result<TM>>
     }
 
     /**
@@ -706,7 +671,7 @@ class RepositoryHandler<
     async insert ({
         data,
         debug,
-    } : TRepositoryCreate<TS>): Promise<TS> {
+    } : TRepositoryCreate<TS>): Promise<T.Result<TM>> {
         return await this.create({
             data,
             debug
@@ -730,7 +695,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS | null> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM> | null> {
 
         let instance = new this._model() as Model
 
@@ -742,7 +707,7 @@ class RepositoryHandler<
 
         instance.where(where)
 
-        return await instance.createNotExists(data as Record<string,any>).save() as Promise<TS | null>
+        return await instance.createNotExists(data as Record<string,any>).save() as Promise<T.Result<TM> | null>
 
     }
 
@@ -763,7 +728,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS | null> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM> | null> {
 
         return await this.createNotExists({
             data,
@@ -787,7 +752,7 @@ class RepositoryHandler<
         data,
         debug,
         transaction
-    } : TRepositoryCreateMultiple<TS>): Promise<TS[]> {
+    } : TRepositoryCreateMultiple<TS>): Promise<T.Result<TM>[]> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -801,7 +766,7 @@ class RepositoryHandler<
             instance.bind(transaction)
         }
 
-        return await instance.createMultiple(data as any[]).save() as Promise<TS[]>
+        return await instance.createMultiple(data as any[]).save() as Promise<T.Result<TM>[]>
     }
 
     /**
@@ -817,7 +782,7 @@ class RepositoryHandler<
     async insertMultiple ({
         data,
         debug,
-    } : TRepositoryCreateMultiple<TS>): Promise<TS[]> {
+    } : TRepositoryCreateMultiple<TS>): Promise<T.Result<TM>[]> {
 
         return await this.createMultiple({
             data,
@@ -841,7 +806,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
 
         if(where == null  || !Object.keys(where).length) throw new Error("The method createOrUpdate can't use without where condition")
 
@@ -854,7 +819,7 @@ class RepositoryHandler<
        
         instance.where(where)
 
-        return await instance.createOrUpdate(data as Record<string,any>).save() as Promise<TS>
+        return await instance.createOrUpdate(data as Record<string,any>).save() as Promise<T.Result<TM>>
 
     }
 
@@ -874,7 +839,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
 
         return await this.createOrUpdate({
             data,
@@ -900,7 +865,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method createOrSelect can't use without where condition")
@@ -914,7 +879,7 @@ class RepositoryHandler<
 
         instance.where(where)
 
-        return await instance.createOrSelect(data as Record<string,any>).save() as Promise<TS>
+        return await instance.createOrSelect(data as Record<string,any>).save() as Promise<T.Result<TM>>
 
     }
 
@@ -935,7 +900,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<TS> {
+    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
 
         return await this.createOrSelect({
             data,
@@ -963,7 +928,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<TS>): Promise<TS> {
+    } : TRepositoryUpdate<TS>): Promise<T.Result<TM>> {
 
         if(where == null || !Object.keys(where).length) {
             throw new Error("The method update can't use without where condition")
@@ -981,7 +946,7 @@ class RepositoryHandler<
 
         instance.where(where)
 
-        return await instance.update(data as Record<string,any>).save() as Promise<TS>
+        return await instance.update(data as Record<string,any>).save() as Promise<T.Result<TM>>
 
     }
 
@@ -1003,7 +968,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<TS>): Promise<TS[]> {
+    } : TRepositoryUpdate<TS>): Promise<T.Result<TM>[]> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method updateMany can't use without where condition")
@@ -1021,7 +986,7 @@ class RepositoryHandler<
 
         instance.where(where)
 
-        return await instance.updateMany(data as Record<string,any>).save() as Promise<TS[]>
+        return await instance.updateMany(data as Record<string,any>).save() as Promise<T.Result<TM>[]>
 
     }
 
@@ -1067,7 +1032,7 @@ class RepositoryHandler<
         cases,
         debug,
         transaction
-    } : TRepositoryUpdateMultiple<TS>): Promise<TS[]> {
+    } : TRepositoryUpdateMultiple<TS>): Promise<T.Result<TM>[]> {
 
         if(!cases.length) throw new Error("The method updateMultiple can't use without cases condition")
 
@@ -1081,7 +1046,7 @@ class RepositoryHandler<
             instance.bind(transaction)
         }
 
-        return await instance.updateMultiple(cases as any).save() as Promise<TS[]>
+        return await instance.updateMultiple(cases as any).save() as Promise<T.Result<TM>[]>
 
     }
 
@@ -1203,7 +1168,7 @@ class RepositoryHandler<
     }
 
 
-    private _handlerRequest (options : TRepositoryRequestHandler<TS,TR,TM>) {
+    private _handlerRequest (options :   Partial<T.RepositoryOptions<TM> & { instance ?: Model }>) {
 
         let {
             cache,
@@ -1443,7 +1408,7 @@ class RepositoryHandler<
                 offset,
                 relations,
                 when : whenCb
-            } = when.query() as TRepositoryRequest<TS, TR, TM>
+            } = when.query() as T.RepositoryOptions<TM>
 
             instance = this._handlerRequest({
                 select,

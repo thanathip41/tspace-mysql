@@ -4730,6 +4730,11 @@ class Model<
     });
   }
 
+  async firstx<K>(cb?: Function): Promise<(K & T.Result<this>) | null> {
+    //@ts-expect-error
+    return await this.first(cb);
+  }
+
   /**
    * @override
    * @param {Function?} cb callback function return query sql
@@ -4743,13 +4748,6 @@ class Model<
         : TS & K & Partial<R extends any ? TS & Partial<R> : R>)
     | null
   > {
-    return await this.first(cb);
-  }
-
-  async firstx<K>(
-    cb?: Function
-  ): Promise< (K & T.ResultV2<this>) | null> {
-    //@ts-expect-error
     return await this.first(cb);
   }
 

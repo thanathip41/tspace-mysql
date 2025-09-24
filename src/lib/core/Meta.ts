@@ -1,143 +1,150 @@
 import { type T, Model } from '..';
-import { TLiteralEnumKeys } from '../types';
 class ModelMeta<M extends Model> {
     constructor(private model: M) {}
 
     /**
-     * 
-     * @returns {string}
+     * Get the table name of the current model.
+     *
+     * @returns {string} The table name.
      */
     table(): string {
         return this.model.toTableName();
     }
 
     /**
-     * 
-     * @returns {string}
+     * Get a column key from the model schema.
+     *
+     * @param {T.ColumnKeys<M>} column - The column key.
+     * @returns {T.ColumnKeys<M>} The validated column key.
      */
-    column(column: T.Column<M>): T.Column<M> {
+    column(column: T.ColumnKeys<M>): T.ColumnKeys<M> {
         return column;
     }
 
     /**
-     * @param {string} column
-     * @returns {`${string}.${T.Column<M>}`}
+     * Build a fully qualified column reference with an optional alias.
+     *
+     * @param {T.ColumnKeys<M>} column - The column key.
+     * @param {{ alias?: string | null }} [options] - Optional alias for the table.
+     * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    columnReference (column: T.Column<M>) : `${string}.${T.Column<M>}` {
+    columnReference(
+        column: T.ColumnKeys<M>,
+        { alias = null }: { alias?: string | null; } = {}
+    ): `${string}.${T.ColumnKeys<M>}` {
+        if (alias) return `\`${alias}\`.\`${String(column)}\``;
         return `\`${this.table()}\`.\`${String(column)}\``;
     }
 
     /**
-     * 
-     * @param {string} column
-     * @returns {`${string}.${T.Column<M>}`}
+     * Alias for {@link columnReference}.
+     *
+     * @param {T.ColumnKeys<M>} column - The column key.
+     * @param {{ alias?: string | null }} [options] - Optional alias for the table.
+     * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    columnRef (column: T.Column<M>) : `${string}.${T.Column<M>}` {
-        return this.columnReference(column);
+    columnRef(
+        column: T.ColumnKeys<M>,
+        { alias = null }: { alias?: string | null; } = {}
+    ): `${string}.${T.ColumnKeys<M>}` {
+        return this.columnReference(column, { alias });
     }
-    
+
     /**
-     * 
-     * @returns {string[]}
+     * Get all column keys defined in the model schema.
+     *
+     * @returns {T.ColumnKeys<M>[]} An array of column keys.
      */
-    columns(): T.Column<M>[] {
+    columns(): T.ColumnKeys<M>[] {
         const schemaModel = this.model.getSchemaModel();
 
-        const columns: T.Column<M>[] = schemaModel == null
-        ? []
-        : Object.entries(schemaModel).map(([key]) => {
-            return key
-        });
+        const columns: T.ColumnKeys<M>[] = schemaModel == null
+            ? []
+            : Object.entries(schemaModel).map(([key]) => key);
 
-        return columns
+        return columns;
     }
 
     /**
-     * @param {string} name
-     * @returns {boolean}
+     * Check if a given column exists in the model schema.
+     *
+     * @param {string} name - The column name to check.
+     * @returns {boolean} True if the column exists, false otherwise.
      */
     hasColumn(name: string): boolean {
         const schemaModel = this.model.getSchemaModel();
 
-        const columns : T.Column<M>[] = schemaModel == null
-        ? []
-        : Object.entries(schemaModel).map(([key]) => {
-            return key
-        });
+        const columns: T.ColumnKeys<M>[] = schemaModel == null
+            ? []
+            : Object.entries(schemaModel).map(([key]) => key);
 
         return columns.includes(name);
     }
 
     /**
-     * 
-     * @returns {string | undefined}
+     * Get the primary key column of the model.
+     *
+     * @returns {string | undefined} The primary key column, or undefined if not found.
      */
     primaryKey(): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
-        if(schemaModel == null) return undefined
+        if (schemaModel == null) return undefined;
 
-        return Object
-        .entries(schemaModel)
-        .find(([key, blueprint]: any) => {
+        return Object.entries(schemaModel).find(([key, blueprint]: any) => {
             const attr = blueprint['_attributes'];
-
-            if(Array.from(attr).includes(this.model['$constants']('PRIMARY_KEY'))) {
-                return key;
-            }
-
-            return undefined;
+            return Array.from(attr).includes(this.model['$constants']('PRIMARY_KEY'))
+                ? key
+                : undefined;
         })?.[0];
     }
 
     /**
-     * 
-     * @returns {string[]}
+     * Get all index names defined in the model schema.
+     *
+     * @returns {string[]} An array of index names.
      */
     indexes(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
-        if(schemaModel == null) return []
+        if (schemaModel == null) return [];
 
-        return Object
-        .entries(schemaModel)
-        .map(([key, blueprint]: any) => {
-            const index = blueprint['_index'];
-            if(index == null) return undefined;
-            if(index === '') return `unknown_index_${key}`
-            return index
-        })
-        .filter(v => v != null)
+        return Object.entries(schemaModel)
+            .map(([key, blueprint]: any) => {
+                const index = blueprint['_index'];
+                if (index == null) return undefined;
+                if (index === '') return `unknown_index_${key}`;
+                return index;
+            })
+            .filter(v => v != null) as string[];
     }
 
     /**
-     * 
-     * @returns {string[]}
+     * Get all nullable columns in the model schema.
+     *
+     * @returns {string[]} An array of nullable column keys.
      */
     nullable(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
-        if(schemaModel == null) return []
+        if (schemaModel == null) return [];
 
-        return Object
-        .entries(schemaModel)
-        .map(([key, blueprint]: any) => {
-            const attr = blueprint['_attributes'];
-
-            if(Array.from(attr).includes(this.model['$constants']('NULL'))) {
-                return key;
-            }
-
-            return undefined;
-        })
-        .filter(v => v != null);
+        return Object.entries(schemaModel)
+            .map(([key, blueprint]: any) => {
+                const attr = blueprint['_attributes'];
+                return Array.from(attr).includes(this.model['$constants']('NULL'))
+                    ? key
+                    : undefined;
+            })
+            .filter(v => v != null) as string[];
     }
 
     /**
-     * 
-     * @returns {T.SchemaModel<M> | null}
+     * Get the default values for all columns in the schema.
+     *
+     * @returns {T.SchemaModel<M> | null} An object of default values, or null if none are defined.
      */
-    defaults(): T.SchemaModel<M> | null {
+    defaults(): T.Columns<M> | null {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return null;
@@ -146,15 +153,16 @@ class ModelMeta<M extends Model> {
             Object.entries(schemaModel).map(([key, blueprint]) => [key, blueprint['_default']])
         );
 
-        return Object.keys(results).length ? (results as T.SchemaModel<M>) : null;
+        return Object.keys(results).length ? (results as T.Columns<M>) : null;
     }
 
     /**
-     * 
-     * @param {string} column 
-     * @returns {string | undefined}
+     * Get the inferred JavaScript type of a column (based on constructor mapping).
+     *
+     * @param {T.ColumnKeys<M>} column - The column key.
+     * @returns {("number" | "string" | "boolean" | "date" | undefined)} The column type, or undefined if not found.
      */
-    columnTypeOf(column: T.Column<M>): string | undefined {
+    columnTypeOf(column: T.ColumnKeys<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return undefined;
@@ -164,23 +172,23 @@ class ModelMeta<M extends Model> {
         if (!entry) return undefined;
 
         const blueprint = entry[1];
+        const value = blueprint['_valueType'];
 
-        const value = blueprint['_valueType']
-
-        if (value === Number)  return "number";
-        if (value === String)  return "string";
+        if (value === Number) return "number";
+        if (value === String) return "string";
         if (value === Boolean) return "boolean";
-        if (value === Date)    return "date";
+        if (value === Date) return "date";
 
-        return undefined; 
+        return undefined;
     }
 
     /**
-     * 
-     * @param {string} column 
-     * @returns {string | undefined}
+     * Get the database type of a column (e.g. varchar, int, etc.).
+     *
+     * @param {T.ColumnKeys<M>} column - The column key.
+     * @returns {string | undefined} The column type, or undefined if not found.
      */
-    columnType (column: T.Column<M>): string | undefined {
+    columnType(column: T.ColumnKeys<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return undefined;
@@ -190,40 +198,46 @@ class ModelMeta<M extends Model> {
         if (!entry) return undefined;
 
         const blueprint = entry[1];
-        
         return blueprint['_type'];
     }
 
     /**
+     * Get an enum column as a key-value map.
      *
-     * @param {string} column
-     * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null}
+     * @template C
+     * @param {C} column - The column key.
+     * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null} A record mapping each enum value to itself, or null if not defined.
      */
-    enum<C extends T.Column<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
+    //@ts-ignore
+    enum<C extends T.ColumnEnumKeys<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
         const schemaModel = this.model.getSchemaModel();
 
-        if(schemaModel == null) return null;
+        if (schemaModel == null) return null;
 
         const entry = Object.entries(schemaModel).find(([key]) => key === column);
 
         if (!entry) return null;
 
         const blueprint = entry[1];
+        //@ts-ignore
         const enumValues = blueprint['_enum'] as T.Result<M>[C][];
 
         return enumValues.reduce((prev, curr) => {
             prev[curr] = curr;
             return prev;
+            //@ts-ignore
         }, {} as Record<T.Result<M>[C], T.Result<M>[C]>);
     }
 
     /**
-     * 
-     * @param {string} column 
+     * Get all enum values for a given column.
+     *
+     * @template C
+     * @param {C} column - The column key.
      * @returns {T.Result<M>[C][]}
      */
-    enums<C extends T.Column<M>>(column: C): T.Result<M>[C][] {
-
+    //@ts-ignore
+    enums<C extends T.ColumnEnumKeys<M>>(column: C): T.Result<M>[C][] {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return [];
@@ -233,11 +247,11 @@ class ModelMeta<M extends Model> {
         if (!entry) return [];
 
         const blueprint = entry[1];
-        const enumValues = blueprint['_enum'] as T.Result<M>[C][];
-
-        return enumValues;
+        //@ts-ignore
+        return blueprint['_enum'] as T.Result<M>[C][];
     }
 }
+
 
 /**
  * The 'Meta' used to get the metadata of a Model works only when a schema is added to the Model.
@@ -270,11 +284,11 @@ class ModelMeta<M extends Model> {
  *  const meta          = Meta(User)
  *  // --- get metadata of User ---
  *  const table         = meta.table() // 'users'
- *  const column        = meta.column('id') // id
- *  const columnRef     = meta.columnReference('id') // `users`.`id`
- *  const columnTypeOf  = meta.columnTypeOf('id') // number
- *  const columnType    = meta.columnType('id') // Int
- *  const columns       = meta.columns() // ['id','uuid',...'updatedAt']
+ *  const column        = meta.ColumnKeys('id') // id
+ *  const columnRef     = meta.ColumnKeysReference('id') // `users`.`id`
+ *  const columnTypeOf  = meta.ColumnKeysTypeOf('id') // number
+ *  const columnType    = meta.ColumnKeysType('id') // Int
+ *  const columns       = meta.ColumnKeyss() // ['id','uuid',...'updatedAt']
  *  const hasColumn     = meta.hasColumn('id') // false
  *  const primaryKey    = meta.primaryKey() // 'id'
  *  const indexes       = meta.indexes() // ['users.email@index']
