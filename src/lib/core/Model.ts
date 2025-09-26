@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import pluralize            from "pluralize";
 import { DB }               from "./DB";
 import { Schema }           from "./Schema";
@@ -6,16 +7,15 @@ import { proxyHandler }     from "./Handlers/Proxy";
 import { RelationHandler }  from "./Handlers/Relation";
 import { Blueprint }        from "./Blueprint";
 import { StateHandler }     from "./Handlers/State";
-import { T, TSchemaModel }     from "./UtilityTypes";
 import { Cache }            from "./Cache";
 import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
+import type { T }           from "./UtilityTypes";
 import type {
   TCache,
   TExecute,
   TRelationOptions,
   TPagination,
-  TRelationQueryOptions,
   TValidateSchema,
   TGlobalSetting,
   TRawStringQuery,
@@ -26,8 +26,22 @@ import type {
   TModelConstructorOrObject,
   TRelationResults,
   TRelationKeys,
-  TRelationQueryDecoratorOptions,
+  TRelationQueryOptions,
 } from "../types";
+import type { 
+  TRelationQueryDecoratorOptions, 
+} from "../types/decorator";
+import { 
+  REFLECT_META_SCHEMA, 
+  REFLECT_META_RELATIONS, 
+  REFLECT_META_TABLE, 
+  REFLECT_META_VALIDATE_SCHEMA, 
+  REFLECT_META_SOFT_DELETE, 
+  REFLECT_META_PATTERN, 
+  REFLECT_META_TIMESTAMP, 
+  REFLECT_META_OBSERVER, 
+  REFLECT_META_UUID 
+} from "./Decorator";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -112,25 +126,6 @@ class Model<
   static global(settings: TGlobalSetting): void {
     globalSettings = Object.assign({}, globalSettings, settings);
     return;
-  }
-
-  /**
-   * The 'column' method is used keyof column in schema.
-   * @param {string} column
-   * @example
-   * import { User } from '../User'
-   * Model.column<User>('id')
-   * @returns {string} column
-   */
-  static column<M extends Model>(
-    column: TSchemaColumns<TSchemaModel<M>> | `${string}.${string}`,
-    { table = false } = {}
-  ): string {
-    if (table) {
-      return new this().bindColumn(String(column));
-    }
-
-    return column as string;
   }
 
   /**
@@ -4693,14 +4688,8 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async first<K, R = TRelationResults<TR>>(
-    cb?: Function
-  ): Promise<
-    | (unknown extends TS
-        ? Record<string, any>
-        : TS & K & Partial<R extends any ? TS & Partial<R> : R>)
-    | null
-  > {
+  async first<K>(cb?: Function): Promise<T.Result<this,K> | null> {
+
     this._validateMethod("first");
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
@@ -4730,24 +4719,12 @@ class Model<
     });
   }
 
-  async firstx<K>(cb?: Function): Promise<(K & T.Result<this>) | null> {
-    //@ts-expect-error
-    return await this.first(cb);
-  }
-
   /**
    * @override
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async findOne<K, R = TRelationResults<TR>>(
-    cb?: Function
-  ): Promise<
-    | (unknown extends TS
-        ? Record<string, any>
-        : TS & K & Partial<R extends any ? TS & Partial<R> : R>)
-    | null
-  > {
+  async findOne<K>(cb?: Function): Promise<T.Result<this,K> | null> {
     return await this.first(cb);
   }
 
@@ -4755,14 +4732,10 @@ class Model<
    * @override
    * @returns {promise<object | Error>} Record | throw error
    */
-  async firstOrError<K, R = TRelationResults<TR>>(
+  async firstOrError<K>(
     message?: string,
     options?: Record<string, any>
-  ): Promise<
-    unknown extends TS
-      ? Record<string, any>
-      : TS & K & Partial<R extends any ? TS & Partial<R> : R>
-  > {
+  ): Promise<T.Result<this,K>> {
     this._validateMethod("firstOrError");
 
     if (this.$state.get("EXCEPTS")?.length)
@@ -4786,16 +4759,12 @@ class Model<
   /**
    *
    * @override
-   * @returns {promise<any>} Record | throw error
+   * @returns {promise<T.Result<this>>} Record | throw error
    */
-  async findOneOrError<K, R = TRelationResults<TR>>(
+  async findOneOrError<K>(
     message?: string,
     options?: Record<string, any>
-  ): Promise<
-    unknown extends TS
-      ? Record<string, any>
-      : TS & K & Partial<R extends any ? TS & Partial<R> : R>
-  > {
+  ): Promise<T.Result<this,K>> {
     return await this.firstOrError(message, options);
   }
   /**
@@ -4804,13 +4773,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async get<K, R = TRelationResults<TR>>(
-    cb?: Function
-  ): Promise<
-    (unknown extends TS
-      ? Record<string, any>
-      : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]
-  > {
+  async get<K>(cb?: Function): Promise<T.Result<this,K>[]> {
     this._validateMethod("get");
 
     if (this.$state.get("VOID")) return [];
@@ -4844,13 +4807,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async findMany<K, R = TRelationResults<TR>>(
-    cb?: Function
-  ): Promise<
-    (unknown extends TS
-      ? Record<string, any>
-      : TS & K & Partial<TR extends any ? TS & Partial<R> : R>)[]
-  > {
+  async findMany<K>(cb?: Function): Promise<T.Result<this,K>[]> {
     return await this.get(cb);
   }
   /**
@@ -4860,13 +4817,11 @@ class Model<
    * @property {number} paginationOptions.page
    * @returns  {promise<Pagination>} Pagination
    */
-  async pagination<K, R = TRelationResults<TR>>(paginationOptions?: {
+  async pagination<K>(paginationOptions?: {
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<
-    TPagination<TS & K & Partial<R extends any ? TS & Partial<R> : R>>
-  > {
+  }): Promise<T.ResultPaginate<this,K>> {
     this._validateMethod("pagination");
 
     let limit = 15;
@@ -4907,13 +4862,11 @@ class Model<
    * @property  {number}  paginationOptions.page
    * @returns   {promise<Pagination>} Pagination
    */
-  async paginate<K, R = TRelationResults<TR>>(paginationOptions?: {
+  async paginate<K>(paginationOptions?: {
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<
-    TPagination<TS & K & Partial<R extends any ? TS & Partial<R> : R>>
-  > {
+  }): Promise<T.ResultPaginate<this,K>> {
     return await this.pagination(paginationOptions);
   }
 
@@ -4929,7 +4882,7 @@ class Model<
    * @returns {Promise<object>} Object binding with your column pairs
    */
   async getGroupBy<
-    K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,
+    K extends Extract<T.ColumnKeys<this>, string> | `${string}.${string}`,
     R = TRelationResults<TR>
   >(
     column: K
@@ -7206,10 +7159,7 @@ class Model<
 
       if (!(e instanceof Error)) return this._stoppedRetry(throwError);
 
-      await this.sync({
-        force: true,
-        changed:true
-      })
+      await this.sync({ force: true })
 
     } catch (e: unknown) {
       if (retry > 3) {
@@ -7243,88 +7193,92 @@ class Model<
     K extends TR extends object ? TRelationKeys<TR> : string
   >(): this {
 
-    const table = Reflect.getMetadata("table:name", this.constructor) || null;
+    const table = Reflect.getMetadata(REFLECT_META_TABLE, this.constructor) || null;
 
     if(table) this.$table = table;
 
-    const observer = Reflect.getMetadata("model:observer", this.constructor) || null;
+    const observer = Reflect.getMetadata(REFLECT_META_OBSERVER, this.constructor) || null;
 
     if(observer) this.$observer = observer;
 
-    const uuid = Reflect.getMetadata("uuid:enabled", this.constructor) || null;
+    const uuidIsEnabled = Reflect.getMetadata(REFLECT_META_UUID.enabled, this.constructor) || null;
 
-    if (uuid) {
+    if (uuidIsEnabled) {
       this.$uuid = true;
-      this.$uuidColumn = Reflect.getMetadata("uuid:column", this.constructor) || null;
+      this.$uuidColumn = Reflect.getMetadata(REFLECT_META_UUID.column, this.constructor) || null;
     }
 
-    const timestamp = Reflect.getMetadata("timestamp:enabled", this.constructor) || null;
+    const timestamp = Reflect.getMetadata(REFLECT_META_TIMESTAMP.enabled, this.constructor) || null;
 
     if (timestamp) {
       this.$timestamp = true;
-      this.$timestampColumns = Reflect.getMetadata("timestamp:columns", this.constructor) || null;
+      this.$timestampColumns = Reflect.getMetadata(REFLECT_META_TIMESTAMP.columns, this.constructor) || null;
     }
 
-    const pattern = Reflect.getMetadata("model:pattern", this.constructor) || null;
+    const pattern = Reflect.getMetadata(REFLECT_META_PATTERN, this.constructor) || null;
     
     if (pattern) this.$pattern = pattern;
 
-    const softDelete = Reflect.getMetadata("softDelete:enabled", this.constructor) || null;
+    const softDelete = Reflect.getMetadata(REFLECT_META_SOFT_DELETE.enabled, this.constructor) || null;
 
     if (softDelete) {
       this.$softDelete = true;
-      this.$softDeleteColumn = Reflect.getMetadata("softDelete:column", this.constructor) || null;
+      this.$softDeleteColumn = Reflect.getMetadata(REFLECT_META_SOFT_DELETE.columns, this.constructor) || null;
     }
 
-    const schema = Reflect.getMetadata("model:schema", this) || null;
+    const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, this) || null;
 
     if(schema) this.$schema = schema;
 
-    const validate = Reflect.getMetadata("validate:schema", this) || null;
+    const validate = Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, this) || null;
 
     if(validate) this.$validateSchema = validate;
 
     const hasOnes: TRelationQueryDecoratorOptions[] =
-      Reflect.getMetadata("relation:hasOne", this) || [];
+      Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, this) || [];
 
     for (const v of hasOnes) {
       this.hasOne({
         ...v,
         name: v.name as K,
-        model: v.model()
+        model: v.model(),
+        modelPivot: v.modelPivot? v.modelPivot () : undefined
       });
     }
     
     const hasManys: TRelationQueryDecoratorOptions[] =
-      Reflect.getMetadata("relation:hasMany", this) || [];
+      Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, this) || [];
 
     for (const v of hasManys) {
       this.hasMany({
         ...v,
         name: v.name as K,
-        model: v.model()
+        model: v.model(),
+        modelPivot: v.modelPivot? v.modelPivot () : undefined
       });
     }
 
     const belongsTos: TRelationQueryDecoratorOptions[] =
-      Reflect.getMetadata("relation:belongsTo", this) || [];
+      Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, this) || [];
 
     for (const v of belongsTos) {
       this.belongsTo({
         ...v,
         name: v.name as K,
-        model: v.model()
+        model: v.model(),
+        modelPivot: v.modelPivot? v.modelPivot () : undefined
       });
     }
 
     const belongsToManys: TRelationQueryDecoratorOptions[] =
-      Reflect.getMetadata("relation:belongsToMany", this) || [];
+      Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, this) || [];
 
     for (const v of belongsToManys) {
       this.belongsToMany({
         ...v,
         name: v.name as K,
-        model: v.model()
+        model: v.model(),
+        modelPivot: v.modelPivot? v.modelPivot () : undefined
       });
     }
     

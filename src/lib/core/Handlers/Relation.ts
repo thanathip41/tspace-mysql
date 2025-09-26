@@ -1,10 +1,7 @@
 import pluralize     from "pluralize";
 import { Model }     from "../Model";
 import { Blueprint } from "../Blueprint";
-import type { 
-    TRelationOptions, 
-    TRelationQueryOptions 
-} from "../../types";
+import { TRelationOptions, TRelationQueryOptions } from "../../types";
 
 class RelationHandler  {
 

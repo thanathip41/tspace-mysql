@@ -27,10 +27,10 @@ class User extends Model {
      * this.useDebug()
      * this.usePrimaryKey('id')
      * this.useTimestamp({
-     *    createdAt : 'created_at',
-     *    updatedAt : 'updated_at'
+     *    created_at : 'created_at',
+     *    updated_at : 'updated_at'
      * }) // runing a timestamp when insert or update
-     * this.useSoftDelete('deletedAt') // => default target to colmun deleted_at
+     * this.useSoftDelete('deleted_at') // => default target to colmun deleted_at
      * this.useTable('users')
      * this.useTableSingular() // => 'user'
      * this.useTablePlural() // => 'users'
@@ -179,13 +179,13 @@ class User extends Model {
     // insert created_at and updated_at when creating
     // update updated_at when updating
     // 'created_at' and 'updated_at' still relate to pettern the model
-    // this.useCamelCase() will covert 'created_at' to 'createdAt' and 'updated_at' to 'updatedAt'
+    // this.useCamelCase() will covert 'created_at' to 'created_at' and 'updated_at' to 'updated_at'
     this.useTimestamp() 
 
     // custom the columns
     this.useTimestamp({
-      createdAt : 'createdAtCustom',
-      updatedAt : 'updatedAtCustom'
+      created_at : 'created_atCustom',
+      updated_at : 'updated_atCustom'
     })
 
   }
@@ -1045,8 +1045,7 @@ import {
     Blueprint, Model ,
     Table ,TableSingular, TablePlural,
     UUID, SoftDelete, Timestamp,
-    Pattern, CamelCase , snakeCase ,
-    Column, Validate, Observer
+    Pattern, Column, Validate, Observer
 } from 'tspace-mysql'
 import { Post } from './Post'
 import { PostUser } from './PostUser'
@@ -1076,6 +1075,9 @@ class UserObserve {
 @SoftDelete()
 @Timestamp()
 @Table('users')
+//@TableSingular() // 'user'
+//@TablePlural() // 'users'
+// if without set with @Table default 'users'
 class User extends Model {
 
     @Column(() => Blueprint.int().notNull().primary().autoIncrement())
@@ -1109,13 +1111,13 @@ class User extends Model {
     public password !: string
 
     @Column(() => Blueprint.timestamp().null())
-    public createdAt!: Date
+    public created_at!: Date
 
     @Column(() => Blueprint.timestamp().null())
-    public updatedAt!: Date
+    public updated_at!: Date
 
     @Column(() => Blueprint.timestamp().null())
-    public deletedAt!: Date
+    public deleted_at!: Date
 
 }
 
@@ -1139,9 +1141,9 @@ const schema = {
   uuid: Blueprint.varchar(50).null().index(),
   name: Blueprint.varchar(191).notNull(),
   email: Blueprint.varchar(191).notNull(),
-  createdAt: Blueprint.timestamp().null(),
-  updatedAt: Blueprint.timestamp().null(),
-  deletedAt: Blueprint.timestamp().null()
+  created_at: Blueprint.timestamp().null(),
+  updated_at: Blueprint.timestamp().null(),
+  deleted_at: Blueprint.timestamp().null()
 }
 
 
@@ -1155,9 +1157,9 @@ type TS = T.Schema<typeof Schema>
     uuid : string | null,
     name : string,
     email : string,
-    createdAt : Date | string | null,
-    updatedAt : Date | string | null,
-    deletedAt : Date | string | null
+    created_at : Date | string | null,
+    updated_at : Date | string | null,
+    deleted_at : Date | string | null
   }
 */
 
@@ -1184,9 +1186,9 @@ const schema = {
   firstName: Blueprint.varchar(191).notNull(),
   lastName : Blueprint.varchar(191).notNull(),
   email: Blueprint.varchar(191).notNull(),
-  createdAt: Blueprint.timestamp().null(),
-  updatedAt: Blueprint.timestamp().null(),
-  deletedAt: Blueprint.timestamp().null(),
+  created_at: Blueprint.timestamp().null(),
+  updated_at: Blueprint.timestamp().null(),
+  deleted_at: Blueprint.timestamp().null(),
 
   // Define you virtual column to schema
   fullName : new Blueprint().virtualColumn(`CONCAT(firstName,' ', lastName)`),
@@ -1237,15 +1239,14 @@ import { Model, Blueprint } from "tspace-mysql";
 class User extends Model {
   constructor() {
     super();
-    this.useCamelCase();
     this.useSchema({
       id: Blueprint.int().notNull().primary().autoIncrement(),
       uuid: Blueprint.varchar(50).null(),
       name: Blueprint.varchar(191).notNull(),
       email: Blueprint.varchar(191).notNull(),
-      createdAt: Blueprint.timestamp().null(),
-      updatedAt: Blueprint.timestamp().null(),
-      deletedAt: Blueprint.timestamp().null(),
+      created_at: Blueprint.timestamp().null(),
+      updated_at: Blueprint.timestamp().null(),
+      deleted_at: Blueprint.timestamp().null(),
     });
 
     // validate input when create or update reference to the schema in 'this.useSchema'
@@ -1270,9 +1271,9 @@ class User extends Model {
           return null;
         }
       },
-      createdAt: Date,
-      updatedAt: Date,
-      deletedAt: Date,
+      created_at: Date,
+      updated_at: Date,
+      deleted_at: Date,
     });
   }
 }
@@ -1371,18 +1372,18 @@ class User extends Model {
       super()
       this.useSoftDelete() // All query will be where 'deleted_at' is null
 
-      // You can also use patterns camelCase to covert the 'deleted_at' to 'deletedAt'
+      // You can also use patterns camelCase to covert the 'deleted_at' to 'deleted_at'
       // You can also customize the  column 'deleted_at'
-      this.useSoftDelete('deletedAtCustom')
+      this.useSoftDelete('deleted_atCustom')
     }
 }
 
 const user = await new User().where('user_id',1).findOne()
-// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NULL LIMIT 1;
+// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deleted_atCustom` IS NULL LIMIT 1;
 
 // find in trashed
 const user = await new User().trashed().findMany()
-// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deletedAtCustom` IS NOT NULL;
+// SELECT * FROM `users` WHERE `users`.`userId` = '1' and `users`.`deleted_atCustom` IS NOT NULL;
 
 ```
 
@@ -1402,8 +1403,8 @@ const schemaUser = {
     name :Blueprint.varchar(255).null(),
     username : Blueprint.varchar(255).null(),
     password : Blueprint.varchar(255).null(),
-    createdAt :Blueprint.timestamp().null(),
-    updatedAt :Blueprint.timestamp().null()
+    created_at :Blueprint.timestamp().null(),
+    updated_at :Blueprint.timestamp().null()
 }
 
 type TSchemaUser = T.SchemaStatic<typeof schemaUser>
@@ -1434,8 +1435,8 @@ const schemaPhone = {
     uuid :Blueprint.varchar(50).null(),
     userId : Blueprint.int().notNull(),
     number :Blueprint.varchar(50).notNull(),
-    createdAt :Blueprint.timestamp().null(),
-    updatedAt :Blueprint.timestamp().null()
+    created_at :Blueprint.timestamp().null(),
+    updated_at :Blueprint.timestamp().null()
 }
 
 type TSchemaPhone = T.SchemaStatic<typeof schemaPhone>
@@ -1692,8 +1693,8 @@ const schemaUser = {
     name      :Blueprint.varchar(255).null(),
     username  :Blueprint.varchar(255).null(),
     password  :Blueprint.varchar(255).null(),
-    createdAt :Blueprint.timestamp().null(),
-    updatedAt :Blueprint.timestamp().null()
+    created_at :Blueprint.timestamp().null(),
+    updated_at :Blueprint.timestamp().null()
 }
 
 type TSchemaUser = T.SchemaStatic<typeof schemaUser>
@@ -1728,8 +1729,8 @@ const schemaPhone = {
     uuid      :Blueprint.varchar(50).null(),
     userId    :Blueprint.int().notNull(),
     number    :Blueprint.varchar(50).notNull(),
-    createdAt :Blueprint.timestamp().null(),
-    updatedAt :Blueprint.timestamp().null()
+    created_at :Blueprint.timestamp().null(),
+    updated_at :Blueprint.timestamp().null()
 }
 
 type TSchemaPhone = T.Schema<typeof schemaPhone>
@@ -1825,8 +1826,8 @@ const schema = {
   password  : Blueprint.varchar(255).notNull(),
   status    : Blueprint.tinyInt().notNull().default(0),
   role      : Blueprint.enum('admin','user').default('user'),
-  createdAt : Blueprint.timestamp().null(),
-  updatedAt : Blueprint.timestamp().null()
+  created_at : Blueprint.timestamp().null(),
+  updated_at : Blueprint.timestamp().null()
 }
 
 type TS = T.Schema<typeof schema>
@@ -1845,12 +1846,12 @@ const column        = meta.column('id') // 'id'
 const columnRef     = meta.columnReference('id') // `users`.`id`
 const columnTypeOf  = meta.columnTypeOf('id') // number
 const columnType    = meta.columnType('id') // Int
-const columns       = meta.columns() // ['id','uuid',...'updatedAt']
+const columns       = meta.columns() // ['id','uuid',...'updated_at']
 const hasColumn     = meta.hasColumn('idx') // false
 const primaryKey    = meta.primaryKey() // 'id'
 const indexes       = meta.indexes() // ['users.email@index']
-const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
-const defaults      = meta.defaults() // { id : null, uuid : null, ..., status : 0, role: 'user' ,..updatedAt : null  }
+const nullable      = meta.nullable() // ['uuid','name','created_at','updated_at']
+const defaults      = meta.defaults() // { id : null, uuid : null, ..., status : 0, role: 'user' ,..updated_at : null  }
 const enums         = meta.enums('role') // [ 'admin', 'user' ]
 const enumsObj      = meta.enum('role') // { admin: 'admin', user: 'user' }
 ```

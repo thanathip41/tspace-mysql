@@ -4,13 +4,12 @@ import { RelationHandler }  from '../Handlers/Relation'
 import { Model }            from '../Model'
 import type { 
     TPattern, 
-    TRelationOptions, 
-    TRelationQueryOptions, 
     TValidateSchema , 
     TCache, 
-    TRelationKeys
+    TRelationKeys,
+    TRelationOptions,
+    TRelationQueryOptions
 } from '../../types'
-
 abstract class AbstractModel<T,R> extends Builder {
 
     protected $cache             !: TCache 

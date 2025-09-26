@@ -130,7 +130,10 @@ DB_DATABASE = database
 // host2, host3 -> slave nodes
 DB_CLUSTER = true
 DB_DRIVER = mariadb
-DB_HOST = master@host1,slave@host2,slave@host3 ✅
+DB_HOST = host1,host2,host3 ✅ // host1 still master by default
+// if you want to specific master or slave
+// master can be more than 1
+// DB_HOST = master@host1,slave@host2,slave@host3 
 DB_PORT = 3306,3307,3308
 DB_USERNAME = root1,root2,root3
 DB_PASSWORD = password1,password2,password3
@@ -306,20 +309,20 @@ npm intall tspace-mysql --save
 ```js
 // src/entities/user.entity.ts
 import { Model }  from 'tspace-mysql';
-export class User extends Model {}
+export class User extends Model {};
 
 // --------------------------------------------------
 
 // src/app.service.ts
 import { Injectable, Inject } from '@nestjs/common';
-import { NestInject, NestRepository } from 'tspace-mysql';
-import { User } from './entities/User'
+import { Nest , T } from 'tspace-mysql';
+import { User } from './entities/user.entity.ts'
 
 @Injectable()
 export class AppService {
   constructor(
-    @Inject(NestInject(User)) // send by app.module
-    private userRepository: NestRepository<User>
+    @Nest.InjectRepository(User) // send by app.module
+    private userRepository: T.Repository<User>
   ) {}
   async findAll() {
     const users = await this.userRepository.findMany();
@@ -333,7 +336,7 @@ import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller('')
-export class UsersController {
+export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
@@ -350,12 +353,12 @@ export class UsersController {
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { NestProvider } from 'tspace-mysql';
+import { Nest } from 'tspace-mysql';
 import { User } from './entities/user.entity'
 
 @Module({
   controllers: [AppController],
-  providers: [AppService, NestProvider(User)] // register this
+  providers: [AppService, Nest.Provider(User)] // register this
 })
 export class AppModule {}
 // --------------------------------------------------

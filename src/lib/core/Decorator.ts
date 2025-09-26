@@ -1,10 +1,45 @@
 import "reflect-metadata";
-import pluralize      from "pluralize"
-import { Blueprint }  from "./Blueprint"
-import type { 
-  TRelationQueryDecoratorOptions, 
+import pluralize      from "pluralize";
+import { Blueprint }  from "./Blueprint";
+import { 
+  TRelationQueryDecoratorOptions 
+} from "../types/decorator";
+import { 
+  TPattern, 
   TValidateSchemaDecorator 
-} from "../types"
+} from "../types";
+
+export const REFLECT_META_RELATIONS = {
+  hasOne        : 'relation:hasOne',
+  hasMany       : 'relation:hasMany',
+  belongsTo     : 'relation:belongsTo',
+  belongsToMany : 'relation:belongsToMany'
+};
+
+export const REFLECT_META_SCHEMA = 'model:schema';
+
+export const REFLECT_META_VALIDATE_SCHEMA = 'validate:schema';
+
+export const REFLECT_META_TABLE = 'model:table';
+
+export const REFLECT_META_UUID = {
+  enabled: 'uuid:enabled',
+  column : 'uuid:column'
+};
+
+export const REFLECT_META_OBSERVER = 'model:observer';
+
+export const REFLECT_META_TIMESTAMP = {
+  enabled: 'timestamp:enabled',
+  columns: 'timestamp:columns'
+};
+
+export const REFLECT_META_SOFT_DELETE = {
+  enabled: 'timestamp:enabled',
+  columns: 'timestamp:columns'
+};
+
+export const REFLECT_META_PATTERN = 'model:pattern';
 
 /**
  * Decorator to mark a class with a database table name.
@@ -23,7 +58,7 @@ import type {
  */
 export const Table = (name: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("table:name", name, target);
+    Reflect.defineMetadata(REFLECT_META_TABLE, name, target);
   };
 };
 
@@ -49,7 +84,7 @@ export const TableSingular = (): ClassDecorator => {
 
     const singular = pluralize.singular(name);
 
-    Reflect.defineMetadata("table:name", singular, target);
+    Reflect.defineMetadata(REFLECT_META_TABLE, singular, target);
   };
 };
 
@@ -76,7 +111,7 @@ export const TablePlural = (): ClassDecorator => {
 
     const plural = pluralize.plural(name);
 
-    Reflect.defineMetadata("table:name", plural, target);
+    Reflect.defineMetadata(REFLECT_META_TABLE, plural, target);
   };
 };
 
@@ -96,8 +131,8 @@ export const TablePlural = (): ClassDecorator => {
  */
 export const UUID = (column?: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("uuid:enabled", true, target);
-    Reflect.defineMetadata("uuid:column", column, target);
+    Reflect.defineMetadata(REFLECT_META_UUID.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META_UUID.enabled, column, target);
   };
 };
 
@@ -129,7 +164,7 @@ export const Observer = (observer: new () => {
   deleted: Function;
 }): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("model:observer", observer, target);
+    Reflect.defineMetadata(REFLECT_META_OBSERVER, observer, target);
   };
 };
 
@@ -149,8 +184,8 @@ export const Observer = (observer: new () => {
  */
 export const Timestamp = (columns?: { createdAt: string; updatedAt: string }): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("timestamp:enabled", true, target);
-    Reflect.defineMetadata("timestamp:columns", columns, target);
+    Reflect.defineMetadata(REFLECT_META_TIMESTAMP.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META_TIMESTAMP.columns, columns, target);
   };
 };
 
@@ -170,8 +205,8 @@ export const Timestamp = (columns?: { createdAt: string; updatedAt: string }): C
  */
 export const SoftDelete = (column?: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("softDelete:enabled", true, target);
-    Reflect.defineMetadata("softDelete:column", column, target);
+    Reflect.defineMetadata(REFLECT_META_SOFT_DELETE.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META_SOFT_DELETE.columns, column, target);
   };
 };
 
@@ -189,9 +224,9 @@ export const SoftDelete = (column?: string): ClassDecorator => {
  * class User extends Model {}
  * ```
  */
-export const Pattern = (pattern: "camelCase" | "snake_case"): ClassDecorator => {
+export const Pattern = (pattern: TPattern): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("model:pattern", pattern, target);
+    Reflect.defineMetadata(REFLECT_META_PATTERN, pattern, target);
   };
 };
 
@@ -208,7 +243,7 @@ export const Pattern = (pattern: "camelCase" | "snake_case"): ClassDecorator => 
  */
 export const CamelCase = (): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("model:pattern", "camelCase", target);
+    Reflect.defineMetadata(REFLECT_META_PATTERN, "camelCase", target);
   };
 };
 
@@ -225,7 +260,7 @@ export const CamelCase = (): ClassDecorator => {
  */
 export const SnakeCase = (): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata("model:pattern", "snake_case", target);
+    Reflect.defineMetadata(REFLECT_META_PATTERN, "snake_case", target);
   };
 };
 
@@ -254,15 +289,15 @@ export const SnakeCase = (): ClassDecorator => {
  * ```
  */
 export const Column = (blueprint: () => Blueprint): Function => {
-  return (target: any, propertyKey: string) => {
+  return (target: Object, propertyKey: string) => {
     if (!propertyKey) {
       throw new Error("Unable to determine property name for Column decorator");
     }
     if (!(blueprint() instanceof Blueprint)) return;
 
-    const schema = Reflect.getMetadata("model:schema", target) || {};
+    const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, target) || {};
 
-    Reflect.defineMetadata("model:schema", {
+    Reflect.defineMetadata(REFLECT_META_SCHEMA, {
       ...schema,
       [propertyKey]: blueprint()
     }, target);
@@ -310,9 +345,9 @@ export const Column = (blueprint: () => Blueprint): Function => {
  */
 export const Validate = (validate: TValidateSchemaDecorator): Function => {
   return (target: Object, propertyKey: string | symbol) => {
-    const existing = Reflect.getMetadata("validate:schema", target) || {};
+    const existing = Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, target) || {};
 
-    Reflect.defineMetadata("validate:schema", { 
+    Reflect.defineMetadata(REFLECT_META_VALIDATE_SCHEMA, { 
       ...existing, 
       [propertyKey]: validate 
     }, target);
@@ -337,13 +372,13 @@ export const Validate = (validate: TValidateSchemaDecorator): Function => {
  * ```
  */
 export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
-  return (target: any, propertyKey: string) => {
+  return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasOne decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:hasOne", target) || [];
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, target) || [];
 
     Reflect.defineMetadata(
-      "relation:hasOne",
+      REFLECT_META_RELATIONS.hasOne,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -368,13 +403,13 @@ export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
  * ```
  */
 export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
-  return (target: any, propertyKey: string) => {
+  return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasMany decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:hasMany", target) || [];
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, target) || [];
 
     Reflect.defineMetadata(
-      "relation:hasMany",
+      REFLECT_META_RELATIONS.hasMany,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -399,13 +434,13 @@ export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
  * ```
  */
 export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => {
-  return (target: any, propertyKey: string) => {
+  return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsTo decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:belongsTo", target) || [];
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, target) || [];
 
     Reflect.defineMetadata(
-      "relation:belongsTo",
+      REFLECT_META_RELATIONS.belongsTo,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -430,13 +465,13 @@ export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => 
  * ```
  */
 export const BelongsToMany = (options: TRelationQueryDecoratorOptions): Function => {
-  return (target: any, propertyKey: string) => {
+  return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsToMany decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata("relation:belongsToMany", target) || [];
+    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, target) || [];
 
     Reflect.defineMetadata(
-      "relation:belongsToMany",
+      REFLECT_META_RELATIONS.belongsToMany,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );

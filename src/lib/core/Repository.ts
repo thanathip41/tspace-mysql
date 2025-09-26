@@ -2,14 +2,6 @@ import { Model } from "./Model"
 import type { 
     T
 } from "./UtilityTypes"
-import type { 
-    TRepositoryCreateMultiple, 
-    TRepositoryCreateOrThings, 
-    TRepositoryCreate, 
-    TRepositoryDelete, 
-    TRepositoryUpdate,
-    TRepositoryUpdateMultiple,
-} from "../types"
 
 class RepositoryHandler<
     TS extends Record<string, any> = Record<string, any>, 
@@ -44,10 +36,10 @@ class RepositoryHandler<
      * @returns {promise<Object | null>}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const user = await userRepository.findOne({
      *       select : ['id','name'],
@@ -64,7 +56,6 @@ class RepositoryHandler<
 
         if(instance == null) throw new Error('The instance is not initialized')
  
-        //@ts-ignore
         return await instance.first();
     }
 
@@ -95,10 +86,10 @@ class RepositoryHandler<
      * @returns {promise<Object | null>}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const user = await userRepository.findOne({
      *       select : ['id','name'],
@@ -140,10 +131,10 @@ class RepositoryHandler<
      * @returns {promise<Object>[]}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const users = await userRepository.get({
      *       select : ['id','name'],
@@ -160,7 +151,6 @@ class RepositoryHandler<
 
         if(instance == null) throw new Error('The instance is not initialized')
         
-        //@ts-ignore
         return await instance.get()
     }
 
@@ -191,10 +181,10 @@ class RepositoryHandler<
      * @returns {promise<object>[]}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const users = await userRepository.findMany({
      *       select : ['id','name'],
@@ -238,10 +228,10 @@ class RepositoryHandler<
      * @returns {promise<{ meta , data[]}>}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const users = await userRepository.pagination({
      *       select : ['id','name'],
@@ -257,8 +247,7 @@ class RepositoryHandler<
         const instance = this._handlerRequest(options)
 
         if(instance == null) throw new Error('The instance is not initialized')
-        
-        //@ts-ignore
+
         return await instance.pagination({
             limit : options.limit,
             page : options.page
@@ -294,10 +283,10 @@ class RepositoryHandler<
      * @returns {promise<{ meta , data[]}>}
      * 
      * @example
-     * import { Repository , TRepository } from 'tspace-mysql'
+     * import { Repository } from 'tspace-mysql'
      * import { User } from '../Models/User'
      *
-     * const userRepository = new Repository<User>().bind(User)
+     * const userRepository =  Repository(User)
      * 
      *  const users = await userRepository.paginate({
      *       select : ['id','name'],
@@ -641,7 +630,7 @@ class RepositoryHandler<
         data,
         debug,
         transaction
-    } : TRepositoryCreate<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreate<TM>): Promise<T.Result<TM>> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -671,7 +660,7 @@ class RepositoryHandler<
     async insert ({
         data,
         debug,
-    } : TRepositoryCreate<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreate<TM>): Promise<T.Result<TM>> {
         return await this.create({
             data,
             debug
@@ -695,7 +684,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM> | null> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM> | null> {
 
         let instance = new this._model() as Model
 
@@ -728,7 +717,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM> | null> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM> | null> {
 
         return await this.createNotExists({
             data,
@@ -752,7 +741,7 @@ class RepositoryHandler<
         data,
         debug,
         transaction
-    } : TRepositoryCreateMultiple<TS>): Promise<T.Result<TM>[]> {
+    } : T.RepositoryCreateMultiple<TM>): Promise<T.Result<TM>[]> {
 
         if(!Object.keys(data).length) throw new Error('The data must be required')
 
@@ -782,7 +771,7 @@ class RepositoryHandler<
     async insertMultiple ({
         data,
         debug,
-    } : TRepositoryCreateMultiple<TS>): Promise<T.Result<TM>[]> {
+    } : T.RepositoryCreateMultiple<TM>): Promise<T.Result<TM>[]> {
 
         return await this.createMultiple({
             data,
@@ -806,7 +795,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM>> {
 
         if(where == null  || !Object.keys(where).length) throw new Error("The method createOrUpdate can't use without where condition")
 
@@ -839,7 +828,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM>> {
 
         return await this.createOrUpdate({
             data,
@@ -865,7 +854,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM>> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method createOrSelect can't use without where condition")
@@ -900,7 +889,7 @@ class RepositoryHandler<
         data,
         where,
         debug
-    } : TRepositoryCreateOrThings<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryCreateOrThings<TM>): Promise<T.Result<TM>> {
 
         return await this.createOrSelect({
             data,
@@ -928,7 +917,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<TS>): Promise<T.Result<TM>> {
+    } : T.RepositoryUpdate<TM>): Promise<T.Result<TM>> {
 
         if(where == null || !Object.keys(where).length) {
             throw new Error("The method update can't use without where condition")
@@ -968,7 +957,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryUpdate<TS>): Promise<T.Result<TM>[]> {
+    } : T.RepositoryUpdate<TM>): Promise<T.Result<TM>[]> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method updateMany can't use without where condition")
@@ -1032,7 +1021,7 @@ class RepositoryHandler<
         cases,
         debug,
         transaction
-    } : TRepositoryUpdateMultiple<TS>): Promise<T.Result<TM>[]> {
+    } : T.RepositoryUpdateMultiple<TM>): Promise<T.Result<TM>[]> {
 
         if(!cases.length) throw new Error("The method updateMultiple can't use without cases condition")
 
@@ -1065,7 +1054,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryDelete<TS>): Promise<boolean> {
+    } : T.RepositoryDelete<TM>): Promise<boolean> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method delete can't use without where condition")
@@ -1101,7 +1090,7 @@ class RepositoryHandler<
         where,
         debug,
         transaction
-    } : TRepositoryDelete<TS>): Promise<boolean> {
+    } : T.RepositoryDelete<TM>): Promise<boolean> {
 
         if(where == null  || !Object.keys(where).length) {
             throw new Error("The method deleteMany can't use without where condition")
