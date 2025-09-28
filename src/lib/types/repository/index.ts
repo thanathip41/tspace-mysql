@@ -88,7 +88,7 @@ export type TRepositoryWhere<
                   ? TRepositoryWhere<any, unknown, TRelationsDecorator<M>[K]>
                   : never
               : K extends keyof TColumnsDecorator<M>
-                ? TColumnsDecorator<M, { type: "any" }>[K]
+                ? TColumnsDecorator<M>[K]
                 : never;
         }>
     : Partial<{

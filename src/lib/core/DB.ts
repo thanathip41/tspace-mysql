@@ -3,7 +3,7 @@ import { AbstractDB }     from "./Abstracts/AbstractDB";
 import { proxyHandler }   from "./Handlers/Proxy";
 import { StateHandler }   from "./Handlers/State";
 import { Tool }           from "../tools";
-import { PoolConnection } from "./Pool";
+import Pool, { PoolConnection } from "./Pool";
 import type {
   TConstant,
   TBackup,
@@ -15,6 +15,7 @@ import type {
   TRawStringQuery,
   TFreezeStringQuery,
   TDriver,
+  TPoolEvent,
 } from "../types";
 
 /**
@@ -63,6 +64,39 @@ class DB extends AbstractDB {
    */
   static async initialize (): Promise<void> {
     return await new this().initialize();
+  }
+
+  /**
+   * This 'event' method ensures the pool is initialized before attaching
+   * the given callback to the specified pool event.
+   *
+   * @async
+   * @template TPoolEvent
+   * @param {TPoolEvent} event - The name of the pool event to listen for.
+   * @param {(data: any) => any} callback - A callback function invoked when the event is emitted.
+   * @returns {Promise<void>} A promise that resolves once the event listener is registered.
+   */
+  async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
+    await this.initialize();
+    if (Pool.instance == null) return;
+    
+    Pool.instance.on(event, callback);
+    return;
+  }
+
+  /**
+   *
+   * This 'event' method ensures the pool is initialized before attaching
+   * the given callback to the specified pool event.
+   *
+   * @async
+   * @template TPoolEvent
+   * @param {TPoolEvent} event - The name of the pool event to listen for.
+   * @param {(data: any) => any} callback - A callback function invoked when the event is emitted.
+   * @returns {Promise<void>} A promise that resolves once the event listener is registered.
+   */
+  static async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
+    return new this().event(event, callback);
   }
 
   /**
@@ -700,8 +734,7 @@ class DB extends AbstractDB {
     database = `dump_${+new Date()}`,
     connection,
   }: TBackupToFile): Promise<void> {
-    await this.$utils.wait(1000 * 3);
-
+    await this.$utils.wait(1000 * 5);
     const tables = await this.showTables();
 
     const backup = (await this._backupToString({ tables, database })).map((b) => {
@@ -715,14 +748,18 @@ class DB extends AbstractDB {
             tabWidth: 2,
             linesBetweenQueries: 1,
           })}`,
-        ].join("\n"),
+        ].join("\n") + ';',
         values:
           b.values().length
             ? [
                 `\n--`,
                 `-- Dumping data for table '${b.name}'`,
                 `--\n`,
-                `${b.values().map(v => `${v}\n`).join("\n")}`,
+                `${format(`${b.values()};`, {
+                  language: "spark",
+                  tabWidth: 2,
+                  linesBetweenQueries: 1,
+                })}`,
               ].join("\n")
             : "",
       };
@@ -1108,7 +1145,7 @@ class DB extends AbstractDB {
 
     for (const table of tables) {
       const schema = await this.showSchema(table);
-      const values = await new DB(table).get();
+      const values = await this.table(table).get();
 
       backup.push({
         name: table == null ? "" : table,
@@ -1122,7 +1159,8 @@ class DB extends AbstractDB {
           const str: string[] = [];
 
           for (const data of chunked) {
-            const sql = new DB(table)
+            const sql = this
+            .table(table)
             .debug(this.$state.get("DEBUG"))
             .createMultiple([...data])
             .toString();

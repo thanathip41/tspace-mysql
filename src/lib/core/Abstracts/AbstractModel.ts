@@ -1,7 +1,8 @@
-import { Blueprint }        from '../Blueprint'
-import { Builder }          from '../Builder'
-import { RelationHandler }  from '../Handlers/Relation'
-import { Model }            from '../Model'
+import { Blueprint }        from '../Blueprint';
+import { Builder }          from '../Builder';
+import { RelationHandler }  from '../Handlers/Relation';
+import { Model }            from '../Model';
+import type { T }           from '../UtilityTypes';
 import type { 
     TPattern, 
     TValidateSchema , 
@@ -56,7 +57,8 @@ abstract class AbstractModel<T,R> extends Builder {
     protected abstract hasMany({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     protected abstract belongsTo({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     protected abstract belongsToMany({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
-    protected abstract buildMethodRelation<K extends R extends object ? TRelationKeys<R> : string>(name : K ,callback ?: Function) : this
+    //@ts-ignore
+    protected abstract buildMethodRelation<K extends T.RelationKeys<this>>(name : K ,callback ?: Function) : this
 
     protected abstract hasOneBuilder({ name , model , localKey , foreignKey , freezeTable , as } : TRelationQueryOptions ,callback : Function) : this
     protected abstract hasManyBuilder({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationQueryOptions,callback : Function) : this
@@ -69,21 +71,69 @@ abstract class AbstractModel<T,R> extends Builder {
 
     abstract onlyTrashed() :this
     abstract trashed() : this
-    abstract restore() : Promise<T[]>
+    //@ts-ignore
+    abstract restore() : Promise<T.Result<this>[]>
 
-    abstract with<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract withQuery<K extends R extends object ? TRelationKeys<R> : string, TModel extends Model>(nameRelations : K , callback : (query : TModel) => TModel) : this
-    abstract withExists<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract withTrashed<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract withAll<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract withCount<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract has<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract relations<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract relationQuery<K extends R extends object ? TRelationKeys<R> : string, TModel extends Model>(nameRelations : K , callback : (query : TModel) => TModel) : this
-    abstract relationsExists<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract relationsAll<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract relationsCount<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
-    abstract relationsTrashed<K extends R extends object ? TRelationKeys<R> : string>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract with<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract withQuery<K extends T.RelationKeys<this>,R extends T.Relations<this>,>(
+        nameRelations : K , 
+        callback: (
+        query: `$${K & string}` extends keyof R
+        ? R[`$${K & string}`] extends (infer X)[]
+        ? X
+        : R[`$${K & string}`] extends Model
+            ? R[`$${K & string}`]
+            : Model
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
+            ? X
+            : R[K] extends Model
+            ? R[K]
+            : Model
+        : Model
+    ) => any,
+    ) : this
+    // @ts-ignore
+    abstract withExists<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract withTrashed<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract withAll<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract withCount<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract has<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract relations<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract relationQuery<K extends T.RelationKeys<this>,R extends T.Relations<this>>(
+        nameRelations : K , 
+        callback: (
+            query: `$${K & string}` extends keyof R
+            ? R[`$${K & string}`] extends (infer X)[]
+            ? X
+            : R[`$${K & string}`] extends Model
+                ? R[`$${K & string}`]
+                : Model
+            : K extends keyof R
+            ? R[K] extends (infer X)[]
+                ? X
+                : R[K] extends Model
+                ? R[K]
+                : Model
+            : Model
+        ) => any,
+    ) : this
+    // @ts-ignore
+    abstract relationsExists<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract relationsAll<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    // @ts-ignore
+    abstract relationsCount<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+    //@ts-ignore
+    abstract relationsTrashed<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
     
 }
 

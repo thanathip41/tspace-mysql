@@ -1320,6 +1320,7 @@ class RepositoryHandler<
                 delete where[column]
             }
 
+            //@ts-ignore
             instance.whereObject(where)
         }
 
@@ -1331,6 +1332,7 @@ class RepositoryHandler<
 
         if(whereQuery != null) {
             instance.whereQuery((query : Model) => {
+                //@ts-ignore
                 return query.whereObject(whereQuery)
             })
         }

@@ -16,12 +16,13 @@ abstract class AbstractBuilder {
         '$constants',
         '$pool',
         '$state',
-        '$relation'
+        '$relation',
     ]
 
     protected $utils !: TUtils 
 
     protected $database : string = String(Config.DATABASE ?? '');
+
     protected $credentials = {
         host     : Config.HOST,
         port     : Number(Config.PORT),

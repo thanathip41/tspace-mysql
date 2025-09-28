@@ -44,6 +44,7 @@ export class PostgresDriver extends BaseDriver {
     });
 
     return {
+      database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: PostgresQueryBuilder,
       query: (sql: string) => this._query(sql),
@@ -62,7 +63,7 @@ export class PostgresDriver extends BaseDriver {
     return new Promise<any[]>((resolve, reject) => {
       return this.pool.query(sql, (err: any, results: any) => {
         if (err) return reject(err);
-        this._detectEventQuery({ start, sql, results : this.returning(results) });
+        this._detectEventQuery({ start, sql });
         this.meta(results, sql);
         return resolve(this.returning(results));
       });
@@ -87,7 +88,7 @@ export class PostgresDriver extends BaseDriver {
                 return fail(err);
               }
 
-              this._detectEventQuery({ start, sql, results : this.returning(results) });
+              this._detectEventQuery({ start, sql });
 
               this.meta(results, sql);
 

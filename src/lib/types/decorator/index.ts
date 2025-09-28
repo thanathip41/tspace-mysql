@@ -1,7 +1,7 @@
-import { TOperatorQuery } from "..";
+import { TFreezeStringQuery, TOperatorQuery, TRawStringQuery } from "..";
 import { Model }          from "../../core/Model";
 
-export type TRelationQueryDecoratorOptions<K = any> = {
+export type TRelationQueryOptionsDecorator<K = any> = {
     name?: K extends void ? never : K;
     model: () => new () => Model<any, any>;
     as?: string;
@@ -19,12 +19,8 @@ export type TRelationQueryDecoratorOptions<K = any> = {
     modelPivot?:() => new () => Model<any, any>;
 };
 
-export type TColumnsDecorator<T, O extends {
-    type: "original" | "any";
-} = {
-    type: "original";
-}> = {
-    [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]: O["type"] extends "any" ? T[K] | TOperatorQuery : T[K];
+export type TColumnsDecorator<T> = {
+    [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]: T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
 };
 
 export type TRelationsDecorator<T> = Pick<T, {

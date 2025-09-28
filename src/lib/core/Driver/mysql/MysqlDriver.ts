@@ -62,8 +62,6 @@ export class MysqlDriver extends BaseDriver {
           return
       }
 
-      this.emit('connected', connection)
-      
       if(this.options.CONNECTION_SUCCESS) {
           connection.query(`SHOW VARIABLES LIKE 'version%'`, (err: any, results : any[]) => {
               connection.release()
@@ -83,6 +81,7 @@ export class MysqlDriver extends BaseDriver {
     });
 
     return {
+      database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MysqlQueryBuilder,
       query: (sql: string) => this._query(sql),
@@ -101,7 +100,7 @@ export class MysqlDriver extends BaseDriver {
     return new Promise<any[]>((resolve, reject) => {
       return this.pool.query(sql, (err: any, results: any[]) => {
         if (err) return reject(err);
-        this._detectEventQuery({ start, sql, results : this.returning(results) });
+        this._detectEventQuery({ start, sql });
         this.meta(results, sql);
         return resolve(this.returning(results));
       });
@@ -127,7 +126,7 @@ export class MysqlDriver extends BaseDriver {
                 return fail(err);
               }
 
-              this._detectEventQuery({ start, sql, results : this.returning(results) });
+              this._detectEventQuery({ start, sql });
 
               this.meta(results, sql);
               return ok(this.returning(results));

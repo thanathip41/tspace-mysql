@@ -17,6 +17,7 @@ import {
   TPoolConnected,
   TConnectionTransaction,
   TPoolCusterConnected,
+  TDriver,
 } from "../types";
 class Builder extends AbstractBuilder {
   constructor() {
@@ -2994,9 +2995,11 @@ class Builder extends AbstractBuilder {
   loadEnv(env?: string): this {
     if (env === null) return this;
 
-    const options = loadOptionsEnvironment();
+    const options = loadOptionsEnvironment(env);
 
     const pool = new PoolConnection({
+      cluster : options.cluster,
+      driver: options.driver as TDriver,
       host: String(options.host),
       port: Number(options.port),
       database: String(options.database),
@@ -3004,7 +3007,9 @@ class Builder extends AbstractBuilder {
       password: String(options.password),
     });
 
-    this.$pool.set(pool.connected());
+    const conn = pool.connected();
+
+    this.$pool.set(conn);
 
     return this;
   }
@@ -3016,7 +3021,7 @@ class Builder extends AbstractBuilder {
    */
   bind(connection: TPoolConnected | TConnectionTransaction): this {
     this.$pool.set(connection);
-
+    
     return this;
   }
 
@@ -4810,8 +4815,13 @@ class Builder extends AbstractBuilder {
             : poolCluster?.masters[random].query(sql);
           },
           get: () => poolCluster,
-          set: (newConnection: TPoolCusterConnected) => {
-            poolCluster = newConnection;
+          set: (conn: TPoolCusterConnected) => {
+            
+            if(conn.database != null) {
+              this.$database = conn.database();
+            }
+            
+            poolCluster = conn;
             return;
           },
           queryBuilder: () => {
@@ -4833,8 +4843,11 @@ class Builder extends AbstractBuilder {
           return pool.query(sql);
         },
         get: () => pool,
-        set: (newConnection: TPoolConnected) => {
-          pool = newConnection;
+        set: (conn: TPoolConnected) => {
+          if(conn.database != null) {
+            this.$database = conn.database();
+          }
+          pool = conn;
           return;
         },
         queryBuilder: () => pool.queryBuilder,

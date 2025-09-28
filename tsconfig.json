@@ -6,7 +6,7 @@
     "lib": ["esnext"],
     "allowJs": true,
     "checkJs": false,
-    "outDir": "build",
+    "outDir": "dist",
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
@@ -18,5 +18,5 @@
     "sourceMap": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "build/**/*.js"]
+  "exclude": ["node_modules", "dist/**/*.js"]
 }

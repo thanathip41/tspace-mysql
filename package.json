@@ -2,14 +2,14 @@
   "name": "tspace-mysql",
   "version": "1.8.9-beta.4",
   "description": "Tspace MySQL is a promise-based ORM for Node.js, designed with modern TypeScript and providing type safety for schema databases.",
-  "main": "build/lib/index.js",
-  "types": "build/lib/index.d.ts",
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
   "files": [
-    "build"
+    "dist"
   ],
   "type": "commonjs",
   "bin": {
-    "tspace-mysql": "./build/cli/index.js"
+    "tspace-mysql": "./dist/cli/index.js"
   },
   "repository": {
     "type": "git",
@@ -49,12 +49,12 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test:db": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './tests/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
+    "test:db": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './__tests__/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
     "test:mysql": "npm run test:db --db=mysql",
     "test:mariadb": "npm run test:db --db=mariadb",
     "test:postgres": "npm run test:db --db=postgres",
     "test": "npm run test:mysql && npm run test:mariadb && npm run test:postgres",
-    "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./tests/benchmark.test.ts",
+    "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./__tests__/benchmark.test.ts",
     "release:beta": "npm test && npm run build && npm publish --tag beta",
     "release": "npm test && npm run build && npm publish",
     "docs": "npx docsify-cli serve docs"

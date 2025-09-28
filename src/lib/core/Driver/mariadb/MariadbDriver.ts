@@ -57,6 +57,7 @@ export class MariadbDriver extends BaseDriver {
     });
 
     return {
+      database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MariadbQueryBuilder,
       query: (sql: string) => this._query(sql),
@@ -73,7 +74,7 @@ export class MariadbDriver extends BaseDriver {
   private async _query(sql: string): Promise<any[]> {
     const start: number = Date.now();
     const results = await this.pool.query(sql);
-    this._detectEventQuery({ start, sql, results : this.returning(results) });
+    this._detectEventQuery({ start, sql });
     this.meta(results, sql);
     return this.returning(results)
   }
@@ -86,7 +87,7 @@ export class MariadbDriver extends BaseDriver {
       if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
       const start = Date.now();
       const results = await connection.query(sql);
-      this._detectEventQuery({ start, sql, results : this.returning(results) });
+      this._detectEventQuery({ start, sql });
       this.meta(results, sql);
       return this.returning(results);
     };

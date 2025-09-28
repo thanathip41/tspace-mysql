@@ -15,21 +15,15 @@ import type {
   TCache,
   TExecute,
   TRelationOptions,
-  TPagination,
   TValidateSchema,
   TGlobalSetting,
-  TRawStringQuery,
-  TFreezeStringQuery,
   TPattern,
-  TSchemaKeys,
-  TSchemaColumns,
-  TModelConstructorOrObject,
-  TRelationResults,
-  TRelationKeys,
   TRelationQueryOptions,
+  TModelConstructorOrObject,
+  TRelationKeys,
 } from "../types";
 import type { 
-  TRelationQueryDecoratorOptions, 
+  TRelationQueryOptionsDecorator, 
 } from "../types/decorator";
 import { 
   REFLECT_META_SCHEMA, 
@@ -919,7 +913,7 @@ class Model<
    * @returns   {this}   this
    */
   protected buildMethodRelation<
-    K extends TR extends object ? TRelationKeys<TR> : string
+    K extends T.RelationKeys<this>
   >(name: K, callback?: Function): this {
     this.relations(name);
 
@@ -1013,13 +1007,7 @@ class Model<
    * @param {string[]} ...columns
    * @returns {this} this
    */
-  select<
-    K extends
-      | Extract<TSchemaKeys<TS>, string>
-      | `${string}.${string}`
-      | TRawStringQuery
-      | "*"
-  >(...columns: K[]): this {
+  select<K extends T.ColumnKeys<this> | '*'>(...columns: K[]): this {
     if (!columns.length) {
       this.$state.set("SELECT", ["*"]);
       return this;
@@ -1063,13 +1051,7 @@ class Model<
     return this;
   }
 
-  addSelect<
-    K extends
-      | Extract<TSchemaKeys<TS>, string>
-      | `${string}.${string}`
-      | TRawStringQuery
-      | "*"
-  >(...columns: K[]): this {
+  addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
 
     let select: string[] = columns.map((c) => {
       const column = String(c);
@@ -1092,7 +1074,7 @@ class Model<
    * @param {...string} columns
    * @returns {this} this
    */
-  hidden<K extends Extract<TSchemaKeys<TS>, string>>(...columns: K[]): this {
+  hidden<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     this.$state.set("HIDDEN", columns);
     return this;
   }
@@ -1103,7 +1085,7 @@ class Model<
    * @param {...string} columns
    * @returns {this} this
    */
-  except<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(
+  except<K extends T.ColumnKeys<this>>(
     ...columns: K[]
   ): this {
     if (!columns.length) return this;
@@ -1153,7 +1135,7 @@ class Model<
    * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
    * @returns {this}
    */
-  orderBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(
+  orderBy<K extends T.ColumnKeys<this>>(
     column: K,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
@@ -1197,7 +1179,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  latest<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(
+  latest<K extends T.ColumnKeys<this>>(
     ...columns: K[]
   ): this {
     let orderBy = "`id`";
@@ -1239,7 +1221,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  oldest<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(
+  oldest<K extends T.ColumnKeys<this>>(
     ...columns: K[]
   ): this {
     let orderBy = "`id`";
@@ -1280,7 +1262,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  groupBy<K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`>(
+  groupBy<K extends T.ColumnKeys<this>>(
     ...columns: K[]
   ): this {
     let groupBy = "id";
@@ -1839,7 +1821,7 @@ class Model<
    *  await new User().with('posts').findMany()
    *
    */
-  with<K extends TR extends object ? TRelationKeys<TR> : string>(
+  with<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -1880,7 +1862,7 @@ class Model<
    *  await new User().relations('posts').findMany()
    *
    */
-  relations<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relations<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.with(...nameRelations);
@@ -1894,7 +1876,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  withAll<K extends TR extends object ? TRelationKeys<TR> : string>(
+  withAll<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -1913,7 +1895,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  relationsAll<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relationsAll<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.withAll(...nameRelations);
@@ -1925,7 +1907,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  withCount<K extends TR extends object ? TRelationKeys<TR> : string>(
+  withCount<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -1941,7 +1923,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  relationsCount<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relationsCount<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -1960,7 +1942,7 @@ class Model<
    * @param {...string} nameRelations if data exists return blank
    * @returns {this} this
    */
-  withTrashed<K extends TR extends object ? TRelationKeys<TR> : string>(
+  withTrashed<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -1982,7 +1964,7 @@ class Model<
    * @param {...string} nameRelations if data exists return blank
    * @returns {this} this
    */
-  relationsTrashed<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relationsTrashed<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.withTrashed(...nameRelations);
@@ -2014,7 +1996,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withExists('posts').findMany()
    */
-  withExists<K extends TR extends object ? TRelationKeys<TR> : string>(
+  withExists<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -2052,7 +2034,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().relationsExists('posts').findMany()
    */
-  relationsExists<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relationsExists<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.withExists(...nameRelations);
@@ -2085,7 +2067,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().has('posts').findMany()
    */
-  has<K extends TR extends object ? TRelationKeys<TR> : string>(
+  has<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.withExists(...nameRelations);
@@ -2118,7 +2100,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withNotExists('posts').findMany()
    */
-  withNotExists<K extends TR extends object ? TRelationKeys<TR> : string>(
+  withNotExists<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -2160,7 +2142,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().relationsNotExists('posts').findMany()
    */
-  relationsNotExists<K extends TR extends object ? TRelationKeys<TR> : string>(
+  relationsNotExists<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -2225,15 +2207,25 @@ class Model<
    * @returns {this} this
    */
   withQuery<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
-      : Model
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>,
   >(
     nameRelation: K,
-    callback: (query: M) => M,
+    callback: (
+      query: `$${K & string}` extends keyof R
+      ? R[`$${K & string}`] extends (infer X)[]
+        ? X
+        : R[`$${K & string}`] extends Model
+          ? R[`$${K & string}`]
+          : Model
+      : K extends keyof R
+        ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+            ? R[K]
+            : Model
+        : Model
+  ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     this.with(nameRelation);
@@ -2249,15 +2241,25 @@ class Model<
   }
 
   withQueryExists<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
-      : Model
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>,
   >(
     nameRelation: K,
-    callback: (query: M) => M,
+    callback: (
+        query: `$${K & string}` extends keyof R
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
+            ? R[`$${K & string}`]
+            : Model
+        : K extends keyof R
+          ? R[K] extends (infer X)[]
+            ? X
+            : R[K] extends Model
+              ? R[K]
+              : Model
+          : Model
+    ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     this.withExists(nameRelation);
@@ -2322,15 +2324,25 @@ class Model<
    * @returns {this} this
    */
   relationQuery<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
-      : Model
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>,
   >(
     nameRelation: K,
-    callback: (query: M) => M,
+    callback: (
+      query: `$${K & string}` extends keyof R
+      ? R[`$${K & string}`] extends (infer X)[]
+        ? X
+        : R[`$${K & string}`] extends Model
+          ? R[`$${K & string}`]
+          : Model
+      : K extends keyof R
+        ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+            ? R[K]
+            : Model
+        : Model
+  ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     return this.withQuery(nameRelation, callback, options);
@@ -2386,15 +2398,25 @@ class Model<
    * @returns {this} this
    */
   relationQueryExists<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
-      : Model
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>,
   >(
     nameRelation: K,
-    callback: (query: M) => M,
+    callback: (
+      query: `$${K & string}` extends keyof R
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
+            ? R[`$${K & string}`]
+            : Model
+        : K extends keyof R
+          ? R[K] extends (infer X)[]
+            ? X
+            : R[K] extends Model
+              ? R[K]
+              : Model
+          : Model
+    ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     return this.withQueryExists(nameRelation, callback, options);
@@ -2407,7 +2429,7 @@ class Model<
    * @param {string} name name relation in registry in your model
    * @returns {Model} model instance
    */
-  findWithQuery<K extends TR extends object ? TRelationKeys<TR> : string>(
+  findWithQuery<K extends T.RelationKeys<this>>(
     name: K
   ): Model | null {
     const instance = this.$relation.returnCallback(String(name));
@@ -2503,9 +2525,7 @@ class Model<
    * @property {string} relation.freezeTable
    * @returns   {this}   this
    */
-  protected belongsTo<
-    K extends TR extends object ? TRelationKeys<TR> : string
-  >({
+  protected belongsTo<K extends TR extends object ? TRelationKeys<TR> : string>({
     name,
     as,
     model,
@@ -2544,9 +2564,7 @@ class Model<
    * @property {class?} relation.modelPivot model for pivot
    * @returns  {this}   this
    */
-  protected belongsToMany<
-    K extends TR extends object ? TRelationKeys<TR> : string
-  >({
+  protected belongsToMany<K extends TR extends object ? TRelationKeys<TR> : string>({
     name,
     as,
     model,
@@ -2592,9 +2610,7 @@ class Model<
    * @property {class?} relation.modelPivot model for pivot
    * @returns  {this}   this
    */
-  protected belongsToManySingle<
-    K extends TR extends object ? TRelationKeys<TR> : string
-  >({
+  protected belongsToManySingle<K extends TR extends object ? TRelationKeys<TR> : string>({
     name,
     as,
     model,
@@ -2817,7 +2833,7 @@ class Model<
    * restore data in trashed
    * @returns {promise}
    */
-  async restore(): Promise<TS[]> {
+  async restore(): Promise<T.Result<this>[]> {
     this.disableSoftDelete();
 
     const updatedAt: string = this._valuePattern(
@@ -2843,7 +2859,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return (await this.save()) as TS[];
+    return (await this.save()) as T.Result<this>[];
   }
 
   /**
@@ -2870,17 +2886,13 @@ class Model<
    * @param {any?} value
    * @returns {this} this
    */
-  where<K extends TSchemaColumns<TS>>(
+  where<K extends T.ColumnKeys<this>>(
     column: K | Record<string, any>,
     operator?: any,
     value?: any
   ): this {
     if (typeof column === "object") {
-      return this.whereObject(
-        column as K extends TSchemaKeys<TS>
-          ? { [P in K]: TS[K] }
-          : { [P in K]: any }
-      );
+      return this.whereObject(column as any);
     }
 
     [value, operator] = this.$utils.valueAndOperator(
@@ -2953,7 +2965,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  orWhere<K extends TSchemaColumns<TS>>(
+  orWhere<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3027,7 +3039,7 @@ class Model<
    * @param {number} day
    * @returns {this}
    */
-  whereDay<K extends TSchemaColumns<TS>>(column: K, day: number): this {
+  whereDay<K extends T.ColumnKeys<this>>(column: K, day: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3049,7 +3061,7 @@ class Model<
    * @param {number} month
    * @returns {this}
    */
-  whereMonth<K extends TSchemaColumns<TS>>(column: K, month: number): this {
+  whereMonth<K extends T.ColumnKeys<this>>(column: K, month: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3071,7 +3083,7 @@ class Model<
    * @param {number} year
    * @returns {this}
    */
-  whereYear<K extends TSchemaColumns<TS>>(column: K, year: number): this {
+  whereYear<K extends T.ColumnKeys<this>>(column: K, year: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3092,12 +3104,13 @@ class Model<
    * @param {Object} columns
    * @returns {this}
    */
-  whereObject<K extends TSchemaColumns<TS>>(
-    columns: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }
+  whereObject<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    columns: { [P in K & keyof T]: T[P] }
   ): this {
     for (let column in columns) {
       const operator = "=";
 
+      //@ts-ignore
       const value = this.$utils.escape(columns[column]);
 
       const c = String(column);
@@ -3201,7 +3214,7 @@ class Model<
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJSON<K extends TSchemaColumns<TS>>(
+  whereJSON<K extends T.ColumnKeys<this>>(
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
@@ -3233,7 +3246,7 @@ class Model<
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJson<K extends TSchemaColumns<TS>>(
+  whereJson<K extends T.ColumnKeys<this>>(
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
@@ -3262,11 +3275,29 @@ class Model<
 
   /**
    * @override
+   * @param {string} sql
+   * @returns {this}
+   */
+  whereExists(sql: string | Model): this {
+    this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      [
+        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        `${this.$constants("EXISTS")}`,
+        `(${sql})`,
+      ].join(" "),
+    ]);
+
+    return this;
+  }
+
+  /**
+   * @override
    * @param {string} column
    * @param {array} array
    * @returns {this}
    */
-  whereIn<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
@@ -3310,7 +3341,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereIn<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  orWhereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
@@ -3342,7 +3373,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereNotIn<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  whereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) return this;
@@ -3374,7 +3405,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereNotIn<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  orWhereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) return this;
@@ -3406,7 +3437,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  whereSubQuery<K extends TSchemaColumns<TS>>(
+  whereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model,
     options: {
@@ -3438,7 +3469,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  whereNotSubQuery<K extends TSchemaColumns<TS>>(
+  whereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model,
     options: {
@@ -3470,7 +3501,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereSubQuery<K extends TSchemaColumns<TS>>(
+  orWhereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model,
     options: {
@@ -3502,7 +3533,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereNotSubQuery<K extends TSchemaColumns<TS>>(
+  orWhereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model,
     options: {
@@ -3534,7 +3565,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereBetween<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  whereBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) {
@@ -3580,7 +3611,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereBetween<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  orWhereBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) {
@@ -3626,7 +3657,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereNotBetween<K extends TSchemaColumns<TS>>(column: K, array: any[]): this {
+  whereNotBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) {
@@ -3672,7 +3703,7 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereNotBetween<K extends TSchemaColumns<TS>>(
+  orWhereNotBetween<K extends T.ColumnKeys<this>>(
     column: K,
     array: any[]
   ): this {
@@ -3720,7 +3751,7 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  whereNull<K extends TSchemaColumns<TS>>(column: K): this {
+  whereNull<K extends T.ColumnKeys<this>>(column: K): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3740,7 +3771,7 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  orWhereNull<K extends TSchemaColumns<TS>>(column: K): this {
+  orWhereNull<K extends T.ColumnKeys<this>>(column: K): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3760,7 +3791,7 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  whereNotNull<K extends TSchemaColumns<TS>>(column: K): this {
+  whereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3780,7 +3811,7 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  orWhereNotNull<K extends TSchemaColumns<TS>>(column: K): this {
+  orWhereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -3802,7 +3833,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereSensitive<K extends TSchemaColumns<TS>>(
+  whereSensitive<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3840,7 +3871,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereStrict<K extends TSchemaColumns<TS>>(
+  whereStrict<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3877,7 +3908,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  orWhereSensitive<K extends TSchemaColumns<TS>>(
+  orWhereSensitive<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3916,13 +3947,25 @@ class Model<
    * @returns {this}
    */
   whereHas<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>
+  >(nameRelation: K,
+    callback: (
+      query: `$${K & string}` extends keyof R
+      ? R[`$${K & string}`] extends (infer X)[]
+      ? X
+      : R[`$${K & string}`] extends Model
+          ? R[`$${K & string}`]
+          : Model
+      : K extends keyof R
+      ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+          ? R[K]
+          : Model
       : Model
-  >(nameRelation: K, callback: (query: M) => M): this {
+    ) => any,
+  ): this {
     const sql = this.$relation.getSqlExists(nameRelation as string, callback);
 
     if (sql == null) return this;
@@ -3940,13 +3983,25 @@ class Model<
    * @returns {this}
    */
   whereNotHas<
-    K extends TR extends object ? TRelationKeys<TR> : string,
-    M = `$${K & string}` extends keyof TR
-      ? TR[`$${K & string}`] extends (infer T)[]
-        ? T
-        : TR[`$${K & string}`]
+    K extends T.RelationKeys<this>,
+    R extends T.Relations<this>
+  >(nameRelation: K,
+    callback: (
+      query: `$${K & string}` extends keyof R
+      ? R[`$${K & string}`] extends (infer X)[]
+      ? X
+      : R[`$${K & string}`] extends Model
+          ? R[`$${K & string}`]
+          : Model
+      : K extends keyof R
+      ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+          ? R[K]
+          : Model
       : Model
-  >(nameRelation: K, callback: (query: M) => M): this {
+    ) => any,
+  ): this {
     const sql = this.$relation.getSqlExists(nameRelation as string, callback);
 
     if (sql == null) return this;
@@ -3962,7 +4017,7 @@ class Model<
    * @returns {this}
    */
   whereQuery<
-    T extends Model | unknown,
+    T extends Model,
     M = T extends this ? this : T extends Model ? T : this
   >(callback: (query: M) => M): this {
     const copy = new Model().copyModel(this) as M;
@@ -4003,7 +4058,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereAny<K extends TSchemaColumns<TS>>(
+  whereAny<K extends T.ColumnKeys<this>>(
     columns: K[],
     operator?: any,
     value?: any
@@ -4045,7 +4100,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereAll<K extends TSchemaColumns<TS>>(
+  whereAll<K extends T.ColumnKeys<this>>(
     columns: K[],
     operator?: any,
     value?: any
@@ -4640,7 +4695,7 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<Array>}
    */
-  async toArray<K extends Extract<TSchemaKeys<TS>, string> | "id">(
+  async toArray<K extends T.ColumnKeys<this> | "id">(
     column?: K
   ): Promise<any[]> {
     if (column == null) column = "id" as K;
@@ -4881,18 +4936,10 @@ class Model<
    *  const postsByUserId1 = results.get(1)
    * @returns {Promise<object>} Object binding with your column pairs
    */
-  async getGroupBy<
-    K extends Extract<T.ColumnKeys<this>, string> | `${string}.${string}`,
-    R = TRelationResults<TR>
-  >(
-    column: K
+  async getGroupBy<K, C extends T.ColumnKeys<this>>(
+    column: C
   ): Promise<
-    Map<
-      string | number,
-      unknown extends TS
-        ? any[]
-        : (TS & Partial<R extends any ? TS & Partial<R> : R>)[]
-    >
+    Map<string | number,T.Result<this,K>[]>
   > {
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...((await this.exceptColumns()) as any[]));
@@ -4958,18 +5005,10 @@ class Model<
    *  const postsByUserId1 = results.get(1)
    * @returns {Promise<object>} Object binding with your column pairs
    */
-  async findGroupBy<
-    K extends Extract<TSchemaKeys<TS>, string> | `${string}.${string}`,
-    R = TRelationResults<TR>
-  >(
-    column: K
+  async findGroupBy<K, C extends T.ColumnKeys<this>>(
+    column: C
   ): Promise<
-    Map<
-      string | number,
-      unknown extends TS
-        ? any[]
-        : (TS & Partial<R extends any ? TS & Partial<R> : R>)[]
-    >
+    Map<string | number,T.Result<this,K>[]>
   > {
     return await this.getGroupBy(column);
   }
@@ -4979,10 +5018,8 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  insert<K extends TSchemaKeys<TS>>(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  insert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }
   ): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5011,8 +5048,8 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  create<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(
-    data: K extends TSchemaKeys<TS> ? { [P in K]: TS[K] } : { [P in K]: any }
+  create<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }
   ): this {
     return this.insert(data);
   }
@@ -5023,10 +5060,8 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  update<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any },
+  update<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
     updateNotExists: string[] = []
   ): this {
     if (!Object.keys(data).length) {
@@ -5037,6 +5072,7 @@ class Model<
       for (const c of updateNotExists) {
         for (const column in data) {
           if (c !== column) continue;
+          //@ts-ignore
           const value = data[column];
 
           data = {
@@ -5075,10 +5111,8 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  updateMany<K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery>(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any },
+  updateMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
     updateNotExists: string[] = []
   ): this {
     if (!Object.keys(data).length) {
@@ -5089,6 +5123,7 @@ class Model<
       for (const c of updateNotExists) {
         for (const column in data) {
           if (c !== column) continue;
+          //@ts-ignore
           const value = data[column];
           data = {
             ...data,
@@ -5122,12 +5157,8 @@ class Model<
    * @param {object} data
    * @returns {this} this
    */
-  updateNotExists<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  updateNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     this.limit(1);
 
@@ -5136,6 +5167,7 @@ class Model<
     }
 
     for (const column in data) {
+      //@ts-ignore
       const value = data[column];
       data = {
         ...data,
@@ -5166,12 +5198,8 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  updateOrCreate<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  updateOrCreate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     this.limit(1);
 
@@ -5213,12 +5241,8 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  updateOrInsert<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  updateOrInsert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     return this.updateOrCreate(data);
   }
@@ -5228,12 +5252,8 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  insertOrUpdate<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  insertOrUpdate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     return this.updateOrCreate(data);
   }
@@ -5243,12 +5263,8 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  createOrUpdate<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  createOrUpdate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     return this.updateOrCreate(data);
   }
@@ -5258,12 +5274,8 @@ class Model<
    * @param {object} data for create
    * @returns {this} this
    */
-  createOrSelect<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  createOrSelect<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5292,12 +5304,8 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  insertOrSelect<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  insertOrSelect<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     return this.createOrSelect(data);
   }
@@ -5308,12 +5316,8 @@ class Model<
    * @param {object} data create not exists data
    * @returns {this} this
    */
-  createNotExists<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  createNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5342,12 +5346,8 @@ class Model<
    * @param {object} data create not exists data
    * @returns {this} this this
    */
-  insertNotExists<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: K extends TSchemaKeys<TS>
-      ? { [P in K]: TS[K] | TRawStringQuery }
-      : { [P in K]: any }
+  insertNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] },
   ): this {
     return this.createNotExists(data);
   }
@@ -5357,14 +5357,8 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this this
    */
-  createMultiple<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: (K extends TSchemaKeys<TS>
-      ? Partial<{
-          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
-        }>
-      : { [P in K]: any })[]
+  createMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
   ): this {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
@@ -5394,14 +5388,8 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  createMany<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: (K extends TSchemaKeys<TS>
-      ? Partial<{
-          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
-        }>
-      : { [P in K]: any })[]
+  createMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
   ): this {
     return this.createMultiple(data);
   }
@@ -5412,14 +5400,8 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  insertMultiple<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: (K extends TSchemaKeys<TS>
-      ? Partial<{
-          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
-        }>
-      : { [P in K]: any })[]
+  insertMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
   ): this {
     return this.createMultiple(data);
   }
@@ -5430,14 +5412,8 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  insertMany<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
-    data: (K extends TSchemaKeys<TS>
-      ? Partial<{
-          [K in TSchemaKeys<TS>]: TS[K] | TRawStringQuery | TFreezeStringQuery;
-        }>
-      : { [P in K]: any })[]
+  insertMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
   ): this {
     return this.createMultiple(data);
   }
@@ -5450,16 +5426,10 @@ class Model<
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
    */
-  updateMultiple<
-    K extends TSchemaKeys<TS> | TRawStringQuery | TFreezeStringQuery
-  >(
+  updateMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     cases: {
-      when: K extends TSchemaKeys<TS>
-        ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] }>
-        : { [P in K]: any };
-      columns: K extends TSchemaKeys<TS>
-        ? Partial<{ [K in TSchemaKeys<TS>]: TS[K] }>
-        : Record<string, any>;
+      when   : { [P in K & keyof T]: T[P] };
+      columns: { [P in K & keyof T]: T[P] };
     }[]
   ): this {
     if (!cases.length) {
@@ -5628,9 +5598,7 @@ class Model<
    * @override
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
-  async save({ waitMs = 0 } = {}): Promise<
-    Record<string, any> | any[] | null | undefined
-  > {
+  async save({ waitMs = 0 } = {}): Promise<any> {
     this._validateMethod("save");
 
     this.$state.set("AFTER_SAVE", waitMs);
@@ -5660,9 +5628,9 @@ class Model<
    * @param {Function} callback function will be called data and index
    * @returns {promise<void>}
    */
-  async faker<T extends TS>(
+  async faker<K>(
     rows: number,
-    callback?: (results: T, index: number) => T
+    callback?: (results: T.Result<this,K>, index: number) => T.Result<this,K>
   ): Promise<void> {
     if (
       this.$state.get("TABLE_NAME") === "" ||
@@ -5717,7 +5685,7 @@ class Model<
       }
 
       if (callback) {
-        fakers.push(callback(columnAndValue as T, row));
+        fakers.push(callback(columnAndValue as T.Result<this,K>, row));
         continue;
       }
 
@@ -6201,7 +6169,7 @@ class Model<
     );
   }
 
-  private async _pagination(data: any[]) {
+  private async _pagination(data: any[]): Promise<any> {
     const currentPage: number = +this.$state.get("PAGE");
 
     const limit: number = Number(this.$state.get("LIMIT"));
@@ -6425,10 +6393,12 @@ class Model<
       })
     );
 
-    return (await this.where("id", result.id)
+    return (
+      await this.where("id", result.id)
       .update(update)
       .dd()
-      .save()) as TS | null;
+      .save()
+    )
   }
 
   private async _attach(name: string, dataId: any[], fields?: any) {
@@ -7189,9 +7159,7 @@ class Model<
     await ob[type](result);
   }
 
-  private _mapReflectMetadata<
-    K extends TR extends object ? TRelationKeys<TR> : string
-  >(): this {
+  private _mapReflectMetadata<K extends TR extends object ? TRelationKeys<TR> : string>(): this {
 
     const table = Reflect.getMetadata(REFLECT_META_TABLE, this.constructor) || null;
 
@@ -7234,7 +7202,7 @@ class Model<
 
     if(validate) this.$validateSchema = validate;
 
-    const hasOnes: TRelationQueryDecoratorOptions[] =
+    const hasOnes: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, this) || [];
 
     for (const v of hasOnes) {
@@ -7246,7 +7214,7 @@ class Model<
       });
     }
     
-    const hasManys: TRelationQueryDecoratorOptions[] =
+    const hasManys: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, this) || [];
 
     for (const v of hasManys) {
@@ -7258,7 +7226,7 @@ class Model<
       });
     }
 
-    const belongsTos: TRelationQueryDecoratorOptions[] =
+    const belongsTos: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, this) || [];
 
     for (const v of belongsTos) {
@@ -7270,7 +7238,7 @@ class Model<
       });
     }
 
-    const belongsToManys: TRelationQueryDecoratorOptions[] =
+    const belongsToManys: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, this) || [];
 
     for (const v of belongsToManys) {

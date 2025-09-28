@@ -4,8 +4,10 @@ import { Repository }   from "./Repository";
 import type { 
     TFreezeStringQuery, 
     TIsEnum, 
+    TOperatorQuery, 
     TPagination, 
     TRawStringQuery, 
+    TRelationKeys, 
     TRelationResults 
 } from "../types";
 
@@ -147,7 +149,7 @@ export type TRelation<R> = {
  *   }
  *
  */
-export type TSchemaModel<M extends Model> = ReturnType<M['typeOfSchema']>;
+export type TSchemaModel<M extends Model> =  ReturnType<M['typeOfSchema']>
 /**
  * The 'TRelationModel' type is used to get type of schema in the model
  * @generic {Model} M Model
@@ -215,11 +217,14 @@ export declare namespace T {
 
     type Columns<M extends Model> =
         keyof TColumnsDecorator<M> extends never
-            ? TSchemaModel<M>
+            ? {
+              [K in keyof TSchemaModel<M>]:
+                TSchemaModel<M>[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
+            }
             : TColumnsDecorator<M>;
 
     type ColumnKeys<M extends Model> =
-        | (keyof TColumnsDecorator<M> extends never
+        (keyof TColumnsDecorator<M> extends never
             ? TSchemaKeyOf<M>
             : keyof TColumnsDecorator<M>)
         | `${string}.${string}`
@@ -261,11 +266,8 @@ export declare namespace T {
             
     type RelationKeys<M extends Model> =
         | (keyof TColumnsDecorator<M> extends never
-            ? TSchemaKeyOf<M>
-            : keyof TColumnsDecorator<M>)
-        | `${string}.${string}`
-        | TRawStringQuery
-        | TFreezeStringQuery;
+            ? TRelationKeys<TRelationModel<M>>
+            : keyof TRelationsDecorator<M>)
 
     type TSchemaModelWithoutDecorator<M extends Model>   = ReturnType<M['typeOfSchema']>;
 

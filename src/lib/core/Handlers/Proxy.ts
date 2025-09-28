@@ -3,14 +3,11 @@ import { LoggerHandler } from "./Logger"
 const proxyHandler = {
   set : (self: any, name : string, value : any) => {
     
-      if (self.$setters?.includes(name)) throw new Error(`No allow to set this : ${name}`)
+    if (self.$setters?.includes(name)) throw new Error(`No allow to set this : ${name}`)
     
-      self.$attributes = {
-          ...self.$attributes,
-          [name] : value
-      }
+    self[name]= value
       
-      return true
+    return true
   },
   get: (self: { [x: string]: any; $db: { get: (arg: string) => string }; $logger: { get: () => any } } , prop: string , value: unknown) => {
     

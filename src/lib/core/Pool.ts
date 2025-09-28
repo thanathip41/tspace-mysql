@@ -1,4 +1,3 @@
-import { EventEmitter }     from 'events'
 import { Tool }             from '../tools'
 import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
 import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
@@ -10,20 +9,23 @@ import type {
   TDriver, 
   TOptions, 
   TPoolConnected, 
-  TPoolCusterConnected 
+  TPoolCusterConnected,
 } from "../types";
 
-export class PoolConnection extends EventEmitter {
+export class PoolConnection  {
   private OPTIONS : Map<string, any>    = this._loadOptions();
   private POOL    : TPoolConnected | null = null
   private CLUSTER : TPoolCusterConnected | null  = null;
+
+  get instance () {
+    return this.POOL;
+  }
 
   /**
    *
    * @Init a options connection pool
    */
   constructor(options?: TOptions) {
-    super();
     if (options) {
       this.OPTIONS = new Map<string, number | boolean | string>(
         Object.entries({
@@ -103,7 +105,6 @@ export class PoolConnection extends EventEmitter {
 
     const hostList = parseList(options.host);
     const hosts: string[] = [];
-    const ports: number[] = [];
     const types: ('master' | 'slave')[] = [];
 
     hostList.forEach((h, i) => {
@@ -117,19 +118,13 @@ export class PoolConnection extends EventEmitter {
         host = _h
       }
 
-      if (host.includes(':')) {
-        const [hostname, portStr] = host.split(':');
-        host = hostname;
-        port = parseInt(portStr);
-      }
-
       hosts.push(host);
-      ports.push(port ?? 3306);
       types.push(type);
     });
 
     const usernames = parseList(options.user);
     const passwords = parseList(options.password);
+    const ports : number[] = parseList(options.port).map(v => +v);
 
     type TOptions = {
       host: string;
@@ -214,7 +209,6 @@ export class PoolConnection extends EventEmitter {
 
     return this.CLUSTER;
   }
-
 
   private _defaultOptions() {
     return new Map<string, number | boolean | string>(

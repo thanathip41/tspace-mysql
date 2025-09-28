@@ -71,21 +71,22 @@ const parseEnv = (env: typeof rawEnv): RawEnv => {
 
 const env = parseEnv(rawEnv)
 
-export const loadOptionsEnvironment = () => {
+export const loadOptionsEnvironment = (customEnv?: string) => {
     const environment = () : string => {
-        const NODE_ENV = process.env?.NODE_ENV
-        const env = Tool.path.join(Tool.path.resolve(), '.env')
+        const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
+        const env = Tool.path.join(Tool.path.resolve(), '.env');
 
-        if(NODE_ENV == null)  return env
+        if(NODE_ENV == null) return env;
 
-        const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`)
+        const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`);
 
-        if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment
+        if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment;
     
         return env
     }
+    const pathEnv = environment();
 
-    dotenv.config({ path : environment() })
+    dotenv.config({ path : pathEnv, override: true });
 
     const ENV = process.env
  

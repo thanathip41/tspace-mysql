@@ -1,6 +1,6 @@
 src
 test
-tests
+__tests__
 .env
 .env.production
 .env.test
@@ -10,4 +10,5 @@ node_modules
 tsconfig.json
 package-lock.json
 dbs
+docs
 npm-test.sqlite3

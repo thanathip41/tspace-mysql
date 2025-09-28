@@ -1,16 +1,19 @@
 import { EventEmitter } from 'events'
-import { TConstant, TPoolConnected } from "../../types"
 import { StateHandler } from "../Handlers/State";
-import Tool from '../../tools'
-import { CONSTANTS } from '../../constants';
-import Blueprint from '../Blueprint';
-
+import { Tool }         from '../../tools'
+import { CONSTANTS }    from '../../constants';
+import { Blueprint }    from '../Blueprint';
+import type { 
+    TConstant, 
+    TPoolConnected 
+} from "../../types"
 export abstract class BaseDriver extends EventEmitter {
 
+    private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
+    private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
     protected pool !: any
     protected options !: Record<string, any>
     protected MESSAGE_TRX_CLOSED = "The transaction has either been closed"
-
     protected abstract connect() : TPoolConnected
     protected abstract disconnect() : void
     protected abstract meta(results: any, sql: string) : void
@@ -19,34 +22,30 @@ export abstract class BaseDriver extends EventEmitter {
     protected import (mod : string) {
         return Tool.import(mod)
     }
-    protected _detectEventQuery ({ start , sql , results  }:{ start : number , sql : string , results : any[] }) {
+    protected _detectEventQuery ({ start , sql  } : { start : number , sql : string }) {
         const duration = Date.now() - start
         
-        if (duration > 1000 * 12) {
-            const maxLength = 8_000
+        if (duration > this.SLOW_QUERY_EXECUTE_TIME) {
 
-            if (sql.length > maxLength) {
-                sql = `${sql.slice(0, maxLength)}.......`
+            if (sql.length > this.SLOW_QUERY_LIMIT_LENGTH) {
+                sql = `${sql.slice(0, this.SLOW_QUERY_LIMIT_LENGTH)}.......`
             }
 
-            console.log(this._messageSlowQuery(duration , sql))   
-        
+            console.log(this._messageSlowQuery(duration , sql));
+
             this.emit('slowQuery', {
                 sql,
-                results,
                 execution : duration
             })
         }
 
         this.emit('query', {
             sql,
-            results,
             execution : duration
         })
 
-        this.emit(this._detectQueryType(sql), {
+        this.emit(this._detectQueryType(sql).toLocaleLowerCase(), {
             sql,
-            results,
             execution : duration
         })
     }

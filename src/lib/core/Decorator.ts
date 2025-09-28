@@ -1,10 +1,10 @@
 import "reflect-metadata";
 import pluralize      from "pluralize";
 import { Blueprint }  from "./Blueprint";
-import { 
-  TRelationQueryDecoratorOptions 
+import type { 
+  TRelationQueryOptionsDecorator 
 } from "../types/decorator";
-import { 
+import type { 
   TPattern, 
   TValidateSchemaDecorator 
 } from "../types";
@@ -357,7 +357,7 @@ export const Validate = (validate: TValidateSchemaDecorator): Function => {
 /**
  * Decorator to define a HasOne relationship on a model property.
  *
- * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @param {TRelationQueryOptionsDecorator} options - Options describing the relation.
  * @returns {Function} A decorator that registers the HasOne relationship.
  *
  * @example
@@ -371,11 +371,11 @@ export const Validate = (validate: TValidateSchemaDecorator): Function => {
  *
  * ```
  */
-export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
+export const HasOne = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasOne decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, target) || [];
 
     Reflect.defineMetadata(
       REFLECT_META_RELATIONS.hasOne,
@@ -388,7 +388,7 @@ export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
 /**
  * Decorator to define a HasMany relationship on a model property.
  *
- * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @param {TRelationQueryOptionsDecorator} options - Options describing the relation.
  * @returns {Function} A decorator that registers the HasMany relationship.
  *
  * @example
@@ -402,11 +402,11 @@ export const HasOne = (options: TRelationQueryDecoratorOptions): Function => {
  *
  * ```
  */
-export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
+export const HasMany = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasMany decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, target) || [];
 
     Reflect.defineMetadata(
       REFLECT_META_RELATIONS.hasMany,
@@ -419,7 +419,7 @@ export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
 /**
  * Decorator to define a BelongsTo relationship on a model property.
  *
- * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @param {TRelationQueryOptionsDecorator} options - Options describing the relation.
  * @returns {Function} A decorator that registers the BelongsTo relationship.
  *
  * @example
@@ -433,11 +433,11 @@ export const HasMany = (options: TRelationQueryDecoratorOptions): Function => {
  *
  * ```
  */
-export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => {
+export const BelongsTo = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsTo decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, target) || [];
 
     Reflect.defineMetadata(
       REFLECT_META_RELATIONS.belongsTo,
@@ -450,7 +450,7 @@ export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => 
 /**
  * Decorator to define a BelongsToMany (many-to-many) relationship on a model property.
  *
- * @param {TRelationQueryDecoratorOptions} options - Options describing the relation.
+ * @param {TRelationQueryOptionsDecorator} options - Options describing the relation.
  * @returns {Function} A decorator that registers the BelongsToMany relationship.
  *
  * @example
@@ -464,11 +464,11 @@ export const BelongsTo = (options: TRelationQueryDecoratorOptions): Function => 
  *
  * ```
  */
-export const BelongsToMany = (options: TRelationQueryDecoratorOptions): Function => {
+export const BelongsToMany = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsToMany decorator");
 
-    const existing: TRelationQueryDecoratorOptions[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, target) || [];
 
     Reflect.defineMetadata(
       REFLECT_META_RELATIONS.belongsToMany,

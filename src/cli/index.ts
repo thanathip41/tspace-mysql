@@ -115,6 +115,7 @@ try {
         env,
         push,
         generate,
+        filename,
         npm : 'tspace-mysql'
     };
       

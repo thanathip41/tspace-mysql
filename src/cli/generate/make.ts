@@ -114,6 +114,7 @@ export default (cmd : { [x: string]: any }) => {
                 console.log('\nGenerate Models has completed')
         })
         .catch(err => console.log(err))
+        .finally(() => process.exit(0))
        
         return
     }

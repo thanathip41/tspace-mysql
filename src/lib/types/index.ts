@@ -2,7 +2,6 @@ import { Model } from "../core/Model";
 import { TCache as Cache } from '../core/Cache';
 import { CONSTANTS } from '../constants';
 import { Join } from "../core/Join";
-import { TRelationModel, TSchemaModel } from "../core";
 import { QueryBuilder } from "../core/Driver";
 
 export type TCache = Cache;
@@ -10,7 +9,7 @@ export type TCache = Cache;
 export type TConstant = typeof CONSTANTS;
 
 export type TRelationOptions<K = any> = {
-    name: K extends void ? never : K;
+    name: K;
     model: new () => Model<any, any>;
     as?: string;
     localKey?: string;
@@ -159,6 +158,7 @@ export type TConnection = {
 };
 
 export type TPoolConnected = {
+    database : () => string;
     on: (event: TPoolEvent, data: (r: any) => any) => void;
     queryBuilder: typeof QueryBuilder;
     query: (sql: string) => Promise<any[]>;
@@ -271,7 +271,7 @@ export type TOperator = {
     '|isNotNull': string;
     '|query': string;
 };
-export type TPoolEvent = 'connected' | 'release' | 'query' | 'slowQuery' | 'select' | 'insert' | 'update' | 'delete';
+export type TPoolEvent = 'release' | 'query' | 'slowQuery' | 'select' | 'insert' | 'update' | 'delete';
 
 export type TRawStringQuery = `$RAW:${string}`;
 
@@ -304,9 +304,12 @@ export type TRelationResults<T> = T extends Array<infer A> ? TRelationResults<A>
     [K in keyof T as K extends `$${string}` ? never : K]: TRelationResults<T[K]>;
 } : T;
 
-export type TRelationKeys<T> = keyof {
-    [K in keyof T as K extends `$${string}` ? never : K]: T[K];
-};
+export type TRelationKeys<T> =
+  { [K in keyof T as K extends `$${string}` ? never : K]: T[K] } extends infer R
+    ? keyof R extends never
+      ? string
+      : keyof R
+    : string;
 
 
 export type TNestedBoolean = boolean | {
@@ -353,6 +356,7 @@ type TClusterPool = {
     connection: () => Promise<TConnection>;
 };
 export type TPoolCusterConnected = {
+    database?: () => string
     query?: Function | null;
     queryBuilder?: QueryBuilder | null;
     masters: TClusterPool[];
