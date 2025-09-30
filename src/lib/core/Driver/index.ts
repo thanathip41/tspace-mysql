@@ -201,13 +201,18 @@ export abstract class QueryBuilder {
         attributes  : string[];
     }) :string
 
-    public abstract fkExists ({ database , table , constraint } : { 
+    public abstract getFKs ({ database , table } : { 
+      database   : string; 
+      table      : string;
+    }) : string
+
+    public abstract hasFK ({ database , table , constraint } : { 
       database   : string; 
       table      : string;
       constraint : string;
     }) : string
 
-    public abstract fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+    public abstract createFK ({ table, tableRef, key , constraint, foreign } : { 
       table         : string; 
       tableRef      : string;
       key           : string;
@@ -219,13 +224,13 @@ export abstract class QueryBuilder {
       }
     }): string
 
-    public abstract indexExists ({ database , table , index } : { 
+    public abstract hasIndex ({ database , table , index } : { 
       database   : string; 
       table      : string;
       index      : string;
     }) : string
 
-    public abstract indexCreating ({ table, index , key } : { 
+    public abstract createIndex ({ table, index , key } : { 
       table      : string; 
       index      : string;
       key        : string;

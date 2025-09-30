@@ -5740,6 +5740,324 @@ class Model<
     });
   }
 
+  async geranerateModelDecoratorTemplate(env?: string) {
+  
+    const snakeCaseToPascal = (data: string ) => {
+      let str : string[] = data.split('_')
+      for(let i=0; i <str.length;i++) { 
+          str[i] = str[i].slice(0,1).toUpperCase() + str[i].slice(1,str[i].length) 
+      }
+      return str.join('')
+    }
+  
+    const detectRelation = (currentTable:string, fks:any[]) => {
+      
+      return fks.map(fk => {
+        const { RefTable, Column } = fk
+        if (currentTable !== RefTable && Column && Column.endsWith('_id')) {
+          const inverse = 'hasMany'
+          return {
+            currentTable,
+            relation: 'belongsTo',
+            relatedTable: RefTable,
+            fkColumn: Column,
+            inverse
+          }
+        }
+        return {
+          currentTable,
+          relation: 'unknown',
+          relatedTable: RefTable,
+          fkColumn: Column
+        }
+      })
+    }
+  
+    const tableToModel = (table: string): string => {
+      return pluralize.singular(
+        table
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('')
+      )
+    }
+  
+    const generateDecorators = (relations: { type:string, target:string }[]) => {
+      const results: any[] = []
+      const importModels : string[] = []
+      for (const rel of relations) {
+        if (rel.type === 'hasMany') {
+          const modelName = tableToModel(rel.target)
+          const propertyName = pluralize.plural(rel.target)
+          results.push({
+            schema: `@HasMany({ name: '${propertyName}', model: () => ${modelName} })`,
+            property: `public ${propertyName} !: ${modelName}[]`
+          })
+          if(!importModels.includes(modelName))
+            importModels.push(`import { ${modelName} } from './${modelName}'`);
+        }
+
+        if (rel.type === 'belongsTo') {
+          const modelName = tableToModel(rel.target)
+          const propertyName = pluralize.singular(rel.target)
+          results.push({
+            schema: `@BelongsTo({ name: '${propertyName}', model: () => ${modelName} })`,
+            property: `public ${propertyName} !: ${modelName}`
+          })
+          if(!importModels.includes(modelName))
+            importModels.push(`import { ${modelName} } from './${modelName}'`);
+        }
+      }
+      return { results , importModels }
+    }
+  
+    const mapPrettyRelations = (data: any[]): any[] => {
+      const map: Record<string, any> = {};
+
+      for (const t of data) {
+        map[t.table] = { table: t.table, relations: [] };
+      }
+
+      for (const table of data) {
+        for (const rel of table.relations) {
+          if (rel.relatedTables) {
+            // Group all related tables in one array for belongsToMany
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
+          } else if (rel.relatedTable) {
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
+            if (rel.inverse) {
+              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
+            }
+          }
+        }
+      }
+
+      return Object.values(map);
+    }
+  
+    const tables = await new Model()
+    .debug(this.$state.get('DEBUG'))
+    .loadEnv(env)
+    .showTables();
+
+    const schemas : any[] = [];
+
+    const rawRegistryRelations = await Promise.all(
+      tables.map(async (table) => ({
+        table,
+        relations: detectRelation(
+          table,
+          await new Model().debug(this.$state.get('DEBUG')).loadEnv(env).getFKs(table)
+        )
+      }))
+    )
+
+    const registryRelations = mapPrettyRelations(rawRegistryRelations)
+    
+    for(const table of tables) {
+
+      const model = snakeCaseToPascal(pluralize.singular(table));
+      
+      const columns = await new Model()
+      .debug(this.$state.get('DEBUG'))
+      .loadEnv(env)
+      .showSchema(table, { raw : true });
+      
+      let schema : any[] = [];
+
+      for(const raw of columns) {
+        const schemaColumn = [
+            `@Column(() => `,
+            `Blueprint.${/^[^()]*$/.test(raw.Type) 
+                ? raw.Type.includes('unsigned') 
+                    ? 'int().unsigned()'
+                    : `${raw.Type.toLocaleLowerCase()}()` 
+                : raw.Type.toLocaleLowerCase()
+            }`,
+            `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+            raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+            raw.Default != null 
+              ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
+            `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
+            `)`
+        ] .join('')
+
+        const detectType = (raws : any) => {
+          const t = raws.Type.toLowerCase()
+          const typeForNumber = ['INT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
+          const typeForBoolean = ['TINYINT','BOOLEAN'].map(r => r.toLowerCase())
+          const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
+
+          if (typeForNumber.some(v => t.includes(v))) return 'number'
+          if (typeForBoolean.some(v => t.includes(v))) return 'boolean'
+          if (typeForDate.some(v => t.includes(v))) return 'Date'
+          if(t.includes('enum')) return `${String(raws.TypeValue).split(',').map(v => `'${v}'`).join(' | ')}`
+
+          return 'string'
+        }
+
+        const publicColumn =  `public ${raw.Field} !: ${detectType(raw)}`
+
+        schema.push({
+          schema: schemaColumn,
+          property: publicColumn
+        })
+      }
+
+      const find = registryRelations.find(v => v.table === table)
+
+      const { importModels , results } = generateDecorators(find.relations)
+
+      schemas.push({
+        model,
+        columns: [...schema,...(find == null ? []: results )],
+        importModels
+      })
+    }
+
+    return schemas as {
+      model: string; 
+      columns: [{ schema: string; property: string }];
+      importModels: string[]
+    }[]
+  }
+
+  async geranerateModelTemplate(env?: string) {
+  
+    const snakeCaseToPascal = (data: string ) => {
+      let str : string[] = data.split('_')
+      for(let i=0; i <str.length;i++) { 
+          str[i] = str[i].slice(0,1).toUpperCase() + str[i].slice(1,str[i].length) 
+      }
+      return str.join('')
+    }
+  
+    const formatSchema = (data: string[]) => {
+      const formattedCode : Record<string,any> = {}
+      for (const field of data) {
+          const [key, value] = field.split(":").map((item:string) => item.trim())
+          formattedCode[key] = value
+      }
+      return formattedCode
+    }
+
+    const detectRelation = (currentTable:string, fks:any[]) => {
+      
+      return fks.map(fk => {
+        const { RefTable, Column } = fk
+        if (currentTable !== RefTable && Column && Column.endsWith('_id')) {
+          const inverse = 'hasMany'
+          return {
+            currentTable,
+            relation: 'belongsTo',
+            relatedTable: RefTable,
+            fkColumn: Column,
+            inverse
+          }
+        }
+        return {
+          currentTable,
+          relation: 'unknown',
+          relatedTable: RefTable,
+          fkColumn: Column
+        }
+      })
+    }
+  
+    const tableToModel = (table: string): string => {
+      return pluralize.singular(
+        table
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('')
+      )
+    }
+  
+    const mapPrettyRelations = (data: any[]): any[] => {
+      const map: Record<string, any> = {};
+
+      for (const t of data) {
+        map[t.table] = { table: t.table, relations: [] };
+      }
+
+      for (const table of data) {
+        for (const rel of table.relations) {
+          if (rel.relatedTables) {
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
+          } else if (rel.relatedTable) {
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
+            if (rel.inverse) {
+              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
+            }
+          }
+        }
+      }
+
+      return Object.values(map);
+    }
+  
+    const tables = await new Model()
+    .debug(this.$state.get('DEBUG'))
+    .loadEnv(env)
+    .showTables();
+
+    const schemas : any[] = [];
+
+    const rawRegistryRelations = await Promise.all(
+      tables.map(async (table) => ({
+        table,
+        relations: detectRelation(
+          table,
+          await new Model().debug(this.$state.get('DEBUG')).loadEnv(env).getFKs(table)
+        )
+      }))
+    )
+
+    const registryRelations = mapPrettyRelations(rawRegistryRelations)
+    
+    for(const table of tables) {
+
+      const model = snakeCaseToPascal(pluralize.singular(table));
+      
+      const columns = await new Model()
+      .debug(this.$state.get('DEBUG'))
+      .loadEnv(env)
+      .showSchema(table, { raw : true });
+      
+      let schema : any[] = [];
+
+      for(const index in columns) {
+        const raw = columns[index]
+        const str = [
+            `${raw.Field} : `,
+            `Blueprint.${/^[^()]*$/.test(raw.Type) 
+                ? raw.Type.includes('unsigned') 
+                    ? 'int().unsigned()'
+                    : `${raw.Type.toLocaleLowerCase()}()` 
+                : raw.Type.toLocaleLowerCase()
+            }`,
+            `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+            raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+            raw.Default != null 
+              ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
+            `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
+            `,`
+        ] .join('')
+
+        const isLast = Number(index) + 1 === columns.length
+        
+        schema.push(isLast ? str.replace(/,\s*$/, "") : str);
+      }
+
+       schemas.push({
+        model,
+        schemas: schema
+      })
+    }
+
+    return schemas
+  }
+
   protected _valuePattern(column: string): string {
     if (column.startsWith(this.$constants("FREEZE"))) {
       return `${column

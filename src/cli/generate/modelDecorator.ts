@@ -1,5 +1,5 @@
 const Model = (model: string, npm: string, schema : string) => {
-return `import { Model , Blueprint , Column } from '${npm}'
+return `import { Model , Blueprint , Column, HasMany, BelongsTo } from '${npm}'
 
 class ${model} extends Model {
 

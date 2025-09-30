@@ -82,6 +82,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
       const sql = [
         `SELECT 
           COLUMN_NAME as "Field", 
+          COLUMN_TYPE as "ColumnType",
           DATA_TYPE as "Type",
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
@@ -113,7 +114,13 @@ export class MysqlQueryBuilder extends QueryBuilder {
           CASE 
             WHEN EXTRA = 'DEFAULT_GENERATED' THEN NULL 
             ELSE EXTRA 
-          END AS "Extra"
+          END AS "Extra",
+          CASE WHEN DATA_TYPE = 'enum' 
+            THEN REPLACE(SUBSTRING(COLUMN_TYPE, 6, LENGTH(COLUMN_TYPE)-6), '''', '') 
+              WHEN COLUMN_TYPE LIKE '%(%)%' 
+                THEN SUBSTRING_INDEX(SUBSTRING_INDEX(COLUMN_TYPE, '(', -1), ')', 1) 
+            ELSE NULL 
+          END AS "TypeValue"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME    = '${table.replace(/\`/g, "")}'
@@ -130,6 +137,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
         `SELECT TABLE_NAME AS "Tables"
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
+        AND TABLE_TYPE = 'BASE TABLE'
       `,
       ];
 
@@ -260,7 +268,28 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public fkExists ({ database , table , constraint } : { 
+    public getFKs ({ database , table } : { 
+      database   : string; 
+      table      : string;
+    }) {
+      const sql = [
+        `
+        SELECT 
+          REFERENCED_TABLE_NAME AS "RefTable",
+          REFERENCED_COLUMN_NAME AS "RefColumn",
+          COLUMN_NAME AS "Column",
+          CONSTRAINT_NAME As  "Constraint"
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE REFERENCED_TABLE_NAME IS NOT NULL
+        AND TABLE_SCHEMA  = '${database.replace(/`/g, "")}'
+        AND TABLE_NAME    = '${table.replace(/`/g, "")}'
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public hasFK ({ database , table , constraint } : { 
       database   : string; 
       table      : string;
       constraint : string;
@@ -281,7 +310,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+    public createFK ({ table, tableRef, key , constraint, foreign } : { 
       table         : string; 
       tableRef      : string;
       key           : string;
@@ -307,7 +336,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public indexExists ({ database , table , index } : { 
+    public hasIndex ({ database , table , index } : { 
       database : string; 
       table    : string;
       index    : string;
@@ -327,7 +356,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public indexCreating ({ table, index , key } : { 
+    public createIndex ({ table, index , key } : { 
       table      : string; 
       index      : string;
       key        : string;

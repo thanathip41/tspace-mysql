@@ -82,13 +82,15 @@ export class PostgresQueryBuilder extends QueryBuilder {
       const sql = [
         `SELECT 
           COLUMN_NAME as "Field", 
+          COLUMN_TYPE as "ColumnType",
           DATA_TYPE as "Type",
           IS_NULLABLE as "Null",
           COLUMN_DEFAULT as "Default"
         `,
         `FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
+          WHERE TABLE_NAME  = '${table.replace(/\`/g, "")}'
           AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+        ORDER BY ORDINAL_POSITION
         `,
       ];
 
@@ -303,7 +305,28 @@ export class PostgresQueryBuilder extends QueryBuilder {
       ].join('; ');
     }
 
-    public fkExists ({ database , table , constraint } : { 
+    public getFKs ({ database , table } : { 
+      database   : string; 
+      table      : string;
+    }) {
+      const sql = [
+        `
+          SELECT 
+            REFERENCED_TABLE_NAME AS "RefTable",
+            REFERENCED_COLUMN_NAME AS "RefColumn",
+            COLUMN_NAME AS "Column",
+            CONSTRAINT_NAME As  "Constraint"
+          FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+          WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
+          AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
+          AND TABLE_NAME       = '${table}'
+        `
+      ]
+
+      return this.format(sql);
+    }
+
+    public hasFK ({ database , table , constraint } : { 
       database   : string; 
       table      : string;
       constraint : string;
@@ -324,7 +347,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public fkCreating ({ table, tableRef, key , constraint, foreign } : { 
+    public createFK ({ table, tableRef, key , constraint, foreign } : { 
       table         : string; 
       tableRef      : string;
       key           : string;
@@ -350,7 +373,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public indexExists ({ database , table , index } : { 
+    public hasIndex ({ database , table , index } : { 
       database : string; 
       table    : string;
       index    : string;
@@ -372,7 +395,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return this.format(sql);
     }
 
-    public indexCreating ({ table, index , key } : { 
+    public createIndex ({ table, index , key } : { 
       table      : string; 
       index      : string;
       key        : string;

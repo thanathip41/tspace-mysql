@@ -560,7 +560,7 @@ class Schema {
       try {
         const [FK] = await this.$db
         .debug(log)
-        .rawQuery(query.fkExists({ 
+        .rawQuery(query.hasFK({ 
           database   : this.$db.database(),
           table      : model.getTableName(),
           constraint : constraintName
@@ -569,7 +569,7 @@ class Schema {
         if(FK.IS_EXISTS) continue;
 
         await this.$db.debug(log)
-        .rawQuery(query.fkCreating(
+        .rawQuery(query.createFK(
           {
             table: model.getTableName(),
             tableRef : table,
@@ -599,7 +599,7 @@ class Schema {
 
         await this.$db
         .debug(log)
-        .rawQuery(query.fkCreating(
+        .rawQuery(query.createFK(
           {
             table: model.getTableName(),
             tableRef : table,
@@ -645,7 +645,7 @@ class Schema {
 
         const [INDEX] = await this.$db
         .debug(log)
-        .rawQuery(query.indexExists({ 
+        .rawQuery(query.hasIndex({ 
           database : this.$db.database(),
           table    : model.getTableName(),
           index    : index
@@ -655,7 +655,7 @@ class Schema {
 
         await this.$db
         .debug(log)
-        .rawQuery(query.indexCreating({ 
+        .rawQuery(query.createIndex({ 
           table   : model.getTableName(),
           index   : index,
           key     : key
@@ -675,7 +675,7 @@ class Schema {
 
         await this.$db
         .debug(log)
-        .rawQuery(query.indexCreating({ 
+        .rawQuery(query.createIndex({ 
           table   : model.getTableName(),
           index   : index,
           key     : key

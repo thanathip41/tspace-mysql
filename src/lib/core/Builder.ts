@@ -19,6 +19,7 @@ import {
   TPoolCusterConnected,
   TDriver,
 } from "../types";
+import pluralize from "pluralize";
 class Builder extends AbstractBuilder {
   constructor() {
     super();
@@ -2861,7 +2862,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getColumns(): Promise<any[]> {
-    return this.showColumns(this.$state.get("TABLE_NAME"), { raw : true });
+    return await this.showColumns(this.$state.get("TABLE_NAME"), { raw : true });
   }
 
   /**
@@ -2869,7 +2870,16 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getSchema(): Promise<any[]> {
-    return this.showSchema(this.$state.get("TABLE_NAME"), { raw : true });
+    return await this.showSchema(this.$state.get("TABLE_NAME"), { raw : true });
+  }
+
+  async getFKs(table?: string): Promise<any[]> {
+
+    const sql = this._queryBuilder().getFKs({
+      database : this.$database,
+      table: table ?? this.$state.get("TABLE_NAME")
+    })
+    return await this.rawQuery(sql);
   }
 
   /**
@@ -3940,7 +3950,7 @@ class Builder extends AbstractBuilder {
   async showColumns(
     table: string = this.$state.get("TABLE_NAME"),
     options: { raw?: boolean } = {}
-  ): Promise<string[]> {
+  ): Promise<any[]> {
     const sql = this._queryBuilder().columns({
       table,
       database: this.$database,
@@ -3966,7 +3976,7 @@ class Builder extends AbstractBuilder {
   async showSchema(
     table: string = this.$state.get("TABLE_NAME"),
     options: { raw?: boolean } = {}
-  ): Promise<string[]> {
+  ): Promise<any[]> {
    
     const sql = this._queryBuilder().schema({
       database : this.$database,
