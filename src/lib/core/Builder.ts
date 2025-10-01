@@ -1,16 +1,12 @@
-import { AbstractBuilder }  from "./Abstracts/AbstractBuilder";
-import { utils }            from "../utils";
-import { DB }               from "./DB";
-import { StateHandler }     from "./Handlers/State";
-import { Join }             from "./Join";
-import { CONSTANTS }        from "../constants";
-import { QueryBuilder }     from "./Driver";
-import Config               from "../config";
-import { 
-  Pool, 
-  PoolConnection, 
-  loadOptionsEnvironment 
-} from "./Pool";
+import { AbstractBuilder } from "./Abstracts/AbstractBuilder";
+import { utils } from "../utils";
+import { DB } from "./DB";
+import { StateHandler } from "./Handlers/State";
+import { Join } from "./Join";
+import { CONSTANTS } from "../constants";
+import { QueryBuilder } from "./Driver";
+import Config from "../config";
+import { Pool, PoolConnection, loadOptionsEnvironment } from "./Pool";
 import {
   TPagination,
   TConnectionOptions,
@@ -52,20 +48,22 @@ class Builder extends AbstractBuilder {
 
   /**
    * The 'rowLock' method is used to row level locks
-   * 
-   * @param {string} mode 
+   *
+   * @param {string} mode
    * @returns {this} this
    */
-  rowLock(mode: 'FOR_UPDATE' | 'FOR_SHARE'): this {
-    if (!['FOR_UPDATE', 'FOR_SHARE'].includes(mode)) {
+  rowLock(mode: "FOR_UPDATE" | "FOR_SHARE"): this {
+    if (!["FOR_UPDATE", "FOR_SHARE"].includes(mode)) {
       throw new Error(`Invalid lock mode: ${mode}`);
     }
 
     this.$state.set(
-      'ROW_LEVEL_LOCK',
-      mode === 'FOR_UPDATE' ? this.$constants('ROW_LEVEL_LOCK').update : this.$constants('ROW_LEVEL_LOCK').share
+      "ROW_LEVEL_LOCK",
+      mode === "FOR_UPDATE"
+        ? this.$constants("ROW_LEVEL_LOCK").update
+        : this.$constants("ROW_LEVEL_LOCK").share
     );
-    
+
     return this;
   }
 
@@ -1030,12 +1028,12 @@ class Builder extends AbstractBuilder {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
-    ? `${array
-        .map((value: string) =>
-          this.$utils.checkValueHasRaw(this.$utils.escape(value))
-        )
-        .join(",")}`
-    : this.$constants(this.$constants("NULL"));
+      ? `${array
+          .map((value: string) =>
+            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1062,12 +1060,12 @@ class Builder extends AbstractBuilder {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
-    ? `${array
-        .map((value: string) =>
-          this.$utils.checkValueHasRaw(this.$utils.escape(value))
-        )
-        .join(",")}`
-    : this.$constants(this.$constants("NULL"));
+      ? `${array
+          .map((value: string) =>
+            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -2619,7 +2617,7 @@ class Builder extends AbstractBuilder {
       throw new Error("This method must be required");
 
     const query = this._queryInsertMultiple(data);
-   
+
     this.$state.set(
       "INSERT",
       [
@@ -2862,7 +2860,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getColumns(): Promise<any[]> {
-    return await this.showColumns(this.$state.get("TABLE_NAME"), { raw : true });
+    return await this.showColumns(this.$state.get("TABLE_NAME"), { raw: true });
   }
 
   /**
@@ -2870,15 +2868,14 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   async getSchema(): Promise<any[]> {
-    return await this.showSchema(this.$state.get("TABLE_NAME"), { raw : true });
+    return await this.showSchema(this.$state.get("TABLE_NAME"), { raw: true });
   }
 
   async getFKs(table?: string): Promise<any[]> {
-
     const sql = this._queryBuilder().getFKs({
-      database : this.$database,
-      table: table ?? this.$state.get("TABLE_NAME")
-    })
+      database: this.$database,
+      table: table ?? this.$state.get("TABLE_NAME"),
+    });
     return await this.rawQuery(sql);
   }
 
@@ -3008,7 +3005,7 @@ class Builder extends AbstractBuilder {
     const options = loadOptionsEnvironment(env);
 
     const pool = new PoolConnection({
-      cluster : options.cluster,
+      cluster: options.cluster,
       driver: options.driver as TDriver,
       host: String(options.host),
       port: Number(options.port),
@@ -3031,7 +3028,7 @@ class Builder extends AbstractBuilder {
    */
   bind(connection: TPoolConnected | TConnectionTransaction): this {
     this.$pool.set(connection);
-    
+
     return this;
   }
 
@@ -3934,7 +3931,9 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showTables(): Promise<string[]> {
-    const results: any[] = await this._queryStatement(this._queryBuilder().tables(this.database()));
+    const results: any[] = await this._queryStatement(
+      this._queryBuilder().getTables(this.database())
+    );
 
     return results
       .map((table) => String(Object.values(table)[0]))
@@ -3951,14 +3950,14 @@ class Builder extends AbstractBuilder {
     table: string = this.$state.get("TABLE_NAME"),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
-    const sql = this._queryBuilder().columns({
+    const sql = this._queryBuilder().getColumns({
       table,
       database: this.$database,
     });
 
     const raws: any[] = await this._queryStatement(sql);
 
-    if(options.raw) return raws;
+    if (options.raw) return raws;
 
     const columns = (raws ?? []).map(
       (column: { Field: string }) => column.Field
@@ -3977,15 +3976,14 @@ class Builder extends AbstractBuilder {
     table: string = this.$state.get("TABLE_NAME"),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
-   
-    const sql = this._queryBuilder().schema({
-      database : this.$database,
-      table
-    })
+    const sql = this._queryBuilder().getSchema({
+      database: this.$database,
+      table,
+    });
 
     const raws: any[] = await this._queryStatement(sql);
 
-    if(options.raw) return raws;
+    if (options.raw) return raws;
 
     const schema = raws.map((r: Record<string, any>) => {
       const schema: string[] = [];
@@ -4011,8 +4009,8 @@ class Builder extends AbstractBuilder {
       }
 
       if (r.Default) {
-        if (r.Default.includes('IS_CONST:')) {
-          schema.push(`DEFAULT ${String(r.Default).replace('IS_CONST:','')}`);
+        if (r.Default.includes("IS_CONST:")) {
+          schema.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
         } else {
           schema.push(`DEFAULT '${r.Default}'`);
         }
@@ -4025,7 +4023,7 @@ class Builder extends AbstractBuilder {
       return schema.join(" ");
     });
 
-    return schema
+    return schema;
   }
 
   /**
@@ -4064,8 +4062,8 @@ class Builder extends AbstractBuilder {
         })
         .join(", ")})`;
     });
-    
-    return values
+
+    return values;
   }
 
   /**
@@ -4168,7 +4166,7 @@ class Builder extends AbstractBuilder {
     const sql: string = [
       `${this.$constants("TRUNCATE_TABLE")}`,
       `${this.$state.get("TABLE_NAME")}`,
-    ].join(' ');
+    ].join(" ");
 
     if (!force) {
       console.log(
@@ -4192,7 +4190,11 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  async drop({ force = false, view = false, db = false }: { force?: boolean; view?: boolean; db?: boolean  } = {}): Promise<boolean> {
+  async drop({
+    force = false,
+    view = false,
+    db = false,
+  }: { force?: boolean; view?: boolean; db?: boolean } = {}): Promise<boolean> {
     if (
       this.$state.get("TABLE_NAME") == null ||
       this.$state.get("TABLE_NAME") === ""
@@ -4202,11 +4204,11 @@ class Builder extends AbstractBuilder {
     }
 
     const sql: string = [
-      db 
-        ? this._queryBuilder().dropDatabase(this.$state.get("TABLE_NAME")) 
-        : view 
-          ? this._queryBuilder().dropView(this.$state.get("TABLE_NAME")) 
-          : this._queryBuilder().dropTable(this.$state.get("TABLE_NAME")) 
+      db
+        ? this._queryBuilder().dropDatabase(this.$state.get("TABLE_NAME"))
+        : view
+        ? this._queryBuilder().dropView(this.$state.get("TABLE_NAME"))
+        : this._queryBuilder().dropTable(this.$state.get("TABLE_NAME")),
     ].join(" ");
 
     if (!force) {
@@ -4240,17 +4242,22 @@ class Builder extends AbstractBuilder {
     const removeExcepts: string[][] = [];
 
     for (const tableName of tableNames) {
-      const columns = await new Builder().copyBuilder(this).getColumns();
+      const columns = await new Builder()
+      .copyBuilder(this)
+      .debug(this.$state.get('DEBUG'))
+      .getColumns();
 
-      const removeExcept = columns.map(v=> v.Field).filter((column: string) => {
-        return excepts.every((except: string) => {
-          if (/\./.test(except)) {
-            const [table, _] = except.split(".");
-            return except !== `${table}.${column}`;
-          }
-          return except !== column;
+      const removeExcept = columns
+        .map((v) => v.Field)
+        .filter((column: string) => {
+          return excepts.every((except: string) => {
+            if (/\./.test(except)) {
+              const [table, _] = except.split(".");
+              return except !== `${table}.${column}`;
+            }
+            return except !== column;
+          });
         });
-      });
       removeExcepts.push(
         hasDot ? removeExcept.map((r) => `${tableName}.${r}`) : removeExcept
       );
@@ -4363,7 +4370,7 @@ class Builder extends AbstractBuilder {
   }
 
   protected async _queryStatement(sql: string): Promise<any[]> {
-    sql = this._queryBuilder().format([sql])
+    sql = this._queryBuilder().format([sql]);
     if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
     const startTime = +new Date();
@@ -4418,10 +4425,10 @@ class Builder extends AbstractBuilder {
         await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
         const data = await new Builder()
-        .copyBuilder(this, { select: true })
-        .whereIn("id", result.$meta.insertIds)
-        .bind(this.$pool.get())
-        .first();
+          .copyBuilder(this, { select: true })
+          .whereIn("id", result.$meta.insertIds)
+          .bind(this.$pool.get())
+          .first();
 
         return this._resultHandler(data);
       }
@@ -4433,7 +4440,7 @@ class Builder extends AbstractBuilder {
 
   private async _insert() {
     const result = await this._actionStatement(this._queryBuilder().insert());
-    
+
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
 
@@ -4457,10 +4464,10 @@ class Builder extends AbstractBuilder {
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
     const resultData = await new Builder()
-    .copyBuilder(this, { select: true, limit: true })
-    .whereIn("id", result.$meta.insertIds)
-    .bind(this.$pool.get())
-    .get();
+      .copyBuilder(this, { select: true, limit: true })
+      .whereIn("id", result.$meta.insertIds)
+      .bind(this.$pool.get())
+      .get();
 
     return this._resultHandler(resultData);
   }
@@ -4492,10 +4499,10 @@ class Builder extends AbstractBuilder {
         await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
         const data = await new Builder()
-        .copyBuilder(this, { select: true })
-        .whereIn("id", result.$meta.insertIds)
-        .bind(this.$pool.get())
-        .first();
+          .copyBuilder(this, { select: true })
+          .whereIn("id", result.$meta.insertIds)
+          .bind(this.$pool.get())
+          .first();
 
         const resultData = data == null ? null : { ...data, $action: "insert" };
 
@@ -4651,8 +4658,9 @@ class Builder extends AbstractBuilder {
   private _queryInsert(data: Record<string, any>) {
     data = this.$utils.covertDateToDateString(data);
 
-    const columns: string[] = Object.keys(data)
-    .map((c: string) =>`\`${c.replace(/\`/g, "")}\``);
+    const columns: string[] = Object.keys(data).map(
+      (c: string) => `\`${c.replace(/\`/g, "")}\``
+    );
 
     const values = Object.values(data).map((value: any) => {
       if (
@@ -4662,8 +4670,11 @@ class Builder extends AbstractBuilder {
         value = this.$utils.escapeActions(value);
       }
 
-      if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
-        value = JSON.stringify(value)
+      if (
+        this.$utils.typeOf(value) === "object" ||
+        this.$utils.typeOf(value) === "array"
+      ) {
+        value = JSON.stringify(value);
       }
 
       return `${
@@ -4692,8 +4703,11 @@ class Builder extends AbstractBuilder {
           value = this.$utils.escapeActions(value);
         }
 
-        if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
-          value = JSON.stringify(value)
+        if (
+          this.$utils.typeOf(value) === "object" ||
+          this.$utils.typeOf(value) === "array"
+        ) {
+          value = JSON.stringify(value);
         }
         return `${
           value == null || value === this.$constants("NULL")
@@ -4704,8 +4718,9 @@ class Builder extends AbstractBuilder {
       values.push(`(${vals.join(",")})`);
     }
 
-    const columns: string[] = Object.keys([...data]?.shift())
-    .map((c: string) => `\`${c.replace(/\`/g, "")}\``);
+    const columns: string[] = Object.keys([...data]?.shift()).map(
+      (c: string) => `\`${c.replace(/\`/g, "")}\``
+    );
 
     return [
       `(${columns})`,
@@ -4779,82 +4794,79 @@ class Builder extends AbstractBuilder {
 
   private _initialConnection() {
     this.$utils = utils;
-   
+
     this.$pool = (() => {
-      
-      if(Config.CLUSTER) {
+      if (Config.CLUSTER) {
         let poolCluster = Pool.clusterConnected();
 
-        if(poolCluster == null) {
+        if (poolCluster == null) {
           throw new Error(
-            'Cluster connection has not been initialized. Please verify your confings'
+            "Cluster connection has not been initialized. Please verify your confings"
           );
         }
-      
+
         return {
           query: async (sql: string) => {
             const first = sql.trim().split(/\s+/)[0].toUpperCase();
-            const isReaded = [
-              this.$constants('SELECT'), 
-              this.$constants('SHOW'), 
-              this.$constants('DESCRIBE')
-            ].includes(first) &&
-            
-            (!sql
-              .toUpperCase()
-              .includes(this.$constants('ROW_LEVEL_LOCK').update) ||
-              !sql
-              .toUpperCase()
-              .includes(this.$constants('ROW_LEVEL_LOCK').share)
-            )
-           
-            if(isReaded) {
+            const isReaded =
+              [
+                this.$constants("SELECT"),
+                this.$constants("SHOW"),
+                this.$constants("DESCRIBE"),
+              ].includes(first) &&
+              (!sql
+                .toUpperCase()
+                .includes(this.$constants("ROW_LEVEL_LOCK").update) ||
+                !sql
+                  .toUpperCase()
+                  .includes(this.$constants("ROW_LEVEL_LOCK").share));
+
+            if (isReaded) {
               const length = poolCluster?.slaves?.length ?? 0;
               const random = Math.floor(Math.random() * length);
 
-              return poolCluster?.query != null 
-              ? poolCluster.query(sql) 
-              : poolCluster?.slaves[random].query(sql);
+              return poolCluster?.query != null
+                ? poolCluster.query(sql)
+                : poolCluster?.slaves[random].query(sql);
             }
 
             const length = poolCluster?.masters?.length ?? 0;
             const random = Math.floor(Math.random() * length);
 
-            return poolCluster.query != null 
-            ? poolCluster.query(sql) 
-            : poolCluster?.masters[random].query(sql);
+            return poolCluster.query != null
+              ? poolCluster.query(sql)
+              : poolCluster?.masters[random].query(sql);
           },
           get: () => poolCluster,
           set: (conn: TPoolCusterConnected) => {
-            
-            if(conn.database != null) {
+            if (conn.database != null) {
               this.$database = conn.database();
             }
-            
+
             poolCluster = conn;
             return;
           },
           queryBuilder: () => {
             /**
-             * 
+             *
              * queryBuilder can use every nodes
              */
-            return poolCluster?.masters == null 
-            ? poolCluster?.queryBuilder
-            : poolCluster?.masters[0]?.queryBuilder
+            return poolCluster?.masters == null
+              ? poolCluster?.queryBuilder
+              : poolCluster?.masters[0]?.queryBuilder;
           },
         };
       }
 
       let pool = Pool.connected();
-      
+
       return {
         query: async (sql: string) => {
           return pool.query(sql);
         },
         get: () => pool,
         set: (conn: TPoolConnected) => {
-          if(conn.database != null) {
+          if (conn.database != null) {
             this.$database = conn.database();
           }
           pool = conn;

@@ -1,5 +1,7 @@
 import { CONSTANTS } from '../constants'
 import { TOperator, TOperatorQuery } from '../types'
+import { DB } from './DB'
+import { Model } from './Model'
 
 const OPERATOR = {
     'eq': '=',
@@ -114,8 +116,8 @@ export class Operator {
         return Operator._handlerResult('query', value)
     } 
 
-    static subQuery (value : string) {
-        return Operator._handlerResult('query', value)
+    static subQuery (value : string | Model | DB) {
+        return Operator._handlerResult('query', `${value}`)
     } 
 
     static orEq (value : string | number | boolean) {

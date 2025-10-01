@@ -1,8 +1,8 @@
-import { format }         from "sql-formatter";
-import { AbstractDB }     from "./Abstracts/AbstractDB";
-import { proxyHandler }   from "./Handlers/Proxy";
-import { StateHandler }   from "./Handlers/State";
-import { Tool }           from "../tools";
+import { format } from "sql-formatter";
+import { AbstractDB } from "./Abstracts/AbstractDB";
+import { proxyHandler } from "./Handlers/Proxy";
+import { StateHandler } from "./Handlers/State";
+import { Tool } from "../tools";
 import Pool, { PoolConnection } from "./Pool";
 import type {
   TConstant,
@@ -48,21 +48,21 @@ class DB extends AbstractDB {
   /**
    * The 'initialize' method is used to initialize the database,
    * and check if it is connected properly.
-   * 
+   *
    * @returns {promise<void>}
    */
-  async initialize (): Promise<void> {
-    await this.query(`${this.$constants('SELECT')} 1`);
+  async initialize(): Promise<void> {
+    await this.query(`${this.$constants("SELECT")} 1`);
     return;
   }
 
   /**
    * The 'initialize' method is used to initialize the database,
    * and check if it is connected properly.
-   * 
+   *
    * @returns {promise<void>}
    */
-  static async initialize (): Promise<void> {
+  static async initialize(): Promise<void> {
     return await new this().initialize();
   }
 
@@ -79,7 +79,7 @@ class DB extends AbstractDB {
   async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
     await this.initialize();
     if (Pool.instance == null) return;
-    
+
     Pool.instance.on(event, callback);
     return;
   }
@@ -95,7 +95,10 @@ class DB extends AbstractDB {
    * @param {(data: any) => any} callback - A callback function invoked when the event is emitted.
    * @returns {Promise<void>} A promise that resolves once the event listener is registered.
    */
-  static async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
+  static async event(
+    event: TPoolEvent,
+    callback: (data: any) => any
+  ): Promise<void> {
     return new this().event(event, callback);
   }
 
@@ -107,11 +110,10 @@ class DB extends AbstractDB {
    * @returns {promise<any[]>}
    */
   async query(sql: string, parameters: Record<string, any> = {}): Promise<any> {
-    
     if (!Object.keys(parameters).length) {
       return await this.rawQuery(sql);
     }
-    
+
     let bindSql = sql;
 
     for (const key in parameters) {
@@ -123,10 +125,7 @@ class DB extends AbstractDB {
       }
 
       if (parameter === true || parameter === false) {
-        bindSql = bindSql.replace(
-          `:${key}`,
-          `'${parameter === true ? 1 : 0}'`
-        );
+        bindSql = bindSql.replace(`:${key}`, `'${parameter === true ? 1 : 0}'`);
         continue;
       }
 
@@ -510,28 +509,32 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  async beginTransaction(options?: { primaryId?: number; nodeId?: number }): Promise<TConnectionTransaction> {
+  async beginTransaction(options?: {
+    primaryId?: number;
+    nodeId?: number;
+  }): Promise<TConnectionTransaction> {
     if (this.$cluster) {
       const cluster = new PoolConnection().clusterConnected();
       const masters = cluster.masters;
-      if (!masters.length) throw new Error('No Master available in cluster');
-      const length = masters.length
+      if (!masters.length) throw new Error("No Master available in cluster");
+      const length = masters.length;
 
-      let selectedIndex: number = Math.floor(Math.random() * length)
+      let selectedIndex: number = Math.floor(Math.random() * length);
 
       if (options?.nodeId != null) {
-        if(options.nodeId > length) {
-          throw new Error(`Invalid nodeId ${options.nodeId}. Cluster has only ${length} master node(s).`);
+        if (options.nodeId > length) {
+          throw new Error(
+            `Invalid nodeId ${options.nodeId}. Cluster has only ${length} master node(s).`
+          );
         }
-        selectedIndex = options.nodeId - 1
-      } 
-      else if (options?.primaryId != null) {
+        selectedIndex = options.nodeId - 1;
+      } else if (options?.primaryId != null) {
         selectedIndex = options.primaryId % length;
       }
 
       const writer = masters[selectedIndex];
 
-      if (writer == null) throw new Error('No Master available in cluster');
+      if (writer == null) throw new Error("No Master available in cluster");
 
       return await writer.connection();
     }
@@ -558,7 +561,10 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  static async beginTransaction(options?: { primaryId?: number; nodeId?: number }): Promise<TConnectionTransaction> {
+  static async beginTransaction(options?: {
+    primaryId?: number;
+    nodeId?: number;
+  }): Promise<TConnectionTransaction> {
     return await new this().beginTransaction(options);
   }
 
@@ -674,10 +680,9 @@ class DB extends AbstractDB {
    * @returns {Promise<void>}
    */
   async backup({ database, to }: TBackup): Promise<void> {
-   
     const tables = await this.showTables();
 
-    const backup = await this._backup({ tables, database , to });
+    const backup = await this._backup({ tables, database, to });
 
     const creating = async ({
       table,
@@ -687,8 +692,8 @@ class DB extends AbstractDB {
       values: () => Promise<void>;
     }) => {
       try {
-        await table()
-        await values()
+        await table();
+        await values();
       } catch (e) {}
     };
 
@@ -737,20 +742,21 @@ class DB extends AbstractDB {
     await this.$utils.wait(1000 * 5);
     const tables = await this.showTables();
 
-    const backup = (await this._backupToString({ tables, database })).map((b) => {
-      return {
-        table: [
-          `\n--`,
-          `-- Table structure for table '${b.name}'`,
-          `--\n`,
-          `${format(b.table(), {
-            language: "spark",
-            tabWidth: 2,
-            linesBetweenQueries: 1,
-          })}`,
-        ].join("\n") + ';',
-        values:
-          b.values().length
+    const backup = (await this._backupToString({ tables, database })).map(
+      (b) => {
+        return {
+          table:
+            [
+              `\n--`,
+              `-- Table structure for table '${b.name}'`,
+              `--\n`,
+              `${format(b.table(), {
+                language: "spark",
+                tabWidth: 2,
+                linesBetweenQueries: 1,
+              })}`,
+            ].join("\n") + ";",
+          values: b.values().length
             ? [
                 `\n--`,
                 `-- Dumping data for table '${b.name}'`,
@@ -762,8 +768,9 @@ class DB extends AbstractDB {
                 })}`,
               ].join("\n")
             : "",
-      };
-    });
+        };
+      }
+    );
 
     if (connection != null && Object.keys(connection)?.length)
       this.connection(connection);
@@ -846,16 +853,18 @@ class DB extends AbstractDB {
 
     const tables = await this.showTables();
 
-    const backup = (await this._backupToString({ tables, database })).map((b) => {
-      return {
-        table:
-          format(b.table(), {
-            language: "spark",
-            tabWidth: 2,
-            linesBetweenQueries: 1,
-          }) + "\n",
-      };
-    });
+    const backup = (await this._backupToString({ tables, database })).map(
+      (b) => {
+        return {
+          table:
+            format(b.table(), {
+              language: "spark",
+              tabWidth: 2,
+              linesBetweenQueries: 1,
+            }) + "\n",
+        };
+      }
+    );
 
     let sql: string[] = [
       `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
@@ -1054,57 +1063,63 @@ class DB extends AbstractDB {
   private async _backup({
     tables,
     database,
-    to
+    to,
   }: {
     tables: string[];
     database: string;
-    to ?: {
+    to?: {
       driver?: TDriver;
       host: string;
       port: number;
       username: string;
       password: string;
-    }
+    };
   }) {
-    const backup: Array<{ 
-      table: () => Promise<void>; 
-      values: () => Promise<void>; 
-      name: string 
+    const backup: Array<{
+      table: () => Promise<void>;
+      values: () => Promise<void>;
+      name: string;
     }> = [];
 
-    const conn = await new DB().getConnection({ ...(to ?? this.$credentials) })
+    const conn = await new DB().getConnection({ ...(to ?? this.$credentials) });
 
-    const db = await new DB().bind(conn).query(this._queryBuilder().showDatabase(database))
+    const db = await new DB()
+      .bind(conn)
+      .query(this._queryBuilder().getDatabase(database));
 
     if (Object.values(db[0] ?? []).length) {
       throw new Error(`This database : '${database}' is already exists`);
     }
 
-    await new DB().bind(conn).query(
-      `${this.$constants("CREATE_DATABASE")} \`${database}\``
-    );
+    await new DB()
+      .bind(conn)
+      .query(`${this.$constants("CREATE_DATABASE")} \`${database}\``);
 
     const connWithDatabase = await new DB().getConnection({
       ...(to ?? this.$credentials),
-      database
+      database,
     });
 
     for (const table of tables) {
-      const schema = await new DB().debug(this.$state.get('DEBUG')).showSchema(table);
-      const values = await new DB(table).debug(this.$state.get('DEBUG')).get();
+      const schema = await new DB()
+        .debug(this.$state.get("DEBUG"))
+        .showSchema(table);
+      const values = await new DB(table).debug(this.$state.get("DEBUG")).get();
 
       backup.push({
         name: table == null ? "" : table,
         table: async () => {
           await new DB()
-          .debug(this.$state.get('DEBUG'))
-          .bind(connWithDatabase)
-          .query(this._queryBuilder().tableCreating({ database , table , schema }))
+            .debug(this.$state.get("DEBUG"))
+            .bind(connWithDatabase)
+            .query(
+              this._queryBuilder().createTable({ database, table, schema })
+            );
 
           return;
         },
         values: async () => {
-          if(!values.length) return;
+          if (!values.length) return;
 
           const chunked = this.$utils.chunkArray([...values], 1000);
           const promises: Function[] = [];
@@ -1130,17 +1145,17 @@ class DB extends AbstractDB {
     return backup;
   }
 
-   private async _backupToString({
+  private async _backupToString({
     tables,
     database,
   }: {
     tables: string[];
     database: string;
   }) {
-    const backup: Array<{ 
-      table: () =>string; 
-      values: () => string[]; 
-      name: string 
+    const backup: Array<{
+      table: () => string;
+      values: () => string[];
+      name: string;
     }> = [];
 
     for (const table of tables) {
@@ -1150,25 +1165,24 @@ class DB extends AbstractDB {
       backup.push({
         name: table == null ? "" : table,
         table: () => {
-          return this._queryBuilder().tableCreating({ database , table , schema })
+          return this._queryBuilder().createTable({ database, table, schema });
         },
         values: () => {
-          if(!values.length) return [];
+          if (!values.length) return [];
 
           const chunked = this.$utils.chunkArray([...values], 500);
           const str: string[] = [];
 
           for (const data of chunked) {
-            const sql = this
-            .table(table)
-            .debug(this.$state.get("DEBUG"))
-            .createMultiple([...data])
-            .toString();
+            const sql = this.table(table)
+              .debug(this.$state.get("DEBUG"))
+              .createMultiple([...data])
+              .toString();
 
             str.push(sql);
           }
 
-          return str
+          return str;
         },
       });
     }

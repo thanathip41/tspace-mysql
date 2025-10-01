@@ -3132,7 +3132,9 @@ class Model<
         case "IN": {
           this.whereIn(
             c,
-            Array.isArray(useOp.value) ? useOp.value : useOp.value.split(",").map(v => Number.isNaN(+v) ? `${v}` : +v)
+            Array.isArray(useOp.value) 
+            ? useOp.value : useOp.value.split(",").map(v => Number.isNaN(+v) ? `${v}` 
+            : +v)
           );
           break;
         }
@@ -5740,7 +5742,20 @@ class Model<
     });
   }
 
-  async geranerateModelDecoratorTemplate(env?: string) {
+  /**
+   * Builds model templates for CLI generation.
+   *
+   * @async
+   * @function buildModelTemplate
+   * @param {Object} [options={}] - The build options.
+   * @param {boolean} [options.decorator] - Whether to include decorators in the generated model template.
+   * @param {string} [options.env] - Environment name to load configuration from.
+   * @returns {Promise<Array<{ model: string, template: string }>>} 
+   */
+  async buildModelTemplate({ decorator, env } : { 
+    decorator?: boolean, 
+    env ?: string
+  } = {}) : Promise<{ model: string; template: string }[]> {
   
     const snakeCaseToPascal = (data: string ) => {
       let str : string[] = data.split('_')
@@ -5751,7 +5766,6 @@ class Model<
     }
   
     const detectRelation = (currentTable:string, fks:any[]) => {
-      
       return fks.map(fk => {
         const { RefTable, Column } = fk
         if (currentTable !== RefTable && Column && Column.endsWith('_id')) {
@@ -5782,9 +5796,32 @@ class Model<
       )
     }
   
-    const generateDecorators = (relations: { type:string, target:string }[]) => {
+    const mapRelations = (data: any[]): any[] => {
+      const map: Record<string, any> = {};
+
+      for (const t of data) {
+        map[t.table] = { table: t.table, relations: [] };
+      }
+
+      for (const table of data) {
+        for (const rel of table.relations) {
+          if (rel.relatedTables) {
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
+          } else if (rel.relatedTable) {
+            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
+            if (rel.inverse) {
+              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
+            }
+          }
+        }
+      }
+
+      return Object.values(map);
+    }
+
+    const buildDecorators = (relations: { type:string, target:string }[]) => {
       const results: any[] = []
-      const importModels : string[] = []
+      const imports : string[] = []
       for (const rel of relations) {
         if (rel.type === 'hasMany') {
           const modelName = tableToModel(rel.target)
@@ -5793,8 +5830,8 @@ class Model<
             schema: `@HasMany({ name: '${propertyName}', model: () => ${modelName} })`,
             property: `public ${propertyName} !: ${modelName}[]`
           })
-          if(!importModels.includes(modelName))
-            importModels.push(`import { ${modelName} } from './${modelName}'`);
+          if(!imports.includes(modelName))
+            imports.push(`import { ${modelName} } from './${modelName}'`);
         }
 
         if (rel.type === 'belongsTo') {
@@ -5804,217 +5841,194 @@ class Model<
             schema: `@BelongsTo({ name: '${propertyName}', model: () => ${modelName} })`,
             property: `public ${propertyName} !: ${modelName}`
           })
-          if(!importModels.includes(modelName))
-            importModels.push(`import { ${modelName} } from './${modelName}'`);
+          if(!imports.includes(modelName))
+            imports.push(`import { ${modelName} } from './${modelName}'`);
         }
       }
-      return { results , importModels }
+      return { results , imports }
     }
-  
-    const mapPrettyRelations = (data: any[]): any[] => {
-      const map: Record<string, any> = {};
 
-      for (const t of data) {
-        map[t.table] = { table: t.table, relations: [] };
+    const buildRelations = (relations: { type:string, target:string }[]) => {
+      const types: any[] = [];
+      const imports : string[] = [];
+      const useds : any[] = [];
+
+      for (const rel of relations) {
+        if (rel.type === 'hasMany') {
+          const modelName = tableToModel(rel.target)
+          const propertyName = pluralize.plural(rel.target)
+          types.push(`${propertyName} : ${modelName}[]`)
+          useds.push(`this.hasMany({ name: '${propertyName}', model: ${modelName} })`)
+          if(!imports.includes(modelName))
+            imports.push(`import { ${modelName} } from './${modelName}'`);
+        }
+
+        if (rel.type === 'belongsTo') {
+          const modelName = tableToModel(rel.target)
+          const propertyName = pluralize.singular(rel.target)
+          types.push(`${propertyName} : ${modelName}`);
+          useds.push(`this.belongsTo({ name: '${propertyName}', model: ${modelName} })`);
+          if(!imports.includes(modelName))
+            imports.push(`import { ${modelName} } from './${modelName}'`);
+        }
+      }
+      return { types , imports , useds }
+    }
+
+    const mapType = (type: string): string => {
+      const mappings: Record<string, (string | RegExp)[]> = {
+        'integer': ['int', 'integer'],
+        'boolean': ['boolean', 'tinyint(1)'],
+        'smallint': ['smallint', 'tinyint(1)'],
+        'tinyint(1)': ['boolean'],
+        'json': ['json'],
+        'text': ['text', /^longtext$/i],
+        'timestamp': ['timestamp without time zone', 'datetime'],
       }
 
-      for (const table of data) {
-        for (const rel of table.relations) {
-          if (rel.relatedTables) {
-            // Group all related tables in one array for belongsToMany
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
-          } else if (rel.relatedTable) {
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
-            if (rel.inverse) {
-              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
-            }
-          }
+      const normalizers: { test: RegExp; replace: string }[] = [
+        { test: /^character varying/i, replace: 'varchar' },
+        { test: /^timestamp without time zone/i, replace: 'timestamp' },
+      ]
+
+      for (const rule of normalizers) {
+        if (rule.test.test(type)) {
+          return type.replace(rule.test, rule.replace)
         }
       }
 
-      return Object.values(map);
+      for (const [canonical, aliases] of Object.entries(mappings)) {
+        if (aliases.some(alias => typeof alias === 'string' ? alias === type : alias.test(type))) {
+          return canonical
+        }
+      }
+
+      return type
     }
+
+
   
     const tables = await new Model()
     .debug(this.$state.get('DEBUG'))
     .loadEnv(env)
     .showTables();
 
-    const schemas : any[] = [];
-
     const rawRegistryRelations = await Promise.all(
       tables.map(async (table) => ({
         table,
         relations: detectRelation(
           table,
-          await new Model().debug(this.$state.get('DEBUG')).loadEnv(env).getFKs(table)
+          await new Model()
+          .debug(this.$state.get('DEBUG'))
+          .loadEnv(env)
+          .getFKs(table)
+          .catch(() => [])
         )
       }))
     )
 
-    const registryRelations = mapPrettyRelations(rawRegistryRelations)
-    
-    for(const table of tables) {
+    const registryRelations = mapRelations(rawRegistryRelations);
 
-      const model = snakeCaseToPascal(pluralize.singular(table));
-      
-      const columns = await new Model()
-      .debug(this.$state.get('DEBUG'))
-      .loadEnv(env)
-      .showSchema(table, { raw : true });
-      
-      let schema : any[] = [];
+    const schemas : any[] = [];
 
-      for(const raw of columns) {
-        const schemaColumn = [
-            `@Column(() => `,
-            `Blueprint.${/^[^()]*$/.test(raw.Type) 
-                ? raw.Type.includes('unsigned') 
-                    ? 'int().unsigned()'
-                    : `${raw.Type.toLocaleLowerCase()}()` 
-                : raw.Type.toLocaleLowerCase()
-            }`,
-            `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
-            raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-            raw.Default != null 
-              ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
-            `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
-            `)`
-        ] .join('')
+    if(decorator) {
 
-        const detectType = (raws : any) => {
-          const t = raws.Type.toLowerCase()
-          const typeForNumber = ['INT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
-          const typeForBoolean = ['TINYINT','BOOLEAN'].map(r => r.toLowerCase())
-          const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
+      for(const table of tables) {
 
-          if (typeForNumber.some(v => t.includes(v))) return 'number'
-          if (typeForBoolean.some(v => t.includes(v))) return 'boolean'
-          if (typeForDate.some(v => t.includes(v))) return 'Date'
-          if(t.includes('enum')) return `${String(raws.TypeValue).split(',').map(v => `'${v}'`).join(' | ')}`
+        const model = snakeCaseToPascal(pluralize.singular(table));
+        
+        const columns = await new Model()
+        .debug(this.$state.get('DEBUG'))
+        .loadEnv(env)
+        .showSchema(table, { raw : true });
+        
+        let schema : any[] = [];
 
-          return 'string'
+        for(const raw of columns) {
+          const schemaColumn = [
+              `@Column(() => `,
+              `Blueprint.${/^[^()]*$/.test(raw.Type) 
+                  ? raw.Type.includes('unsigned') 
+                      ? 'int().unsigned()'
+                      : `${mapType(raw.Type.toLocaleLowerCase())}()` 
+                  : mapType(raw.Type.toLocaleLowerCase())
+              }`,
+              `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+              raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+              raw.Default != null 
+                ? `.default('${raw.Default.replace(/'/g,'').replace('IS_CONST:','').replace('::character varying','')}')`  : '',
+              `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
+              `)`
+          ] .join('')
+
+          const detectType = (raws : any) => {
+            const t = raws.Type.toLowerCase()
+            const typeForNumber = ['INT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
+            const typeForBoolean = ['TINYINT','BOOLEAN'].map(r => r.toLowerCase())
+            const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
+
+            if (typeForNumber.some(v => t.includes(v))) return 'number'
+            if (typeForBoolean.some(v => t.includes(v))) return 'boolean'
+            if (typeForDate.some(v => t.includes(v))) return 'Date'
+            if(t.includes('enum')) return `${String(raws.TypeValue).split(',').map(v => `'${v}'`).join(' | ')}`
+
+            return 'string'
+          }
+
+          const publicColumn =  `public ${raw.Field} !: ${detectType(raw)}`
+
+          schema.push({
+            schema: schemaColumn,
+            property: publicColumn
+          })
         }
 
-        const publicColumn =  `public ${raw.Field} !: ${detectType(raw)}`
+        const find = registryRelations.find(v => v.table === table)
 
-        schema.push({
-          schema: schemaColumn,
-          property: publicColumn
+        const { imports , results } = buildDecorators(find.relations)
+
+        schemas.push({
+          model,
+          columns: [...schema,...(find == null ? []: results )],
+          imports
         })
       }
 
-      const find = registryRelations.find(v => v.table === table)
+      const templates : { model: string; template: string }[] = []
 
-      const { importModels , results } = generateDecorators(find.relations)
+      for(const s of schemas) {
 
-      schemas.push({
-        model,
-        columns: [...schema,...(find == null ? []: results )],
-        importModels
-      })
-    }
+        let schema : string= '';
 
-    return schemas as {
-      model: string; 
-      columns: [{ schema: string; property: string }];
-      importModels: string[]
-    }[]
-  }
+        const imports: string = s.imports
+        .map((v:string)=> `${v};`)
+        .join('\n')
 
-  async geranerateModelTemplate(env?: string) {
-  
-    const snakeCaseToPascal = (data: string ) => {
-      let str : string[] = data.split('_')
-      for(let i=0; i <str.length;i++) { 
-          str[i] = str[i].slice(0,1).toUpperCase() + str[i].slice(1,str[i].length) 
-      }
-      return str.join('')
-    }
-  
-    const formatSchema = (data: string[]) => {
-      const formattedCode : Record<string,any> = {}
-      for (const field of data) {
-          const [key, value] = field.split(":").map((item:string) => item.trim())
-          formattedCode[key] = value
-      }
-      return formattedCode
-    }
+        for(const index in s.columns) {
+          const column = s.columns[index]
+          const isLast = Number(index) + 1 === s.columns.length
 
-    const detectRelation = (currentTable:string, fks:any[]) => {
-      
-      return fks.map(fk => {
-        const { RefTable, Column } = fk
-        if (currentTable !== RefTable && Column && Column.endsWith('_id')) {
-          const inverse = 'hasMany'
-          return {
-            currentTable,
-            relation: 'belongsTo',
-            relatedTable: RefTable,
-            fkColumn: Column,
-            inverse
-          }
+          schema += `  ${column.schema} \n`
+          schema += `  ${column.property}; ${isLast ? '\n\n': '\n\n'}`
         }
-        return {
-          currentTable,
-          relation: 'unknown',
-          relatedTable: RefTable,
-          fkColumn: Column
-        }
-      })
-    }
-  
-    const tableToModel = (table: string): string => {
-      return pluralize.singular(
-        table
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join('')
-      )
-    }
-  
-    const mapPrettyRelations = (data: any[]): any[] => {
-      const map: Record<string, any> = {};
 
-      for (const t of data) {
-        map[t.table] = { table: t.table, relations: [] };
+        const template = this.$utils.decoratorModelTemplate({
+          model   : s.model,
+          schema  : schema,
+          imports : imports
+        })
+
+        templates.push({
+          model: s.model,
+          template
+        })
       }
 
-      for (const table of data) {
-        for (const rel of table.relations) {
-          if (rel.relatedTables) {
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
-          } else if (rel.relatedTable) {
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
-            if (rel.inverse) {
-              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
-            }
-          }
-        }
-      }
+      return templates
 
-      return Object.values(map);
     }
-  
-    const tables = await new Model()
-    .debug(this.$state.get('DEBUG'))
-    .loadEnv(env)
-    .showTables();
 
-    const schemas : any[] = [];
-
-    const rawRegistryRelations = await Promise.all(
-      tables.map(async (table) => ({
-        table,
-        relations: detectRelation(
-          table,
-          await new Model().debug(this.$state.get('DEBUG')).loadEnv(env).getFKs(table)
-        )
-      }))
-    )
-
-    const registryRelations = mapPrettyRelations(rawRegistryRelations)
-    
+    // ------------- base model --------------------------------------
     for(const table of tables) {
 
       const model = snakeCaseToPascal(pluralize.singular(table));
@@ -6029,33 +6043,94 @@ class Model<
       for(const index in columns) {
         const raw = columns[index]
         const str = [
-            `${raw.Field} : `,
-            `Blueprint.${/^[^()]*$/.test(raw.Type) 
-                ? raw.Type.includes('unsigned') 
-                    ? 'int().unsigned()'
-                    : `${raw.Type.toLocaleLowerCase()}()` 
-                : raw.Type.toLocaleLowerCase()
-            }`,
-            `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
-            raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-            raw.Default != null 
-              ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
-            `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
-            `,`
-        ] .join('')
+          `${raw.Field} : `,
+          `Blueprint.${/^[^()]*$/.test(raw.Type) 
+              ? raw.Type.includes('unsigned') 
+                  ? 'int().unsigned()'
+                  : `${raw.Type.toLocaleLowerCase()}()` 
+              : raw.Type.toLocaleLowerCase()
+          }`,
+          `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+          raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
+          raw.Default != null 
+            ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
+          `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
+          `,`
+        ].join('')
 
         const isLast = Number(index) + 1 === columns.length
         
         schema.push(isLast ? str.replace(/,\s*$/, "") : str);
       }
 
-       schemas.push({
+      const find = registryRelations.find(v => v.table === table)
+
+      const { imports , types , useds  } = buildRelations(find.relations)
+
+      schemas.push({
         model,
-        schemas: schema
+        schema,
+        imports,
+        useds,
+        types, 
+      })
+    }
+    
+    const templates : { model: string; template: string }[] = []
+
+    for(const s of schemas) {
+
+      if(decorator) {
+        let schema : string= '';
+
+        const imports: string = s.imports
+        .map((v:string)=> `${v};`)
+        .join('\n')
+
+        for(const column of s.columns) {
+            schema += `  ${column.schema} \n`
+            schema += `  ${column.property}; \n\n`
+        }
+
+        const template = this.$utils.decoratorModelTemplate({
+          model   : s.model,
+          schema  : schema,
+          imports : imports
+        })
+
+        templates.push({
+          model: s.model,
+          template
+        })
+
+        continue
+      } 
+
+      const schema = `${s.schema.map((v:string) => '  ' + v).join('\n')}`
+
+      const imports: string = s.imports.map((v:string) => `${v};`).join('\n')
+
+      const types = `${s.types.map((v:string) => `  ${v};`).join('\n')}`
+
+      const useds = `${s.useds.map((v:string) => `    ${v};`).join('\n')} \n`
+
+      const template = this.$utils.baseModelTemplate({
+        model   : s.model,
+        schema  : schema,
+        imports : imports,
+        relation: {
+          types,
+          useds
+        }
+      })
+
+      templates.push({
+        model: s.model,
+        template
       })
     }
 
-    return schemas
+    return templates
   }
 
   protected _valuePattern(column: string): string {
@@ -7020,7 +7095,7 @@ class Model<
     ].join(" ");
   }
 
-  private async _insertNotExistsModel() {
+  private async _insertNotExistsModel(): Promise<any> {
     this._guardWhereCondition();
 
     const check = await new Model()
@@ -7065,7 +7140,7 @@ class Model<
     return this._resultHandler(resultData);
   }
 
-  private async _insertModel() {
+  private async _insertModel() : Promise<any> {
     await this._validateSchema(this.$state.get("DATA"), "insert");
     
     const result = await this._actionStatement(this._queryBuilder().insert());
@@ -7099,7 +7174,7 @@ class Model<
     return this._resultHandler(resultData);
   }
 
-  private async _createMultipleModel() {
+  private async _createMultipleModel(): Promise<any> {
     const data = this.$state.get("DATA") ?? [];
 
     for (const v of data) {

@@ -358,29 +358,26 @@ const checkValueHasRaw = (value: unknown) => {
 }
 
 const checkValueHasOp = (str: string) => {
-    if (typeof str !== "string") str = String(str);
+  if (typeof str !== "string") str = String(str);
 
-    if (
-      !str.includes(CONSTANTS.OP) ||
-      !str.includes(CONSTANTS.VALUE)
-    ) {
-      return null;
-    }
+  if (!str.includes(CONSTANTS.OP) || !str.includes(CONSTANTS.VALUE)) {
+    return null;
+  }
 
-    const opRegex = new RegExp(`\\${CONSTANTS.OP}\\(([^)]+)\\)`);
-    const valueRegex = new RegExp(`\\${CONSTANTS.VALUE}\\(([^)]+)\\)`);
+  const opRegex = new RegExp(`\\${CONSTANTS.OP}\\(([^)]+)\\)`);
+  const valueRegex = new RegExp(`\\${CONSTANTS.VALUE}\\((.*)\\)$`);
 
-    const opMatch = str.match(opRegex);
-    const valueMatch = str.match(valueRegex);
+  const opMatch = str.match(opRegex);
+  const valueMatch = str.match(valueRegex);
 
-    const op = opMatch ? opMatch[1] : "";
-    const value = valueMatch ? valueMatch[1] : "";
+  const op = opMatch ? opMatch[1] : "";
+  const value = valueMatch ? valueMatch[1] : "";
 
-    return {
-      op: op.replace(CONSTANTS.OP, ""),
-      value: value?.replace(CONSTANTS.VALUE, "") ?? "",
-    };
-}
+  return {
+    op: op,
+    value: value,
+  };
+};
 
 const valueAndOperator = (
     value: string,
@@ -398,6 +395,71 @@ const valueAndOperator = (
     }
 
     return [value, operator];
+}
+
+const baseModelTemplate = ({model,schema,imports, relation }: {
+    model: string;
+    schema: string;
+    imports:string;
+    relation: {
+        types: string;
+        useds: string;
+    };
+}) => {
+
+return `import { 
+  type T, 
+  Model, 
+  Blueprint
+} from 'tspace-mysql';
+${imports}
+
+const schema = {
+${schema}
+}
+
+type TS = T.Schema<typeof schema>
+
+type TR = T.Relation<{
+${relation.types}
+}>
+
+class ${model} extends Model<TS,TR> {
+  protected boot () : void {
+
+    this.useSchema(schema);
+    
+    // -------------------------------------------------
+${relation.useds}
+  }
+}
+
+export { ${model} }
+export default ${model}
+`
+}
+
+const decoratorModelTemplate = ({ model,schema,imports}: {
+    model: string, 
+    schema: string,
+    imports:string
+}) => {
+return `import { 
+    Model, 
+    Blueprint, 
+    Column, 
+    HasMany, 
+    BelongsTo 
+} from 'tspace-mysql';
+${imports}
+
+class ${model} extends Model {
+
+${schema}
+}
+export { ${model} }
+export default ${model}
+`
 }
 
 const utils = {
@@ -425,7 +487,10 @@ const utils = {
     softNumber,
     checkValueHasRaw,
     checkValueHasOp,
-    valueAndOperator
+    valueAndOperator,
+
+    baseModelTemplate,
+    decoratorModelTemplate
 }
 
 export type TUtils = typeof utils
