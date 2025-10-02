@@ -107,6 +107,23 @@ class Blueprint<T = any, S = NoType> {
   }
 
   /**
+   * Assign type 'INT' in table
+   * @static
+   * @return {Blueprint<T>} Blueprint
+   */
+  static integer(_?: number): Blueprint<number> {
+    return new Blueprint<number>().int(_);
+  }
+
+  /**
+   * Assign type 'INT' in table
+   * @return {Blueprint<T>} Blueprint
+   */
+  integer(_?: number): Blueprint<number> {
+    return new Blueprint<number>().int(_);
+  }
+
+  /**
    * Assign type 'TINYINT' in table
    * @static
    * @param {number} number

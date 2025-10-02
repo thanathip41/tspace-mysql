@@ -306,7 +306,9 @@
                 button.textContent = 'Copy'
                 button.className = 'copy-btn'
                 button.onclick = () => {
-                  navigator.clipboard.writeText(block.innerText)
+                  navigator.clipboard
+                  .writeText(String(block.innerText).replace('Copy',''));
+                  
                   button.textContent = 'Copied!'
                   setTimeout(() => (button.textContent = 'Copy'), 2000)
                 }
