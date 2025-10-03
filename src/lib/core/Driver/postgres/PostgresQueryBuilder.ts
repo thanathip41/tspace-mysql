@@ -409,6 +409,25 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+   public getIndexes({
+    database,
+    table
+  }: {
+    database: string;
+    table   : string;
+  }) {
+    const sql = [
+      `
+        SELECT *
+        FROM PG_INDEXES
+        WHERE SCHEMANAME = '${database.replace(/\`/g, "")}'
+        AND TABLENAME = '${table.replace(/\`/g, "")}'
+      `
+    ];
+
+    return this.format(sql);
+  }
+
   public hasIndex({
     database,
     table,
@@ -425,8 +444,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
         SELECT EXISTS( 
           SELECT 1
           FROM PG_INDEXES
-          WHERE SCHEMANAME = '${database}'
-          AND TABLENAME = '${table}'
+          WHERE SCHEMANAME = '${database.replace(/\`/g, "")}'
+          AND TABLENAME = '${table.replace(/\`/g, "")}'
           AND INDEXNAME = '${index}'
         ) AS "IS_EXISTS"
         `,

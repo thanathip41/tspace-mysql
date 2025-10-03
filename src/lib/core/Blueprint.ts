@@ -318,6 +318,30 @@ class Blueprint<T = any, S = NoType> {
   }
 
   /**
+   * Assign type 'UUID' in table
+   * @static
+   * @return {Blueprint<T>} Blueprint
+   */
+  static uuid(): Blueprint<string> {
+    return new Blueprint<string>().uuid();
+  }
+
+  /**
+   * Assign type 'UUID' in table
+   * @return {Blueprint<T>} Blueprint
+   */
+  uuid(): Blueprint<string> {
+
+    const instance = new Blueprint<string>();
+
+    instance._addAssignType(`UUID`);
+
+    instance._valueType = String;
+
+    return instance;
+  }
+
+  /**
    * Assign type 'CHAR' in table
    * @static
    * @param {number} length [length = 1] length of string

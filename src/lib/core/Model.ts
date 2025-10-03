@@ -21,6 +21,8 @@ import type {
   TRelationQueryOptions,
   TModelConstructorOrObject,
   TRelationKeys,
+  TDriver,
+  TPoolConnected,
 } from "../types";
 import type { 
   TRelationQueryOptionsDecorator, 
@@ -1589,15 +1591,15 @@ class Model<
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
 
-          this.$utils.consoleDebug(sql,retry);
-
-          this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
-
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
 
           const endTime = +new Date();
+
+          this.$utils.consoleDebug(sql,retry);
+
+          this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
           this.$utils.consoleExec(startTime, endTime);
 
@@ -1622,6 +1624,8 @@ class Model<
       return result == null ? await getResults(sql) : result;
 
     } catch (error: any) {
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+
       if (this.$state.get("JOIN")?.length) throw error;
 
       const retry = Number(this.$state.get("RETRY"));
@@ -1649,13 +1653,13 @@ class Model<
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
 
-          this.$utils.consoleDebug(sql);
-
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
           
           const endTime = +new Date();
+
+          this.$utils.consoleDebug(sql);
 
           this.$utils.consoleExec(startTime, endTime);
 
@@ -1680,7 +1684,10 @@ class Model<
       }
 
       return result == null ? await getResults(sql) : result;
+      
     } catch (error: unknown) {
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+
       if (this.$state.get("JOIN")?.length) throw error;
 
       await this._checkSchemaOrNextError(
@@ -5907,10 +5914,22 @@ class Model<
     }
 
 
-  
+    const options = new DB().loadOptionsEnv(env);
+
+    const c = options == null 
+      ? null 
+      : await new DB().getConnection({
+        driver: options.driver as TDriver,
+        host: String(options.host),
+        port: Number(options.port),
+        database: String(options.database),
+        username: String(options.username),
+        password: String(options.password),
+      })
+
     const tables = await new Model()
     .debug(this.$state.get('DEBUG'))
-    .loadEnv(env)
+    .when(c != null, (q) => q.bind(c as TPoolConnected))
     .showTables();
 
     const rawRegistryRelations = await Promise.all(
@@ -5920,7 +5939,7 @@ class Model<
           table,
           await new Model()
           .debug(this.$state.get('DEBUG'))
-          .loadEnv(env)
+          .when(c != null, (q) => q.bind(c as TPoolConnected))
           .getFKs(table)
           .catch(() => [])
         )
@@ -5939,7 +5958,7 @@ class Model<
         
         const columns = await new Model()
         .debug(this.$state.get('DEBUG'))
-        .loadEnv(env)
+        .when(c != null, (q) => q.bind(c as TPoolConnected))
         .showSchema(table, { raw : true });
         
         let schema : any[] = [];
@@ -6035,7 +6054,7 @@ class Model<
       
       const columns = await new Model()
       .debug(this.$state.get('DEBUG'))
-      .loadEnv(env)
+      .when(c != null, (q) => q.bind(c as TPoolConnected))
       .showSchema(table, { raw : true });
       
       let schema : any[] = [];
@@ -6087,9 +6106,11 @@ class Model<
         .map((v:string)=> `${v};`)
         .join('\n')
 
-        for(const column of s.columns) {
-            schema += `  ${column.schema} \n`
-            schema += `  ${column.property}; \n\n`
+        for(const index in s.columns) {
+          const isLast = Number(index) + 1 === s.columns.length
+          const column = s.columns[index]
+          schema += `  ${column.schema} \n`
+          schema += `  ${column.property}; ${isLast? '\n\n': '\n'}`
         }
 
         const template = this.$utils.decoratorModelTemplate({

@@ -8,7 +8,6 @@ export default (cmd : { [x: string]: any }) => {
       fs,
       decorator,
       env,
-      npm
     } = cmd
 
     if(dir == null) throw new Error("Cannot find directory please specify the directory : '--dir=${directory}'")

@@ -2871,8 +2871,26 @@ class Builder extends AbstractBuilder {
     return await this.showSchema(this.$state.get("TABLE_NAME"), { raw: true });
   }
 
-  async getFKs(table?: string): Promise<any[]> {
+  async getFKs(table?: string): Promise<{
+    Constraint: string;
+    RefTable  : string;
+    RefColumn : string;
+    Column    : string;
+  }[]> {
     const sql = this._queryBuilder().getFKs({
+      database: this.$database,
+      table: table ?? this.$state.get("TABLE_NAME"),
+    });
+    return await this.rawQuery(sql);
+  }
+
+  async getIndexes(table?: string): Promise<{
+    Constraint: string;
+    RefTable  : string;
+    RefColumn : string;
+    Column    : string;
+  }[]> {
+    const sql = this._queryBuilder().getIndexes({
       database: this.$database,
       table: table ?? this.$state.get("TABLE_NAME"),
     });
@@ -2992,6 +3010,11 @@ class Builder extends AbstractBuilder {
     this.$pool.set(pool.connected());
 
     return this;
+  }
+
+  loadOptionsEnv(env ?: string) {
+    if(env == null || env === '') return null;
+    return loadOptionsEnvironment(env);
   }
 
   /**
@@ -4371,31 +4394,48 @@ class Builder extends AbstractBuilder {
 
   protected async _queryStatement(sql: string): Promise<any[]> {
     sql = this._queryBuilder().format([sql]);
-    if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+    
+    try {
+      const startTime = +new Date();
 
-    const startTime = +new Date();
+      const result = await this.$pool.query(sql);
 
-    const result = await this.$pool.query(sql);
+      const endTime = +new Date();
 
-    const endTime = +new Date();
+      if (this.$state.get("DEBUG")) {
+        this.$utils.consoleDebug(sql);
+        this.$utils.consoleExec(startTime, endTime);
+      }
+      
+      return result;
 
-    if (this.$state.get("DEBUG")) this.$utils.consoleExec(startTime, endTime);
+    } catch(err) {
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
-    return result;
+      throw err
+    }
   }
 
   protected async _actionStatement(sql: string) {
-    if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+    try {
+     
+      const startTime = +new Date();
 
-    const startTime = +new Date();
+      const result = await this.$pool.query(sql);
 
-    const result = await this.$pool.query(sql);
+      const endTime = +new Date();
 
-    const endTime = +new Date();
+      if (this.$state.get("DEBUG")) {
+        this.$utils.consoleDebug(sql);
+        this.$utils.consoleExec(startTime, endTime);
+      }
+      
+      return result;
+    } catch(err) {
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
 
-    if (this.$state.get("DEBUG")) this.$utils.consoleExec(startTime, endTime);
-
-    return result;
+      throw err;
+    }
   }
 
   private async _insertNotExists() {

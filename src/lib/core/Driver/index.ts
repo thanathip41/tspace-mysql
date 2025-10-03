@@ -264,6 +264,14 @@ export abstract class QueryBuilder {
     };
   }): string;
 
+  public abstract getIndexes({
+    database,
+    table
+  }: {
+    database : string;
+    table    : string;
+  }): string;
+
   public abstract hasIndex({
     database,
     table,

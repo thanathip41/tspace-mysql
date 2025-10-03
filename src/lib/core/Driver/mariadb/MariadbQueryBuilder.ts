@@ -327,6 +327,39 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public getIndexes({
+    database,
+    table
+  }: {
+    database: string;
+    table   : string;
+  }) {
+    const sql = [
+      `
+        SELECT 
+          COLUMN_NAME   AS "Column",
+          INDEX_NAME    AS "IndexName",
+          INDEX_TYPE    AS "IndexType",
+          SEQ_IN_INDEX  AS "SeqInIndex",
+          CASE WHEN NULLABLE = 'YES' 
+            THEN 'YES' 
+            ELSE 'NO' 
+          END AS "Nullable",
+          CASE WHEN NON_UNIQUE = 0 
+            THEN 'YES' 
+            ELSE 'NO' 
+          END AS "Unique",
+          CARDINALITY   AS "Cardinality"`,
+        `
+        FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+          AND TABLE_NAME   = '${table.replace(/`/g, "")}'
+      `,
+    ];
+
+    return this.format(sql);
+  }
+
   public hasIndex({
     database,
     table,
