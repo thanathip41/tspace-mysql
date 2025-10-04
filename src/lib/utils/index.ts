@@ -435,8 +435,7 @@ ${relation.useds}
 }
 
 export { ${model} }
-export default ${model}
-`
+export default ${model}`
 }
 
 const decoratorModelTemplate = ({ model,schema,imports}: {
@@ -457,9 +456,9 @@ class ${model} extends Model {
 
 ${schema}
 }
+
 export { ${model} }
-export default ${model}
-`
+export default ${model}`
 }
 
 const utils = {

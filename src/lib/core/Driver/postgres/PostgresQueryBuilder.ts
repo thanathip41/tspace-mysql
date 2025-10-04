@@ -182,7 +182,6 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
     if (Array.isArray(schema)) {
       const sql = [
-        `CREATE SCHEMA IF NOT EXISTS \`${database.replace(/`/g, "")}\`;`,
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
         `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
         `(${schema.join(", ")})`,
@@ -344,7 +343,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
         WHERE TC.CONSTRAINT_TYPE = 'FOREIGN KEY'
           AND TC.TABLE_CATALOG   = '${database.replace(/\`/g, "")}'
-          AND TC.TABLE_NAME      = '${table}'
+          AND TC.TABLE_NAME      = '${table.replace(/\`/g, "")}'
         `,
     ];
 
@@ -367,7 +366,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
           WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
           AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
-          AND TABLE_NAME       = '${table}'
+          AND TABLE_NAME       = '${table.replace(/\`/g, "")}'
           AND CONSTRAINT_NAME  = '${constraint}'
         ) AS "IS_EXISTS"
         `,
@@ -416,12 +415,40 @@ export class PostgresQueryBuilder extends QueryBuilder {
     database: string;
     table   : string;
   }) {
+    database = 'public';
+
     const sql = [
       `
-        SELECT *
-        FROM PG_INDEXES
-        WHERE SCHEMANAME = '${database.replace(/\`/g, "")}'
-        AND TABLENAME = '${table.replace(/\`/g, "")}'
+      SELECT
+        a.ATTNAME AS "Column",
+        i.RELNAME AS "IndexName",
+        UPPER(am.AMNAME) AS "IndexType",
+        CASE WHEN a.ATTNOTNULL = false THEN 'YES' ELSE 'NO' END AS "Nullable",
+        CASE WHEN ix.INDISUNIQUE = true THEN 'YES' ELSE 'NO' END AS "Unique"
+      FROM
+        PG_CLASS t
+      JOIN
+        PG_NAMESPACE n ON t.RELNAMESPACE = n.OID
+      JOIN
+        PG_INDEX ix ON t.OID = ix.INDRELID
+      JOIN
+        PG_CLASS i ON i.OID = ix.INDEXRELID
+      JOIN
+        PG_AM am ON i.RELAM = am.OID
+      JOIN
+        LATERAL (
+          SELECT
+            UNNEST(ix.INDKEY) AS ATTR_NUM,
+            GENERATE_SERIES(1, ARRAY_LENGTH(ix.INDKEY, 1)) AS NUMBER
+        ) AS seq ON TRUE
+      JOIN
+        PG_ATTRIBUTE a ON a.ATTRELID = t.OID AND a.ATTNUM = seq.ATTR_NUM
+      WHERE
+        t.RELKIND = 'r'
+        AND n.NSPNAME = '${database.replace(/\`/g, "")}'
+        AND t.RELNAME = '${table.replace(/\`/g, "")}'
+      ORDER BY
+       seq.NUMBER, i.RELNAME
       `
     ];
 
@@ -443,12 +470,21 @@ export class PostgresQueryBuilder extends QueryBuilder {
       `
         SELECT EXISTS( 
           SELECT 1
-          FROM PG_INDEXES
-          WHERE SCHEMANAME = '${database.replace(/\`/g, "")}'
-          AND TABLENAME = '${table.replace(/\`/g, "")}'
-          AND INDEXNAME = '${index}'
-        ) AS "IS_EXISTS"
-        `,
+          FROM
+            PG_CLASS t
+          JOIN
+            PG_NAMESPACE n ON t.RELNAMESPACE = n.OID
+          JOIN
+            PG_INDEX ix ON t.OID = ix.INDRELID
+          JOIN
+            PG_CLASS i ON i.OID = ix.INDEXRELID
+          WHERE
+            t.RELKIND = 'r'
+            AND n.NSPNAME = '${database.replace(/\`/g, "")}'
+            AND t.RELNAME = '${table.replace(/\`/g, "")}'
+            AND i.RELNAME = '${index}'
+        ) AS "IS_EXISTS"  
+      `,
     ];
 
     return this.format(sql);
@@ -459,15 +495,15 @@ export class PostgresQueryBuilder extends QueryBuilder {
     index,
     key,
   }: {
-    table: string;
-    index: string;
-    key: string;
+    table : string;
+    index : string;
+    key   : string;
   }) {
     const sql = [
       `${this.$constants("CREATE_INDEX")}`,
-      `\`${index}\``,
+      `\`${index.replace(/`/g, "")}\``,
       `${this.$constants("ON")}`,
-      `${table}(\`${key}\`)`,
+      `${table}(\`${key.replace(/`/g, "")}\`)`,
     ];
 
     return this.format(sql);

@@ -1,8 +1,5 @@
 import { Model } from "./Model";
 
-type HasType = { _type: string };
-type NoType = {};
-
 /**
  * Class 'Blueprint' is used to make the schema for table
  * @example
@@ -19,7 +16,7 @@ type NoType = {};
  *      deleted_at  : Blueprint.timestamp().null()
  *   })
  */
-class Blueprint<T = any, S = NoType> {
+class Blueprint<T = any> {
   private _default: unknown = null;
   private _enum :string[] = [];
   private _type: string = "INT";

@@ -583,15 +583,13 @@ class Schema {
       const query = model["_queryBuilder"]() as QueryBuilder;
 
       try {
-        const [FK] = await this.$db.debug(log).rawQuery(
-          query.hasFK({
-            database: this.$db.database(),
-            table: model.getTableName(),
-            constraint: constraintName,
-          })
-        );
+        const FK = await this.$db.debug(log)
+        .hasFK({
+          table: model.getTableName(),
+          constraint: constraintName,
+        });
 
-        if (FK.IS_EXISTS) continue;
+        if (FK) continue;
 
         await this.$db.debug(log).rawQuery(
           query.createFK({
@@ -667,33 +665,32 @@ class Schema {
       const query = model["_queryBuilder"]() as QueryBuilder;
 
       try {
-        const [INDEX] = await this.$db.debug(log).rawQuery(
-          query.hasIndex({
-            database: this.$db.database(),
-            table: model.getTableName(),
-            index: index,
-          })
-        );
+        const INDEX = await this.$db.debug(log)
+        .hasIndex({
+          table: table,
+          index: index,
+        });
 
-        if (INDEX.IS_EXISTS) continue;
+        if (INDEX) continue;
 
         await this.$db.debug(log).rawQuery(
           query.createIndex({
-            table: model.getTableName(),
+            table: table,
             index: index,
             key: key,
           })
         );
       } catch (err: any) {
-        const tableSql = this.createTable(
-          this.$db.database(),
-          `\`${table}\``,
-          schemaModel
-        );
-
+        
         await this.$db
           .debug(log)
-          .rawQuery(tableSql)
+          .rawQuery(
+            query.createTable({
+              database: this.$db.database(),
+              table   : table,
+              schema  : schemaModel
+            })
+          )
           .catch((err) => {
             console.log(
               `\x1b[31mERROR: Failed to create the table '${table}' caused by '${err.message}'\x1b[0m`

@@ -2884,17 +2884,40 @@ class Builder extends AbstractBuilder {
     return await this.rawQuery(sql);
   }
 
+  async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
+    const sql = this._queryBuilder().hasFK({
+      database: this.$database,
+      table: table ?? this.$state.get("TABLE_NAME"),
+      constraint
+    });
+    const result = await this.rawQuery(sql);
+
+    return Boolean(result[0]?.IS_EXISTS ?? false);
+  }
+
   async getIndexes(table?: string): Promise<{
-    Constraint: string;
-    RefTable  : string;
-    RefColumn : string;
     Column    : string;
+    IndexName : string;
+    IndexType : string;
+    Nullable  : 'YES' | 'NO';
+    Unique    : 'YES' | 'NO';
   }[]> {
     const sql = this._queryBuilder().getIndexes({
       database: this.$database,
       table: table ?? this.$state.get("TABLE_NAME"),
     });
     return await this.rawQuery(sql);
+  }
+
+  async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
+    const sql = this._queryBuilder().hasIndex({
+      database: this.$database,
+      table: table ?? this.$state.get("TABLE_NAME"),
+      index
+    });
+    const result = await this.rawQuery(sql);
+
+    return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
   /**
@@ -4297,11 +4320,9 @@ class Builder extends AbstractBuilder {
       [
         this.$constants("CASE"),
         this.$constants("WHEN"),
-        `(\`${column}\` = "" ${this.$constants(
-          "OR"
-        )} \`${column}\` ${this.$constants("IS_NULL")})`,
+        `(${this.bindColumn(column)} ${this.$constants("IS_NULL")})`,
         this.$constants("THEN"),
-        `"${value ?? ""}" ${this.$constants("ELSE")} \`${column}\``,
+        `'${value ?? ""}' ${this.$constants("ELSE")} ${this.bindColumn(column)}`,
         this.$constants("END"),
       ].join(" ")
     );

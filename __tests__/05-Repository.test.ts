@@ -208,8 +208,7 @@ describe("Testing Repository", function () {
     );
 
     const whereSubQuery = await Repository(User).get({
-        debug: true,
-        where: { id : OP.subQuery(new User().select('id').whereIn('id',[7,8])) }
+      where: { id : OP.subQuery(new User().select('id').whereIn('id',[7,8])) }
     })
     
     expect(whereSubQuery).to.be.an("array");

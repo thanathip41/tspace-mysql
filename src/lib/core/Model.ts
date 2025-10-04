@@ -5071,7 +5071,7 @@ class Model<
    */
   update<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     data: { [P in K & keyof T]: T[P] },
-    updateNotExists: string[] = []
+    updateNotExists: T.ColumnKeys<this>[] = []
   ): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5082,7 +5082,7 @@ class Model<
         for (const column in data) {
           if (c !== column) continue;
           //@ts-ignore
-          const value = data[column];
+          const value = this.$utils.escape(data[column])
 
           data = {
             ...data,
@@ -6028,7 +6028,7 @@ class Model<
           const isLast = Number(index) + 1 === s.columns.length
 
           schema += `  ${column.schema} \n`
-          schema += `  ${column.property}; ${isLast ? '\n\n': '\n\n'}`
+          schema += `  ${column.property}; ${isLast ? '\n': '\n\n'}`
         }
 
         const template = this.$utils.decoratorModelTemplate({

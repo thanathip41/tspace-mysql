@@ -742,6 +742,58 @@ class DB extends AbstractDB {
     await this.$utils.wait(1000 * 5);
     const tables = await this.showTables();
 
+    const sqlFormatted = (sql: string) => {
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const formattedStatements = statements.map(stmt => {
+        if (stmt.includes('(')) {
+       
+          const firstParen = stmt.indexOf('(');
+          const lastParen = stmt.lastIndexOf(')');
+          if (firstParen === -1 || lastParen === -1) return stmt + ';';
+
+          const prefix = stmt.slice(0, firstParen).trim();
+          let columnsPart = stmt.slice(firstParen + 1, lastParen).trim();
+
+          const colArray: string[] = [];
+          let parenCount = 0;
+          let start = 0;
+
+          for (let i = 0; i < columnsPart.length; i++) {
+            const char = columnsPart[i];
+            if (char === '(') parenCount++;
+            if (char === ')') parenCount--;
+            if (char === ',' && parenCount === 0) {
+              colArray.push(columnsPart.slice(start, i).trim());
+              start = i + 1;
+            }
+          }
+          colArray.push(columnsPart.slice(start).trim());
+
+          const seen = new Set<string>();
+          const uniqueColumns = colArray.filter(col => {
+            const colNameMatch = col.match(/"([\w]+)"/) || col.match(/([\w]+)/);
+            const colName = colNameMatch ? colNameMatch[1] : col;
+            if (seen.has(colName)) return false;
+            seen.add(colName);
+            return true;
+          });
+
+          const formattedColumns = uniqueColumns.map(c => '    ' + c).join(',\n');
+
+          return `${prefix} (\n${formattedColumns}\n)`;
+        } else {
+          return stmt;
+        }
+      });
+
+      return formattedStatements.join(';\n\n');
+    };
+
+
     const backup = (await this._backupToString({ tables, database })).map(
       (b) => {
         return {
@@ -750,22 +802,15 @@ class DB extends AbstractDB {
               `\n--`,
               `-- Table structure for table '${b.name}'`,
               `--\n`,
-              `${format(b.table(), {
-                language: "spark",
-                tabWidth: 2,
-                linesBetweenQueries: 1,
-              })}`,
+              `${sqlFormatted(b.table())}`,
             ].join("\n") + ";",
+
           values: b.values().length
             ? [
                 `\n--`,
                 `-- Dumping data for table '${b.name}'`,
                 `--\n`,
-                `${format(`${b.values()};`, {
-                  language: "spark",
-                  tabWidth: 2,
-                  linesBetweenQueries: 1,
-                })}`,
+                `${b.values().map(v => `${v}`).join(",\n")}`,
               ].join("\n")
             : "",
         };
@@ -787,8 +832,8 @@ class DB extends AbstractDB {
       `--`,
       `-- Database: '${database}'`,
       `--\n`,
-      `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} \`${database}\`;`,
-      `USE \`${database}\`;`,
+      `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} ${database};`,
+      `USE ${database};`,
       `-- --------------------------------------------------------`,
     ];
 
@@ -951,7 +996,7 @@ class DB extends AbstractDB {
       valueSQL = [
         `${this.$constants("INSERT")}`,
         `\`${table}\``,
-        `(${columns.map((column: string) => `\`${column}\``).join(",")})`,
+        `(${columns.map((column) => `\`${column}\``).join(",")})`,
         `${this.$constants("VALUES")} ${values.join(",")};`,
       ];
     }
@@ -1161,6 +1206,7 @@ class DB extends AbstractDB {
     for (const table of tables) {
       const schema = await this.showSchema(table);
       const values = await this.table(table).get();
+      // const values :any[]  = []
 
       backup.push({
         name: table == null ? "" : table,
@@ -1170,14 +1216,13 @@ class DB extends AbstractDB {
         values: () => {
           if (!values.length) return [];
 
-          const chunked = this.$utils.chunkArray([...values], 500);
+          const chunked = this.$utils.chunkArray([...values], values.length > 500 ? 500 : 10 );
           const str: string[] = [];
 
           for (const data of chunked) {
             const sql = this.table(table)
-              .debug(this.$state.get("DEBUG"))
-              .createMultiple([...data])
-              .toString();
+            .createMultiple([...data])
+            .toString();
 
             str.push(sql);
           }

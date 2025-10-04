@@ -352,23 +352,22 @@ export class MysqlQueryBuilder extends QueryBuilder {
   }) {
     const sql = [
       `
-        SELECT 
-          COLUMN_NAME   AS "Column",
-          INDEX_NAME    AS "IndexName",
-          INDEX_TYPE    AS "IndexType",
-          SEQ_IN_INDEX  AS "SeqInIndex",
-          CASE WHEN NULLABLE = 'YES' 
-            THEN 'YES' 
-            ELSE 'NO' 
-          END AS "Nullable",
-          CASE WHEN NON_UNIQUE = 0 
-            THEN 'YES' 
-            ELSE 'NO' 
-          END AS "Unique"`,
-        `
-        FROM INFORMATION_SCHEMA.STATISTICS
-        WHERE TABLE_SCHEMA = '${database.replace(/`/g, "")}'
-          AND TABLE_NAME   = '${table.replace(/`/g, "")}'
+      SELECT 
+        s.COLUMN_NAME AS "Column",
+        s.INDEX_NAME  AS "IndexName",
+        s.INDEX_TYPE  AS "IndexType",
+        CASE WHEN s.NULLABLE = 'YES' THEN 'YES' ELSE 'NO' END AS "Nullable",
+        CASE WHEN s.NON_UNIQUE = 0 THEN 'YES' ELSE 'NO' END AS "Unique"
+      FROM INFORMATION_SCHEMA.STATISTICS s
+      LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+        ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
+        AND s.TABLE_NAME = k.TABLE_NAME
+        AND s.COLUMN_NAME = k.COLUMN_NAME
+        AND k.REFERENCED_TABLE_NAME IS NOT NULL
+      WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+        AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
+        AND k.REFERENCED_TABLE_NAME IS NULL
+      ORDER BY s.SEQ_IN_INDEX, s.INDEX_NAME
       `,
     ];
 
@@ -388,12 +387,19 @@ export class MysqlQueryBuilder extends QueryBuilder {
       `
         SELECT EXISTS(
           SELECT 1
-          FROM INFORMATION_SCHEMA.STATISTICS
-          WHERE TABLE_SCHEMA  = '${database}'
-          AND TABLE_NAME      = '${table}'
-          AND INDEX_NAME = '${index}'
+          FROM INFORMATION_SCHEMA.STATISTICS s
+          LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
+            AND s.TABLE_NAME = k.TABLE_NAME
+            AND s.COLUMN_NAME = k.COLUMN_NAME
+            AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+            AND s.TABLE_NAME   = '${table.replace(/`/g, "")}'
+            AND s.INDEX_NAME   = '${index}'
+            AND k.REFERENCED_TABLE_NAME IS NULL
+          ORDER BY s.SEQ_IN_INDEX, s.INDEX_NAME
         ) AS "IS_EXISTS"
-        `,
+      `,
     ];
 
     return this.format(sql);
