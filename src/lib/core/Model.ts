@@ -5972,7 +5972,7 @@ class Model<
                       : `${mapType(raw.Type.toLocaleLowerCase())}()` 
                   : mapType(raw.Type.toLocaleLowerCase())
               }`,
-              `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+              `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
               raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
               raw.Default != null 
                 ? `.default('${raw.Default.replace(/'/g,'').replace('IS_CONST:','').replace('::character varying','')}')`  : '',
@@ -6069,7 +6069,7 @@ class Model<
                   : `${raw.Type.toLocaleLowerCase()}()` 
               : raw.Type.toLocaleLowerCase()
           }`,
-          `${raw.Null === 'YES' ? '.null()' : '.notNull()'}`,
+          `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
           raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
           raw.Default != null 
             ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',

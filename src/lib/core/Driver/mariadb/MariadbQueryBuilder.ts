@@ -88,7 +88,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
           COLUMN_NAME as "Field", 
           COLUMN_TYPE as "ColumnType",
           DATA_TYPE as "Type",
-          IS_NULLABLE as "Null",
+          IS_NULLABLE as "Nullable",
           COLUMN_DEFAULT as "Default"
         `,
       `FROM INFORMATION_SCHEMA.COLUMNS
@@ -106,7 +106,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
       `SELECT 
           COLUMN_NAME as "Field", 
           DATA_TYPE as "Type",
-          IS_NULLABLE as "Null",
+          IS_NULLABLE as "Nullable",
           COLUMN_DEFAULT as "Default"
         `,
       `FROM INFORMATION_SCHEMA.COLUMNS
@@ -351,7 +351,6 @@ export class MariadbQueryBuilder extends QueryBuilder {
       WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
         AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
         AND k.REFERENCED_TABLE_NAME IS NULL
-      ORDER BY s.SEQ_IN_INDEX, s.INDEX_NAME
       `,
     ];
 

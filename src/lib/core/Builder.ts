@@ -2859,7 +2859,13 @@ class Builder extends AbstractBuilder {
    * The 'getColumns' method is used to get columns
    * @returns {this} this this
    */
-  async getColumns(): Promise<any[]> {
+  async getColumns(): Promise<{
+    Field      : string;
+    ColumnType : string;
+    Type       : string;
+    Nullable   : "YES" | "NO";
+    Default    : string | null;
+  }[]> {
     return await this.showColumns(this.$state.get("TABLE_NAME"), { raw: true });
   }
 
@@ -2867,7 +2873,14 @@ class Builder extends AbstractBuilder {
    * The 'getSchema' method is used to get schema information
    * @returns {this} this this
    */
-  async getSchema(): Promise<any[]> {
+  async getSchema(): Promise<{
+    Field    : string;
+    Key      : 'PRI' | '';
+    Type     : string;
+    Nullable : 'YES' | 'NO';
+    Default  : string | null;
+    Extra    : string | null;
+  }[]> {
     return await this.showSchema(this.$state.get("TABLE_NAME"), { raw: true });
   }
 
@@ -4038,11 +4051,11 @@ class Builder extends AbstractBuilder {
 
       schema.push(`${r.Type}`);
 
-      if (r.Null === "YES") {
+      if (r.Nullable === "YES") {
         schema.push(`NULL`);
       }
 
-      if (r.Null === "NO") {
+      if (r.Nullable === "NO") {
         schema.push(`NOT NULL`);
       }
 

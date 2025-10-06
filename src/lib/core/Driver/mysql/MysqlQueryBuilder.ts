@@ -88,7 +88,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
           COLUMN_NAME as "Field", 
           COLUMN_TYPE as "ColumnType",
           DATA_TYPE as "Type",
-          IS_NULLABLE as "Null",
+          IS_NULLABLE as "Nullable",
           COLUMN_DEFAULT as "Default"
         `,
       `FROM INFORMATION_SCHEMA.COLUMNS
@@ -105,15 +105,18 @@ export class MysqlQueryBuilder extends QueryBuilder {
     const sql = [
       `SELECT 
           COLUMN_NAME AS "Field", 
-          COLUMN_KEY  AS "Key",
+          CASE 
+            WHEN COLUMN_KEY = '' THEN NULL 
+            ELSE COLUMN_KEY
+          END AS "Key",
           COALESCE(NULLIF(COLUMN_TYPE, ''), DATA_TYPE) AS "Type",
-          IS_NULLABLE AS "Null",
+          IS_NULLABLE AS "Nullable",
           CASE 
             WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP' 
             ELSE COLUMN_DEFAULT 
           END AS "Default",
           CASE 
-            WHEN EXTRA = 'DEFAULT_GENERATED' THEN NULL 
+            WHEN EXTRA = 'DEFAULT_GENERATED' OR EXTRA = '' THEN NULL 
             ELSE EXTRA 
           END AS "Extra",
           CASE WHEN DATA_TYPE = 'enum' 
@@ -365,9 +368,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
         AND s.COLUMN_NAME = k.COLUMN_NAME
         AND k.REFERENCED_TABLE_NAME IS NOT NULL
       WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
-        AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
+        AND s.TABLE_NAME   = '${table.replace(/`/g, "")}'
         AND k.REFERENCED_TABLE_NAME IS NULL
-      ORDER BY s.SEQ_IN_INDEX, s.INDEX_NAME
       `,
     ];
 

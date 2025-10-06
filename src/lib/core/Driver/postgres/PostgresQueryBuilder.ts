@@ -94,7 +94,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
             ELSE DATA_TYPE
           END AS "ColumnType",
           DATA_TYPE as "Type",
-          IS_NULLABLE as "Null",
+          IS_NULLABLE as "Nullable",
           COLUMN_DEFAULT as "Default"
         `,
       `FROM INFORMATION_SCHEMA.COLUMNS
@@ -110,29 +110,30 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public getSchema({ database, table }: { database: string; table: string }) {
     const sql = [
       `SELECT 
-          COLUMN_NAME as "Field", 
-          CASE
-              WHEN column_default LIKE 'nextval(%' THEN 'PRI'
-              ELSE ''
-          END AS "Key",
-          CASE
-            WHEN 
-              DATA_TYPE = 'character varying' AND CHARACTER_MAXIMUM_LENGTH IS NOT NULL
-              THEN DATA_TYPE || '(' || CHARACTER_MAXIMUM_LENGTH || ')'
-            ELSE DATA_TYPE
-          END AS "Type",
-          IS_NULLABLE as "Null",
+        COLUMN_NAME as "Field", 
+        CASE
+            WHEN column_default LIKE 'nextval(%' THEN 'PRI'
+            ELSE NULL
+        END AS "Key",
+        CASE
+          WHEN 
+            DATA_TYPE = 'character varying' AND CHARACTER_MAXIMUM_LENGTH IS NOT NULL
+            THEN DATA_TYPE || '(' || CHARACTER_MAXIMUM_LENGTH || ')'
+          ELSE DATA_TYPE
+        END AS "Type",
+        IS_NULLABLE as "Nullable",
 
-          CASE
-              WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN NULL
-              WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP'
-              ELSE COLUMN_DEFAULT
-          END AS "Default",
+        CASE
+          WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN NULL
+          WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP'
+          ELSE COLUMN_DEFAULT
+        END AS "Default",
 
-          
-          '' As "Extra"
-        `,
-      `FROM INFORMATION_SCHEMA.COLUMNS
+        CASE
+          WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN 'AUTO_INCREMENT'
+          ELSE NULL
+        END AS "Extra"
+      FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
           AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
         ORDER BY ORDINAL_POSITION
@@ -326,24 +327,24 @@ export class PostgresQueryBuilder extends QueryBuilder {
     const sql = [
       `
         SELECT
-          CCU.TABLE_NAME AS "RefTable",
-          CCU.COLUMN_NAME AS "RefColumn",
-          KCU.COLUMN_NAME AS "Column",
-          TC.CONSTRAINT_NAME AS "Constraint"
+          ccu.TABLE_NAME AS "RefTable",
+          ccu.COLUMN_NAME AS "RefColumn",
+          kcu.COLUMN_NAME AS "Column",
+          tc.CONSTRAINT_NAME AS "Constraint"
 
-        FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
+        FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
 
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU
-          ON TC.CONSTRAINT_NAME = KCU.CONSTRAINT_NAME
-          AND TC.TABLE_SCHEMA   = KCU.TABLE_SCHEMA
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
+          ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+          AND tc.TABLE_SCHEMA   = kcu.TABLE_SCHEMA
 
-        JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS CCU
-          ON CCU.CONSTRAINT_NAME = TC.CONSTRAINT_NAME
-          AND CCU.TABLE_SCHEMA   = TC.TABLE_SCHEMA
+        JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
+          ON ccu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+          AND ccu.TABLE_SCHEMA   = tc.TABLE_SCHEMA
 
-        WHERE TC.CONSTRAINT_TYPE = 'FOREIGN KEY'
-          AND TC.TABLE_CATALOG   = '${database.replace(/\`/g, "")}'
-          AND TC.TABLE_NAME      = '${table.replace(/\`/g, "")}'
+        WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+          AND tc.TABLE_CATALOG   = '${database.replace(/\`/g, "")}'
+          AND tc.TABLE_NAME      = '${table.replace(/\`/g, "")}'
         `,
     ];
 
@@ -365,9 +366,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
           SELECT 1
           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
           WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
-          AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
-          AND TABLE_NAME       = '${table.replace(/\`/g, "")}'
-          AND CONSTRAINT_NAME  = '${constraint}'
+            AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
+            AND TABLE_NAME       = '${table.replace(/\`/g, "")}'
+            AND CONSTRAINT_NAME  = '${constraint}'
         ) AS "IS_EXISTS"
         `,
     ];
@@ -415,18 +416,20 @@ export class PostgresQueryBuilder extends QueryBuilder {
     database: string;
     table   : string;
   }) {
-    database = 'public';
-
+    
     const sql = [
       `
       SELECT
+        DISTINCT ON (a.ATTNAME, i.RELNAME)
         a.ATTNAME AS "Column",
         i.RELNAME AS "IndexName",
         UPPER(am.AMNAME) AS "IndexType",
         CASE WHEN a.ATTNOTNULL = false THEN 'YES' ELSE 'NO' END AS "Nullable",
         CASE WHEN ix.INDISUNIQUE = true THEN 'YES' ELSE 'NO' END AS "Unique"
-      FROM
-        PG_CLASS t
+      FROM 
+        INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+      JOIN 
+        PG_CLASS t ON t.RELNAME = kcu.TABLE_NAME
       JOIN
         PG_NAMESPACE n ON t.RELNAMESPACE = n.OID
       JOIN
@@ -443,12 +446,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
         ) AS seq ON TRUE
       JOIN
         PG_ATTRIBUTE a ON a.ATTRELID = t.OID AND a.ATTNUM = seq.ATTR_NUM
-      WHERE
-        t.RELKIND = 'r'
-        AND n.NSPNAME = '${database.replace(/\`/g, "")}'
-        AND t.RELNAME = '${table.replace(/\`/g, "")}'
-      ORDER BY
-       seq.NUMBER, i.RELNAME
+      WHERE 
+        t.RELKIND              = 'r'
+        AND kcu.TABLE_CATALOG  = '${database.replace(/\`/g, "")}'
+        AND t.RELNAME          = '${table.replace(/\`/g, "")}'
       `
     ];
 
@@ -464,25 +465,25 @@ export class PostgresQueryBuilder extends QueryBuilder {
     table: string;
     index: string;
   }) {
-    database = "public";
-
     const sql = [
       `
         SELECT EXISTS( 
           SELECT 1
-          FROM
-            PG_CLASS t
+          FROM 
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+          JOIN 
+            PG_CLASS t ON t.RELNAME = kcu.TABLE_NAME
           JOIN
             PG_NAMESPACE n ON t.RELNAMESPACE = n.OID
           JOIN
             PG_INDEX ix ON t.OID = ix.INDRELID
           JOIN
             PG_CLASS i ON i.OID = ix.INDEXRELID
-          WHERE
-            t.RELKIND = 'r'
-            AND n.NSPNAME = '${database.replace(/\`/g, "")}'
-            AND t.RELNAME = '${table.replace(/\`/g, "")}'
-            AND i.RELNAME = '${index}'
+          WHERE 
+            t.RELKIND             = 'r'
+            AND kcu.TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+            AND t.RELNAME         = '${table.replace(/\`/g, "")}'
+            AND i.RELNAME         = '${index}'
         ) AS "IS_EXISTS"  
       `,
     ];
