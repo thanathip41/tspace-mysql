@@ -10,8 +10,9 @@ export class MysqlQueryBuilder extends QueryBuilder {
     const combindSQL = [
       this.bindSelect(this.$state.get("SELECT")),
       this.bindFrom({
-        from: this.$constants("FROM"),
-        table: this.$state.get("TABLE_NAME"),
+        from: !this.$state.get("FROM").length
+          ? [this.$state.get("TABLE_NAME")]
+          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")],
         alias: this.$state.get("ALIAS"),
         rawAlias: this.$state.get("RAW_ALIAS"),
       }),
@@ -348,13 +349,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public getIndexes({
-    database,
-    table
-  }: {
-    database: string;
-    table   : string;
-  }) {
+  public getIndexes({ database, table }: { database: string; table: string }) {
     const sql = [
       `
       SELECT 
@@ -467,6 +462,10 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public sleep(second: number): string {
+    return `SLEEP(${second})`;
+  }
+
   public format(sql: (string | null)[] | string) {
     if (typeof sql === "string") sql = [sql];
 
@@ -528,15 +527,17 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
   protected bindFrom({
     from,
-    table,
     alias,
     rawAlias,
   }: {
-    from: string;
-    table: string;
+    from: string[];
     alias: string | null;
     rawAlias: string | null;
   }) {
+    if (!from.length || from.every((f) => f == null || f === "")) {
+      return "";
+    }
+
     if (alias != null && alias !== "") {
       if (rawAlias != null && rawAlias !== "") {
         const raw = String(rawAlias)
@@ -546,15 +547,17 @@ export class MysqlQueryBuilder extends QueryBuilder {
           raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
         raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
 
-        return `${from} (${normalizedRawAlias}) ${this.$constants(
-          "AS"
-        )} \`${alias}\``;
+        return `${this.$constants(
+          "FROM"
+        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
       }
 
-      return `${from} ${table} ${this.$constants("AS")} \`${alias}\``;
+      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
+        "AS"
+      )} \`${alias}\``;
     }
 
-    return `${from} ${table}`;
+    return `${this.$constants("FROM")} ${from.join(", ")}`;
   }
 
   protected bindLimit(limit: string | number) {

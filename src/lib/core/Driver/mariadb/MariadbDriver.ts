@@ -18,9 +18,6 @@ type MariadbConnectionOptions = {
   user                    : string,
   username                : string,
   password                : string,
-  multipleStatements      ?: boolean,
-  enableKeepAlive         ?: boolean,
-  keepAliveInitialDelay   ?: boolean,
 }
 
 export class MariadbDriver extends BaseDriver {

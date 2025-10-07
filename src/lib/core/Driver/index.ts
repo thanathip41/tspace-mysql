@@ -296,6 +296,7 @@ export abstract class QueryBuilder {
   public abstract dropDatabase(database: string): string;
   public abstract dropView(view: string): string;
   public abstract dropTable(table: string): string;
+  public abstract sleep(second : number) : string;
 
   public abstract format(sql: (string | null)[] | string): string;
 
@@ -308,8 +309,7 @@ export abstract class QueryBuilder {
     opts?: { distinct?: string }
   ): string;
   protected abstract bindFrom(args: {
-    from: string;
-    table: string;
+    from: string[];
     alias: string | null;
     rawAlias: string | null;
   }): string;

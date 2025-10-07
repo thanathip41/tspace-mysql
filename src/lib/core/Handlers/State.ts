@@ -13,7 +13,7 @@ const STATE_DEFAULT = {
   ADD_SELECT: [] as string[],
   ONLY: [] as string[],
   EXCEPTS: [] as string[],
-  FROM: 'FROM' as string,
+  FROM: [] as string[],
   JOIN: [] as string[],
   WHERE: [] as string[],
   GROUP_BY: [] as string[],

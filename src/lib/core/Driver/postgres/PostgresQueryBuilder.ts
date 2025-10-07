@@ -10,8 +10,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
     const combindSQL = [
       this.bindSelect(this.$state.get("SELECT")),
       this.bindFrom({
-        from: this.$constants("FROM"),
-        table: this.$state.get("TABLE_NAME"),
+        from: !this.$state.get("FROM").length
+          ? [this.$state.get("TABLE_NAME")]
+          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")],
         alias: this.$state.get("ALIAS"),
         rawAlias: this.$state.get("RAW_ALIAS"),
       }),
@@ -418,14 +419,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public getIndexes({
-    database,
-    table
-  }: {
-    database: string;
-    table   : string;
-  }) {
-    
+  public getIndexes({ database, table }: { database: string; table: string }) {
     const sql = [
       `
       SELECT
@@ -459,7 +453,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         t.RELKIND              = 'r'
         AND kcu.TABLE_CATALOG  = '${database.replace(/\`/g, "")}'
         AND t.RELNAME          = '${table.replace(/\`/g, "")}'
-      `
+      `,
     ];
 
     return this.format(sql);
@@ -505,9 +499,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
     index,
     key,
   }: {
-    table : string;
-    index : string;
-    key   : string;
+    table: string;
+    index: string;
+    key: string;
   }) {
     const sql = [
       `${this.$constants("CREATE_INDEX")}`,
@@ -551,6 +545,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
     )}"`;
 
     return this.format(sql);
+  }
+
+  public sleep(second: number): string {
+    return `PG_SLEEP(${second})`;
   }
 
   public format(sql: (string | null)[] | string) {
@@ -635,15 +633,17 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
   protected bindFrom({
     from,
-    table,
     alias,
     rawAlias,
   }: {
-    from: string;
-    table: string;
+    from: string[];
     alias: string | null;
     rawAlias: string | null;
   }) {
+    if (!from.length || from.every((f) => f == null || f === "")) {
+      return "";
+    }
+
     if (alias != null && alias !== "") {
       if (rawAlias != null && rawAlias !== "") {
         const raw = String(rawAlias)
@@ -653,15 +653,17 @@ export class PostgresQueryBuilder extends QueryBuilder {
           raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
         raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
 
-        return `${from} (${normalizedRawAlias}) ${this.$constants(
-          "AS"
-        )} \`${alias}\``;
+        return `${this.$constants(
+          "FROM"
+        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
       }
 
-      return `${from} ${table} ${this.$constants("AS")} \`${alias}\``;
+      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
+        "AS"
+      )} \`${alias}\``;
     }
 
-    return `${from} ${table}`;
+    return `${this.$constants("FROM")} ${from.join(", ")}`;
   }
 
   protected bindLimit(limit: string | number) {

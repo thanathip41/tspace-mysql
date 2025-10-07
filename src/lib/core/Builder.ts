@@ -16,6 +16,7 @@ import {
   TDriver,
 } from "../types";
 import pluralize from "pluralize";
+import query from "../../cli/query";
 class Builder extends AbstractBuilder {
   constructor() {
     super();
@@ -320,8 +321,15 @@ class Builder extends AbstractBuilder {
    * @param {string} table table name
    * @returns {this} this
    */
-  from(table: string): this {
-    this.$state.set("TABLE_NAME", `\`${table.replace(/`/g, "")}\``);
+  from(table: string | null, { push }: { push?: string[] } = {}): this {
+    this.$state.set("TABLE_NAME", table === '' || table == null ? null : `\`${table.replace(/`/g, "")}\``);
+
+    if(push) {
+      this.$state.set('FROM',[
+        ...this.$state.get("FROM"),
+        ...push.map(from => this.$utils.checkValueHasRaw(from))
+      ])
+    }
     return this;
   }
 
@@ -383,17 +391,14 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   sleep(second: number): this {
-    const sql = `(SELECT SLEEP(${second}) as sleep)`;
 
-    this.$state.set("JOIN", [
-      ...this.$state.get("JOIN"),
-      [
-        `${this.$constants("INNER_JOIN")}`,
-        `${sql} ${this.$constants("AS")} temp`,
-        `${this.$constants("ON")}`,
-        `1=1`,
-      ].join(" "),
-    ]);
+    this.CTEs('sleep',(query) => {
+      return query.selectRaw(this._queryBuilder().sleep(second)).from('')
+    })
+
+    this.from(this.$state.get("TABLE_NAME"), { 
+      push: [`${this.$constants("RAW")}sleep`]
+    })
 
     return this;
   }
