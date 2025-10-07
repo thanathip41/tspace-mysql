@@ -259,10 +259,12 @@ export class MariadbQueryBuilder extends QueryBuilder {
           REFERENCED_COLUMN_NAME AS "RefColumn",
           COLUMN_NAME AS "Column",
           CONSTRAINT_NAME As  "Constraint"
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_NAME IS NOT NULL
-        AND TABLE_SCHEMA  = '${database.replace(/`/g, "")}'
-        AND TABLE_NAME    = '${table.replace(/`/g, "")}'
+        FROM 
+          INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE 
+          REFERENCED_TABLE_NAME IS NOT NULL
+          AND TABLE_SCHEMA  = '${database.replace(/`/g, "")}'
+          AND TABLE_NAME    = '${table.replace(/`/g, "")}'
         `,
     ];
 
@@ -342,15 +344,18 @@ export class MariadbQueryBuilder extends QueryBuilder {
         s.INDEX_TYPE  AS "IndexType",
         CASE WHEN s.NULLABLE = 'YES' THEN 'YES' ELSE 'NO' END AS "Nullable",
         CASE WHEN s.NON_UNIQUE = 0 THEN 'YES' ELSE 'NO' END AS "Unique"
-      FROM INFORMATION_SCHEMA.STATISTICS s
-      LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
-        ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
-        AND s.TABLE_NAME = k.TABLE_NAME
-        AND s.COLUMN_NAME = k.COLUMN_NAME
-        AND k.REFERENCED_TABLE_NAME IS NOT NULL
-      WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+      FROM 
+        INFORMATION_SCHEMA.STATISTICS s
+      LEFT JOIN 
+        INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+          ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
+          AND s.TABLE_NAME = k.TABLE_NAME
+          AND s.COLUMN_NAME = k.COLUMN_NAME
+          AND k.REFERENCED_TABLE_NAME IS NOT NULL
+      WHERE 
+        k.REFERENCED_TABLE_NAME IS NULL
+        AND s.TABLE_SCHEMA   = '${database.replace(/`/g, "")}'
         AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
-        AND k.REFERENCED_TABLE_NAME IS NULL
       `,
     ];
 
@@ -369,18 +374,21 @@ export class MariadbQueryBuilder extends QueryBuilder {
     const sql = [
       `
         SELECT EXISTS(
-          SELECT 1
-          FROM INFORMATION_SCHEMA.STATISTICS s
-          LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
-            ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
-            AND s.TABLE_NAME = k.TABLE_NAME
-            AND s.COLUMN_NAME = k.COLUMN_NAME
-            AND k.REFERENCED_TABLE_NAME IS NOT NULL
-          WHERE s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+          SELECT 
+            1
+          FROM 
+            INFORMATION_SCHEMA.STATISTICS s
+          LEFT JOIN 
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+              ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
+              AND s.TABLE_NAME = k.TABLE_NAME
+              AND s.COLUMN_NAME = k.COLUMN_NAME
+              AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          WHERE 
+            k.REFERENCED_TABLE_NAME IS NULL
+            AND s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
             AND s.TABLE_NAME   = '${table.replace(/`/g, "")}'
             AND s.INDEX_NAME   = '${index}'
-            AND k.REFERENCED_TABLE_NAME IS NULL
-          ORDER BY s.SEQ_IN_INDEX, s.INDEX_NAME
         ) AS "IS_EXISTS"
       `,
     ];

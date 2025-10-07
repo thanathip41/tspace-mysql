@@ -145,11 +145,14 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
   public getTables(database: string) {
     const sql = [
-      `SELECT TABLE_NAME AS "Tables"
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = 'public'
-        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+      `
+      SELECT 
+        TABLE_NAME AS "Tables"
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE 
+        TABLE_SCHEMA NOT IN ('PG_CATALOG','INFORMATION_SCHEMA')
         AND TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
       `,
     ];
 
@@ -158,11 +161,14 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
   public getTable({ database, table }: { database: string; table: string }) {
     const sql = [
-      `SELECT TABLE_NAME AS "TABLES"
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = 'public'
-        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+      `
+      SELECT 
+        TABLE_NAME AS "TABLES"
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE 
+        TABLE_SCHEMA NOT IN ('PG_CATALOG','INFORMATION_SCHEMA')
         AND TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
         AND TABLE_NAME LIKE '${table.replace(/\`/g, "")}'
       `,
     ];
@@ -331,18 +337,18 @@ export class PostgresQueryBuilder extends QueryBuilder {
           ccu.COLUMN_NAME AS "RefColumn",
           kcu.COLUMN_NAME AS "Column",
           tc.CONSTRAINT_NAME AS "Constraint"
-
-        FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
-
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
-          ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-          AND tc.TABLE_SCHEMA   = kcu.TABLE_SCHEMA
-
-        JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
+        FROM 
+          INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
+        JOIN 
+          INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
+          ON tc.CONSTRAINT_NAME  = kcu.CONSTRAINT_NAME
+          AND tc.TABLE_SCHEMA    = kcu.TABLE_SCHEMA
+        JOIN 
+          INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
           ON ccu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
           AND ccu.TABLE_SCHEMA   = tc.TABLE_SCHEMA
-
-        WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+        WHERE 
+          tc.CONSTRAINT_TYPE     = 'FOREIGN KEY'
           AND tc.TABLE_CATALOG   = '${database.replace(/\`/g, "")}'
           AND tc.TABLE_NAME      = '${table.replace(/\`/g, "")}'
         `,
@@ -363,9 +369,12 @@ export class PostgresQueryBuilder extends QueryBuilder {
     const sql = [
       `
         SELECT EXISTS( 
-          SELECT 1
-          FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-          WHERE POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
+          SELECT 
+            1
+          FROM 
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+          WHERE 
+            POSITION_IN_UNIQUE_CONSTRAINT IS NOT NULL
             AND TABLE_CATALOG    = '${database.replace(/\`/g, "")}'
             AND TABLE_NAME       = '${table.replace(/\`/g, "")}'
             AND CONSTRAINT_NAME  = '${constraint}'
@@ -409,7 +418,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-   public getIndexes({
+  public getIndexes({
     database,
     table
   }: {

@@ -5929,7 +5929,8 @@ class Model<
 
     const tables = await new Model()
     .debug(this.$state.get('DEBUG'))
-    .when(c != null, (q) => q.bind(c as TPoolConnected))
+    .when(c != null,(q) => q.bind(c as TPoolConnected))
+    .when(c == null,(q) => q.bind(this.$pool.get()))
     .showTables();
 
     const rawRegistryRelations = await Promise.all(
@@ -5939,7 +5940,8 @@ class Model<
           table,
           await new Model()
           .debug(this.$state.get('DEBUG'))
-          .when(c != null, (q) => q.bind(c as TPoolConnected))
+          .when(c != null,(q) => q.bind(c as TPoolConnected))
+          .when(c == null,(q) => q.bind(this.$pool.get()))
           .getFKs(table)
           .catch(() => [])
         )
@@ -5958,7 +5960,8 @@ class Model<
         
         const columns = await new Model()
         .debug(this.$state.get('DEBUG'))
-        .when(c != null, (q) => q.bind(c as TPoolConnected))
+        .when(c != null,(q) => q.bind(c as TPoolConnected))
+        .when(c == null,(q) => q.bind(this.$pool.get()))
         .showSchema(table, { raw : true });
         
         let schema : any[] = [];
@@ -5967,10 +5970,10 @@ class Model<
           const schemaColumn = [
               `@Column(() => `,
               `Blueprint.${/^[^()]*$/.test(raw.Type) 
-                  ? raw.Type.includes('unsigned') 
-                      ? 'int().unsigned()'
-                      : `${mapType(raw.Type.toLocaleLowerCase())}()` 
-                  : mapType(raw.Type.toLocaleLowerCase())
+                ? raw.Type.includes('unsigned') 
+                    ? 'int().unsigned()'
+                    : `${mapType(raw.Type.toLowerCase())}()` 
+                : mapType(String(raw.Type).toLowerCase().trim().split(/\s+/).map((v,i) => i === 0 ? v : `${v}()`).join('.'))
               }`,
               `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
               raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
@@ -6054,25 +6057,27 @@ class Model<
       
       const columns = await new Model()
       .debug(this.$state.get('DEBUG'))
-      .when(c != null, (q) => q.bind(c as TPoolConnected))
+      .when(c != null,(q) => q.bind(c as TPoolConnected))
+      .when(c == null,(q) => q.bind(this.$pool.get()))
       .showSchema(table, { raw : true });
       
       let schema : any[] = [];
 
       for(const index in columns) {
-        const raw = columns[index]
+        const raw = columns[index];
+
         const str = [
           `${raw.Field} : `,
           `Blueprint.${/^[^()]*$/.test(raw.Type) 
-              ? raw.Type.includes('unsigned') 
-                  ? 'int().unsigned()'
-                  : `${raw.Type.toLocaleLowerCase()}()` 
-              : raw.Type.toLocaleLowerCase()
+            ? raw.Type.includes('unsigned') 
+                ? 'int().unsigned()'
+                : `${mapType(raw.Type.toeLowerCase())}()` 
+            : mapType(String(raw.Type).toLowerCase().trim().split(/\s+/).map((v,i) => i === 0 ? v : `${v}()`).join('.'))
           }`,
           `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
           raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
           raw.Default != null 
-            ? `.default('${raw.Default.replace('IS_CONST:','')}')`  : '',
+            ? `.default('${raw.Default.replace(/'/g,'').replace('IS_CONST:','')}')`  : '',
           `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
           `,`
         ].join('')

@@ -1042,34 +1042,36 @@ Let's illustrate this with an example of a decorators:
 ```js
 
 import {
-    Blueprint, Model ,
-    Table ,TableSingular, TablePlural,
-    UUID, SoftDelete, Timestamp,
-    Pattern, Column, Validate, Observer
+  Blueprint, Model ,
+  Table ,TableSingular, TablePlural,
+  UUID, SoftDelete, Timestamp,
+  Pattern, Column, Validate, Observer,
+
+  // ------- relations --------
+  HasOne, HasMany, BelongsTo, BelongsToMany
 } from 'tspace-mysql'
 import { Post } from './Post'
 import { PostUser } from './PostUser'
 
 class UserObserve {
 
-    public selected(results) {
-      console.log({ results , selected : true })
-    }
-
-    public created(results) {
-        console.log({ results , created : true })
-    }
-
-    public updated(results) {
-      console.log({ results , updated : true })
-    }
-
-    public deleted(results) {
-      console.log({ results , deleted : true })
-    }
+  public selected(results) {
+    console.log({ results , selected : true })
   }
 
-@Pattern('camelCase')
+  public created(results) {
+    console.log({ results , created : true })
+  }
+
+  public updated(results) {
+    console.log({ results , updated : true })
+  }
+
+  public deleted(results) {
+    console.log({ results , deleted : true })
+  }
+}
+
 @Observer(UserObserve)
 @UUID()
 @SoftDelete()
@@ -1080,49 +1082,51 @@ class UserObserve {
 // if without set with @Table default 'users'
 class User extends Model {
 
-    @Column(() => Blueprint.int().notNull().primary().autoIncrement())
-    public id!: number
+  @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+  public id!: number
 
-    @Column(() => Blueprint.varchar(50).null())
-    public uuid!: string
+  @Column(() => Blueprint.varchar(50).null())
+  public uuid!: string
 
-    @Column(() => Blueprint.varchar(50).null())
-    @Validate({
-        type : String,
-        require : true,
-        length : 50,
-        match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-        unique : true,
-        fn : (email : string) => {
-          const matched = /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
-          if(matched) return null;
-          return `This column "${email}" is not match a regular expression`;
-        }
-    })
-    public email!: string
+  @Column(() => Blueprint.varchar(50).null())
+  @Validate({
+      type : String,
+      require : true,
+      length : 50,
+      match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      unique : true,
+      fn : (email : string) => {
+        const matched = /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+        if(matched) return null;
+        return `This column "${email}" is not match a regular expression`;
+      }
+  })
+  public email!: string
 
-    @Column(() => Blueprint.varchar(50).null())
-    public name !: string
+  @Column(() => Blueprint.varchar(50).null())
+  public name !: string
 
-    @Column(() => Blueprint.varchar(50).null())
-    public username !: string
+  @Column(() => Blueprint.varchar(50).null())
+  public username !: string
 
-    @Column(() => Blueprint.varchar(50).null())
-    public password !: string
+  @Column(() => Blueprint.varchar(50).null())
+  public password !: string
 
-    @Column(() => Blueprint.timestamp().null())
-    public created_at!: Date
+  @Column(() => Blueprint.timestamp().null())
+  public created_at!: Date
 
-    @Column(() => Blueprint.timestamp().null())
-    public updated_at!: Date
+  @Column(() => Blueprint.timestamp().null())
+  public updated_at!: Date
 
-    @Column(() => Blueprint.timestamp().null())
-    public deleted_at!: Date
+  @Column(() => Blueprint.timestamp().null())
+  public deleted_at!: Date
 
+  @HasOne({ model: () => Post })
+  public post!: Post
+
+  @HasMany({ model: () => Post })
+  public posts!: Post[]
 }
-
-export { User }
-export default User
 
 ```
 
