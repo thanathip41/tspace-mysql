@@ -1,12 +1,16 @@
 import { AbstractBuilder } from "./Abstracts/AbstractBuilder";
-import { utils } from "../utils";
-import { DB } from "./DB";
-import { StateHandler } from "./Handlers/State";
-import { Join } from "./Join";
-import { CONSTANTS } from "../constants";
-import { QueryBuilder } from "./Driver";
-import Config from "../config";
-import { Pool, PoolConnection, loadOptionsEnvironment } from "./Pool";
+import { utils }           from "../utils";
+import { DB }              from "./DB";
+import { StateHandler }    from "./Handlers/State";
+import { Join }            from "./Join";
+import { CONSTANTS }       from "../constants";
+import { QueryBuilder }    from "./Driver";
+import Config              from "../config";
+import { 
+  Pool, 
+  PoolConnection, 
+  loadOptionsEnvironment 
+} from "./Pool";
 import {
   TPagination,
   TConnectionOptions,
@@ -15,8 +19,6 @@ import {
   TPoolCusterConnected,
   TDriver,
 } from "../types";
-import pluralize from "pluralize";
-import query from "../../cli/query";
 class Builder extends AbstractBuilder {
   constructor() {
     super();

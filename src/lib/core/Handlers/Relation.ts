@@ -827,84 +827,80 @@ class RelationHandler  {
         return functionName.replace(/([A-Z])/g, (str:string) => `_${str.toLowerCase()}`)
     }
 
-    private _relationMapData  ({ parents , childs , relation } :{ parents: any[] , childs:any[] , relation:TRelationOptions }) {
-
-        const { 
-            name, 
-            as, 
-            relation : relationName, 
-            localKey, 
+    private _relationMapData({
+        parents,
+        childs,
+        relation
+    }: {
+        parents: any[]
+        childs: any[]
+        relation: TRelationOptions
+    }) {
+        const {
+            name,
+            as,
+            relation: relationName,
+            localKey,
             foreignKey
-        } = this._valueInRelation(relation)  
-        
+        } = this._valueInRelation(relation)
+
         const alias = as ?? name
 
-        const relationIsHasOneOrBelongsTo = [
-            this.$model["$constants"]('RELATIONSHIP').hasOne, 
-            this.$model["$constants"]('RELATIONSHIP').belongsTo
-        ].some(r => r ===  relationName)
+        const r = this.$model["$constants"]("RELATIONSHIP");
 
-        const relationIsHasManyOrBelongsToMany = [
-            this.$model["$constants"]('RELATIONSHIP').hasMany, 
-            this.$model["$constants"]('RELATIONSHIP').belongsToMany
-        ].some(r => r ===  relationName)
-        
-        const children : Record<string , { values : Record<string,any>[] }> = [...childs]
-        .reduce((prev, curr) => {
-            
+        const isHasOneOrBelongsTo = relationName === r.hasOne || relationName === r.belongsTo;
+
+        const isHasManyOrBelongsToMany = relationName === r.hasMany || relationName === r.belongsToMany;
+
+        const countMode = !!relation.count;
+
+        const children: Record<number, any[]> = {};
+
+        for (let i = 0, len = childs.length; i < len; i++) {
+            const curr = childs[i]
+
             const key = +curr[foreignKey]
-            
-            if(Number.isNaN(key)) {
+
+            if (Number.isNaN(key)) {
                 throw this._assertError([
-                    `This relationship lacks a foreign key in the '${relation?.name}' relation.`, 
-                    `Please review the query to identify whether the key '${foreignKey}' is missing.`
-                   ].join(' ')
+                    `This relationship lacks a foreign key in the '${relation?.name}'`,
+                    `relation. Please review the query to identify whether the key '${foreignKey}' is missing.`
+                    ].join(' ')
                 )
             }
-            
-            if (!prev[key]) {
-              prev[key] = { [foreignKey]: key, values: [] }
-            }
-
-            prev[key].values.push({ ...curr })
-
-            return prev
-        }, {})
- 
-        for(const parent of parents) {
-
-            if(relationIsHasOneOrBelongsTo) parent[alias] = relation.count ? 0 : null 
-            
-            if(relationIsHasManyOrBelongsToMany) parent[alias] = relation.count ? 0 : []
-           
-            const match = children[+parent[localKey]]
-            
-            if(match == null) continue
-            
-            const childrens = match?.values ?? []
-
-            if(relation.count) {
-                if(parent[alias] == 0) {
-                    const count = Number(childrens[0]?.aggregate ?? 0)
-                    parent[alias] = relationIsHasOneOrBelongsTo 
-                    ? count > 1 ? 1 : count
-                    : count 
-                }
-                continue
-            }
-
-            if(relationIsHasOneOrBelongsTo) {
-                if(parent[alias] == null) {
-                    parent[alias] = childrens[0] ?? null
-                }
-                continue
-            } 
-
-            parent[alias] = childrens
-
+            const arr = children[key];
+            if (arr) arr.push(curr);
+            else children[key] = [curr];
         }
 
-        if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
+        for (let i = 0, len = parents.length; i < len; i++) {
+            const parent = parents[i]
+            const key = +parent[localKey]
+            const match = children[key]
+
+            if (isHasOneOrBelongsTo) parent[alias] = countMode ? 0 : null;
+
+            else if (isHasManyOrBelongsToMany) parent[alias] = countMode ? 0 : [];
+
+            if (!match) continue
+
+            if (countMode) {
+                const count = Number(match[0]?.aggregate ?? 0)
+                parent[alias] = isHasOneOrBelongsTo
+                    ? count > 1 
+                        ? 1
+                        : count
+                    : count
+                continue
+            }
+
+            if (isHasOneOrBelongsTo) parent[alias] = match[0] ?? null
+            else parent[alias] = match
+        }
+
+        const hidden = this.$model["$state"].get("HIDDEN");
+        
+        if (hidden.length) this.$model["_hiddenColumnModel"](parents)
 
         return parents
     }

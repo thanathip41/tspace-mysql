@@ -1624,15 +1624,15 @@ class Model<
       return result == null ? await getResults(sql) : result;
 
     } catch (error: any) {
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql,retry);
 
       if (this.$state.get("JOIN")?.length) throw error;
 
-      const retry = Number(this.$state.get("RETRY"));
+      const retryCount = Number(this.$state.get("RETRY"));
 
-      await this._checkSchemaOrNextError(error, retry, error);
+      await this._checkSchemaOrNextError(error, retryCount, error);
 
-      this.$state.set("RETRY", retry + 1);
+      this.$state.set("RETRY", retryCount + 1);
 
       return await this._queryStatement(sql, { retry: true });
     }
@@ -1645,7 +1645,7 @@ class Model<
    * @param {string} sql
    * @returns {this} this
    */
-  protected async _actionStatement(sql: string): Promise<any> {
+  protected async _actionStatement(sql: string, { retry = false } = {}): Promise<any> {
     try {
 
       sql = this._queryBuilder({ onFormat : true }).format([sql])
@@ -1659,7 +1659,7 @@ class Model<
           
           const endTime = +new Date();
 
-          this.$utils.consoleDebug(sql);
+          this.$utils.consoleDebug(sql,retry);
 
           this.$utils.consoleExec(startTime, endTime);
 
@@ -1686,18 +1686,18 @@ class Model<
       return result == null ? await getResults(sql) : result;
       
     } catch (error: unknown) {
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql);
+
+      const retryCount = Number(this.$state.get("RETRY"));
+
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql,retry);
 
       if (this.$state.get("JOIN")?.length) throw error;
 
-      await this._checkSchemaOrNextError(
-        error,
-        Number(this.$state.get("RETRY"))
-      );
+      await this._checkSchemaOrNextError(error, retryCount, error);
 
-      this.$state.set("RETRY", Number(this.$state.get("RETRY")) + 1);
+      this.$state.set("RETRY", retryCount + 1);
 
-      return await this._actionStatement(sql);
+      return await this._actionStatement(sql, { retry: true });
     }
   }
 
@@ -7540,7 +7540,7 @@ class Model<
   ): Promise<void> {
     const throwError = originError == null ? e : originError;
     try {
-      if (retry > 3 || this.$state.get("RETRY") > 3) throw throwError;
+      if (retry >= 3 || this.$state.get("RETRY") >= 3) throw throwError;
 
       const schemaTable = this.getSchemaModel();
 
@@ -7548,10 +7548,10 @@ class Model<
 
       if (!(e instanceof Error)) return this._stoppedRetry(throwError);
 
-      await this.sync({ force: true })
+      await new Model().copyModel(this).sync({ force: true })
 
     } catch (e: unknown) {
-      if (retry > 3) {
+      if (retry >= 3) {
         throw throwError;
       }
 
