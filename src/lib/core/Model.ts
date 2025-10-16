@@ -6071,7 +6071,7 @@ class Model<
           `Blueprint.${/^[^()]*$/.test(raw.Type) 
             ? raw.Type.includes('unsigned') 
                 ? 'int().unsigned()'
-                : `${mapType(raw.Type.toeLowerCase())}()` 
+                : `${mapType(raw.Type.toLowerCase())}()` 
             : mapType(String(raw.Type).toLowerCase().trim().split(/\s+/).map((v,i) => i === 0 ? v : `${v}()`).join('.'))
           }`,
           `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
