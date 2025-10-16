@@ -3262,7 +3262,7 @@ class Builder extends AbstractBuilder {
         meta: {
           total: 0,
           limit,
-          total_page: 0,
+          count: 0,
           current_page: currentPage,
           last_page: 0,
           next_page: 0,
@@ -3281,14 +3281,14 @@ class Builder extends AbstractBuilder {
     let lastPage: number = Math.ceil(total / limit) || 0;
     lastPage = lastPage > 1 ? lastPage : 1;
 
-    const totalPage = result?.length ?? 0;
+    const count = result?.length ?? 0;
 
     return {
       //@ts-ignore
       meta: {
         total: total,
         limit: limit,
-        total_page: totalPage,
+        count,
         current_page: currentPage,
         last_page: lastPage,
         next_page: nextPage,

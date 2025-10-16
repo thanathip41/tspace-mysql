@@ -215,21 +215,34 @@ class Model<
    * @returns {void} void
    */
   protected globalScope<M extends Model>(callback: (query: M) => M): this {
-    const model = new Model().table(this.getTableName()) as M;
-
+    const model = new Model().copyModel(this) as M;
     const repository: Model = callback(model);
 
     if (repository instanceof Promise)
-      throw new Error('"whereQuery" is not supported a Promise');
+      throw new Error('"globalScope" is not supported a Promise');
 
     if (!(repository instanceof Model))
       throw new Error(`Unknown callback query: '${repository}'`);
 
     this.$state.set("GLOBAL_SCOPE_QUERY", () => {
-      const where: string[] = repository?.$state.get("WHERE") || [];
       const select: string[] = repository?.$state.get("SELECT") || [];
+      const except: string[] = repository?.$state.get("EXCEPTS") || [];
+      const where: string[] = repository?.$state.get("WHERE") || [];
+      const groupBy: string[] = repository?.$state.get("GROUP_BY") || [];
       const orderBy: string[] = repository?.$state.get("ORDER_BY") || [];
       const limit: string = repository?.$state.get("LIMIT");
+      const offset: string = repository?.$state.get("OFFSET");
+
+      if (select.length) {
+        this.$state.set("SELECT", [...this.$state.get("SELECT"), ...select]);
+      }
+
+      if(except.length) {
+        this.$state.set("EXCEPTS", [
+          ...this.$state.get("EXCEPTS"), 
+          ...except
+        ]);
+      }
 
       if (where.length) {
         this.$state.set("WHERE", [
@@ -241,8 +254,11 @@ class Model<
         ]);
       }
 
-      if (select.length) {
-        this.$state.set("SELECT", [...this.$state.get("SELECT"), ...select]);
+      if (groupBy.length) {
+        this.$state.set("GROUP_BY", [
+          ...this.$state.get("GROUP_BY"),
+          ...groupBy,
+        ]);
       }
 
       if (orderBy.length) {
@@ -252,9 +268,14 @@ class Model<
         ]);
       }
 
-      if (limit != null) {
+      if (!Number.isNaN(+limit)) {
         this.$state.set("LIMIT", limit);
       }
+
+      if (!Number.isNaN(+offset)) {
+        this.$state.set("OFFSET", offset);
+      }
+
     });
 
     return this;
@@ -365,12 +386,10 @@ class Model<
     updated = true,
     deleted = true,
   } = {}): this {
-    this.$state.set("LOGGER", ![
-      selected,
-      inserted,
-      updated,
-      deleted
-    ].every(v => v === false));
+    this.$state.set(
+      "LOGGER",
+      ![selected, inserted, updated, deleted].every((v) => v === false)
+    );
     this.$state.set("LOGGER_OPTIONS", {
       selected,
       inserted,
@@ -533,14 +552,14 @@ class Model<
    */
   protected usePattern(pattern: "snake_case" | "camelCase"): this {
     const allowPattern = [
-      this.$constants("PATTERN").snake_case,
+      this.$constants("PATTERN").snakeCase,
       this.$constants("PATTERN").camelCase,
     ];
 
     if (!allowPattern.includes(pattern)) {
       throw this._assertError(
         `The 'tspace-mysql' support only pattern '${
-          this.$constants("PATTERN").snake_case
+          this.$constants("PATTERN").snakeCase
         }', 
                 '${this.$constants("PATTERN").camelCase}'`
       );
@@ -582,7 +601,7 @@ class Model<
    * }
    */
   protected useSnakeCase(): this {
-    this.$state.set("PATTERN", this.$constants("PATTERN").snake_case);
+    this.$state.set("PATTERN", this.$constants("PATTERN").snakeCase);
     this._makeTableName();
     return this;
   }
@@ -851,11 +870,11 @@ class Model<
     const excepts = this.$state.get("EXCEPTS");
     const hasDot = excepts.some((except: string) => /\./.test(except));
     const names = excepts
-    .map((except: string) => {
-      if (/\./.test(except)) return except.split(".")[0];
-      return null;
-    })
-    .filter(Boolean) as string[];
+      .map((except: string) => {
+        if (/\./.test(except)) return except.split(".")[0];
+        return null;
+      })
+      .filter(Boolean) as string[];
 
     const tableNames = names.length
       ? [...new Set(names)]
@@ -891,15 +910,17 @@ class Model<
 
       const columns = await this.getColumns();
 
-      const removeExcept = columns.map(v=> v.Field).filter((column: string) => {
-        return excepts.every((except: string) => {
-          if (/\./.test(except)) {
-            const [table, _] = except.split(".");
-            return except !== `${table}.${column}`;
-          }
-          return except !== column;
+      const removeExcept = columns
+        .map((v) => v.Field)
+        .filter((column: string) => {
+          return excepts.every((except: string) => {
+            if (/\./.test(except)) {
+              const [table, _] = except.split(".");
+              return except !== `${table}.${column}`;
+            }
+            return except !== column;
+          });
         });
-      });
       removeExcepts.push(
         hasDot ? removeExcept.map((r) => `\`${tableName}\`.${r}`) : removeExcept
       );
@@ -914,9 +935,10 @@ class Model<
    * @param    {Function} callback query callback
    * @returns   {this}   this
    */
-  protected buildMethodRelation<
-    K extends T.RelationKeys<this>
-  >(name: K, callback?: Function): this {
+  protected buildMethodRelation<K extends T.RelationKeys<this>>(
+    name: K,
+    callback?: Function
+  ): this {
     this.relations(name);
 
     const relation: TRelationOptions<K> = this.$state
@@ -958,10 +980,10 @@ class Model<
    * @param {Record<string, any>} [metadata] - Optional metadata to store with the audit.
    * @returns {this} this
    */
-  audit (userId: number , metadata ?: Record<string,any>): this {
-    if(metadata) this.$state.set("AUDIT_METADATA",metadata);
+  audit(userId: number, metadata?: Record<string, any>): this {
+    if (metadata) this.$state.set("AUDIT_METADATA", metadata);
 
-    this.$state.set("AUDIT",userId);
+    this.$state.set("AUDIT", userId);
 
     return this;
   }
@@ -1009,7 +1031,7 @@ class Model<
    * @param {string[]} ...columns
    * @returns {this} this
    */
-  select<K extends T.ColumnKeys<this> | '*'>(...columns: K[]): this {
+  select<K extends T.ColumnKeys<this> | "*">(...columns: K[]): this {
     if (!columns.length) {
       this.$state.set("SELECT", ["*"]);
       return this;
@@ -1054,7 +1076,6 @@ class Model<
   }
 
   addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
-
     let select: string[] = columns.map((c) => {
       const column = String(c);
 
@@ -1065,9 +1086,12 @@ class Model<
       return this.bindColumn(column);
     });
 
-    this.$state.set("ADD_SELECT", [...select,...this.$state.get("ADD_SELECT")]);
+    this.$state.set("ADD_SELECT", [
+      ...select,
+      ...this.$state.get("ADD_SELECT"),
+    ]);
 
-    return this
+    return this;
   }
 
   /**
@@ -1087,9 +1111,7 @@ class Model<
    * @param {...string} columns
    * @returns {this} this
    */
-  except<K extends T.ColumnKeys<this>>(
-    ...columns: K[]
-  ): this {
+  except<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     if (!columns.length) return this;
 
     const exceptColumns = this.$state.get("EXCEPTS");
@@ -1181,9 +1203,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  latest<K extends T.ColumnKeys<this>>(
-    ...columns: K[]
-  ): this {
+  latest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -1223,9 +1243,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  oldest<K extends T.ColumnKeys<this>>(
-    ...columns: K[]
-  ): this {
+  oldest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -1264,9 +1282,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  groupBy<K extends T.ColumnKeys<this>>(
-    ...columns: K[]
-  ): this {
+  groupBy<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let groupBy = "id";
 
     if (columns?.length) {
@@ -1545,7 +1561,7 @@ class Model<
     newInstance.$state.set("LOGGER", false);
     newInstance.$state.set("AUDIT", null);
     newInstance.$state.set("AUDIT_METADATA", null);
-  
+
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
     if (options?.insert == null || !options.insert)
@@ -1586,18 +1602,17 @@ class Model<
     { retry = false } = {}
   ): Promise<any[]> {
     try {
-      sql = this._queryBuilder({ onFormat : true }).format([sql])
+      sql = this._queryBuilder({ onFormat: true }).format([sql]);
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
-
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
 
           const endTime = +new Date();
 
-          this.$utils.consoleDebug(sql,retry);
+          this.$utils.consoleDebug(sql, retry);
 
           this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
@@ -1612,19 +1627,21 @@ class Model<
       let result = null;
 
       if (!this.$state.get("AUDIT") && this.$state.get("LOGGER")) {
-        const { Logger } = await import("./Contracts/Logger")
-        result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
+        const { Logger } = await import("./Contracts/Logger");
+        result = await Logger.tracking(this, {
+          sql,
+          fn: () => getResults(sql),
+        });
       }
 
-      if(this.$state.get("AUDIT")) {
-        const { Audit } = await import("./Contracts/Audit")
-        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
+      if (this.$state.get("AUDIT")) {
+        const { Audit } = await import("./Contracts/Audit");
+        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) });
       }
 
       return result == null ? await getResults(sql) : result;
-
     } catch (error: any) {
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql,retry);
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry);
 
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -1645,21 +1662,22 @@ class Model<
    * @param {string} sql
    * @returns {this} this
    */
-  protected async _actionStatement(sql: string, { retry = false } = {}): Promise<any> {
+  protected async _actionStatement(
+    sql: string,
+    { retry = false } = {}
+  ): Promise<any> {
     try {
-
-      sql = this._queryBuilder({ onFormat : true }).format([sql])
+      sql = this._queryBuilder({ onFormat: true }).format([sql]);
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
-
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
-          
+
           const endTime = +new Date();
 
-          this.$utils.consoleDebug(sql,retry);
+          this.$utils.consoleDebug(sql, retry);
 
           this.$utils.consoleExec(startTime, endTime);
 
@@ -1674,22 +1692,23 @@ class Model<
       let result = null;
 
       if (!this.$state.get("AUDIT") && this.$state.get("LOGGER")) {
-        const { Logger } = await import("./Contracts/Logger")
-        result = await Logger.tracking(this, { sql, fn: () => getResults(sql) })
+        const { Logger } = await import("./Contracts/Logger");
+        result = await Logger.tracking(this, {
+          sql,
+          fn: () => getResults(sql),
+        });
       }
 
-      if(this.$state.get("AUDIT")) {
-        const { Audit } = await import("./Contracts/Audit")
-        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) })
+      if (this.$state.get("AUDIT")) {
+        const { Audit } = await import("./Contracts/Audit");
+        result = await Audit.tracking(this, { sql, fn: () => getResults(sql) });
       }
 
       return result == null ? await getResults(sql) : result;
-      
     } catch (error: unknown) {
-
       const retryCount = Number(this.$state.get("RETRY"));
 
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql,retry);
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry);
 
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -1828,9 +1847,7 @@ class Model<
    *  await new User().with('posts').findMany()
    *
    */
-  with<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  with<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set(
@@ -1869,9 +1886,7 @@ class Model<
    *  await new User().relations('posts').findMany()
    *
    */
-  relations<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  relations<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.with(...nameRelations);
   }
 
@@ -1883,9 +1898,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  withAll<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  withAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "all"));
@@ -1902,9 +1915,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  relationsAll<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  relationsAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withAll(...nameRelations);
   }
 
@@ -1914,9 +1925,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  withCount<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  withCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "count"));
@@ -1930,9 +1939,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  relationsCount<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  relationsCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "count"));
@@ -1949,9 +1956,7 @@ class Model<
    * @param {...string} nameRelations if data exists return blank
    * @returns {this} this
    */
-  withTrashed<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  withTrashed<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set(
@@ -2003,9 +2008,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withExists('posts').findMany()
    */
-  withExists<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  withExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS_EXISTS", true);
@@ -2041,9 +2044,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().relationsExists('posts').findMany()
    */
-  relationsExists<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  relationsExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withExists(...nameRelations);
   }
 
@@ -2074,9 +2075,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().has('posts').findMany()
    */
-  has<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  has<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withExists(...nameRelations);
   }
 
@@ -2107,9 +2106,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withNotExists('posts').findMany()
    */
-  withNotExists<K extends T.RelationKeys<this>>(
-    ...nameRelations: K[]
-  ): this {
+  withNotExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS_EXISTS", true);
@@ -2213,26 +2210,23 @@ class Model<
    *  .findMany()
    * @returns {this} this
    */
-  withQuery<
-    K extends T.RelationKeys<this>,
-    R extends T.Relations<this>,
-  >(
+  withQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
-      ? R[`$${K & string}`] extends (infer X)[]
-        ? X
-        : R[`$${K & string}`] extends Model
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
           ? R[`$${K & string}`]
           : Model
-      : K extends keyof R
+        : K extends keyof R
         ? R[K] extends (infer X)[]
           ? X
           : R[K] extends Model
-            ? R[K]
-            : Model
+          ? R[K]
+          : Model
         : Model
-  ) => any,
+    ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     this.with(nameRelation);
@@ -2247,25 +2241,22 @@ class Model<
     return this;
   }
 
-  withQueryExists<
-    K extends T.RelationKeys<this>,
-    R extends T.Relations<this>,
-  >(
+  withQueryExists<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
-        query: `$${K & string}` extends keyof R
+      query: `$${K & string}` extends keyof R
         ? R[`$${K & string}`] extends (infer X)[]
           ? X
           : R[`$${K & string}`] extends Model
-            ? R[`$${K & string}`]
-            : Model
-        : K extends keyof R
-          ? R[K] extends (infer X)[]
-            ? X
-            : R[K] extends Model
-              ? R[K]
-              : Model
+          ? R[`$${K & string}`]
           : Model
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+          ? R[K]
+          : Model
+        : Model
     ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
@@ -2330,26 +2321,23 @@ class Model<
    *  .findMany()
    * @returns {this} this
    */
-  relationQuery<
-    K extends T.RelationKeys<this>,
-    R extends T.Relations<this>,
-  >(
+  relationQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
-      ? R[`$${K & string}`] extends (infer X)[]
-        ? X
-        : R[`$${K & string}`] extends Model
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
           ? R[`$${K & string}`]
           : Model
-      : K extends keyof R
+        : K extends keyof R
         ? R[K] extends (infer X)[]
           ? X
           : R[K] extends Model
-            ? R[K]
-            : Model
+          ? R[K]
+          : Model
         : Model
-  ) => any,
+    ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
     return this.withQuery(nameRelation, callback, options);
@@ -2406,7 +2394,7 @@ class Model<
    */
   relationQueryExists<
     K extends T.RelationKeys<this>,
-    R extends T.Relations<this>,
+    R extends T.Relations<this>
   >(
     nameRelation: K,
     callback: (
@@ -2414,15 +2402,15 @@ class Model<
         ? R[`$${K & string}`] extends (infer X)[]
           ? X
           : R[`$${K & string}`] extends Model
-            ? R[`$${K & string}`]
-            : Model
-        : K extends keyof R
-          ? R[K] extends (infer X)[]
-            ? X
-            : R[K] extends Model
-              ? R[K]
-              : Model
+          ? R[`$${K & string}`]
           : Model
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
+          ? X
+          : R[K] extends Model
+          ? R[K]
+          : Model
+        : Model
     ) => any,
     options: { pivot: boolean } = { pivot: false }
   ): this {
@@ -2436,9 +2424,7 @@ class Model<
    * @param {string} name name relation in registry in your model
    * @returns {Model} model instance
    */
-  findWithQuery<K extends T.RelationKeys<this>>(
-    name: K
-  ): Model | null {
+  findWithQuery<K extends T.RelationKeys<this>>(name: K): Model | null {
     const instance = this.$relation.returnCallback(String(name));
 
     return instance == null ? null : instance;
@@ -2532,7 +2518,9 @@ class Model<
    * @property {string} relation.freezeTable
    * @returns   {this}   this
    */
-  protected belongsTo<K extends TR extends object ? TRelationKeys<TR> : string>({
+  protected belongsTo<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
     name,
     as,
     model,
@@ -2571,7 +2559,9 @@ class Model<
    * @property {class?} relation.modelPivot model for pivot
    * @returns  {this}   this
    */
-  protected belongsToMany<K extends TR extends object ? TRelationKeys<TR> : string>({
+  protected belongsToMany<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
     name,
     as,
     model,
@@ -2617,7 +2607,9 @@ class Model<
    * @property {class?} relation.modelPivot model for pivot
    * @returns  {this}   this
    */
-  protected belongsToManySingle<K extends TR extends object ? TRelationKeys<TR> : string>({
+  protected belongsToManySingle<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
     name,
     as,
     model,
@@ -3111,9 +3103,10 @@ class Model<
    * @param {Object} columns
    * @returns {this}
    */
-  whereObject<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    columns: { [P in K & keyof T]: T[P] }
-  ): this {
+  whereObject<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(columns: { [P in K & keyof T]: T[P] }): this {
     for (let column in columns) {
       const operator = "=";
 
@@ -3135,13 +3128,14 @@ class Model<
       }
 
       switch (useOp.op) {
-       
         case "IN": {
           this.whereIn(
             c,
-            Array.isArray(useOp.value) 
-            ? useOp.value : useOp.value.split(",").map(v => Number.isNaN(+v) ? `${v}` 
-            : +v)
+            Array.isArray(useOp.value)
+              ? useOp.value
+              : useOp.value
+                  .split(",")
+                  .map((v) => (Number.isNaN(+v) ? `${v}` : +v))
           );
           break;
         }
@@ -3950,30 +3944,28 @@ class Model<
   /**
    * The 'whereHas' method is used to checks if a relationship exists.
    * Only get the parent models where the related model(s) match a given condition.
-   * 
+   *
    * @param {string} nameRelation
    * @param {model} callback callback query
    * @returns {this}
    */
-  whereHas<
-    K extends T.RelationKeys<this>,
-    R extends T.Relations<this>
-  >(nameRelation: K,
+  whereHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+    nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
-      ? R[`$${K & string}`] extends (infer X)[]
-      ? X
-      : R[`$${K & string}`] extends Model
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
           ? R[`$${K & string}`]
           : Model
-      : K extends keyof R
-      ? R[K] extends (infer X)[]
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
           ? X
           : R[K] extends Model
           ? R[K]
           : Model
-      : Model
-    ) => any,
+        : Model
+    ) => any
   ): this {
     const sql = this.$relation.getSqlExists(nameRelation as string, callback);
 
@@ -3986,30 +3978,28 @@ class Model<
 
   /**
    * The 'whereNotHas' method is used to checks if a relationship not exists.
-   * 
+   *
    * @param {string} nameRelation
    * @param {model} callback callback query
    * @returns {this}
    */
-  whereNotHas<
-    K extends T.RelationKeys<this>,
-    R extends T.Relations<this>
-  >(nameRelation: K,
+  whereNotHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+    nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
-      ? R[`$${K & string}`] extends (infer X)[]
-      ? X
-      : R[`$${K & string}`] extends Model
+        ? R[`$${K & string}`] extends (infer X)[]
+          ? X
+          : R[`$${K & string}`] extends Model
           ? R[`$${K & string}`]
           : Model
-      : K extends keyof R
-      ? R[K] extends (infer X)[]
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
           ? X
           : R[K] extends Model
           ? R[K]
           : Model
-      : Model
-    ) => any,
+        : Model
+    ) => any
   ): this {
     const sql = this.$relation.getSqlExists(nameRelation as string, callback);
 
@@ -4752,14 +4742,16 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async first<K>(cb?: Function): Promise<T.Result<this,K> | null> {
-
+  async first<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     this._validateMethod("first");
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
-    if (this.$state.get("EXCEPTS")?.length)
+    this._handleGlobalScope();
+
+    if (this.$state.get("EXCEPTS")?.length) {
       this.select(...((await this.exceptColumns()) as any[]));
+    }
 
     this.limit(1);
 
@@ -4788,7 +4780,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async findOne<K>(cb?: Function): Promise<T.Result<this,K> | null> {
+  async findOne<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     return await this.first(cb);
   }
 
@@ -4799,11 +4791,16 @@ class Model<
   async firstOrError<K>(
     message?: string,
     options?: Record<string, any>
-  ): Promise<T.Result<this,K>> {
+  ): Promise<T.Result<this, K>> {
     this._validateMethod("firstOrError");
 
-    if (this.$state.get("EXCEPTS")?.length)
+    if (this.$state.get("VOID")) return this._resultHandler(undefined);
+
+    this._handleGlobalScope();
+
+    if (this.$state.get("EXCEPTS")?.length) {
       this.select(...((await this.exceptColumns()) as any[]));
+    }
 
     this.limit(1);
 
@@ -4828,7 +4825,7 @@ class Model<
   async findOneOrError<K>(
     message?: string,
     options?: Record<string, any>
-  ): Promise<T.Result<this,K>> {
+  ): Promise<T.Result<this, K>> {
     return await this.firstOrError(message, options);
   }
   /**
@@ -4837,10 +4834,12 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async get<K>(cb?: Function): Promise<T.Result<this,K>[]> {
+  async get<K>(cb?: Function): Promise<T.Result<this, K>[]> {
     this._validateMethod("get");
 
     if (this.$state.get("VOID")) return [];
+
+    this._handleGlobalScope();
 
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...((await this.exceptColumns()) as any[]));
@@ -4871,7 +4870,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async findMany<K>(cb?: Function): Promise<T.Result<this,K>[]> {
+  async findMany<K>(cb?: Function): Promise<T.Result<this, K>[]> {
     return await this.get(cb);
   }
   /**
@@ -4885,7 +4884,7 @@ class Model<
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<T.ResultPaginate<this,K>> {
+  }): Promise<T.ResultPaginate<this, K>> {
     this._validateMethod("pagination");
 
     let limit = 15;
@@ -4895,6 +4894,8 @@ class Model<
       limit = this.$utils.softNumber(paginationOptions?.limit || limit);
       page = this.$utils.softNumber(paginationOptions?.page || page);
     }
+
+    this._handleGlobalScope();
 
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...((await this.exceptColumns()) as any[]));
@@ -4930,7 +4931,7 @@ class Model<
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<T.ResultPaginate<this,K>> {
+  }): Promise<T.ResultPaginate<this, K>> {
     return await this.pagination(paginationOptions);
   }
 
@@ -4947,9 +4948,10 @@ class Model<
    */
   async getGroupBy<K, C extends T.ColumnKeys<this>>(
     column: C
-  ): Promise<
-    Map<string | number,T.Result<this,K>[]>
-  > {
+  ): Promise<Map<string | number, T.Result<this, K>[]>> {
+
+    this._handleGlobalScope();
+
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...((await this.exceptColumns()) as any[]));
 
@@ -5016,9 +5018,7 @@ class Model<
    */
   async findGroupBy<K, C extends T.ColumnKeys<this>>(
     column: C
-  ): Promise<
-    Map<string | number,T.Result<this,K>[]>
-  > {
+  ): Promise<Map<string | number, T.Result<this, K>[]>> {
     return await this.getGroupBy(column);
   }
 
@@ -5027,9 +5027,9 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  insert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }
-  ): this {
+  insert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(data: {
+    [P in K & keyof T]: T[P];
+  }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -5057,9 +5057,9 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  create<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }
-  ): this {
+  create<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(data: {
+    [P in K & keyof T]: T[P];
+  }): this {
     return this.insert(data);
   }
 
@@ -5082,7 +5082,7 @@ class Model<
         for (const column in data) {
           if (c !== column) continue;
           //@ts-ignore
-          const value = this.$utils.escape(data[column])
+          const value = this.$utils.escape(data[column]);
 
           data = {
             ...data,
@@ -5166,9 +5166,10 @@ class Model<
    * @param {object} data
    * @returns {this} this
    */
-  updateNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  updateNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -5207,9 +5208,10 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  updateOrCreate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  updateOrCreate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -5250,9 +5252,10 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  updateOrInsert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  updateOrInsert<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
 
@@ -5261,9 +5264,10 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  insertOrUpdate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  insertOrUpdate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
 
@@ -5272,9 +5276,10 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  createOrUpdate<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  createOrUpdate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
 
@@ -5283,9 +5288,10 @@ class Model<
    * @param {object} data for create
    * @returns {this} this
    */
-  createOrSelect<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  createOrSelect<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -5313,9 +5319,10 @@ class Model<
    * @param {object} data for update or create
    * @returns {this} this
    */
-  insertOrSelect<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  insertOrSelect<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     return this.createOrSelect(data);
   }
 
@@ -5325,9 +5332,10 @@ class Model<
    * @param {object} data create not exists data
    * @returns {this} this
    */
-  createNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  createNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -5355,9 +5363,10 @@ class Model<
    * @param {object} data create not exists data
    * @returns {this} this this
    */
-  insertNotExists<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] },
-  ): this {
+  insertNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
     return this.createNotExists(data);
   }
 
@@ -5437,7 +5446,7 @@ class Model<
    */
   updateMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     cases: {
-      when   : { [P in K & keyof T]: T[P] };
+      when: { [P in K & keyof T]: T[P] };
       columns: { [P in K & keyof T]: T[P] };
     }[]
   ): this {
@@ -5639,7 +5648,7 @@ class Model<
    */
   async faker<K>(
     rows: number,
-    callback?: (results: T.Result<this,K>, index: number) => T.Result<this,K>
+    callback?: (results: T.Result<this, K>, index: number) => T.Result<this, K>
   ): Promise<void> {
     if (
       this.$state.get("TABLE_NAME") === "" ||
@@ -5679,7 +5688,7 @@ class Model<
 
         const virtualColumn = this._getBlueprintByKey(field, {
           mapQuery: true,
-          schemaColumns: schemaModel
+          schemaColumns: schemaModel,
         });
 
         if (virtualColumn) continue;
@@ -5694,7 +5703,7 @@ class Model<
       }
 
       if (callback) {
-        fakers.push(callback(columnAndValue as T.Result<this,K>, row));
+        fakers.push(callback(columnAndValue as T.Result<this, K>, row));
         continue;
       }
 
@@ -5757,52 +5766,55 @@ class Model<
    * @param {Object} [options={}] - The build options.
    * @param {boolean} [options.decorator] - Whether to include decorators in the generated model template.
    * @param {string} [options.env] - Environment name to load configuration from.
-   * @returns {Promise<Array<{ model: string, template: string }>>} 
+   * @returns {Promise<Array<{ model: string, template: string }>>}
    */
-  async buildModelTemplate({ decorator, env } : { 
-    decorator?: boolean, 
-    env ?: string
-  } = {}) : Promise<{ model: string; template: string }[]> {
-  
-    const snakeCaseToPascal = (data: string ) => {
-      let str : string[] = data.split('_')
-      for(let i=0; i <str.length;i++) { 
-          str[i] = str[i].slice(0,1).toUpperCase() + str[i].slice(1,str[i].length) 
+  async buildModelTemplate({
+    decorator,
+    env,
+  }: {
+    decorator?: boolean;
+    env?: string;
+  } = {}): Promise<{ model: string; template: string }[]> {
+    const snakeCaseToPascal = (data: string) => {
+      let str: string[] = data.split("_");
+      for (let i = 0; i < str.length; i++) {
+        str[i] =
+          str[i].slice(0, 1).toUpperCase() + str[i].slice(1, str[i].length);
       }
-      return str.join('')
-    }
-  
-    const detectRelation = (currentTable:string, fks:any[]) => {
-      return fks.map(fk => {
-        const { RefTable, Column } = fk
-        if (currentTable !== RefTable && Column && Column.endsWith('_id')) {
-          const inverse = 'hasMany'
+      return str.join("");
+    };
+
+    const detectRelation = (currentTable: string, fks: any[]) => {
+      return fks.map((fk) => {
+        const { RefTable, Column } = fk;
+        if (currentTable !== RefTable && Column && Column.endsWith("_id")) {
+          const inverse = "hasMany";
           return {
             currentTable,
-            relation: 'belongsTo',
+            relation: "belongsTo",
             relatedTable: RefTable,
             fkColumn: Column,
-            inverse
-          }
+            inverse,
+          };
         }
         return {
           currentTable,
-          relation: 'unknown',
+          relation: "unknown",
           relatedTable: RefTable,
-          fkColumn: Column
-        }
-      })
-    }
-  
+          fkColumn: Column,
+        };
+      });
+    };
+
     const tableToModel = (table: string): string => {
       return pluralize.singular(
         table
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join('')
-      )
-    }
-  
+          .split("_")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join("")
+      );
+    };
+
     const mapRelations = (data: any[]): any[] => {
       const map: Record<string, any> = {};
 
@@ -5813,125 +5825,158 @@ class Model<
       for (const table of data) {
         for (const rel of table.relations) {
           if (rel.relatedTables) {
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTables });
+            map[table.table].relations.push({
+              type: rel.relation,
+              target: rel.relatedTables,
+            });
           } else if (rel.relatedTable) {
-            map[table.table].relations.push({ type: rel.relation, target: rel.relatedTable });
+            map[table.table].relations.push({
+              type: rel.relation,
+              target: rel.relatedTable,
+            });
             if (rel.inverse) {
-              map[rel.relatedTable].relations.push({ type: rel.inverse, target: table.table });
+              map[rel.relatedTable].relations.push({
+                type: rel.inverse,
+                target: table.table,
+              });
             }
           }
         }
       }
 
       return Object.values(map);
-    }
+    };
 
-    const buildDecorators = (relations: { type:string, target:string }[]) => {
-      const results: any[] = []
-      const imports : string[] = []
+    const buildDecorators = (relations: { type: string; target: string }[]) => {
+      const results: any[] = [];
+      const imports: string[] = [];
       for (const rel of relations) {
-        if (rel.type === 'hasMany') {
-          const modelName = tableToModel(rel.target)
-          const propertyName = pluralize.plural(rel.target)
+        if (rel.type === "hasMany") {
+          const modelName = tableToModel(rel.target);
+          const propertyName = pluralize.plural(rel.target);
           results.push({
             schema: `@HasMany({ name: '${propertyName}', model: () => ${modelName} })`,
-            property: `public ${propertyName} !: ${modelName}[]`
-          })
-          if(!imports.includes(modelName))
+            property: `public ${propertyName} !: ${modelName}[]`,
+          });
+          if (!imports.includes(modelName))
             imports.push(`import { ${modelName} } from './${modelName}'`);
         }
 
-        if (rel.type === 'belongsTo') {
-          const modelName = tableToModel(rel.target)
-          const propertyName = pluralize.singular(rel.target)
+        if (rel.type === "belongsTo") {
+          const modelName = tableToModel(rel.target);
+          const propertyName = pluralize.singular(rel.target);
           results.push({
             schema: `@BelongsTo({ name: '${propertyName}', model: () => ${modelName} })`,
-            property: `public ${propertyName} !: ${modelName}`
-          })
-          if(!imports.includes(modelName))
+            property: `public ${propertyName} !: ${modelName}`,
+          });
+          if (!imports.includes(modelName))
             imports.push(`import { ${modelName} } from './${modelName}'`);
         }
       }
-      return { results , imports }
-    }
+      return { results, imports };
+    };
 
-    const buildRelations = (relations: { type:string, target:string }[]) => {
+    const buildRelations = (relations: { type: string; target: string }[]) => {
       const types: any[] = [];
-      const imports : string[] = [];
-      const useds : any[] = [];
+      const imports: string[] = [];
+      const useds: any[] = [];
 
       for (const rel of relations) {
-        if (rel.type === 'hasMany') {
-          const modelName = tableToModel(rel.target)
-          const propertyName = pluralize.plural(rel.target)
-          types.push(`${propertyName} : ${modelName}[]`)
-          useds.push(`this.hasMany({ name: '${propertyName}', model: ${modelName} })`)
-          if(!imports.includes(modelName))
+        if (rel.type === "hasMany") {
+          const modelName = tableToModel(rel.target);
+          const propertyName = pluralize.plural(rel.target);
+          types.push(`${propertyName} : ${modelName}[]`);
+          useds.push(
+            `this.hasMany({ name: '${propertyName}', model: ${modelName} })`
+          );
+          if (!imports.includes(modelName))
             imports.push(`import { ${modelName} } from './${modelName}'`);
         }
 
-        if (rel.type === 'belongsTo') {
-          const modelName = tableToModel(rel.target)
-          const propertyName = pluralize.singular(rel.target)
+        if (rel.type === "belongsTo") {
+          const modelName = tableToModel(rel.target);
+          const propertyName = pluralize.singular(rel.target);
           types.push(`${propertyName} : ${modelName}`);
-          useds.push(`this.belongsTo({ name: '${propertyName}', model: ${modelName} })`);
-          if(!imports.includes(modelName))
+          useds.push(
+            `this.belongsTo({ name: '${propertyName}', model: ${modelName} })`
+          );
+          if (!imports.includes(modelName))
             imports.push(`import { ${modelName} } from './${modelName}'`);
         }
       }
-      return { types , imports , useds }
-    }
+      return { types, imports, useds };
+    };
 
     const mapType = (type: string): string => {
       const mappings: Record<string, (string | RegExp)[]> = {
-        'integer': ['int', 'integer'],
-        'boolean': ['boolean', 'tinyint(1)'],
-        'smallint': ['smallint', 'tinyint(1)'],
-        'tinyint(1)': ['boolean'],
-        'json': ['json'],
-        'text': ['text', /^longtext$/i],
-        'timestamp': ['timestamp without time zone', 'datetime'],
-      }
+        int: ["int", "integer"],
+        boolean: ["boolean", "tinyint(1)"],
+        tinyInt: ["smallint", "tinyint(1)"],
+        "tinyint(1)": ["boolean"],
+        json: ["json"],
+        text: ["text", /^longtext$/i],
+        timestamp: ["timestamp without time zone", "datetime"],
+      };
 
       const normalizers: { test: RegExp; replace: string }[] = [
-        { test: /^character varying/i, replace: 'varchar' },
-        { test: /^timestamp without time zone/i, replace: 'timestamp' },
-      ]
+        { test: /^character varying/i, replace: "varchar" },
+        { test: /^timestamp without time zone/i, replace: "timestamp" },
+      ];
 
       for (const rule of normalizers) {
         if (rule.test.test(type)) {
-          return type.replace(rule.test, rule.replace)
+          return type.replace(rule.test, rule.replace);
         }
       }
 
       for (const [canonical, aliases] of Object.entries(mappings)) {
-        if (aliases.some(alias => typeof alias === 'string' ? alias === type : alias.test(type))) {
-          return canonical
+        if (
+          aliases.some((alias) =>
+            typeof alias === "string" ? alias === type : alias.test(type)
+          )
+        ) {
+          return canonical;
         }
       }
 
-      return type
-    }
+      return type;
+    };
 
+    const formatedType = (type : string) => {
+      let result = mapType(
+        String(type)
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .map((v, i) => (i === 0 ? v : `${v}()`))
+        .join(".")
+      )
+
+      if (!result.endsWith(")")) {
+        result += "()"
+      }
+      return result
+    }
 
     const options = new DB().loadOptionsEnv(env);
 
-    const c = options == null 
-      ? null 
-      : await new DB().getConnection({
-        driver: options.driver as TDriver,
-        host: String(options.host),
-        port: Number(options.port),
-        database: String(options.database),
-        username: String(options.username),
-        password: String(options.password),
-      })
+    const c =
+      options == null
+        ? null
+        : await new DB().getConnection({
+            driver: options.driver as TDriver,
+            host: String(options.host),
+            port: Number(options.port),
+            database: String(options.database),
+            username: String(options.username),
+            password: String(options.password),
+          });
 
     const tables = await new Model()
-    .debug(this.$state.get('DEBUG'))
-    .when(c != null,(q) => q.bind(c as TPoolConnected))
-    .when(c == null,(q) => q.bind(this.$pool.get()))
-    .showTables();
+      .debug(this.$state.get("DEBUG"))
+      .when(c != null, (q) => q.bind(c as TPoolConnected))
+      .when(c == null, (q) => q.bind(this.$pool.get()))
+      .showTables();
 
     const rawRegistryRelations = await Promise.all(
       tables.map(async (table) => ({
@@ -5939,224 +5984,245 @@ class Model<
         relations: detectRelation(
           table,
           await new Model()
-          .debug(this.$state.get('DEBUG'))
-          .when(c != null,(q) => q.bind(c as TPoolConnected))
-          .when(c == null,(q) => q.bind(this.$pool.get()))
-          .getFKs(table)
-          .catch(() => [])
-        )
+            .debug(this.$state.get("DEBUG"))
+            .when(c != null, (q) => q.bind(c as TPoolConnected))
+            .when(c == null, (q) => q.bind(this.$pool.get()))
+            .getFKs(table)
+            .catch(() => [])
+        ),
       }))
-    )
+    );
 
     const registryRelations = mapRelations(rawRegistryRelations);
 
-    const schemas : any[] = [];
+    const schemas: any[] = [];
 
-    if(decorator) {
-
-      for(const table of tables) {
-
+    if (decorator) {
+      for (const table of tables) {
         const model = snakeCaseToPascal(pluralize.singular(table));
-        
+
         const columns = await new Model()
-        .debug(this.$state.get('DEBUG'))
-        .when(c != null,(q) => q.bind(c as TPoolConnected))
-        .when(c == null,(q) => q.bind(this.$pool.get()))
-        .showSchema(table, { raw : true });
-        
-        let schema : any[] = [];
+        .debug(this.$state.get("DEBUG"))
+        .when(c != null, (q) => q.bind(c as TPoolConnected))
+        .when(c == null, (q) => q.bind(this.$pool.get()))
+        .showSchema(table, { raw: true });
 
-        for(const raw of columns) {
+        let schema: any[] = [];
+
+        for (const raw of columns) {
           const schemaColumn = [
-              `@Column(() => `,
-              `Blueprint.${/^[^()]*$/.test(raw.Type) 
-                ? raw.Type.includes('unsigned') 
-                    ? 'int().unsigned()'
-                    : `${mapType(raw.Type.toLowerCase())}()` 
-                : mapType(String(raw.Type).toLowerCase().trim().split(/\s+/).map((v,i) => i === 0 ? v : `${v}()`).join('.'))
-              }`,
-              `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
-              raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-              raw.Default != null 
-                ? `.default('${raw.Default.replace(/'/g,'').replace('IS_CONST:','').replace('::character varying','')}')`  : '',
-              `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
-              `)`
-          ] .join('')
+            `@Column(() => `,
+            `Blueprint.${
+              /^[^()]*$/.test(raw.Type)
+                ? raw.Type.includes("unsigned")
+                  ? "int().unsigned()"
+                  : `${mapType(raw.Type.toLowerCase())}()`
+                : formatedType(raw.Type.toLowerCase())
+            }`,
+            `${raw.Nullable === "YES" ? ".null()" : ".notNull()"}`,
+            raw.Key === "PRI"
+              ? ".primary()"
+              : raw.Key === "UNI"
+              ? ".unique()"
+              : "",
+            raw.Default != null
+              ? `.default('${raw.Default.replace(/'/g, "")
+                  .replace("IS_CONST:", "")
+                  .replace("::character varying", "")}')`
+              : "",
+            `${raw.Extra === "auto_increment" ? ".autoIncrement()" : ""}`,
+            `)`,
+          ].join("");
 
-          const detectType = (raws : any) => {
-            const t = raws.Type.toLowerCase()
-            const typeForNumber = ['INT','BIGINT','DOUBLE','FLOAT'].map(r => r.toLowerCase())
-            const typeForBoolean = ['TINYINT','BOOLEAN'].map(r => r.toLowerCase())
-            const typeForDate = ['DATE','DATETIME','TIMESTAMP'].map(r => r.toLowerCase())
+          const detectType = (raws: any) => {
+            const t = raws.Type.toLowerCase();
+            const typeForNumber = ["INT", "BIGINT", "DOUBLE", "FLOAT"].map(
+              (r) => r.toLowerCase()
+            );
+            const typeForBoolean = ["TINYINT", "BOOLEAN"].map((r) =>
+              r.toLowerCase()
+            );
+            const typeForDate = ["DATE", "DATETIME", "TIMESTAMP"].map((r) =>
+              r.toLowerCase()
+            );
 
-            if (typeForNumber.some(v => t.includes(v))) return 'number'
-            if (typeForBoolean.some(v => t.includes(v))) return 'boolean'
-            if (typeForDate.some(v => t.includes(v))) return 'Date'
-            if(t.includes('enum')) return `${String(raws.TypeValue).split(',').map(v => `'${v}'`).join(' | ')}`
+            if (typeForNumber.some((v) => t.includes(v))) return "number";
+            if (typeForBoolean.some((v) => t.includes(v))) return "boolean";
+            if (typeForDate.some((v) => t.includes(v))) return "Date";
+            if (t.includes("enum"))
+              return `${String(raws.TypeValue)
+                .split(",")
+                .map((v) => `'${v}'`)
+                .join(" | ")}`;
 
-            return 'string'
-          }
+            return "string";
+          };
 
-          const publicColumn =  `public ${raw.Field} !: ${detectType(raw)}`
+          const publicColumn = `public ${raw.Field} !: ${detectType(raw)}`;
 
           schema.push({
             schema: schemaColumn,
-            property: publicColumn
-          })
+            property: publicColumn,
+          });
         }
 
-        const find = registryRelations.find(v => v.table === table)
+        const find = registryRelations.find((v) => v.table === table);
 
-        const { imports , results } = buildDecorators(find.relations)
+        const { imports, results } = buildDecorators(find.relations);
 
         schemas.push({
           model,
-          columns: [...schema,...(find == null ? []: results )],
-          imports
-        })
+          columns: [...schema, ...(find == null ? [] : results)],
+          imports,
+        });
       }
 
-      const templates : { model: string; template: string }[] = []
+      const templates: { model: string; template: string }[] = [];
 
-      for(const s of schemas) {
-
-        let schema : string= '';
+      for (const s of schemas) {
+        let schema: string = "";
 
         const imports: string = s.imports
-        .map((v:string)=> `${v};`)
-        .join('\n')
+          .map((v: string) => `${v};`)
+          .join("\n");
 
-        for(const index in s.columns) {
-          const column = s.columns[index]
-          const isLast = Number(index) + 1 === s.columns.length
+        for (const index in s.columns) {
+          const column = s.columns[index];
+          const isLast = Number(index) + 1 === s.columns.length;
 
-          schema += `  ${column.schema} \n`
-          schema += `  ${column.property}; ${isLast ? '\n': '\n\n'}`
+          schema += `  ${column.schema} \n`;
+          schema += `  ${column.property}; ${isLast ? "\n" : "\n\n"}`;
         }
 
         const template = this.$utils.decoratorModelTemplate({
-          model   : s.model,
-          schema  : schema,
-          imports : imports
-        })
+          model: s.model,
+          schema: schema,
+          imports: imports,
+        });
 
         templates.push({
           model: s.model,
-          template
-        })
+          template,
+        });
       }
 
-      return templates
-
+      return templates;
     }
 
     // ------------- base model --------------------------------------
-    for(const table of tables) {
-
+    for (const table of tables) {
       const model = snakeCaseToPascal(pluralize.singular(table));
-      
-      const columns = await new Model()
-      .debug(this.$state.get('DEBUG'))
-      .when(c != null,(q) => q.bind(c as TPoolConnected))
-      .when(c == null,(q) => q.bind(this.$pool.get()))
-      .showSchema(table, { raw : true });
-      
-      let schema : any[] = [];
 
-      for(const index in columns) {
+      const columns = await new Model()
+        .debug(this.$state.get("DEBUG"))
+        .when(c != null, (q) => q.bind(c as TPoolConnected))
+        .when(c == null, (q) => q.bind(this.$pool.get()))
+        .showSchema(table, { raw: true });
+
+      let schema: any[] = [];
+
+      for (const index in columns) {
         const raw = columns[index];
 
         const str = [
           `${raw.Field} : `,
-          `Blueprint.${/^[^()]*$/.test(raw.Type) 
-            ? raw.Type.includes('unsigned') 
-                ? 'int().unsigned()'
-                : `${mapType(raw.Type.toLowerCase())}()` 
-            : mapType(String(raw.Type).toLowerCase().trim().split(/\s+/).map((v,i) => i === 0 ? v : `${v}()`).join('.'))
+          `Blueprint.${
+            /^[^()]*$/.test(raw.Type)
+              ? raw.Type.includes("unsigned")
+                ? "int().unsigned()"
+                : `${mapType(raw.Type.toLowerCase())}()`
+              : formatedType(raw.Type.toLowerCase())
           }`,
-          `${raw.Nullable === 'YES' ? '.null()' : '.notNull()'}`,
-          raw.Key === 'PRI' ? '.primary()' : raw.Key === 'UNI' ? '.unique()' : '',
-          raw.Default != null 
-            ? `.default('${raw.Default.replace(/'/g,'').replace('IS_CONST:','')}')`  : '',
-          `${raw.Extra === 'auto_increment' ? '.autoIncrement()' : ''}`,
-          `,`
-        ].join('')
+          `${raw.Nullable === "YES" ? ".null()" : ".notNull()"}`,
+          raw.Key === "PRI"
+            ? ".primary()"
+            : raw.Key === "UNI"
+            ? ".unique()"
+            : "",
+          raw.Default != null
+            ? `.default('${raw.Default.replace(/'/g, "").replace(
+                "IS_CONST:",
+                ""
+              )}')`
+            : "",
+          `${raw.Extra === "auto_increment" ? ".autoIncrement()" : ""}`,
+          `,`,
+        ].join("");
 
-        const isLast = Number(index) + 1 === columns.length
-        
+        const isLast = Number(index) + 1 === columns.length;
+
         schema.push(isLast ? str.replace(/,\s*$/, "") : str);
       }
 
-      const find = registryRelations.find(v => v.table === table)
+      const find = registryRelations.find((v) => v.table === table);
 
-      const { imports , types , useds  } = buildRelations(find.relations)
+      const { imports, types, useds } = buildRelations(find.relations);
 
       schemas.push({
         model,
         schema,
         imports,
         useds,
-        types, 
-      })
+        types,
+      });
     }
-    
-    const templates : { model: string; template: string }[] = []
 
-    for(const s of schemas) {
+    const templates: { model: string; template: string }[] = [];
 
-      if(decorator) {
-        let schema : string= '';
+    for (const s of schemas) {
+      if (decorator) {
+        let schema: string = "";
 
         const imports: string = s.imports
-        .map((v:string)=> `${v};`)
-        .join('\n')
+          .map((v: string) => `${v};`)
+          .join("\n");
 
-        for(const index in s.columns) {
-          const isLast = Number(index) + 1 === s.columns.length
-          const column = s.columns[index]
-          schema += `  ${column.schema} \n`
-          schema += `  ${column.property}; ${isLast? '\n\n': '\n'}`
+        for (const index in s.columns) {
+          const isLast = Number(index) + 1 === s.columns.length;
+          const column = s.columns[index];
+          schema += `  ${column.schema} \n`;
+          schema += `  ${column.property}; ${isLast ? "\n\n" : "\n"}`;
         }
 
         const template = this.$utils.decoratorModelTemplate({
-          model   : s.model,
-          schema  : schema,
-          imports : imports
-        })
+          model: s.model,
+          schema: schema,
+          imports: imports,
+        });
 
         templates.push({
           model: s.model,
-          template
-        })
+          template,
+        });
 
-        continue
-      } 
+        continue;
+      }
 
-      const schema = `${s.schema.map((v:string) => '  ' + v).join('\n')}`
+      const schema = `${s.schema.map((v: string) => "  " + v).join("\n")}`;
 
-      const imports: string = s.imports.map((v:string) => `${v};`).join('\n')
+      const imports: string = s.imports.map((v: string) => `${v};`).join("\n");
 
-      const types = `${s.types.map((v:string) => `  ${v};`).join('\n')}`
+      const types = `${s.types.map((v: string) => `  ${v};`).join("\n")}`;
 
-      const useds = `${s.useds.map((v:string) => `    ${v};`).join('\n')} \n`
+      const useds = `${s.useds.map((v: string) => `    ${v};`).join("\n")} \n`;
 
       const template = this.$utils.baseModelTemplate({
-        model   : s.model,
-        schema  : schema,
-        imports : imports,
+        model: s.model,
+        schema: schema,
+        imports: imports,
         relation: {
           types,
-          useds
-        }
-      })
+          useds,
+        },
+      });
 
       templates.push({
         model: s.model,
-        template
-      })
+        template,
+      });
     }
 
-    return templates
+    return templates;
   }
 
   protected _valuePattern(column: string): string {
@@ -6171,7 +6237,11 @@ class Model<
     }
 
     switch (this.$state.get("PATTERN")) {
-      case this.$constants("PATTERN").snake_case: {
+      case this.$constants("PATTERN").default: {
+        return column;
+      }
+
+      case this.$constants("PATTERN").snakeCase: {
         return column.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
       }
 
@@ -6188,7 +6258,7 @@ class Model<
   }
 
   private _isPatternSnakeCase() {
-    return this.$state.get("PATTERN") === this.$constants("PATTERN").snake_case;
+    return this.$state.get("PATTERN") === this.$constants("PATTERN").snakeCase;
   }
 
   protected _classToTableName(
@@ -6257,25 +6327,24 @@ class Model<
 
     if (hasStart) return this;
 
-    if(selects.length && !addSelects.length) return this;
+    if (selects.length && !addSelects.length) return this;
 
-    if(selects.length && addSelects.length) {
-      const columns = [...selects,...addSelects]
+    if (selects.length && addSelects.length) {
+      const columns = [...selects, ...addSelects];
       this.$state.set("ADD_SELECT", []);
       this.$state.set("SELECT", [...new Set(columns)]);
-      return this
+      return this;
     }
 
     const schemaColumns = this.getSchemaModel();
 
     if (schemaColumns == null) {
-      if(addSelects.length) {
-        this.$state.set("SELECT", 
-          !selects.length 
-            ? ['*']
-            : [...selects,...addSelects]
+      if (addSelects.length) {
+        this.$state.set(
+          "SELECT",
+          !selects.length ? ["*"] : [...selects, ...addSelects]
         );
-        this.$state.set("ADD_SELECT",[])
+        this.$state.set("ADD_SELECT", []);
       }
       return this;
     }
@@ -6308,7 +6377,7 @@ class Model<
     if (!columns.length) return this;
 
     if (addSelects.length) {
-      columns.push(...addSelects.filter(c => !columns.includes(c)));
+      columns.push(...addSelects.filter((c) => !columns.includes(c)));
       this.$state.set("ADD_SELECT", []);
     }
 
@@ -6323,10 +6392,7 @@ class Model<
    * @override
    */
   protected _queryBuilder({ onFormat = false } = {}) {
-
-    if(onFormat) return this._buildQueryStatement();
-    
-    this._handleGlobalScope();
+    if (onFormat) return this._buildQueryStatement();
 
     this._handleSelect();
 
@@ -6489,9 +6555,9 @@ class Model<
       }
 
       if (s.fn) {
-        const message = await s.fn(r)
-        if(message) {
-           throw this._assertError(message);
+        const message = await s.fn(r);
+        if (message) {
+          throw this._assertError(message);
         }
       }
 
@@ -6611,16 +6677,16 @@ class Model<
 
     const nextPage: number = currentPage + 1;
     const prevPage: number = currentPage - 1 === 0 ? 1 : currentPage - 1;
-    const totalPage: number = data?.length ?? 0;
+    const count: number = data?.length ?? 0;
 
     const meta = {
       total,
       limit,
-      totalPage,
-      currentPage,
-      lastPage,
-      nextPage,
-      prevPage,
+      count,
+      current_page: currentPage,
+      last_page: lastPage,
+      next_page: nextPage,
+      prev_page: prevPage,
     };
 
     if (this._isPatternSnakeCase()) {
@@ -6680,7 +6746,7 @@ class Model<
           meta: {
             total: 0,
             limit: Number(this.$state.get("LIMIT")),
-            totalPage: 0,
+            count: 0,
             currentPage: Number(this.$state.get("PAGE")),
             lastPage: 0,
             nextPage: 0,
@@ -6812,12 +6878,7 @@ class Model<
       })
     );
 
-    return (
-      await this.where("id", result.id)
-      .update(update)
-      .dd()
-      .save()
-    )
+    return await this.where("id", result.id).update(update).dd().save();
   }
 
   private async _attach(name: string, dataId: any[], fields?: any) {
@@ -7009,8 +7070,9 @@ class Model<
       };
     }
 
-    const columns: string[] = Object.keys(data)
-    .map((c : string) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``);
+    const columns: string[] = Object.keys(data).map(
+      (c: string) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``
+    );
 
     const values = Object.values(data).map((value: any) => {
       if (
@@ -7020,8 +7082,11 @@ class Model<
         value = this.$utils.escapeActions(value);
       }
 
-      if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
-        value = JSON.stringify(value)
+      if (
+        this.$utils.typeOf(value) === "object" ||
+        this.$utils.typeOf(value) === "array"
+      ) {
+        value = JSON.stringify(value);
       }
 
       return `${
@@ -7096,8 +7161,11 @@ class Model<
           value = this.$utils.escapeActions(value);
         }
 
-        if(this.$utils.typeOf(value) === 'object' || this.$utils.typeOf(value) === 'array') {
-          value = JSON.stringify(value)
+        if (
+          this.$utils.typeOf(value) === "object" ||
+          this.$utils.typeOf(value) === "array"
+        ) {
+          value = JSON.stringify(value);
         }
 
         return `${
@@ -7115,7 +7183,11 @@ class Model<
     this.$state.set("DATA", newData);
 
     return [
-      `(${[...new Set(columns.map((c) => `\`${this._valuePattern(c).replace(/\`/g, "")}\`` ))].join(",")})`,
+      `(${[
+        ...new Set(
+          columns.map((c) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``)
+        ),
+      ].join(",")})`,
       `${this.$constants("VALUES")}`,
       `${values.join(", ")}`,
     ].join(" ");
@@ -7166,11 +7238,11 @@ class Model<
     return this._resultHandler(resultData);
   }
 
-  private async _insertModel() : Promise<any> {
+  private async _insertModel(): Promise<any> {
     await this._validateSchema(this.$state.get("DATA"), "insert");
-    
+
     const result = await this._actionStatement(this._queryBuilder().insert());
-    
+
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
     if (!result) return this._resultHandler(null);
@@ -7215,7 +7287,7 @@ class Model<
 
     const hasTimestamp = this.$state.get("TIMESTAMP");
 
-    const ids = result.$meta.insertIds
+    const ids = result.$meta.insertIds;
 
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
@@ -7254,7 +7326,9 @@ class Model<
       case false: {
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
-        const result = await this._actionStatement(this._queryBuilder().insert());
+        const result = await this._actionStatement(
+          this._queryBuilder().insert()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7290,7 +7364,9 @@ class Model<
       case true: {
         await this._validateSchema(this.$state.get("DATA"), "update");
 
-        const result = await this._actionStatement(this._queryBuilder().update());
+        const result = await this._actionStatement(
+          this._queryBuilder().update()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7340,7 +7416,9 @@ class Model<
       case false: {
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
-        const result = await this._actionStatement(this._queryBuilder().insert());
+        const result = await this._actionStatement(
+          this._queryBuilder().insert()
+        );
 
         if (this.$state.get("VOID") || !result)
           return this._resultHandler(undefined);
@@ -7548,8 +7626,7 @@ class Model<
 
       if (!(e instanceof Error)) return this._stoppedRetry(throwError);
 
-      await new Model().copyModel(this).sync({ force: true })
-
+      await this.sync({ force: true });
     } catch (e: unknown) {
       if (retry >= 3) {
         throw throwError;
@@ -7568,58 +7645,74 @@ class Model<
     result: unknown,
     type: "selected" | "created" | "updated" | "deleted"
   ) {
-
     const observer = this.$state.get("OBSERVER");
 
-    if(observer == null) return;
+    if (observer == null) return;
 
     const ob = new observer();
 
     await ob[type](result);
   }
 
-  private _mapReflectMetadata<K extends TR extends object ? TRelationKeys<TR> : string>(): this {
+  private _mapReflectMetadata<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >(): this {
+    const table =
+      Reflect.getMetadata(REFLECT_META_TABLE, this.constructor) || null;
 
-    const table = Reflect.getMetadata(REFLECT_META_TABLE, this.constructor) || null;
+    if (table) this.$table = table;
 
-    if(table) this.$table = table;
+    const observer =
+      Reflect.getMetadata(REFLECT_META_OBSERVER, this.constructor) || null;
 
-    const observer = Reflect.getMetadata(REFLECT_META_OBSERVER, this.constructor) || null;
+    if (observer) this.$observer = observer;
 
-    if(observer) this.$observer = observer;
-
-    const uuidIsEnabled = Reflect.getMetadata(REFLECT_META_UUID.enabled, this.constructor) || null;
+    const uuidIsEnabled =
+      Reflect.getMetadata(REFLECT_META_UUID.enabled, this.constructor) || null;
 
     if (uuidIsEnabled) {
       this.$uuid = true;
-      this.$uuidColumn = Reflect.getMetadata(REFLECT_META_UUID.column, this.constructor) || null;
+      this.$uuidColumn =
+        Reflect.getMetadata(REFLECT_META_UUID.column, this.constructor) || null;
     }
 
-    const timestamp = Reflect.getMetadata(REFLECT_META_TIMESTAMP.enabled, this.constructor) || null;
+    const timestamp =
+      Reflect.getMetadata(REFLECT_META_TIMESTAMP.enabled, this.constructor) ||
+      null;
 
     if (timestamp) {
       this.$timestamp = true;
-      this.$timestampColumns = Reflect.getMetadata(REFLECT_META_TIMESTAMP.columns, this.constructor) || null;
+      this.$timestampColumns =
+        Reflect.getMetadata(REFLECT_META_TIMESTAMP.columns, this.constructor) ||
+        null;
     }
 
-    const pattern = Reflect.getMetadata(REFLECT_META_PATTERN, this.constructor) || null;
-    
+    const pattern =
+      Reflect.getMetadata(REFLECT_META_PATTERN, this.constructor) || null;
+
     if (pattern) this.$pattern = pattern;
 
-    const softDelete = Reflect.getMetadata(REFLECT_META_SOFT_DELETE.enabled, this.constructor) || null;
+    const softDelete =
+      Reflect.getMetadata(REFLECT_META_SOFT_DELETE.enabled, this.constructor) ||
+      null;
 
     if (softDelete) {
       this.$softDelete = true;
-      this.$softDeleteColumn = Reflect.getMetadata(REFLECT_META_SOFT_DELETE.columns, this.constructor) || null;
+      this.$softDeleteColumn =
+        Reflect.getMetadata(
+          REFLECT_META_SOFT_DELETE.columns,
+          this.constructor
+        ) || null;
     }
 
     const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, this) || null;
 
-    if(schema) this.$schema = schema;
+    if (schema) this.$schema = schema;
 
-    const validate = Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, this) || null;
+    const validate =
+      Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, this) || null;
 
-    if(validate) this.$validateSchema = validate;
+    if (validate) this.$validateSchema = validate;
 
     const hasOnes: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, this) || [];
@@ -7629,10 +7722,10 @@ class Model<
         ...v,
         name: v.name as K,
         model: v.model(),
-        modelPivot: v.modelPivot? v.modelPivot () : undefined
+        modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
-    
+
     const hasManys: TRelationQueryOptionsDecorator[] =
       Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, this) || [];
 
@@ -7641,7 +7734,7 @@ class Model<
         ...v,
         name: v.name as K,
         model: v.model(),
-        modelPivot: v.modelPivot? v.modelPivot () : undefined
+        modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
 
@@ -7653,7 +7746,7 @@ class Model<
         ...v,
         name: v.name as K,
         model: v.model(),
-        modelPivot: v.modelPivot? v.modelPivot () : undefined
+        modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
 
@@ -7665,10 +7758,10 @@ class Model<
         ...v,
         name: v.name as K,
         model: v.model(),
-        modelPivot: v.modelPivot? v.modelPivot () : undefined
+        modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
-    
+
     return this;
   }
 
@@ -7710,10 +7803,10 @@ class Model<
 
   private _getBlueprintByKey(
     column: string,
-    { 
+    {
       mapQuery,
-      schemaColumns
-    }: { mapQuery?: boolean; schemaColumns ?:any } = {}
+      schemaColumns,
+    }: { mapQuery?: boolean; schemaColumns?: any } = {}
   ) {
     schemaColumns = schemaColumns ?? this.getSchemaModel();
     if (!schemaColumns) return null;
@@ -7726,7 +7819,7 @@ class Model<
     }
 
     return blueprint;
-  } 
+  }
 
   private _initialModel(): this {
     this.$state = new StateHandler("model");
