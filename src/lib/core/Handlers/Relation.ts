@@ -1215,7 +1215,8 @@ class RelationHandler  {
 
         switch (this.$model['$state'].get('PATTERN')) {
 
-            case this.$model["$constants"]('PATTERN').snake_case : {
+            case this.$model["$constants"]('PATTERN').default:
+            case this.$model["$constants"]('PATTERN').snakeCase : {
 
                 if(schema == null) {
                     return snakeCase(value)

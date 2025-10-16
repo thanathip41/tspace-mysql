@@ -760,7 +760,7 @@ const pageTwoUsers = await new DB("users").paginate({ page: 2, limit: 5 });
     meta: {
       total: n,
       limit: 5,
-      total_page: 5,
+      count: 5,
       current_page: 2,
       last_page: n,
       next_page: 3,

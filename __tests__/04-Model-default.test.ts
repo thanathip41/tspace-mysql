@@ -56,26 +56,32 @@ describe("Testing Model without Pattern & Schema", function () {
 
     expect(dropUser).to.be.equal(true);
 
-    await new User().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new User()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
 
-    await new Post().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new Post()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
 
-    await new PostUser().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new PostUser()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
   });
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD
@@ -225,7 +231,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property("total_page");
+    expect(pagination.meta).to.have.property("count");
     expect(pagination.meta).to.have.property("current_page");
     expect(pagination.meta).to.have.property("last_page");
     expect(pagination.meta).to.have.property("next_page");
@@ -268,7 +274,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property("total_page");
+    expect(pagination.meta).to.have.property("count");
     expect(pagination.meta).to.have.property("current_page");
     expect(pagination.meta).to.have.property("last_page");
     expect(pagination.meta).to.have.property("next_page");
@@ -314,7 +320,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property("total_page");
+    expect(pagination.meta).to.have.property("count");
     expect(pagination.meta).to.have.property("current_page");
     expect(pagination.meta).to.have.property("last_page");
     expect(pagination.meta).to.have.property("next_page");
@@ -356,7 +362,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property("total_page");
+    expect(pagination.meta).to.have.property("count");
     expect(pagination.meta).to.have.property("current_page");
     expect(pagination.meta).to.have.property("last_page");
     expect(pagination.meta).to.have.property("next_page");

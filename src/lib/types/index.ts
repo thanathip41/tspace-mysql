@@ -57,12 +57,11 @@ export type TPagination<K = any> = {
     meta: {
         total: number;
         limit: number;
-        total_page: number;
+        count: number;
         current_page: number;
         last_page: number;
         next_page: number;
         prev_page: number;
-        totalPage: number;
         currentPage: number;
         lastPage: number;
         nextPage: number;

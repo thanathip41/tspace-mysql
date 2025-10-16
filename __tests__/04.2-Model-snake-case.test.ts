@@ -57,26 +57,32 @@ describe("Testing Model with Pattern & Schema", function () {
 
     expect(dropUser).to.be.equal(true);
 
-    await new User().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new User()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
 
-    await new Post().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new Post()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
 
-    await new PostUser().sync({
-      force: true,
-      changed: true,
-      foreign: true,
-      index: true,
-    }).catch((err) => console.log(err));
+    await new PostUser()
+      .sync({
+        force: true,
+        changed: true,
+        foreign: true,
+        index: true,
+      })
+      .catch((err) => console.log(err));
   });
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD
@@ -227,7 +233,7 @@ describe("Testing Model with Pattern & Schema", function () {
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
     expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "totalPage", pattern })
+      Model.formatPattern({ data: "count", pattern })
     );
     expect(pagination.meta).to.have.property(
       Model.formatPattern({ data: "currentPage", pattern })
@@ -280,7 +286,7 @@ describe("Testing Model with Pattern & Schema", function () {
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
     expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "totalPage", pattern })
+      Model.formatPattern({ data: "count", pattern })
     );
     expect(pagination.meta).to.have.property(
       Model.formatPattern({ data: "currentPage", pattern })
@@ -336,7 +342,7 @@ describe("Testing Model with Pattern & Schema", function () {
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
     expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "totalPage", pattern })
+      Model.formatPattern({ data: "count", pattern })
     );
     expect(pagination.meta).to.have.property(
       Model.formatPattern({ data: "currentPage", pattern })
@@ -388,7 +394,7 @@ describe("Testing Model with Pattern & Schema", function () {
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
     expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "totalPage", pattern })
+      Model.formatPattern({ data: "count", pattern })
     );
     expect(pagination.meta).to.have.property(
       Model.formatPattern({ data: "currentPage", pattern })

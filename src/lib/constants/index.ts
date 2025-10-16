@@ -108,8 +108,8 @@ const CONSTANTS = Object.freeze({
         belongsToManySingle : 'belongsToManySingle'
     },
     PATTERN : {
-        maybeSnake_case : 'maybeSnake_case',
-        snake_case : 'snake_case',
+        default : 'default',
+        snakeCase : 'snake_case',
         camelCase : 'camelCase'
     },
     ROW_LEVEL_LOCK : {
