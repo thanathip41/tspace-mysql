@@ -472,7 +472,7 @@ class DB extends AbstractDB {
       ...others,
     });
 
-    return pool.connected();
+    return pool.connect();
   }
 
   /**
@@ -514,7 +514,7 @@ class DB extends AbstractDB {
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
     if (this.$cluster) {
-      const cluster = new PoolConnection().clusterConnected();
+      const cluster = new PoolConnection().clusterConnect();
       const masters = cluster.masters;
       if (!masters.length) throw new Error("No Master available in cluster");
       const length = masters.length;
@@ -539,7 +539,7 @@ class DB extends AbstractDB {
       return await writer.connection();
     }
 
-    const pool = new PoolConnection().connected();
+    const pool = new PoolConnection().connect();
     return await pool.connection();
   }
 

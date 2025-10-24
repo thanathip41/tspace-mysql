@@ -36,7 +36,7 @@ export class PoolConnection  {
     }
   }
 
-  public connected(configs ?: Record<string,any>): TPoolConnected {
+  public connect(configs ?: Record<string,any>): TPoolConnected {
 
     if(this.POOL != null) {
       return this.POOL;
@@ -69,7 +69,7 @@ export class PoolConnection  {
     return this.POOL
   }
 
-  public disconnected(): void {
+  public disconnect(): void {
     const options = Object.fromEntries(this.OPTIONS);
 
     switch (this._driver()) {
@@ -92,7 +92,7 @@ export class PoolConnection  {
     }
   }
 
-  public clusterConnected() {
+  public clusterConnect() {
 
     if (this.CLUSTER != null) {
       return this.CLUSTER;
@@ -159,7 +159,7 @@ export class PoolConnection  {
           port: opt.port,
           username: opt.username
         },
-        ...new PoolConnection().connected({
+        ...new PoolConnection().connect({
           ...options,
           ...opt
         })
@@ -187,7 +187,7 @@ export class PoolConnection  {
           port: opt.port,
           username: opt.username
         },
-        ...new PoolConnection().connected({
+        ...new PoolConnection().connect({
           ...options,
           ...opt
         })

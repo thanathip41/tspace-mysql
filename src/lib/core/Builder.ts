@@ -3050,7 +3050,7 @@ class Builder extends AbstractBuilder {
       ...others,
     });
 
-    this.$pool.set(pool.connected());
+    this.$pool.set(pool.connect());
 
     return this;
   }
@@ -3080,7 +3080,7 @@ class Builder extends AbstractBuilder {
       password: String(options.password),
     });
 
-    const conn = pool.connected();
+    const conn = pool.connect();
 
     this.$pool.set(conn);
 
@@ -4878,7 +4878,7 @@ class Builder extends AbstractBuilder {
 
     this.$pool = (() => {
       if (Config.CLUSTER) {
-        let poolCluster = Pool.clusterConnected();
+        let poolCluster = Pool.clusterConnect();
 
         if (poolCluster == null) {
           throw new Error(
@@ -4939,7 +4939,7 @@ class Builder extends AbstractBuilder {
         };
       }
 
-      let pool = Pool.connected();
+      let pool = Pool.connect();
 
       return {
         query: async (sql: string) => {

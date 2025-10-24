@@ -6,7 +6,7 @@ describe('Testing Pool', function () {
   /* ##################################################### */
   it('Pool: It is connected?', async function () {
 
-    const pool = Pool.connected()
+    const pool = Pool.connect()
     expect(pool).to.have.an('object')
     expect(pool).to.have.property('query')
     expect(pool).to.have.property('connection')
@@ -22,7 +22,7 @@ describe('Testing Pool', function () {
 
   it('Pool: It is Pool can open new connection?', async function () {
     
-    const pool = Pool.connected();
+    const pool = Pool.connect();
     const connect = await pool.connection();
 
     expect(connect.query).to.be.an('function')

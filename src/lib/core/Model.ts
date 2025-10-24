@@ -4747,11 +4747,7 @@ class Model<
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
-    this._handleGlobalScope();
-
-    if (this.$state.get("EXCEPTS")?.length) {
-      this.select(...((await this.exceptColumns()) as any[]));
-    }
+    await this._prepareQueryPipeline();
 
     this.limit(1);
 
@@ -4796,11 +4792,7 @@ class Model<
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
-    this._handleGlobalScope();
-
-    if (this.$state.get("EXCEPTS")?.length) {
-      this.select(...((await this.exceptColumns()) as any[]));
-    }
+    await this._prepareQueryPipeline();
 
     this.limit(1);
 
@@ -4839,10 +4831,7 @@ class Model<
 
     if (this.$state.get("VOID")) return [];
 
-    this._handleGlobalScope();
-
-    if (this.$state.get("EXCEPTS")?.length)
-      this.select(...((await this.exceptColumns()) as any[]));
+    await this._prepareQueryPipeline();
 
     let sql = this._queryBuilder().select();
 
@@ -4895,10 +4884,7 @@ class Model<
       page = this.$utils.softNumber(paginationOptions?.page || page);
     }
 
-    this._handleGlobalScope();
-
-    if (this.$state.get("EXCEPTS")?.length)
-      this.select(...((await this.exceptColumns()) as any[]));
+    await this._prepareQueryPipeline();
 
     const offset = (page - 1) * limit;
 
@@ -4950,10 +4936,7 @@ class Model<
     column: C
   ): Promise<Map<string | number, T.Result<this, K>[]>> {
 
-    this._handleGlobalScope();
-
-    if (this.$state.get("EXCEPTS")?.length)
-      this.select(...((await this.exceptColumns()) as any[]));
+    await this._prepareQueryPipeline();
 
     const results = await new Model()
       .copyModel(this, {
@@ -6303,6 +6286,20 @@ class Model<
     return this;
   }
 
+  private async _prepareQueryPipeline(functions?: Function[]): Promise<void> {
+    const pipeline = functions ? [...functions] : [];
+
+    pipeline.push(() => this._handleGlobalScope());
+
+    if (this.$state.get("EXCEPTS")?.length) {
+        pipeline.push(async () => this.select(...((await this.exceptColumns()) as any[])));
+    }
+
+    await Promise.all(pipeline.map(fn => fn())).catch((err) => console.log(err))
+
+    return;
+  }
+
   private _handleGlobalScope() {
     if (!this.$state.get("GLOBAL_SCOPE")) return this;
 
@@ -6878,7 +6875,7 @@ class Model<
       })
     );
 
-    return await this.where("id", result.id).update(update).dd().save();
+    return await this.where("id", result.id).update(update).save();
   }
 
   private async _attach(name: string, dataId: any[], fields?: any) {
@@ -7826,8 +7823,6 @@ class Model<
 
     this.meta("MAIN");
 
-    if (this.$pattern != null) this.usePattern(this.$pattern);
-
     this._makeTableName();
 
     this.$relation = new RelationHandler(this);
@@ -7850,6 +7845,8 @@ class Model<
         deleted: globalSettings.logger?.deleted,
       });
     }
+
+    if (this.$pattern != null) this.usePattern(this.$pattern);
 
     if (this.$table != null) this.useTable(this.$table);
 

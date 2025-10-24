@@ -318,7 +318,7 @@ class Schema {
       for (const column in rawSchemaModel) {
         const blueprint = rawSchemaModel[column];
         if (blueprint.isVirtual) continue;
-        schemaModel[column] = blueprint;
+        schemaModel[model['_valuePattern'](column)] = blueprint;
       }
 
       const checkTableIsExists = existsTables.some(
