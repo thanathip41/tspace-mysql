@@ -75,16 +75,16 @@ export class PoolConnection  {
     switch (this._driver()) {
       case "mysql":
       case "mysql2": {
-        return new MysqlDriver(options).disconnect();
+        return new MysqlDriver(options).disconnect(this.POOL);
       }
 
       case 'pg':
       case 'postgres': {
-        return new PostgresDriver(options).disconnect()
+        return new PostgresDriver(options).disconnect(this.POOL)
       }
 
       case 'mariadb': {
-        return new MariadbDriver(options).disconnect()
+        return new MariadbDriver(options).disconnect(this.POOL)
       }
 
       default:

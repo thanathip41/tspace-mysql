@@ -59,12 +59,14 @@ export class MariadbDriver extends BaseDriver {
       queryBuilder: MariadbQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
+      end: () => this._end()
     };
   }
 
-  public disconnect(): void {
-    this.pool.end(() => {
-      this.pool = undefined;
+  public disconnect(pool:any): void {
+    if(pool == null) return;
+    pool?.end(() => {
+      pool = undefined;
     });
   }
 
@@ -135,6 +137,11 @@ export class MariadbDriver extends BaseDriver {
       rollback,
       end,
     };
+  }
+
+  private async _end(): Promise<void> {
+    await this.pool.end()
+    this.pool = undefined;
   }
   
   protected meta (results : any, sql : string) : void {

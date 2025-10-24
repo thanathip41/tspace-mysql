@@ -11,7 +11,7 @@ export abstract class BaseDriver extends EventEmitter {
   protected options!: Record<string, any>;
   protected MESSAGE_TRX_CLOSED = "The transaction has either been closed";
   protected abstract connect(): TPoolConnected;
-  protected abstract disconnect(): void;
+  protected abstract disconnect(pool:any): void;
   protected abstract meta(results: any, sql: string): void;
   protected abstract returning(results: any): any;
 

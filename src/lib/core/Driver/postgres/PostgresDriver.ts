@@ -49,12 +49,14 @@ export class PostgresDriver extends BaseDriver {
       queryBuilder: PostgresQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
+      end: () => this._end()
     };
   }
 
-  public disconnect(): void {
-    this.pool.end(() => {
-      this.pool = undefined;
+  public disconnect(pool:any): void {
+    if(pool == null) return;
+    pool?.end(() => {
+      pool = undefined;
     });
   }
 
@@ -157,6 +159,16 @@ export class PostgresDriver extends BaseDriver {
           rollback,
           end,
         });
+      });
+    });
+  }
+
+  private async _end(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      return this.pool.end((err:any) => {
+        if(err) return reject(err);
+        this.pool = undefined;
+        return resolve();
       });
     });
   }
