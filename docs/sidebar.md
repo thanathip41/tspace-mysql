@@ -12,3 +12,4 @@
 - [Stored Procedure](stored-procedure)
 - [Blueprint](blueprint)
 - [Cli](cli)
+- [Integrations](integrations)
