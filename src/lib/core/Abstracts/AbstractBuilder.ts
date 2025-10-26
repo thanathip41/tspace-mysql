@@ -1,4 +1,4 @@
-import { StateHandler } from '../Handlers/State'
+import { StateManager } from '../StateManager'
 import { TUtils }       from '../../utils'
 import { Join }         from '../Join'
 import Config           from "../../config";
@@ -8,16 +8,6 @@ import type {
     TDriver
 }  from '../../types'
 abstract class AbstractBuilder {
-
-    protected $setters = [
-        '$attributes',
-        '$logger',
-        '$utils',
-        '$constants',
-        '$pool',
-        '$state',
-        '$relation',
-    ]
 
     protected $utils !: TUtils 
 
@@ -35,7 +25,7 @@ abstract class AbstractBuilder {
     
     protected $constants !: (name ?: keyof TConstant) => any
 
-    protected $state !: StateHandler
+    protected $state !: StateManager
 
     protected $pool: { query : Function , set : Function , get : Function,queryBuilder : Function } = {
         query: (sql :string) => {},
@@ -43,15 +33,6 @@ abstract class AbstractBuilder {
         get: () => {},
         queryBuilder: () => {}
     }
-
-    protected $logger : { get: Function , set: (value: string) => void,reset : () => void , check: (value: string) => boolean }  = {
-        get: () => {},
-        set: (value : string) => {},
-        reset: () => {},
-        check: (value : string) => true || false
-    }
-    
-    protected $attributes !: Record<string,any> | null 
 
     abstract void () : this
     abstract debug () : this
@@ -95,7 +76,6 @@ abstract class AbstractBuilder {
     abstract random (): this
     abstract inRandom (): this
     abstract limit (number : number): this
-    abstract hidden (...columns: string[]): this
     abstract insert(data: Record<string,any>, { database }: { database?: string }): this
     abstract create(data: Record<string,any>, { database }: { database?: string }): this
     abstract update (data: Record<string,any>,updateNotExists ?: string[]): this
@@ -111,7 +91,6 @@ abstract class AbstractBuilder {
     abstract createMany (data: Record<string,any>[], { database }: { database?: string }) : this
     abstract insertMany (data: Record<string,any>[], { database }: { database?: string }) : this
     abstract except (...columns : string[]) : this
-    abstract only (...columns : string[]) : this
     abstract drop (): Promise<any>
     abstract truncate ({ force } : { force : boolean }): Promise<any>
     abstract all (): Promise<any[]>

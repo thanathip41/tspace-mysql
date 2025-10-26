@@ -1,9 +1,9 @@
 import { QueryBuilder } from "..";
-import { Blueprint } from "../../Blueprint";
-import { StateHandler } from "../../Handlers/State";
+import { Blueprint }    from "../../Blueprint";
+import { StateManager } from "../../StateManager";
 
 export class MysqlQueryBuilder extends QueryBuilder {
-  constructor(state: StateHandler) {
+  constructor(state: StateManager) {
     super(state);
   }
   public select = () => {

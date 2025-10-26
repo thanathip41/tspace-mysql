@@ -1,9 +1,12 @@
-import { format } from "sql-formatter";
-import { AbstractDB } from "./Abstracts/AbstractDB";
-import { proxyHandler } from "./Handlers/Proxy";
-import { StateHandler } from "./Handlers/State";
-import { Tool } from "../tools";
-import Pool, { PoolConnection } from "./Pool";
+import { format }       from "sql-formatter";
+import { AbstractDB }   from "./Abstracts/AbstractDB";
+import { StateManager } from "./StateManager";
+import { Tool }         from "../tools";
+
+import Pool, { 
+  PoolConnection 
+} from "./Pool";
+
 import type {
   TConstant,
   TBackup,
@@ -19,7 +22,7 @@ import type {
 } from "../types";
 
 /**
- * 'DB' Class is a component of the database system
+ * The 'DB' class is a component of the database system
  * @param {string?} table table name
  * @example
  * new DB('users').findMany().then(results => console.log(results))
@@ -31,8 +34,6 @@ class DB extends AbstractDB {
     this._initialDB();
 
     if (table) this.table(table);
-
-    return new Proxy(this, proxyHandler);
   }
 
   /**
@@ -1236,7 +1237,7 @@ class DB extends AbstractDB {
   }
 
   private _initialDB() {
-    this.$state = new StateHandler("db");
+    this.$state = new StateManager("db");
     return this;
   }
 }

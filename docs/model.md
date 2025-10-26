@@ -35,10 +35,8 @@ class User extends Model {
      * this.useTableSingular() // => 'user'
      * this.useTablePlural() // => 'users'
      * this.useUUID('uuid') // => runing a uuid (universally unique identifier) when insert new data
-     * this.useRegistry() // => build-in functions registry
-     * this.useLoadRelationsInRegistry() // => auto generated result from relationship to results
-     * this.useBuiltInRelationFunctions() // => build-in functions relationships to results
-     * this.useHooks([(r) => console.log(r)])
+     * this.useMiddleware(() => func..)
+     * this.useAfter([(r) => console.log(r)])
      * this.useObserver(Observe)
      * this.useSchema ({
      *     id          : Blueprint.int().notNull().primary().autoIncrement(),
@@ -963,48 +961,6 @@ await new User().relationsTrashed('posts').trashed().findMany()
  *  }
  * ]
  */
-
-```
-
-## Built in Relation Functions
-Certainly, let's illustrate the use of a built-in function in the results of relationships:
-
-```js
-import { Model } from 'tspace-mysql'
-
-class User extends Model {
-    constructor(){
-        super()
-        this.hasMany({ name : 'posts' , model : Post })
-        this.useBuiltInRelationFunctions()
-    }
-}
-+--------------------------------------------------------------------------+
-class Post extends Model {
-    constructor(){
-        super()
-        this.hasMany({ name : 'comments' , model : Comment })
-        this.belongsTo({ name : 'user' , model : User })
-        this.useBuiltInRelationFunctions()
-    }
-}
-+--------------------------------------------------------------------------+
-class Comment extends Model {
-    constructor(){
-        super()
-        this.hasMany({ name : 'users' , model : User })
-        this.belongsTo({ name : 'post' , model : Post })
-        this.useBuiltInRelationFunctions()
-    }
-}
-+--------------------------------------------------------------------------+
-const user = await new User().findOne()
-const posts = await user.$posts()
-
-/** Warning built-in function has Big-O effect */
-for (const post of posts) {
-    const comments = await post.$comments()
-}
 
 ```
 

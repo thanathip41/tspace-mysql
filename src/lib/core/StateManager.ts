@@ -1,9 +1,8 @@
-import { Blueprint } from "../Blueprint";
+import { Blueprint } from "./Blueprint";
 
 const STATE_DEFAULT = {
   PRIMARY_KEY: 'id' as string,
   VOID: false as boolean,
-  RESULT: null as { id : number } | null,
   DISTINCT: false,
   SAVE: '' as string,
   DELETE: '' as string,
@@ -87,7 +86,7 @@ const STATE_MODEL = {
 
 type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT
 
-class StateHandler {
+class StateManager {
     private STATE : { currentState : Map<string,any> , defaultState : Map<string,any> } = {
         currentState : new Map(),
         defaultState : new Map()
@@ -184,5 +183,5 @@ class StateHandler {
     }
 }
 
-export { StateHandler}
-export default StateHandler
+export { StateManager}
+export default StateManager

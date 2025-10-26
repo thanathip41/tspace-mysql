@@ -18,25 +18,25 @@ export const REFLECT_META_RELATIONS = {
 
 export const REFLECT_META_SCHEMA = 'model:schema';
 
-export const REFLECT_META_VALIDATE_SCHEMA = 'validate:schema';
+export const REFLECT_META_VALIDATE_SCHEMA = 'model:validateSchema';
 
 export const REFLECT_META_TABLE = 'model:table';
 
 export const REFLECT_META_UUID = {
-  enabled: 'uuid:enabled',
-  column : 'uuid:column'
+  enabled: 'model:uuidEnabled',
+  column : 'model:uuidColumn'
 };
 
 export const REFLECT_META_OBSERVER = 'model:observer';
 
 export const REFLECT_META_TIMESTAMP = {
-  enabled: 'timestamp:enabled',
-  columns: 'timestamp:columns'
+  enabled: 'model:timestampEnabled',
+  columns: 'model:timestampColumns'
 };
 
 export const REFLECT_META_SOFT_DELETE = {
-  enabled: 'timestamp:enabled',
-  columns: 'timestamp:columns'
+  enabled: 'model:softDeleteEnabled',
+  columns: 'model:softDeleteColumns'
 };
 
 export const REFLECT_META_PATTERN = 'model:pattern';

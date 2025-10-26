@@ -1,20 +1,19 @@
 import { Blueprint }        from '../Blueprint';
 import { Builder }          from '../Builder';
-import { RelationHandler }  from '../Handlers/Relation';
+import { RelationManager }  from '../RelationManager';
 import { Model }            from '../Model';
 import type { T }           from '../UtilityTypes';
 import type { 
     TPattern, 
     TValidateSchema , 
     TCache, 
-    TRelationKeys,
     TRelationOptions,
     TRelationQueryOptions
 } from '../../types'
-abstract class AbstractModel<T,R> extends Builder {
+abstract class AbstractModel extends Builder {
 
     protected $cache             !: TCache 
-    protected $relation          !: RelationHandler
+    protected $relation          !: RelationManager
     protected $schema            !: Record<string , Blueprint>
     protected $validateSchema    !: TValidateSchema
     protected $table             !: string
@@ -39,7 +38,6 @@ abstract class AbstractModel<T,R> extends Builder {
 
     protected abstract useUUID(): this
     protected abstract usePrimaryKey(primaryKey: string) : this
-    protected abstract useRegistry(): this
     protected abstract useDebug () : this
     protected abstract useTable (table : string) : this
     protected abstract useTablePlural () : this
@@ -50,25 +48,19 @@ abstract class AbstractModel<T,R> extends Builder {
     protected abstract usePattern (pattern : string) : this
     protected abstract useCamelCase (pattern : string) : this
     protected abstract useSnakeCase (pattern : string) : this
-    protected abstract useLoadRelationsInRegistry() : this
-    protected abstract useBuiltInRelationFunctions () : this
-    protected abstract define () : void
+    protected abstract boot () : void
     protected abstract hasOne({ name , model , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     protected abstract hasMany({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     protected abstract belongsTo({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     protected abstract belongsToMany({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationOptions) : this
     //@ts-ignore
     protected abstract buildMethodRelation<K extends T.RelationKeys<this>>(name : K ,callback ?: Function) : this
-
     protected abstract hasOneBuilder({ name , model , localKey , foreignKey , freezeTable , as } : TRelationQueryOptions ,callback : Function) : this
     protected abstract hasManyBuilder({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationQueryOptions,callback : Function) : this
     protected abstract belongsToBuilder({ name , model  , localKey , foreignKey , freezeTable , as } : TRelationQueryOptions,callback : Function) : this
     protected abstract belongsToManyBuilder({ name , model  , localKey , foreignKey , freezeTable , as , pivot } : TRelationQueryOptions,callback : Function) : this
-
     abstract ignoreSoftDelete() : this
     abstract disableSoftDelete() : this
-    abstract registry (func : Record<string,Function>) : this
-
     abstract onlyTrashed() :this
     abstract trashed() : this
     //@ts-ignore

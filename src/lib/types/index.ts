@@ -29,7 +29,7 @@ export type TRelationOptions<K = any> = {
 };
 
 export type TRelationQueryOptions<K = any> = {
-    name?: K extends void ? never : K;
+    name : K extends void ? never : K;
     model: new () => Model<any, any>;
     as?: string;
     localKey?: string;
@@ -234,7 +234,6 @@ export type TGlobalSetting = {
     debug?: boolean;
     uuid?: boolean;
     timestamp?: boolean;
-    pattern?: boolean | ('s');
     logger?: {
         selected?: boolean;
         inserted?: boolean;

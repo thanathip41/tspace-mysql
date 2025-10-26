@@ -1,11 +1,11 @@
 import { AbstractBuilder } from "./Abstracts/AbstractBuilder";
 import { utils }           from "../utils";
 import { DB }              from "./DB";
-import { StateHandler }    from "./Handlers/State";
+import { StateManager }    from "./StateManager";
 import { Join }            from "./Join";
 import { CONSTANTS }       from "../constants";
 import { QueryBuilder }    from "./Driver";
-import Config              from "../config";
+import { Config }          from "../config";
 import { 
   Pool, 
   PoolConnection, 
@@ -440,20 +440,6 @@ class Builder extends AbstractBuilder {
    */
   void(): this {
     this.$state.set("VOID", true);
-    return this;
-  }
-
-  /**
-   * The 'only' method is used to specify which columns you don't want to retrieve from a result.
-   *
-   * It allows you to choose the specific columns that should be not included in the result.
-   *
-   * @param {...string} columns show only colums selected
-   * @returns {this} this
-   */
-  only(...columns: string[]): this {
-    this.$state.set("ONLY", columns);
-
     return this;
   }
 
@@ -2313,16 +2299,6 @@ class Builder extends AbstractBuilder {
   skip(number: number = 1): this {
     return this.offset(number);
   }
-  /**
-   * The 'hidden' method is used to specify which columns you want to hidden result.
-   * It allows you to choose the specific columns that should be hidden in the result.
-   * @param {...string} columns
-   * @returns {this} this
-   */
-  hidden(...columns: string[]): this {
-    this.$state.set("HIDDEN", columns);
-    return this;
-  }
 
   /**
    * The 'update' method is used to update existing records in a database table that are associated.
@@ -3254,8 +3230,6 @@ class Builder extends AbstractBuilder {
 
     const result: any[] = await this._queryStatement(sql);
 
-    if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
-
     if (!result.length)
       return {
         //@ts-ignore
@@ -3350,8 +3324,6 @@ class Builder extends AbstractBuilder {
 
     if (this.$state.get("VOID")) return null;
 
-    if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
-
     const r = result[0] || null;
 
     await this.$utils.hookHandle(this.$state.get("HOOKS"), r);
@@ -3391,8 +3363,6 @@ class Builder extends AbstractBuilder {
     let sql: string = this._queryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
-
-    if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
 
     const data = result?.shift() || null;
 
@@ -3449,8 +3419,6 @@ class Builder extends AbstractBuilder {
 
     if (this.$state.get("VOID")) return [];
 
-    if (this.$state.get("HIDDEN")?.length) this._hiddenColumn(result);
-
     await this.$utils.hookHandle(this.$state.get("HOOKS"), result || []);
 
     return this._resultHandler(result || []);
@@ -3480,8 +3448,6 @@ class Builder extends AbstractBuilder {
     const sql: string = this._queryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
-
-    if (this.$state.get("HIDDEN").length) this._hiddenColumn(result);
 
     return this._resultHandler(JSON.stringify(result));
   }
@@ -4412,24 +4378,14 @@ class Builder extends AbstractBuilder {
   }
 
   protected _resultHandler(data: any) {
-    if (!this.$state.get("VOID")) {
-      this.$state.set("RESULT", data);
-    }
-
     this.$state.reset();
-    this.$logger.reset();
-
+   
     return data;
   }
 
   protected _resultHandlerExists(data: any) {
-    if (!this.$state.get("VOID")) {
-      this.$state.set("RESULT", data);
-    }
-
     this.$state.reset();
-    this.$logger.reset();
-
+    
     return data;
   }
 
@@ -4704,18 +4660,6 @@ class Builder extends AbstractBuilder {
     return this._resultHandler(res);
   }
 
-  private _hiddenColumn(data: Array<{ [x: string]: Object }>) {
-    const hidden: string[] = this.$state.get("HIDDEN");
-    if (Object.keys(data)?.length) {
-      hidden.forEach((column: string | number) => {
-        data.forEach((objColumn: Record<string, any>) => {
-          delete objColumn[column];
-        });
-      });
-    }
-    return data;
-  }
-
   private _queryUpdate(data: Record<string, any>) {
     this.$utils.covertDateToDateString(data);
 
@@ -4957,23 +4901,7 @@ class Builder extends AbstractBuilder {
       };
     })();
 
-    this.$state = new StateHandler("default");
-
-    this.$logger = (() => {
-      let logger: any[] = [];
-      return {
-        get: (): any[] => logger,
-        set: (data: string): void => {
-          logger = [...logger, data];
-          return;
-        },
-        reset: () => {
-          logger = [];
-          return;
-        },
-        check: (data: string): boolean => logger.indexOf(data) != -1,
-      };
-    })();
+    this.$state = new StateManager("default");
 
     this.$constants = (name) => {
       if (name == null) return CONSTANTS;

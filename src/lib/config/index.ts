@@ -106,4 +106,7 @@ export const loadOptionsEnvironment = (customEnv?: string) => {
     return Object.freeze(env) as unknown as typeof rawEnv
 }
 
-export default Object.freeze(env)
+const Config = Object.freeze(env);
+
+export { Config };
+export default Config;

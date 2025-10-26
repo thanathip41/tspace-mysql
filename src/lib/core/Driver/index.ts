@@ -1,9 +1,13 @@
 import { EventEmitter } from "events";
-import { StateHandler } from "../Handlers/State";
-import { Tool } from "../../tools";
-import { CONSTANTS } from "../../constants";
-import { Blueprint } from "../Blueprint";
-import type { TConstant, TPoolConnected } from "../../types";
+import { StateManager } from "../StateManager";
+import { Tool }         from "../../tools";
+import { CONSTANTS }    from "../../constants";
+import { Blueprint }    from "../Blueprint";
+
+import type { 
+  TConstant, 
+  TPoolConnected 
+} from "../../types";
 export abstract class BaseDriver extends EventEmitter {
   private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
   private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
@@ -153,9 +157,9 @@ export abstract class QueryBuilder {
 
     return CONSTANTS[name] as string;
   };
-  protected $state!: StateHandler;
+  protected $state!: StateManager;
 
-  constructor(state: StateHandler) {
+  constructor(state: StateManager) {
     this.$state = state;
   }
 

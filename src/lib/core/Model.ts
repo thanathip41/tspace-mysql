@@ -3,10 +3,9 @@ import pluralize            from "pluralize";
 import { DB }               from "./DB";
 import { Schema }           from "./Schema";
 import { AbstractModel }    from "./Abstracts/AbstractModel";
-import { proxyHandler }     from "./Handlers/Proxy";
-import { RelationHandler }  from "./Handlers/Relation";
+import { RelationManager }  from "./RelationManager";
 import { Blueprint }        from "./Blueprint";
-import { StateHandler }     from "./Handlers/State";
+import { StateManager }     from "./StateManager";
 import { Cache }            from "./Cache";
 import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
@@ -24,9 +23,11 @@ import type {
   TDriver,
   TPoolConnected,
 } from "../types";
+
 import type { 
   TRelationQueryOptionsDecorator, 
 } from "../types/decorator";
+
 import { 
   REFLECT_META_SCHEMA, 
   REFLECT_META_RELATIONS, 
@@ -36,15 +37,14 @@ import {
   REFLECT_META_PATTERN, 
   REFLECT_META_TIMESTAMP, 
   REFLECT_META_OBSERVER, 
-  REFLECT_META_UUID 
+  REFLECT_META_UUID
 } from "./Decorator";
 
 let globalSettings: TGlobalSetting = {
-  softDelete: false,
-  debug: false,
-  uuid: false,
-  timestamp: false,
-  pattern: false,
+  softDelete  : false,
+  debug       : false,
+  uuid        : false,
+  timestamp   : false,
   logger: {
     selected: false,
     inserted: false,
@@ -55,7 +55,7 @@ let globalSettings: TGlobalSetting = {
 
 /**
  *
- * 'Model' class is a representation of a database table
+ * The 'Model' class is a representation of a database table
  * @generic {Type} TS
  * @generic {Type} TR
  * @example
@@ -82,8 +82,8 @@ let globalSettings: TGlobalSetting = {
 class Model<
   TS extends Record<string, any> = any,
   TR = unknown
-> extends AbstractModel<TS, TR> {
-  constructor(protected $cache = Cache) {
+> extends AbstractModel {
+  constructor() {
     super();
     /**
      *
@@ -92,12 +92,10 @@ class Model<
     this._initialModel();
     /**
      *
-     * @define Setup for model
+     * @boot Setup for model
+     * same as using constructor
      */
-    this.define();
     this.boot();
-
-    return new Proxy(this, proxyHandler);
   }
 
   /**
@@ -192,14 +190,6 @@ class Model<
     return Cache;
   }
 
-  protected useMiddleware(fun: Function): this {
-    if (typeof fun !== "function")
-      throw new Error(`this '${fun}' is not a function`);
-
-    this.$state.set("MIDDLEWARES", [...this.$state.get("MIDDLEWARES"), fun]);
-    return this;
-  }
-
   /**
    * The 'globalScope' method is a feature that allows you to apply query constraints to all queries for a given model.
    *
@@ -281,20 +271,6 @@ class Model<
     return this;
   }
 
-  /**
-   * The 'define' method is a special method that you can define within a model.
-   * @example
-   *  class User extends Model {
-   *     define() {
-   *       this.useUUID()
-   *       this.usePrimaryKey('id')
-   *       this.useTimestamp()
-   *       this.useSoftDelete()
-   *     }
-   *  }
-   * @returns {void} void
-   */
-  protected define(): void {}
   /**
    *  The 'boot' method is a special method that you can define within a model.
    *  @example
@@ -424,71 +400,6 @@ class Model<
    */
   protected useSchema(schema: Record<string, Blueprint>): this {
     this.$state.set("SCHEMA_TABLE", schema);
-    return this;
-  }
-
-  /**
-   *
-   * The "useRegistry" method is used to define Function to results.
-   *
-   * It's automatically given Function to results.
-   * @returns {this} this
-   * @example
-   * class User extends Model {
-   *     constructor() {
-   *        super()
-   *        this.useRegistry()
-   *     }
-   * }
-   */
-  protected useRegistry(): this {
-    this.$state.set("REGISTRY", {
-      ...this.$state.get("REGISTRY"),
-      $save: this._save.bind(this),
-      $attach: this._attach.bind(this),
-      $detach: this._detach.bind(this),
-    });
-    return this;
-  }
-
-  /**
-   * The "useLoadRelationsInRegistry" method is used automatically called relations in your registry Model.
-   * @returns {this} this
-   * @example
-   * class User extends Model {
-   *     constructor() {
-   *        super()
-   *        this.useLoadRelationInRegistry()
-   *     }
-   * }
-   */
-  protected useLoadRelationsInRegistry(): this {
-    const relations: string[] = this.$state
-      .get("RELATIONS")
-      .map((r: { name: string }) => String(r.name));
-
-    if (relations.length)
-      this.relations(...(Array.from(new Set(relations)) as any[]));
-
-    return this;
-  }
-
-  /**
-   * The "useBuiltInRelationFunctions" method is used to define the function.
-   *
-   * It's automatically given built-in relation functions to a results.
-   * @returns {this} this
-   * @example
-   * class User extends Model {
-   *     constructor() {
-   *        super()
-   *        this.useBuiltInRelationsFunction()
-   *     }
-   * }
-   */
-  protected useBuiltInRelationFunctions(): this {
-    this.$state.set("FUNCTION_RELATION", true);
-
     return this;
   }
 
@@ -810,6 +721,47 @@ class Model<
   }
 
   /**
+   * The "useMiddleware" method is used to register functions that run before the main handler executes. 
+   *
+   * @param {Function} func functions for execute
+   * @returns {this} this
+   * @example
+   * class User extends Model {
+   *   constructor() {
+   *     this.useMiddleware(() => function ...)
+   *   }
+   * }
+   */
+  protected useMiddleware(func: Function): this {
+    if (typeof func !== "function")
+      throw new Error(`this '${func}' is not a function`);
+
+    this.$state.set("MIDDLEWARES", [...this.$state.get("MIDDLEWARES"), func]);
+    return this;
+  }
+
+  /**
+   * The "useAfter" method is used to assign hook function when execute returned results to callback function.
+   * @param {Function[]} arrayFunctions functions for callback result
+   * @returns {this} this
+   * @example
+   * class User extends Model {
+   *   constructor() {
+   *     this.useAfter([(results) => console.log(results)])
+   *   }
+   * }
+   */
+  protected useAfter(arrayFunctions: Function[]): this {
+    for (const func of arrayFunctions) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+      this.$state.set("HOOKS", [...this.$state.get("HOOKS"), func]);
+    }
+
+    return this;
+  }
+
+  /**
    * The "beforeCreatingTable" method is used exection function when creating the table.
    * @param {Function} fn functions for executing before creating the table
    * @returns {this} this
@@ -1091,17 +1043,6 @@ class Model<
       ...this.$state.get("ADD_SELECT"),
     ]);
 
-    return this;
-  }
-
-  /**
-   *
-   * @override
-   * @param {...string} columns
-   * @returns {this} this
-   */
-  hidden<K extends T.ColumnKeys<this>>(...columns: K[]): this {
-    this.$state.set("HIDDEN", columns);
     return this;
   }
 
@@ -1671,6 +1612,7 @@ class Model<
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
+
           const startTime = +new Date();
 
           const results = await this.$pool.query(sql);
@@ -1800,22 +1742,6 @@ class Model<
    */
   ignoreGlobalScope(condition: boolean = false): this {
     this.$state.set("GLOBAL_SCOPE", condition);
-    return this;
-  }
-
-  /**
-   * Assign build in function to result of data
-   * @param {Record} func
-   * @returns {this} this
-   */
-  registry(func: Record<string, Function>): this {
-    this.$state.set("REGISTRY", {
-      ...func,
-      $save: this._save.bind(this),
-      $attach: this._attach.bind(this),
-      $detach: this._detach.bind(this),
-    });
-
     return this;
   }
 
@@ -4743,8 +4669,7 @@ class Model<
    * @returns {promise<Record<string,any> | null>} Record | null
    */
   async first<K>(cb?: Function): Promise<T.Result<this, K> | null> {
-    this._validateMethod("first");
-
+    
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
     await this._prepareQueryPipeline();
@@ -4788,8 +4713,7 @@ class Model<
     message?: string,
     options?: Record<string, any>
   ): Promise<T.Result<this, K>> {
-    this._validateMethod("firstOrError");
-
+    
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
     await this._prepareQueryPipeline();
@@ -4827,8 +4751,7 @@ class Model<
    * @returns {promise<array>} Array
    */
   async get<K>(cb?: Function): Promise<T.Result<this, K>[]> {
-    this._validateMethod("get");
-
+    
     if (this.$state.get("VOID")) return [];
 
     await this._prepareQueryPipeline();
@@ -4874,8 +4797,7 @@ class Model<
     page?: number;
     alias?: boolean;
   }): Promise<T.ResultPaginate<this, K>> {
-    this._validateMethod("pagination");
-
+   
     let limit = 15;
     let page = 1;
 
@@ -5600,25 +5522,38 @@ class Model<
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
   async save({ waitMs = 0 } = {}): Promise<any> {
-    this._validateMethod("save");
-
+   
     this.$state.set("AFTER_SAVE", waitMs);
 
     switch (String(this.$state.get("SAVE"))) {
-      case "INSERT":
+      case "INSERT": {
         return await this._insertModel();
-      case "UPDATE":
+      }
+  
+      case "UPDATE": {
         return await this._updateModel();
-      case "INSERT_MULTIPLE":
+      }
+       
+      case "INSERT_MULTIPLE": {
         return await this._createMultipleModel();
-      case "INSERT_NOT_EXISTS":
+      }
+       
+      case "INSERT_NOT_EXISTS": {
         return await this._insertNotExistsModel();
-      case "UPDATE_OR_INSERT":
+      }
+       
+      case "UPDATE_OR_INSERT": {
         return await this._updateOrInsertModel();
-      case "INSERT_OR_SELECT":
+      }
+        
+      case "INSERT_OR_SELECT": {
         return await this._insertOrSelectModel();
-      default:
-        throw this._assertError(`Unknown this [${this.$state.get("SAVE")}]`);
+      }
+        
+      default: {
+        throw this._assertError(`Unknown this method '${this.$state.get("SAVE")}'`);
+      }
+        
     }
   }
 
@@ -6398,28 +6333,6 @@ class Model<
     return this._buildQueryStatement();
   }
 
-  private _showOnly(data: any) {
-    let result: any[] = [];
-    const hasNameRelation = this.$state
-      .get("RELATIONS")
-      .map((w: any) => w.as ?? w.name);
-
-    data.forEach((d: Record<string, any>) => {
-      let newData: Record<string, any> = {};
-      this.$state.get("ONLY").forEach((only: string) => {
-        if (d.hasOwnProperty(only)) newData = { ...newData, [only]: d[only] };
-      });
-
-      hasNameRelation.forEach((name: string) => {
-        if (name) newData = { ...newData, [name]: d[name] };
-      });
-
-      result = [...result, newData];
-    });
-
-    return result;
-  }
-
   private async _validateSchema(
     data: Record<any, string>,
     action: "insert" | "update"
@@ -6643,8 +6556,6 @@ class Model<
       result = loaded;
     }
 
-    if (this.$state.get("HIDDEN").length) this._hiddenColumnModel(result);
-
     return (
       (await this._returnResult(type, result)) ||
       this._returnEmpty(type, result, message, options)
@@ -6773,41 +6684,7 @@ class Model<
   }
 
   private async _returnResult(type: string, data: any[]) {
-    const registry = this.$state.get("REGISTRY");
-
-    if (Object.keys(registry)?.length && registry != null) {
-      for (const d of data) {
-        for (const name in registry) {
-          d[name] = registry[name];
-        }
-      }
-    }
-
-    const functionRelation = this.$state.get("FUNCTION_RELATION");
-
-    if (functionRelation) {
-      for (const d of data) {
-        for (const r of this.$state.get("RELATION")) {
-          d[`$${r.name}`] = async (cb: Function | null) => {
-            const query = cb ? cb(new r.model()) : new r.model();
-            r.query = query;
-
-            const dataFromRelation = (await this.$relation.load([d], r)) ?? [];
-            const relationIsHasOneOrBelongsTo = [
-              this.$constants("RELATIONSHIP").hasOne,
-              this.$constants("RELATIONSHIP").belongsTo,
-            ].some((x) => x === r.relation);
-
-            if (relationIsHasOneOrBelongsTo) return dataFromRelation[0] || null;
-
-            return dataFromRelation || [];
-          };
-        }
-      }
-    }
-
-    if (this.$state.get("ONLY")?.length) data = this._showOnly(data);
-
+  
     let result: any = null;
 
     let res: Record<string, any>[] = [];
@@ -6847,158 +6724,6 @@ class Model<
     this._setCache(result);
 
     return result;
-  }
-
-  private _hiddenColumnModel(data: Record<string, any>[]) {
-    const hiddens = this.$state.get("HIDDEN");
-    for (const hidden of hiddens) {
-      for (const objColumn of data) {
-        delete objColumn[hidden];
-      }
-    }
-
-    return data;
-  }
-
-  private async _save() {
-    const result = this.$state.get("RESULT");
-
-    if (result?.id == null) {
-      throw this._assertError(
-        `This '$save' must be required the 'id' for the function`
-      );
-    }
-
-    const update = JSON.parse(
-      JSON.stringify({
-        ...result,
-      })
-    );
-
-    return await this.where("id", result.id).update(update).save();
-  }
-
-  private async _attach(name: string, dataId: any[], fields?: any) {
-    if (!Array.isArray(dataId)) {
-      throw this._assertError(`This '${dataId}' is not an array.`);
-    }
-
-    const relation: TRelationOptions = this.$state
-      .get("RELATION")
-      ?.find((data: any) => data.name === name);
-
-    if (!relation) {
-      throw this._assertError(`Unknown relation '${name}' in model.`);
-    }
-
-    const thisTable = this.$utils.columnRelation(this.constructor.name);
-
-    const relationTable = this._classToTableName(relation.model.name, {
-      singular: true,
-    });
-
-    const result = this.$state.get("RESULT");
-
-    try {
-      const pivotTable = `${thisTable}_${relationTable}`;
-
-      const success = await new DB()
-        .table(pivotTable)
-        .createMultiple(
-          dataId.map((id: number) => {
-            return {
-              [this._valuePattern(`${relationTable}Id`)]: id,
-              [this._valuePattern(`${thisTable}Id`)]: result?.id,
-              ...fields,
-            };
-          })
-        )
-        .save();
-
-      return success;
-    } catch (e: any) {
-      const errorTable = e.message;
-      const search = errorTable.search("ER_NO_SUCH_TABLE");
-
-      if (!!search) throw this._assertError(e.message);
-
-      try {
-        const pivotTable = `${relationTable}_${thisTable}`;
-        const success = await new DB()
-          .table(pivotTable)
-          .createMultiple(
-            dataId.map((id: number) => {
-              return {
-                [this._valuePattern(`${relationTable}Id`)]: id,
-                [this._valuePattern(`${thisTable}Id`)]: result?.id,
-                ...fields,
-              };
-            })
-          )
-          .save();
-
-        return success;
-      } catch (e: any) {
-        throw this._assertError(e.message);
-      }
-    }
-  }
-
-  private async _detach(name: string, dataId: any[]) {
-    if (!Array.isArray(dataId)) {
-      throw this._assertError(`This '${dataId}' is not an array.`);
-    }
-
-    const relation: any = this.$state
-      .get("RELATION")
-      .find((data: any) => data.name === name);
-
-    if (!relation) {
-      throw this._assertError(`Unknown relation '${name}' in model.`);
-    }
-
-    const thisTable = this.$utils.columnRelation(this.constructor.name);
-
-    const relationTable = this._classToTableName(relation.model.name, {
-      singular: true,
-    });
-
-    const result = this.$state.get("RESULT");
-
-    try {
-      const pivotTable = `${thisTable}_${relationTable}`;
-
-      for (const id of dataId) {
-        await new DB()
-          .table(pivotTable)
-          .where(this._valuePattern(`${relationTable}Id`), id)
-          .where(this._valuePattern(`${thisTable}Id`), result?.id)
-          .delete();
-      }
-
-      return true;
-    } catch (e: any) {
-      const errorTable = e.message;
-      const search = errorTable.search("ER_NO_SUCH_TABLE");
-
-      if (!!search) throw this._assertError(e.message);
-
-      try {
-        const pivotTable = `${relationTable}_${thisTable}`;
-
-        for (const id of dataId) {
-          await new DB()
-            .table(pivotTable)
-            .where(this._valuePattern(`${relationTable}Id`), id)
-            .where(this._valuePattern(`${thisTable}Id`), result?.id)
-            .delete();
-        }
-
-        return true;
-      } catch (e: any) {
-        throw this._assertError(e.message);
-      }
-    }
   }
 
   private _queryUpdateModel(objects: Record<string, any>) {
@@ -7531,83 +7256,6 @@ class Model<
     return;
   }
 
-  private _validateMethod(method: string): void {
-    const methodChangeStatements = [
-      "insert",
-      "create",
-      "update",
-      "updateMultiple",
-      "updateMany",
-      "updateNotExists",
-      "delete",
-      "deleteMany",
-      "forceDelete",
-      "restore",
-      "faker",
-      "createNotExists",
-      "insertNotExists",
-      "createOrSelect",
-      "insertOrSelect",
-      "createOrUpdate",
-      "insertOrUpdate",
-      "updateOrCreate",
-      "updateOrInsert",
-      "createMultiple",
-      "insertMultiple",
-    ];
-
-    switch (method.toLocaleLowerCase()) {
-      case "paginate":
-      case "pagination":
-      case "findOneOrError":
-      case "firstOrError":
-      case "findOne":
-      case "findMany":
-      case "first":
-      case "get": {
-        const methodCallings = this.$logger.get();
-
-        const methodsNotAllowed = methodChangeStatements;
-
-        const findMethodNotAllowed = methodCallings.find(
-          (methodCalling: string) => methodsNotAllowed.includes(methodCalling)
-        );
-
-        if (
-          methodCallings.some((methodCalling: string) =>
-            methodsNotAllowed.includes(methodCalling)
-          )
-        ) {
-          throw this._assertError(
-            `This method '${method}' can't using the method '${findMethodNotAllowed}'.`
-          );
-        }
-
-        break;
-      }
-
-      case "save": {
-        const methodCallings = this.$logger.get();
-
-        const methodsSomeAllowed = methodChangeStatements;
-
-        if (
-          !methodCallings.some((methodCalling: string) =>
-            methodsSomeAllowed.includes(methodCalling)
-          )
-        ) {
-          throw this._assertError(
-            `This ${method} method need some ${methodsSomeAllowed
-              .map((v) => `'${v}'`)
-              .join(", ")} methods.`
-          );
-        }
-
-        break;
-      }
-    }
-  }
-
   private async _checkSchemaOrNextError(
     e: unknown,
     retry = 1,
@@ -7654,49 +7302,62 @@ class Model<
   private _mapReflectMetadata<
     K extends TR extends object ? TRelationKeys<TR> : string
   >(): this {
-    const table =
-      Reflect.getMetadata(REFLECT_META_TABLE, this.constructor) || null;
+
+    const table = Reflect.getMetadata(
+      REFLECT_META_TABLE, 
+      this.constructor
+    ) || null;
 
     if (table) this.$table = table;
 
-    const observer =
-      Reflect.getMetadata(REFLECT_META_OBSERVER, this.constructor) || null;
+    const observer = Reflect.getMetadata(
+      REFLECT_META_OBSERVER, 
+      this.constructor
+    ) || null;
 
     if (observer) this.$observer = observer;
 
-    const uuidIsEnabled =
-      Reflect.getMetadata(REFLECT_META_UUID.enabled, this.constructor) || null;
+    const uuidIsEnabled = Reflect.getMetadata(
+      REFLECT_META_UUID.enabled, 
+      this.constructor
+    ) || null;
 
     if (uuidIsEnabled) {
       this.$uuid = true;
-      this.$uuidColumn =
-        Reflect.getMetadata(REFLECT_META_UUID.column, this.constructor) || null;
+      this.$uuidColumn = Reflect.getMetadata(
+        REFLECT_META_UUID.column, 
+        this.constructor
+      ) || null;
     }
 
-    const timestamp =
-      Reflect.getMetadata(REFLECT_META_TIMESTAMP.enabled, this.constructor) ||
-      null;
+    const timestamp = Reflect.getMetadata(
+      REFLECT_META_TIMESTAMP.enabled, 
+      this.constructor
+    ) || null;
 
     if (timestamp) {
       this.$timestamp = true;
-      this.$timestampColumns =
-        Reflect.getMetadata(REFLECT_META_TIMESTAMP.columns, this.constructor) ||
-        null;
+      this.$timestampColumns = Reflect.getMetadata(
+        REFLECT_META_TIMESTAMP.columns, 
+        this.constructor
+      ) || null;
     }
 
-    const pattern =
-      Reflect.getMetadata(REFLECT_META_PATTERN, this.constructor) || null;
+    const pattern = Reflect.getMetadata(
+      REFLECT_META_PATTERN, 
+      this.constructor
+    ) || null;
 
     if (pattern) this.$pattern = pattern;
 
-    const softDelete =
-      Reflect.getMetadata(REFLECT_META_SOFT_DELETE.enabled, this.constructor) ||
-      null;
+    const softDelete = Reflect.getMetadata(
+      REFLECT_META_SOFT_DELETE.enabled, 
+      this.constructor
+    ) || null;
 
     if (softDelete) {
       this.$softDelete = true;
-      this.$softDeleteColumn =
-        Reflect.getMetadata(
+      this.$softDeleteColumn = Reflect.getMetadata(
           REFLECT_META_SOFT_DELETE.columns,
           this.constructor
         ) || null;
@@ -7706,13 +7367,17 @@ class Model<
 
     if (schema) this.$schema = schema;
 
-    const validate =
-      Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, this) || null;
+    const validate = Reflect.getMetadata(
+      REFLECT_META_VALIDATE_SCHEMA, 
+      this
+    ) || null;
 
     if (validate) this.$validateSchema = validate;
 
-    const hasOnes: TRelationQueryOptionsDecorator[] =
-      Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, this) || [];
+    const hasOnes: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+      REFLECT_META_RELATIONS.hasOne, 
+      this
+    ) || [];
 
     for (const v of hasOnes) {
       this.hasOne({
@@ -7723,8 +7388,10 @@ class Model<
       });
     }
 
-    const hasManys: TRelationQueryOptionsDecorator[] =
-      Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, this) || [];
+    const hasManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+      REFLECT_META_RELATIONS.hasMany, 
+      this
+    ) || [];
 
     for (const v of hasManys) {
       this.hasMany({
@@ -7735,8 +7402,10 @@ class Model<
       });
     }
 
-    const belongsTos: TRelationQueryOptionsDecorator[] =
-      Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, this) || [];
+    const belongsTos: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+      REFLECT_META_RELATIONS.belongsTo, 
+      this
+    ) || [];
 
     for (const v of belongsTos) {
       this.belongsTo({
@@ -7747,8 +7416,10 @@ class Model<
       });
     }
 
-    const belongsToManys: TRelationQueryOptionsDecorator[] =
-      Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, this) || [];
+    const belongsToManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+      REFLECT_META_RELATIONS.belongsToMany, 
+      this
+    ) || [];
 
     for (const v of belongsToManys) {
       this.belongsToMany({
@@ -7758,6 +7429,22 @@ class Model<
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
+
+    if (this.$pattern != null) this.usePattern(this.$pattern);
+
+    if (this.$table != null) this.useTable(this.$table);
+
+    if (this.$uuid != null) this.useUUID(this.$uuidColumn);
+
+    if (this.$timestamp != null) this.useTimestamp(this.$timestampColumns);
+
+    if (this.$softDelete != null) this.useSoftDelete(this.$softDeleteColumn);
+
+    if (this.$validateSchema != null) {
+      this.useValidateSchema(this.$validateSchema);
+    }
+     
+    if (this.$observer != null) this.useObserver(this.$observer);
 
     return this;
   }
@@ -7819,15 +7506,16 @@ class Model<
   }
 
   private _initialModel(): this {
-    this.$state = new StateHandler("model");
+
+    this.$cache = Cache;
+
+    this.$state = new StateManager("model");
 
     this.meta("MAIN");
 
     this._makeTableName();
 
-    this.$relation = new RelationHandler(this);
-
-    this._mapReflectMetadata();
+    this.$relation = new RelationManager(this);
 
     if (globalSettings.debug) this.useDebug();
 
@@ -7846,20 +7534,7 @@ class Model<
       });
     }
 
-    if (this.$pattern != null) this.usePattern(this.$pattern);
-
-    if (this.$table != null) this.useTable(this.$table);
-
-    if (this.$uuid != null) this.useUUID(this.$uuidColumn);
-
-    if (this.$timestamp != null) this.useTimestamp(this.$timestampColumns);
-
-    if (this.$softDelete != null) this.useSoftDelete(this.$softDeleteColumn);
-
-    if (this.$validateSchema != null)
-      this.useValidateSchema(this.$validateSchema);
-
-    if (this.$observer != null) this.useObserver(this.$observer);
+    this._mapReflectMetadata();
 
     return this;
   }

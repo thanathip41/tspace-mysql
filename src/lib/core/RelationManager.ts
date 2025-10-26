@@ -1,21 +1,17 @@
 import pluralize     from "pluralize";
-import { Model }     from "../Model";
-import { Blueprint } from "../Blueprint";
-import { TRelationOptions, TRelationQueryOptions } from "../../types";
+import { Model }     from "./Model";
+import { Blueprint } from "./Blueprint";
+import type { 
+    TRelationOptions, 
+    TRelationQueryOptions 
+} from "../types";
 
-class RelationHandler  {
+class RelationManager  {
 
     private $model : Model
-    private $logger : { 
-        get: Function; 
-        set: (value: string) => void; 
-        reset: () => void; 
-        check: (value: string) => boolean; 
-    };
-
+    
     constructor(model : Model) {
-        this.$model = model
-        this.$logger = this.$model["$logger"]
+        this.$model = model;
     }
 
     async load (parents: Record<string,any>[] , relation: TRelationOptions) {
@@ -489,9 +485,7 @@ class RelationHandler  {
         freezeTable,
     } : TRelationQueryOptions , callback ?: Function) {
 
-        const nameRelation = name == null 
-            ? this._functionTRelationOptionsName() 
-            : String(name)
+        const nameRelation = name
 
         const relation = {
             name : nameRelation,
@@ -526,9 +520,7 @@ class RelationHandler  {
         freezeTable,
     } : TRelationQueryOptions , callback ?: Function) {
 
-        const nameRelation = name == null 
-            ? this._functionTRelationOptionsName() 
-            : String(name)
+        const nameRelation = name 
 
         const relation = {
             name : nameRelation,
@@ -563,9 +555,7 @@ class RelationHandler  {
         freezeTable,
     } : TRelationQueryOptions , callback ?: Function) {
 
-        const nameRelation = name == null 
-            ? this._functionTRelationOptionsName() 
-            : String(name)
+        const nameRelation = name;
 
         const relation = {
             name : nameRelation,
@@ -601,9 +591,7 @@ class RelationHandler  {
         pivot
     } : TRelationQueryOptions , callback ?: Function) {
 
-        const nameRelation = name == null 
-            ? this._functionTRelationOptionsName() 
-            : String(name)
+        const nameRelation = name;
 
         const relation = {
             name : nameRelation,
@@ -630,7 +618,7 @@ class RelationHandler  {
 
     }
 
-    private _handleRelationExists (relation : TRelationOptions) : string {
+    protected _handleRelationExists (relation : TRelationOptions) : string {
 
         if(!Object.keys(relation)?.length) {
             throw this._assertError(`Unknown the relation`)
@@ -821,12 +809,6 @@ class RelationHandler  {
         return r
     }
 
-    private _functionTRelationOptionsName () : string {
-        const functionName = [...this.$logger.get()][this.$logger.get().length - 2]
-
-        return functionName.replace(/([A-Z])/g, (str:string) => `_${str.toLowerCase()}`)
-    }
-
     private _relationMapData({
         parents,
         childs,
@@ -900,8 +882,6 @@ class RelationHandler  {
 
         const hidden = this.$model["$state"].get("HIDDEN");
         
-        if (hidden.length) this.$model["_hiddenColumnModel"](parents)
-
         return parents
     }
 
@@ -980,8 +960,6 @@ class RelationHandler  {
                 }
             }
 
-            if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
-
             return parents
         }
 
@@ -1039,8 +1017,6 @@ class RelationHandler  {
                 }
             }
            
-            if(this.$model['$state'].get('HIDDEN').length) this.$model['_hiddenColumnModel'](parents)
-
             return parents
         }
 
@@ -1093,10 +1069,6 @@ class RelationHandler  {
                 parent[alias].push(data)
                 
             }
-        }
-
-        if(this.$model['$state'].get('HIDDEN').length) {
-            this.$model['_hiddenColumnModel'](parents)
         }
 
         return parents
@@ -1263,5 +1235,5 @@ class RelationHandler  {
     }
 }
 
-export { RelationHandler }
-export default RelationHandler
+export { RelationManager }
+export default RelationManager
