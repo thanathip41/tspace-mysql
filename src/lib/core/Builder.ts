@@ -62,9 +62,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set(
       "ROW_LEVEL_LOCK",
-      mode === "FOR_UPDATE"
-        ? this.$constants("ROW_LEVEL_LOCK").update
-        : this.$constants("ROW_LEVEL_LOCK").share
+      mode
     );
 
     return this;
@@ -96,19 +94,30 @@ class Builder extends AbstractBuilder {
   }): this {
     if (options?.select != null && options.select)
       this.$state.set("SELECT", []);
-    if (options?.join != null && options.join) this.$state.set("JOIN", []);
-    if (options?.where != null && options.where) this.$state.set("WHERE", []);
+
+    if (options?.join != null && options.join) 
+      this.$state.set("JOIN", []);
+
+    if (options?.where != null && options.where) 
+      this.$state.set("WHERE", []);
+
     if (options?.groupBy != null && options.groupBy)
       this.$state.set("GROUP_BY", []);
+
     if (options?.having != null && options.having)
-      this.$state.set("HAVING", "");
+      this.$state.set("HAVING", null);
+
     if (options?.orderBy != null && options.orderBy)
       this.$state.set("ORDER_BY", []);
-    if (options?.limit != null && options.limit) this.$state.set("LIMIT", "");
+
+    if (options?.limit != null && options.limit) 
+      this.$state.set("LIMIT", null);
+
     if (options?.offset != null && options.offset)
-      this.$state.set("OFFSET", "");
+      this.$state.set("OFFSET", null);
+
     if (options?.alias != null && options.alias)
-      this.$state.set("RAW_ALIAS", "");
+      this.$state.set("RAW_ALIAS", null);
 
     return this;
   }
@@ -327,9 +336,11 @@ class Builder extends AbstractBuilder {
     this.$state.set("TABLE_NAME", table === '' || table == null ? null : `\`${table.replace(/`/g, "")}\``);
 
     if(push) {
+      const froms = push.map(from => this.$utils.checkValueHasRaw(from)) as string[];
+  
       this.$state.set('FROM',[
         ...this.$state.get("FROM"),
-        ...push.map(from => this.$utils.checkValueHasRaw(from))
+        ...froms
       ])
     }
     return this;
@@ -1218,8 +1229,7 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  whereBetween(column: string, array: any[]): this {
-    if (!Array.isArray(array)) throw new Error("Value is't array");
+  whereBetween(column: string, array: [any,any]): this {
 
     if (!array.length) {
       this.$state.set("WHERE", [
@@ -1262,9 +1272,8 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  orWhereBetween(column: string, array: any[]): this {
-    if (!Array.isArray(array)) throw new Error("Value is't array");
-
+  orWhereBetween(column: string, array: [any,any]): this {
+    
     if (!array.length) {
       this.$state.set("WHERE", [
         ...this.$state.get("WHERE"),
@@ -2225,25 +2234,11 @@ class Builder extends AbstractBuilder {
       condition = condition?.replace(this.$constants("RAW"), "");
     }
 
-    this.$state.set("HAVING", `${this.$constants("HAVING")} ${condition}`);
+    this.$state.set("HAVING", `${condition}`);
 
     return this;
   }
 
-  /**
-   * The 'havingRaw' method is used to add a conditional clause to a database query that filters the result set after the GROUP BY operation has been applied.
-   *
-   * It is typically used in conjunction with the GROUP BY clause to filter aggregated data based on some condition.
-   *
-   * The having clause allows you to apply conditions to aggregated values, such as the result of COUNT, SUM, AVG, or other aggregate functions.
-   *
-   * This method allows you to specify raw-sql parameters for the query.
-   * @param {string} condition
-   * @returns {this}
-   */
-  havingRaw(condition: string): this {
-    return this.having(condition);
-  }
   /**
    * The 'limit' method is used to limit the number of records returned by a database query.
    *
@@ -2283,7 +2278,7 @@ class Builder extends AbstractBuilder {
 
     if (number < 0 || number === -0) number = 0;
 
-    this.$state.set("OFFSET", `${this.$constants("OFFSET")} ${number}`);
+    this.$state.set("OFFSET", number);
 
     if (!this.$state.get("LIMIT")) this.limit(number);
 
@@ -2835,7 +2830,10 @@ class Builder extends AbstractBuilder {
    * @returns {string} return table name
    */
   getTableName(): string {
-    return this.$state.get("TABLE_NAME").replace(/\`/g, "");
+    const name = this.$state.get("TABLE_NAME");
+    if(name == null) return '';
+    
+    return name.replace(/\`/g, "");
   }
 
   /**
@@ -2849,7 +2847,13 @@ class Builder extends AbstractBuilder {
     Nullable   : "YES" | "NO";
     Default    : string | null;
   }[]> {
-    return await this.showColumns(this.$state.get("TABLE_NAME"), { raw: true });
+    const tableName = this.$state.get("TABLE_NAME")
+
+    if(tableName == null) {
+      throw new Error('Unknown table name')
+    }
+
+    return await this.showColumns(tableName, { raw: true });
   }
 
   /**
@@ -2864,7 +2868,13 @@ class Builder extends AbstractBuilder {
     Default  : string | null;
     Extra    : string | null;
   }[]> {
-    return await this.showSchema(this.$state.get("TABLE_NAME"), { raw: true });
+     const tableName = this.$state.get("TABLE_NAME")
+
+    if(tableName == null) {
+      throw new Error('Unknown table name')
+    }
+
+    return await this.showSchema(tableName, { raw: true });
   }
 
   async getFKs(table?: string): Promise<{
@@ -2875,7 +2885,7 @@ class Builder extends AbstractBuilder {
   }[]> {
     const sql = this._queryBuilder().getFKs({
       database: this.$database,
-      table: table ?? this.$state.get("TABLE_NAME"),
+      table: table ?? String(this.$state.get("TABLE_NAME")),
     });
     return await this.rawQuery(sql);
   }
@@ -2883,7 +2893,7 @@ class Builder extends AbstractBuilder {
   async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasFK({
       database: this.$database,
-      table: table ?? this.$state.get("TABLE_NAME"),
+      table: table ?? String(this.$state.get("TABLE_NAME")),
       constraint
     });
     const result = await this.rawQuery(sql);
@@ -2900,7 +2910,7 @@ class Builder extends AbstractBuilder {
   }[]> {
     const sql = this._queryBuilder().getIndexes({
       database: this.$database,
-      table: table ?? this.$state.get("TABLE_NAME"),
+      table: table ?? String(this.$state.get("TABLE_NAME")),
     });
     return await this.rawQuery(sql);
   }
@@ -2908,7 +2918,7 @@ class Builder extends AbstractBuilder {
   async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasIndex({
       database: this.$database,
-      table: table ?? this.$state.get("TABLE_NAME"),
+      table: table ?? String(this.$state.get("TABLE_NAME")),
       index
     });
     const result = await this.rawQuery(sql);
@@ -2933,7 +2943,7 @@ class Builder extends AbstractBuilder {
 
       return [
         alias == null || alias === ""
-          ? `\`${this.getTableName().replace(/`/g, "")}\``
+          ? `\`${this.getTableName()?.replace(/`/g, "")}\``
           : `\`${alias.replace(/`/g, "")}\``,
         ".",
         `\`${column.replace(/`/g, "")}\``,
@@ -3979,7 +3989,7 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showColumns(
-    table: string = this.$state.get("TABLE_NAME"),
+    table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
     const sql = this._queryBuilder().getColumns({
@@ -4005,7 +4015,7 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showSchema(
-    table: string = this.$state.get("TABLE_NAME"),
+    table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
     const sql = this._queryBuilder().getSchema({
@@ -4066,7 +4076,7 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<Array>}
    */
   async showValues(
-    table: string = this.$state.get("TABLE_NAME")
+    table: string = String(this.$state.get("TABLE_NAME"))
   ): Promise<any[]> {
     const sql: string = [
       `${this.$constants("SELECT")}`,
@@ -4163,6 +4173,10 @@ class Builder extends AbstractBuilder {
     const table = this.getTableName();
 
     for (const data of chunked) {
+      if(table == null) {
+        throw new Error('Unknown table name')
+      }
+      
       promises.push(() => {
         return new DB(table)
           .debug(this.$state.get("DEBUG"))
@@ -4235,12 +4249,14 @@ class Builder extends AbstractBuilder {
       return false;
     }
 
+    const tableName = String(this.$state.get("TABLE_NAME"))
+
     const sql: string = [
       db
-        ? this._queryBuilder().dropDatabase(this.$state.get("TABLE_NAME"))
+        ? this._queryBuilder().dropDatabase(tableName)
         : view
-        ? this._queryBuilder().dropView(this.$state.get("TABLE_NAME"))
-        : this._queryBuilder().dropTable(this.$state.get("TABLE_NAME")),
+        ? this._queryBuilder().dropView(tableName)
+        : this._queryBuilder().dropTable(tableName),
     ].join(" ");
 
     if (!force) {
@@ -4338,31 +4354,41 @@ class Builder extends AbstractBuilder {
     const newInstance = new Builder();
 
     newInstance.$state.clone(copy);
-    newInstance.$state.set("SAVE", "");
+    newInstance.$state.set("SAVE", null);
     newInstance.$state.set("DEBUG", false);
 
     if (options?.insert == null || !options.insert)
-      newInstance.$state.set("INSERT", "");
+      newInstance.$state.set("INSERT", null);
+
     if (options?.update == null || !options.update)
-      newInstance.$state.set("UPDATE", "");
+      newInstance.$state.set("UPDATE", null);
+
     if (options?.delete == null || !options.delete)
-      newInstance.$state.set("DELETE", "");
+      newInstance.$state.set("DELETE", null);
+
     if (options?.where == null || !options.where)
       newInstance.$state.set("WHERE", []);
+
     if (options?.limit == null || !options.limit)
-      newInstance.$state.set("LIMIT", "");
+      newInstance.$state.set("LIMIT", null);
+
     if (options?.offset == null || !options.offset)
-      newInstance.$state.set("OFFSET", "");
+      newInstance.$state.set("OFFSET", null);
+
     if (options?.groupBy == null || !options.groupBy)
-      newInstance.$state.set("GROUP_BY", "");
+      newInstance.$state.set("GROUP_BY", []);
+
     if (options?.orderBy == null || !options.orderBy)
       newInstance.$state.set("ORDER_BY", []);
+
     if (options?.select == null || !options.select)
       newInstance.$state.set("SELECT", []);
+
     if (options?.join == null || !options.join)
       newInstance.$state.set("JOIN", []);
+
     if (options?.having == null || !options.having)
-      newInstance.$state.set("HAVING", "");
+      newInstance.$state.set("HAVING", null);
 
     return newInstance;
   }
@@ -4911,6 +4937,7 @@ class Builder extends AbstractBuilder {
 
       return CONSTANTS[name];
     };
+
   }
 }
 

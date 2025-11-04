@@ -37,7 +37,8 @@ import {
   REFLECT_META_PATTERN, 
   REFLECT_META_TIMESTAMP, 
   REFLECT_META_OBSERVER, 
-  REFLECT_META_UUID
+  REFLECT_META_UUID,
+  REFLECT_META_HOOKS
 } from "./Decorator";
 
 let globalSettings: TGlobalSetting = {
@@ -127,7 +128,7 @@ class Model<
    * @static
    * @returns {string} name of the table
    */
-  static get table(): string {
+  static get table(): string | null {
     return new this().getTableName();
   }
 
@@ -191,8 +192,25 @@ class Model<
   }
 
   /**
+   *  The 'boot' method is a special method that you can define within a model.
+   *  @example
+   *  class User extends Model {
+   *     boot() {
+   *       this.useUUID()
+   *       this.usePrimaryKey('id')
+   *       this.useTimestamp()
+   *       this.useSoftDelete()
+   *     }
+   *  }
+   * @returns {void} void
+   */
+  protected boot(): void {}
+
+  
+  /**
    * The 'globalScope' method is a feature that allows you to apply query constraints to all queries for a given model.
    *
+   * Suported only methods -> select , except , where , orderBy, GroupBy , limit and offset
    * @example
    *  class User extends Model {
    *     constructor() {
@@ -215,13 +233,13 @@ class Model<
       throw new Error(`Unknown callback query: '${repository}'`);
 
     this.$state.set("GLOBAL_SCOPE_QUERY", () => {
-      const select: string[] = repository?.$state.get("SELECT") || [];
-      const except: string[] = repository?.$state.get("EXCEPTS") || [];
-      const where: string[] = repository?.$state.get("WHERE") || [];
-      const groupBy: string[] = repository?.$state.get("GROUP_BY") || [];
-      const orderBy: string[] = repository?.$state.get("ORDER_BY") || [];
-      const limit: string = repository?.$state.get("LIMIT");
-      const offset: string = repository?.$state.get("OFFSET");
+      const select  : string[]      = repository?.$state.get("SELECT") || [];
+      const except  : string[]      = repository?.$state.get("EXCEPTS") || [];
+      const where   : string[]      = repository?.$state.get("WHERE") || [];
+      const groupBy : string[]      = repository?.$state.get("GROUP_BY") || [];
+      const orderBy : string[]      = repository?.$state.get("ORDER_BY") || [];
+      const limit   : number | null = repository?.$state.get("LIMIT") || null;
+      const offset  : number | null = repository?.$state.get("OFFSET") || null;
 
       if (select.length) {
         this.$state.set("SELECT", [...this.$state.get("SELECT"), ...select]);
@@ -258,12 +276,12 @@ class Model<
         ]);
       }
 
-      if (!Number.isNaN(+limit)) {
-        this.$state.set("LIMIT", limit);
+      if (limit != null) {
+        this.$state.set("LIMIT", this.$state.get("LIMIT") ?? limit);
       }
 
-      if (!Number.isNaN(+offset)) {
-        this.$state.set("OFFSET", offset);
+      if (offset != null) {
+        this.$state.set("OFFSET", this.$state.get("OFFSET") ?? offset);
       }
 
     });
@@ -271,20 +289,26 @@ class Model<
     return this;
   }
 
+  
   /**
-   *  The 'boot' method is a special method that you can define within a model.
-   *  @example
+   * The 'useGlobalScope' method is a feature that allows you to apply query constraints to all queries for a given model.
+   *
+   * Suported only methods -> select , except , where , orderBy, GroupBy , limit and offset
+   * 
+   * @example
    *  class User extends Model {
-   *     boot() {
-   *       this.useUUID()
-   *       this.usePrimaryKey('id')
-   *       this.useTimestamp()
-   *       this.useSoftDelete()
-   *     }
+   *     constructor() {
+   *      super()
+   *      this.useGlobalScope(query => {
+   *           return query.where('id' , '>' , 10)
+   *      })
+   *   }
    *  }
    * @returns {void} void
    */
-  protected boot(): void {}
+  protected useGlobalScope<M extends Model>(callback: (query: M) => M): this {
+    return this.globalScope(callback);
+  }
 
   /**
    * The "useObserve" method is used to pattern refers to a way of handling model events using observer classes.
@@ -659,6 +683,8 @@ class Model<
    * }
    */
   protected useValidationSchema(schema?: TValidateSchema): this {
+    if(schema == null) return this;
+    
     this.$state.set("VALIDATE_SCHEMA", true);
     this.$state.set("VALIDATE_SCHEMA_DEFINED", schema);
     return this;
@@ -710,8 +736,8 @@ class Model<
    *   }
    * }
    */
-  protected useHooks(arrayFunctions: Function[]): this {
-    for (const func of arrayFunctions) {
+  protected useHooks(funs: Function[]): this {
+    for (const func of funs) {
       if (typeof func !== "function")
         throw this._assertError(`this 'function' is not a function`);
       this.$state.set("HOOKS", [...this.$state.get("HOOKS"), func]);
@@ -814,6 +840,34 @@ class Model<
   }
 
   /**
+   * The "beforeCreatingTable" method is used exection function when creating the table.
+   * @param {Function[]} funcs functions for executing before creating the table
+   * @returns {this} this
+   * @example
+   * class User extends Model {
+   *   constructor() {
+   *     this.beforeCreatingTable(async () => {
+   *         await new User()
+   *          .create({
+   *            ...columns
+   *          })
+   *          .save()
+   *      })
+   *   }
+   * }
+   */
+  protected beforeInsert(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("BEFORE_INSERTS", [...this.$state.get("BEFORE_INSERTS"), func]);
+    }
+
+    return this;
+  }
+
+  /**
    * exceptColumns for method except
    * @override
    * @returns {promise<string>} string
@@ -839,8 +893,8 @@ class Model<
     for (const tableName of tableNames) {
       const isHasSchema = [
         schemaColumns != null,
-        tableName.replace(/`/g, "") ===
-          this.$state.get("TABLE_NAME").replace(/`/g, ""),
+        tableName?.replace(/`/g, "") ===
+          this.$state.get("TABLE_NAME")?.replace(/`/g, ""),
       ].every((d) => d);
 
       if (isHasSchema) {
@@ -1487,7 +1541,8 @@ class Model<
       having?: boolean;
       relations?: boolean;
     }
-  ): Model {
+  ): this {
+    
     if (!(instance instanceof Model)) {
       throw this._assertError("This instance is not an instanceof Model.");
     }
@@ -1497,7 +1552,7 @@ class Model<
     const newInstance = new Model();
 
     newInstance.$state.clone(copy);
-    newInstance.$state.set("SAVE", "");
+    newInstance.$state.set("SAVE", null);
     newInstance.$state.set("DEBUG", false);
     newInstance.$state.set("LOGGER", false);
     newInstance.$state.set("AUDIT", null);
@@ -1505,30 +1560,41 @@ class Model<
 
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
+
     if (options?.insert == null || !options.insert)
-      newInstance.$state.set("INSERT", "");
+      newInstance.$state.set("INSERT", null);
+
     if (options?.update == null || !options.update)
-      newInstance.$state.set("UPDATE", "");
+      newInstance.$state.set("UPDATE", null);
+
     if (options?.delete == null || !options.delete)
-      newInstance.$state.set("DELETE", "");
+      newInstance.$state.set("DELETE", null);
+
     if (options?.select == null || !options.select)
       newInstance.$state.set("SELECT", []);
+
     if (options?.join == null || !options.join)
       newInstance.$state.set("JOIN", []);
+
     if (options?.where == null || !options.where)
       newInstance.$state.set("WHERE", []);
+
     if (options?.groupBy == null || !options.groupBy)
       newInstance.$state.set("GROUP_BY", []);
+
     if (options?.having == null || !options.having)
-      newInstance.$state.set("HAVING", "");
+      newInstance.$state.set("HAVING", null);
+
     if (options?.orderBy == null || !options.orderBy)
       newInstance.$state.set("ORDER_BY", []);
-    if (options?.limit == null || !options.limit)
-      newInstance.$state.set("LIMIT", "");
-    if (options?.offset == null || !options.offset)
-      newInstance.$state.set("OFFSET", "");
 
-    return newInstance;
+    if (options?.limit == null || !options.limit)
+      newInstance.$state.set("LIMIT", null);
+
+    if (options?.offset == null || !options.offset)
+      newInstance.$state.set("OFFSET", null);
+
+    return newInstance as this
   }
 
   /**
@@ -1773,7 +1839,9 @@ class Model<
    *  await new User().with('posts').findMany()
    *
    */
-  with<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  with<
+    K extends T.RelationKeys<this>
+  >(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set(
@@ -1781,7 +1849,7 @@ class Model<
       this.$relation.apply(nameRelations, "default")
     );
 
-    return this;
+    return this as any;
   }
 
   /**
@@ -2791,7 +2859,7 @@ class Model<
    *
    * @returns {string} string
    */
-  toTableName(): string {
+  toTableName(): string | null {
     return this.getTableName();
   }
 
@@ -3368,7 +3436,7 @@ class Model<
    */
   whereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
-    subQuery: string | Model,
+    subQuery: string | Model | DB,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
@@ -3400,7 +3468,7 @@ class Model<
    */
   whereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
-    subQuery: string | Model,
+    subQuery: string | Model | DB,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
@@ -3432,7 +3500,7 @@ class Model<
    */
   orWhereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
-    subQuery: string | Model,
+    subQuery: string | Model | DB,
     options: {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
@@ -3464,7 +3532,7 @@ class Model<
    */
   orWhereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
-    subQuery: string | Model,
+    subQuery: string | Model | DB,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
@@ -3494,9 +3562,8 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
-    if (!Array.isArray(array)) array = [array];
-
+  whereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
+    
     if (!array.length) {
       this.$state.set("WHERE", [
         ...this.$state.get("WHERE"),
@@ -3540,9 +3607,8 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
-    if (!Array.isArray(array)) array = [array];
-
+  orWhereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
+    
     if (!array.length) {
       this.$state.set("WHERE", [
         ...this.$state.get("WHERE"),
@@ -4419,8 +4485,8 @@ class Model<
       model2.alias(alias2);
     }
 
-    const table1 = model1.getTableName();
-    const table2 = model2.getTableName();
+    const table1 = model1.getTableName() as string;
+    const table2 = model2.getTableName() as string;
 
     localKey = localKey === "" || localKey == null ? "id" : localKey;
 
@@ -4941,17 +5007,6 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const query = this._queryInsertModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
-
     this.$state.set("SAVE", "INSERT");
 
     return this;
@@ -5247,16 +5302,6 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const query: string = this._queryInsertModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
     return this;
@@ -5503,6 +5548,8 @@ class Model<
    * @returns {this} this
    */
   validation(schema?: TValidateSchema): this {
+    if(schema == null) return this;
+
     this.$state.set("VALIDATE_SCHEMA", true);
     this.$state.set("VALIDATE_SCHEMA_DEFINED", schema);
     return this;
@@ -6333,6 +6380,24 @@ class Model<
     return this._buildQueryStatement();
   }
 
+  private async _beforeInsertData() {
+    let data = this.$state.get("DATA");
+
+    const beforeInserts = this.$state.get('BEFORE_INSERTS') ?? [];
+
+    if(beforeInserts.length) { 
+      for(const fn of beforeInserts) { 
+        data = await fn(data); 
+      } 
+
+      if(data == null) {
+        throw new Error('BeforeInsert hooks must return the final data object.')
+      }
+    }
+
+    return data;
+  }
+
   private async _validateSchema(
     data: Record<any, string>,
     action: "insert" | "update"
@@ -6931,7 +6996,20 @@ class Model<
 
     if (check) return this._resultHandler(null);
 
-    await this._validateSchema(this.$state.get("DATA"), "insert");
+    const data = await this._beforeInsertData();
+
+    const query = this._queryInsertModel(data);
+
+    this.$state.set(
+      "INSERT",
+      [
+        `${this.$constants("INSERT")}`,
+        `\`${this.getTableName()}\``,
+        `${query}`,
+      ].join(" ")
+    );
+
+    await this._validateSchema(data, "insert");
 
     const result = await this._actionStatement(this._queryBuilder().insert());
 
@@ -6961,7 +7039,21 @@ class Model<
   }
 
   private async _insertModel(): Promise<any> {
-    await this._validateSchema(this.$state.get("DATA"), "insert");
+
+    const data = await this._beforeInsertData();
+
+    const query = this._queryInsertModel(data);
+
+    this.$state.set(
+      "INSERT",
+      [
+        `${this.$constants("INSERT")}`,
+        `\`${this.getTableName()}\``,
+        `${query}`,
+      ].join(" ")
+    );
+
+    await this._validateSchema(data, "insert");
 
     const result = await this._actionStatement(this._queryBuilder().insert());
 
@@ -7445,6 +7537,22 @@ class Model<
     }
      
     if (this.$observer != null) this.useObserver(this.$observer);
+
+    const hooks = Reflect.getMetadata(
+      REFLECT_META_HOOKS, 
+      this
+    ) || [];
+
+    if(hooks.length) this.useHooks(hooks);
+
+    const beforeInserts =  Reflect.getMetadata(
+      "model:beforeInsert", 
+      this
+    ) || [];
+
+    if(beforeInserts.length) {
+      this.beforeInsert(beforeInserts);
+    }
 
     return this;
   }

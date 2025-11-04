@@ -20,14 +20,21 @@ abstract class AbstractBuilder {
         username : String(Config.USERNAME),
         password : Config.PASSWORD
     }
+
     protected $driver  = String(Config.DRIVER ?? 'mysql') as TDriver;
+
     protected $cluster : boolean = Boolean(Config.CLUSTER ?? false);
     
     protected $constants !: (name ?: keyof TConstant) => any
 
     protected $state !: StateManager
 
-    protected $pool: { query : Function , set : Function , get : Function,queryBuilder : Function } = {
+    protected $pool: { 
+        query : Function;
+        set : Function;
+        get : Function;
+        queryBuilder : Function 
+    } = {
         query: (sql :string) => {},
         set: (pool : any) => {},
         get: () => {},
@@ -59,7 +66,6 @@ abstract class AbstractBuilder {
     abstract whereBetween (column: string , arrayValue: any[]): this
     abstract whereNotBetween (column: string , arrayValue: any[]): this
     abstract having (condition: string) : this
-    abstract havingRaw (condition: string) : this
     abstract join (pk: string | ((join: Join) => Join) , fk?: string): this
     abstract rightJoin (pk: string | ((join: Join) => Join) , fk?: string): this
     abstract leftJoin (pk: string | ((join: Join) => Join) , fk?: string): this

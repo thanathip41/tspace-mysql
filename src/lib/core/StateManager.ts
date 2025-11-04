@@ -1,13 +1,18 @@
+
 import { Blueprint } from "./Blueprint";
+import type { 
+    TSave, 
+    TValidateSchema 
+} from "../types";
 
 const STATE_DEFAULT = {
   PRIMARY_KEY: 'id' as string,
   VOID: false as boolean,
-  DISTINCT: false,
-  SAVE: '' as string,
-  DELETE: '' as string,
-  UPDATE: '' as string,
-  INSERT: '' as string,
+  DISTINCT: false as boolean,
+  SAVE: null as TSave | null,
+  DELETE: null as string | null,
+  UPDATE: null as string | null,
+  INSERT: null as string | null,
   SELECT: [] as string[],
   ADD_SELECT: [] as string[],
   ONLY: [] as string[],
@@ -17,10 +22,10 @@ const STATE_DEFAULT = {
   WHERE: [] as string[],
   GROUP_BY: [] as string[],
   ORDER_BY: [] as string[],
-  LIMIT: '' as string,
-  OFFSET: '' as string,
-  HAVING: '' as string,
-  TABLE_NAME: '' as string,
+  LIMIT: null as number | null,
+  OFFSET: null as number | null,
+  HAVING: null as string | null,
+  TABLE_NAME: null as string | null,
   HIDDEN: [] as string[],
   DEBUG: false as boolean,
   CTE: [] as string[],
@@ -31,7 +36,7 @@ const STATE_DEFAULT = {
   RAW_ALIAS: null as string | null,
   UNION: [] as string[],
   UNION_ALL: [] as string[],
-  ROW_LEVEL_LOCK : '' as string
+  ROW_LEVEL_LOCK : null as "FOR_UPDATE" | "FOR_SHARE" | null
 } as const
 
 const STATE_DB = {
@@ -40,9 +45,9 @@ const STATE_DB = {
 
 const STATE_MODEL = {
   ...STATE_DEFAULT,
-  AUDIT : null,
-  AUDIT_METADATA : null,
-  MODEL_NAME: 'MODEL' as string,
+  AUDIT : null as number | null,
+  AUDIT_METADATA : null as Record<string,any> | null,
+  MODEL_NAME: 'model' as string,
   UUID_FORMAT: 'uuid' as string,
   UUID: false as boolean,
   SOFT_DELETE: false as boolean,
@@ -52,14 +57,14 @@ const STATE_MODEL = {
   PATTERN: 'default' as string,
   RELATION: [] as any[],
   RELATIONS: [] as any[],
-  RELATIONS_TRASHED: false,
-  RELATIONS_EXISTS: false,
-  TIMESTAMP: false,
+  RELATIONS_TRASHED: false as boolean,
+  RELATIONS_EXISTS: false as boolean,
+  TIMESTAMP: false as boolean,
   TIMESTAMP_FORMAT: {
     CREATED_AT: 'created_at' as string,
     UPDATED_AT: 'updated_at' as string,
   } as const,
-  LOGGER: false,
+  LOGGER: false as boolean,
   LOGGER_OPTIONS: null as { 
     selected : boolean;
     inserted : boolean;
@@ -69,22 +74,23 @@ const STATE_MODEL = {
   TABLE_LOGGER: '$loggers' as string,
   TABLE_AUDIT : '$audits' as string,
   VALIDATE_SCHEMA: false as boolean,
-  VALIDATE_SCHEMA_DEFINED: null as string | null,
+  VALIDATE_SCHEMA_DEFINED: null as TValidateSchema | null,
   FUNCTION_RELATION: false as boolean,
   SCHEMA_TABLE: null as Record<string, Blueprint> | null,
   RETRY: 0 as number,
   OBSERVER: null as (new () => any) | null,
   DATA: null as any | null,
   BEFORE_CREATING_TABLE: null as Function | null,
-  GLOBAL_SCOPE: true,
+  GLOBAL_SCOPE: true as boolean,
   GLOBAL_SCOPE_QUERY: null as Function | null,
   QUERIES: [] as string[],
-  META: '' as string,
-  CACHE: null as { key : string, set : Function , expires: number } | null,
+  META: null as string | null,
+  CACHE: null as { key : string, expires: number } | null,
   MIDDLEWARES: [] as Function[],
+  BEFORE_INSERTS: [] as Function[]
 } as const
 
-type TState = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT
+type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT
 
 class StateManager {
     private STATE : { currentState : Map<string,any> , defaultState : Map<string,any> } = {
@@ -135,16 +141,16 @@ class StateManager {
         return this.STATE.currentState 
     }
 
-    get<K extends keyof TState>(key : K)  { 
+    get<K extends keyof State>(key : K)  { 
 
         if(!this.STATE.currentState.has(key) && key !== 'DEBUG') {
             throw this._assertError(`This state does not have that key '${key}'`)
         }
        
-        return this.STATE.currentState.get(key) as TState[K]
+        return this.STATE.currentState.get(key) as State[K]
     }
     
-    set(key: keyof TState, value: any) : void {
+    set<K extends keyof State>(key: K, value: State[K]): void {
 
         if(!this.STATE.currentState.has(key)) {
             return this._assertError(`That key '${key}' can't be set in the state`)
@@ -163,11 +169,12 @@ class StateManager {
     }
 
     reset () : void {
-       
-        this.STATE.currentState.set('INSERT','') 
-        this.STATE.currentState.set('UPDATE','')
-        this.STATE.currentState.set('DELETE','')
-        this.STATE.currentState.set('SAVE','')
+        // the reset state was set only statement query;
+        
+        this.STATE.currentState.set('INSERT',null) 
+        this.STATE.currentState.set('UPDATE',null)
+        this.STATE.currentState.set('DELETE',null)
+        this.STATE.currentState.set('SAVE',null)
         this.STATE.currentState.set('VOID',false)           
     }
 

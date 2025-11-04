@@ -541,15 +541,17 @@ class Blueprint<T = any> {
     instance._valueType = String;
     return instance;
   }
-
+  
   /**
    * Assign type 'ENUM'
    * @static
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  static enum<K extends string[]>(...enums: K): Blueprint<K[number]> {
-    return new Blueprint<K[number]>().enum(...enums);
+  static enum<K extends string | string[] | Record<string, string>>(
+    ...enums: (K extends string ? K : K)[]
+  ): Blueprint<K extends string ? K : K[keyof K]> {
+    return new Blueprint<K extends string ? K : K[keyof K]>().enum(...enums);
   }
 
   /**
@@ -557,13 +559,26 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  enum<K extends string[]>(...enums: K): Blueprint<K[number]> {
-    const instance = new Blueprint<K[number]>();
+  enum<K extends string | string[] | Record<string, string>>(
+    ...enums: (K extends string ? K : K)[]
+  ): Blueprint<K extends string ? K : K[keyof K]> {
+    const instance = new Blueprint<K extends string ? K : K[keyof K]>();
+
+    let enumValues: string[] = [];
+
+    if (enums.length === 1 && typeof enums[0] === 'object') {
+      enumValues = Object.values(enums[0] as Record<string, string>);
+    } else {
+      enumValues = enums as string[];
+    }
+
+    enumValues = enumValues.map(e => e.replace(/'/g, ''));
+
     instance._addAssignType(
-      `ENUM(${enums.map((e) => `'${e.replace(/'/g, "")}'`)})`
+      `ENUM(${enumValues.map(e => `'${e}'`).join(', ')})`
     );
     instance._valueType = String;
-    instance._enum = enums
+    instance._enum = enumValues as any;
     return instance;
   }
 

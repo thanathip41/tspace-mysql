@@ -70,6 +70,10 @@ export type TPagination<K = any> = {
     data: K[];
 };
 
+export type TSave = 
+| "INSERT" | "INSERT_MULTIPLE" | "INSERT_NOT_EXISTS" | "INSERT_OR_SELECT"
+| "UPDATE"  | "UPDATE_OR_INSERT"
+
 export type TBackup = {
     database: string;
     to?: {

@@ -151,11 +151,11 @@ export abstract class BaseDriver extends EventEmitter {
   }
 }
 export abstract class QueryBuilder {
-  protected $constants = (name: keyof TConstant): string => {
+  protected $constants = (name: keyof TConstant): any => {
     if (!CONSTANTS.hasOwnProperty(name))
       throw new Error(`Not found that constant : '${name}'`);
 
-    return CONSTANTS[name] as string;
+    return CONSTANTS[name]
   };
   protected $state!: StateManager;
 
@@ -317,7 +317,7 @@ export abstract class QueryBuilder {
     alias: string | null;
     rawAlias: string | null;
   }): string;
-  protected abstract bindLimit(limit: string | number): string;
-  protected abstract bindOffset(offset: string): string;
+  protected abstract bindLimit(limit: string | number | null): string;
+  protected abstract bindOffset(offset: string | number | null): string;
   protected abstract bindHaving(having: string): string;
 }

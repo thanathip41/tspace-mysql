@@ -8,7 +8,7 @@ class ModelMeta<M extends Model> {
      * @returns {string} The table name.
      */
     table(): string {
-        return this.model.toTableName();
+        return String(this.model.toTableName());
     }
 
     /**

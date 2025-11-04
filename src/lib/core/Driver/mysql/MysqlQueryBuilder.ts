@@ -11,8 +11,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
       this.bindSelect(this.$state.get("SELECT")),
       this.bindFrom({
         from: !this.$state.get("FROM").length
-          ? [this.$state.get("TABLE_NAME")]
-          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")],
+          ? [this.$state.get("TABLE_NAME")].map(String)
+          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")].map(String),
         alias: this.$state.get("ALIAS"),
         rawAlias: this.$state.get("RAW_ALIAS"),
       }),
@@ -52,6 +52,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
   };
 
   public insert() {
+    
     const sql = this.format([this.$state.get("INSERT")]);
     return sql;
   }
@@ -560,21 +561,31 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return `${this.$constants("FROM")} ${from.join(", ")}`;
   }
 
-  protected bindLimit(limit: string | number) {
+  protected bindLimit(limit: string | number | null) {
     if (limit === "" || limit == null) return "";
 
     return `${this.$constants("LIMIT")} ${limit}`;
   }
 
-  protected bindOffset(offset: string) {
-    return offset;
+  protected bindOffset(offset: string | number | null) {
+    if (offset === "" || offset == null) return "";
+
+    return `${this.$constants("OFFSET")} ${offset}`;
   }
 
-  protected bindHaving(having: string) {
-    return having;
+  protected bindHaving(having: string | null) {
+    if(having == null || having === '') return "";
+    
+    return `${this.$constants("HAVING")} ${having}`;
   }
 
-  protected bindRowLevelLock(mode: string) {
-    return mode;
+  protected bindRowLevelLock(mode: "FOR_UPDATE" | "FOR_SHARE" | null) {
+    if(mode == null) return '';
+
+    const modeLock = mode === "FOR_UPDATE"
+    ? this.$constants("ROW_LEVEL_LOCK").update
+    : this.$constants("ROW_LEVEL_LOCK").share
+
+    return modeLock;
   }
 }

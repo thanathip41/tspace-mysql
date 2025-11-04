@@ -41,6 +41,9 @@ export const REFLECT_META_SOFT_DELETE = {
 
 export const REFLECT_META_PATTERN = 'model:pattern';
 
+export const REFLECT_META_HOOKS = 'model:hooks';
+
+
 /**
  * Decorator to mark a class with a database table name.
  *
@@ -293,8 +296,7 @@ export const Column = (blueprint: () => Blueprint): Function => {
     if (!propertyKey) {
       throw new Error("Unable to determine property name for Column decorator");
     }
-    if (!(blueprint() instanceof Blueprint)) return;
-
+    
     const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, target) || {};
 
     Reflect.defineMetadata(REFLECT_META_SCHEMA, {
@@ -476,4 +478,54 @@ export const BelongsToMany = (options: TRelationQueryOptionsDecorator): Function
       target
     );
   };
+};
+
+export const Hooks = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@Hooks() can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const hooks : Function[] = Reflect.getMetadata(REFLECT_META_HOOKS, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META_HOOKS, [...hooks, original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
+};
+
+export const BeforeInsert = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@BeforeInsert can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata("model:beforeInsert", target) || [];
+    
+    Reflect.defineMetadata("model:beforeInsert", [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
 };
