@@ -2844,10 +2844,8 @@ class Model<
     this.$state.set(
       "UPDATE",
       [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `SET ${query}`,
-      ].join(" ")
+        `${query}`
+      ]
     );
 
     this.$state.set("SAVE", "UPDATE");
@@ -5058,16 +5056,7 @@ class Model<
 
     this.limit(1);
 
-    const query = this._queryUpdateModel(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdateModel(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5105,16 +5094,7 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const query = this._queryUpdateModel(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdateModel(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5147,16 +5127,7 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const query = this._queryUpdateModel(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdateModel(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5178,29 +5149,11 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    const queryUpdate: string = this._queryUpdateModel(data);
+    this._queryUpdateModel(data);
 
-    const queryInsert: string = this._queryInsertModel(data);
+    this._queryInsertModel(data);
 
     this.$state.set("DATA", data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryInsert}`,
-      ].join(" ")
-    );
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryUpdate}`,
-      ].join(" ")
-    );
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
@@ -5258,16 +5211,7 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const queryInsert: string = this._queryInsertModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryInsert}`,
-      ].join(" ")
-    );
+    this._queryInsertModel(data);
 
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
@@ -5334,16 +5278,7 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    const query = this._queryInsertMultipleModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsertMultipleModel(data);
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
@@ -5389,7 +5324,11 @@ class Model<
   /**
    *
    * @override
-   * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
+   * @param {Array<{when: Record<string, string | number | boolean | null | undefined>, columns: Record<string, string | number | boolean | null | undefined>}>>} cases
+   *   An array of update cases.
+   *   - `when` is an object specifying the conditions to match records.
+   *   - `columns` is an object specifying the new values to set for the matched records.
+   *
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
@@ -5513,17 +5452,11 @@ class Model<
       }`;
     });
 
-    const query = `${this.$constants("SET")} ${keyValue.join(", ")}`;
-
     this.$state.set("DATA", columns);
 
     this.$state.set(
       "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
+      keyValue
     );
 
     this.whereRaw("1");
@@ -6821,7 +6754,12 @@ class Model<
       }`;
     });
 
-    return `${this.$constants("SET")} ${keyValue.join(", ")}`;
+    this.$state.set(
+      "UPDATE",
+      keyValue
+    );
+
+    return;
   }
 
   private _queryInsertModel(data: Record<string, any>) {
@@ -6883,13 +6821,14 @@ class Model<
       }`;
     });
 
-    const sql = [
-      `(${columns.join(", ")})`,
-      `${this.$constants("VALUES")}`,
-      `(${values.join(", ")})`,
-    ].join(" ");
+    this.$state.set(
+      "INSERT", {
+        columns,
+        values: [values.join(', ')]
+      }
+    );
 
-    return sql;
+    return;
   }
 
   private _queryInsertMultipleModel(data: any[]) {
@@ -6962,22 +6901,27 @@ class Model<
         }`;
       });
 
-      values = [...values, `(${v.join(",")})`];
+      values = [...values, `${v.join(",")}`];
 
       newData.push(objects);
     }
 
     this.$state.set("DATA", newData);
 
-    return [
-      `(${[
-        ...new Set(
-          columns.map((c) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``)
-        ),
-      ].join(",")})`,
-      `${this.$constants("VALUES")}`,
-      `${values.join(", ")}`,
-    ].join(" ");
+    columns = [
+      ...new Set(
+        columns.map((c) => `\`${this._valuePattern(c).replace(/\`/g, "")}\``)
+      ),
+    ]
+
+    this.$state.set(
+      "INSERT", {
+        columns,
+        values
+      }
+    );
+
+    return 
   }
 
   private async _insertNotExistsModel(): Promise<any> {
@@ -6998,16 +6942,7 @@ class Model<
 
     const data = await this._beforeInsertData();
 
-    const query = this._queryInsertModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsertModel(data);
 
     await this._validateSchema(data, "insert");
 
@@ -7042,16 +6977,7 @@ class Model<
 
     const data = await this._beforeInsertData();
 
-    const query = this._queryInsertModel(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsertModel(data);
 
     await this._validateSchema(data, "insert");
 

@@ -52,18 +52,41 @@ export class MysqlQueryBuilder extends QueryBuilder {
   };
 
   public insert() {
+    const query = this.$state.get("INSERT");
+    if (!query) return '';
+
+    const table = this.$state.get("TABLE_NAME");
+    const columns = `(${query.columns})`;
     
-    const sql = this.format([this.$state.get("INSERT")]);
+    const values = query.values.map(v => `(${v})`).join(', ');
+
+    const sql = this.format([
+      this.$constants("INSERT"),
+      table,
+      columns,
+      this.$constants("VALUES"),
+      values
+    ]);
+
     return sql;
   }
 
   public update() {
+    const query = this.$state.get("UPDATE")
+    if(query == null) {
+      return '';
+    }
+
     const sql = this.format([
-      this.$state.get("UPDATE"),
+      `${this.$constants("UPDATE")}`,
+      `${this.$state.get("TABLE_NAME")}`,
+      `${this.$constants("SET")}`,
+      `${query}`,
       this.bindWhere(this.$state.get("WHERE")),
       this.bindOrderBy(this.$state.get("ORDER_BY")),
       this.bindLimit(this.$state.get("LIMIT")),
     ]);
+    
     return sql;
   }
 

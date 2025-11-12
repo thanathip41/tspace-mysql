@@ -2322,16 +2322,7 @@ class Builder extends AbstractBuilder {
       }
     }
 
-    const query = this._queryUpdate(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdate(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -2363,16 +2354,7 @@ class Builder extends AbstractBuilder {
       }
     }
 
-    const query = this._queryUpdate(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdate(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -2380,16 +2362,23 @@ class Builder extends AbstractBuilder {
   }
 
   /**
+   * The 'updateMultiple' method is used to update records in a table based on specific conditions.
    *
-   * The 'updateMultiple' method is used to update existing records in a database table that are associated.
+   * This method allows updating multiple rows at once by specifying an array of update cases.
+   * Each case defines which records to update (`when`) and the new values to apply (`columns`).
    *
-   * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+   * @param {Array<{when: Record<string, string | number | boolean | null | undefined>, columns: Record<string, string | number | boolean | null | undefined>}>>} cases
+   *   An array of update cases.
+   *   - `when` is an object specifying the conditions to match records.
+   *   - `columns` is an object specifying the new values to set for the matched records.
    *
-   * It allows you to remove more records that match certain criteria.
-   * @param {{when : Object , columns : Object}[]} cases update multiple data specific columns by cases update
-   * @property {Record<string,string | number | boolean | null | undefined>}  cases.when
-   * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
-   * @returns {this} this
+   * @returns {this} Returns the current instance for method chaining.
+   *
+   * @example
+   * new User().updateMultiple([
+   *   { when: { id: 1 }, columns: { status: 'active', updatedAt: new Date() } },
+   *   { when: { id: 2 }, columns: { status: 'inactive', updatedAt: new Date() } }
+   * ]);
    */
   updateMultiple(
     cases: { when: Record<string, any>; columns: Record<string, any> }[]
@@ -2477,15 +2466,9 @@ class Builder extends AbstractBuilder {
       }`;
     });
 
-    const query = `${this.$constants("SET")} ${keyValue.join(", ")}`;
-
     this.$state.set(
       "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
+      keyValue
     );
 
     this.$state.set("SAVE", "UPDATE");
@@ -2513,16 +2496,7 @@ class Builder extends AbstractBuilder {
       data[column] = this._updateHandler(column, value);
     }
 
-    const query = this._queryUpdate(data);
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryUpdate(data);
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -2540,16 +2514,7 @@ class Builder extends AbstractBuilder {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
-    const query = this._queryInsert(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsert(data);
 
     this.$state.set("SAVE", "INSERT");
 
@@ -2564,23 +2529,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   create(data: Record<string, any>): this {
-    if (!Object.keys(data).length)
-      throw new Error("This method must be required");
-
-    const query = this._queryInsert(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
-
-    this.$state.set("SAVE", "INSERT");
-
-    return this;
+    return this.insert(data);
   }
 
   /**
@@ -2594,16 +2543,7 @@ class Builder extends AbstractBuilder {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
-    const query = this._queryInsertMultiple(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `\`${this.getTableName()}\``,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsertMultiple(data);
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
@@ -2652,15 +2592,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   createNotExists(data: Record<string, any>): this {
-    const query: string = this._queryInsert(data);
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
-    );
+    this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
     return this;
@@ -2688,17 +2620,7 @@ class Builder extends AbstractBuilder {
    * @returns {this} this this
    */
   createOrSelect(data: Record<string, any> & { length?: never }): this {
-    const queryInsert: string = this._queryInsert(data);
-
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryInsert}`,
-      ].join(" ")
-    );
-
+    this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
     return this;
@@ -2728,26 +2650,9 @@ class Builder extends AbstractBuilder {
   updateOrCreate(data: Record<string, any> & { length?: never }): this {
     this.limit(1);
 
-    const queryUpdate: string = this._queryUpdate(data);
-    const queryInsert: string = this._queryInsert(data);
+    this._queryUpdate(data);
 
-    this.$state.set(
-      "INSERT",
-      [
-        `${this.$constants("INSERT")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryInsert}`,
-      ].join(" ")
-    );
-
-    this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${queryUpdate}`,
-      ].join(" ")
-    );
+    this._queryInsert(data);
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
@@ -3136,14 +3041,11 @@ class Builder extends AbstractBuilder {
    * @returns {promise<any>}
    */
   async increment(column: string = "id", value: number = 1): Promise<any> {
-    const query = `${this.$constants("SET")} ${column} = ${column} + ${value}`;
     this.$state.set(
       "UPDATE",
       [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
+        `${column} = ${column} + ${value}`
+      ]
     );
 
     return await this._update(true);
@@ -3157,14 +3059,10 @@ class Builder extends AbstractBuilder {
    * @returns {promise<any>}
    */
   async decrement(column: string = "id", value: number = 1): Promise<any> {
-    const query = `${this.$constants("SET")} ${column} = ${column} - ${value}`;
     this.$state.set(
-      "UPDATE",
-      [
-        `${this.$constants("UPDATE")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-        `${query}`,
-      ].join(" ")
+      "UPDATE", [
+        `${column} = ${column} - ${value}`,
+      ]
     );
     return await this._update(true);
   }
@@ -4703,7 +4601,12 @@ class Builder extends AbstractBuilder {
       }`;
     });
 
-    return `${this.$constants("SET")} ${values}`;
+    this.$state.set(
+      "UPDATE",
+      values
+    );
+
+    return;
   }
 
   private _queryInsert(data: Record<string, any>) {
@@ -4735,9 +4638,14 @@ class Builder extends AbstractBuilder {
       }`;
     });
 
-    return [`(${columns})`, `${this.$constants("VALUES")}`, `(${values})`].join(
-      " "
+    this.$state.set(
+      "INSERT", {
+        columns : columns,
+        values : [values.join(', ')]
+      }
     );
+
+    return;
   }
 
   private _queryInsertMultiple(data: any[]) {
@@ -4766,18 +4674,21 @@ class Builder extends AbstractBuilder {
             : this.$utils.checkValueHasRaw(value)
         }`;
       });
-      values.push(`(${vals.join(",")})`);
+      values.push(`${vals.join(",")}`);
     }
 
     const columns: string[] = Object.keys([...data]?.shift()).map(
       (c: string) => `\`${c.replace(/\`/g, "")}\``
     );
 
-    return [
-      `(${columns})`,
-      `${this.$constants("VALUES")}`,
-      `${values.join(",")}`,
-    ].join(" ");
+    this.$state.set(
+      "INSERT", {
+        columns : columns,
+        values : values
+      }
+    );
+
+    return;
   }
 
   private _handleJoin(

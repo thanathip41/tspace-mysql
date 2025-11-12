@@ -980,11 +980,11 @@ class RepositoryHandler<
     }
 
     /**
-     * The 'updateMultiple' method is used to update existing records in a database table that are associated. 
-     * 
-     * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
-     * 
-     * It allows you to remove more records that match certain criteria.
+     * The 'updateMultiple' method is used to update records in a table based on specific conditions.
+     *
+     * This method allows updating multiple rows at once by specifying an array of update cases.
+     * Each case defines which records to update (`when`) and the new values to apply (`columns`).
+     *
      * @type     {object} options
      * @property {object} options.data
      * @property {object} options.where

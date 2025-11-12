@@ -52,17 +52,43 @@ export class PostgresQueryBuilder extends QueryBuilder {
   };
 
   public insert() {
-    const sql = this.format([this.$state.get("INSERT"), "RETURNING *"]);
+    const query = this.$state.get("INSERT");
+    if (!query) return '';
+
+    const table = this.$state.get("TABLE_NAME");
+    const columns = `(${query.columns})`;
+    
+    const values = query.values.map(v => `(${v})`).join(', ');
+
+    const sql = this.format([
+      this.$constants("INSERT"),
+      table,
+      columns,
+      this.$constants("VALUES"),
+      values,
+      "RETURNING *"
+    ]);
+
     return sql;
   }
-
+ 
   public update() {
+    const query = this.$state.get("UPDATE")
+    if(query == null) {
+      return '';
+    }
+
     const sql = this.format([
-      this.$state.get("UPDATE"),
+      `${this.$constants("UPDATE")}`,
+      `${this.$state.get("TABLE_NAME")}`,
+      `${this.$constants("SET")}`,
+      `${query}`,
       this.bindWhere(this.$state.get("WHERE")),
       this.bindOrderBy(this.$state.get("ORDER_BY")),
+      /* this.bindLimit(this.$state.get("LIMIT")) postgres does't support limit when update */
       "RETURNING *",
     ]);
+    
     return sql;
   }
 
