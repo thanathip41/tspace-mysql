@@ -34,6 +34,10 @@ abstract class AbstractModel extends Builder {
         updated:  Function,
         deleted:  Function 
     })
+    protected $transforms         !: Record<string ,{ 
+        before : (value: unknown) => any;
+        after  : (value: unknown) => any 
+    }>
 
 
     protected abstract useUUID(): this

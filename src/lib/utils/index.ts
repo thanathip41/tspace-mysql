@@ -461,6 +461,37 @@ export { ${model} }
 export default ${model}`
 }
 
+const applyTransforms = async ({ result, transforms , action } : {
+    result: any,
+    transforms: Record<string, { 
+        before?: (v: any) => any | Promise<any>, 
+        after?: (v: any) => any | Promise<any> 
+    }>
+    action : 'before' | 'after'
+}) : Promise<void> => {
+
+  if (Array.isArray(result)) {
+    const promises = result.map(item => applyTransforms({result: item, transforms , action }))
+    await Promise.all(promises);
+    return;
+  }
+
+  if (result === null || typeof result !== 'object') {
+    return;
+  }
+
+  for (const key in transforms) {
+    if (key in result) {
+      const fn = transforms[key][action];
+      if (fn) {
+        result[key] = await fn(result[key]);
+      }
+    }
+  }
+
+  return;
+}
+
 const utils = {
     typeOf,
     isDate,
@@ -489,7 +520,8 @@ const utils = {
     valueAndOperator,
 
     baseModelTemplate,
-    decoratorModelTemplate
+    decoratorModelTemplate,
+    applyTransforms
 }
 
 export type TUtils = typeof utils

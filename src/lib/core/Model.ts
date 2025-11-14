@@ -38,7 +38,8 @@ import {
   REFLECT_META_TIMESTAMP, 
   REFLECT_META_OBSERVER, 
   REFLECT_META_UUID,
-  REFLECT_META_HOOKS
+  REFLECT_META_HOOKS,
+  REFLECT_META_TRANSFORM
 } from "./Decorator";
 
 let globalSettings: TGlobalSetting = {
@@ -1849,7 +1850,7 @@ class Model<
       this.$relation.apply(nameRelations, "default")
     );
 
-    return this as any;
+    return this;
   }
 
   /**
@@ -6715,6 +6716,14 @@ class Model<
       }
     }
 
+    if(this.$transforms) {
+      await this.$utils.applyTransforms({ 
+        result, 
+        transforms : this.$transforms, 
+        action : 'after' 
+      })
+    }
+
     await this.$utils.hookHandle(this.$state.get("HOOKS"), result);
 
     await this._observer(result, "selected");
@@ -7384,6 +7393,12 @@ class Model<
     const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, this) || null;
 
     if (schema) this.$schema = schema;
+
+    const transforms = Reflect.getMetadata(REFLECT_META_TRANSFORM, this) || null;
+
+    if(transforms) {
+      this.$transforms = transforms;
+    }
 
     const validate = Reflect.getMetadata(
       REFLECT_META_VALIDATE_SCHEMA, 

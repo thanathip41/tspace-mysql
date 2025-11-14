@@ -43,6 +43,8 @@ export const REFLECT_META_PATTERN = 'model:pattern';
 
 export const REFLECT_META_HOOKS = 'model:hooks';
 
+export const REFLECT_META_TRANSFORM = 'model:transform';
+
 
 /**
  * Decorator to mark a class with a database table name.
@@ -528,4 +530,22 @@ export const BeforeInsert = (): Function => {
 
     return descriptor;
   }
+};
+
+export const Transform = ({ before , after } : {
+  before : (value: unknown) => any;
+  after  : (value: unknown) => any;
+}): Function => {
+  return (target: Object, propertyKey: string) => {
+    if (!propertyKey) {
+      throw new Error("Unable to determine property name for Transform decorator");
+    }
+    
+    const schema = Reflect.getMetadata(REFLECT_META_TRANSFORM, target) || {};
+
+    Reflect.defineMetadata(REFLECT_META_TRANSFORM, {
+      ...schema,
+      [propertyKey]: { before , after }
+    }, target);
+  };
 };
