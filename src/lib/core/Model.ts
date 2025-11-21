@@ -4997,8 +4997,16 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  insert<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(data: {
-    [P in K & keyof T]: T[P];
+  insert<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+    ? any
+    : undefined extends C[P]
+        ? never
+        : P]
+    : Extract<C[P], Date> extends never ? C[P] : any;
   }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5016,12 +5024,21 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  create<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(data: {
-    [P in K & keyof T]: T[P];
+  create<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+      ? any
+      : undefined extends C[P]
+          ? never
+          : P
+    ]: Extract<C[P], Date> extends never ? C[P] : any;
   }): this {
+    //@ts-ignore
     return this.insert(data);
   }
-
+  
   /**
    * @override
    * @param {object} data

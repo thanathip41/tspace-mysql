@@ -1,5 +1,9 @@
-import { TFreezeStringQuery, TOperatorQuery, TRawStringQuery } from "..";
-import { Model }          from "../../core/Model";
+import { Model } from "../../core/Model";
+import type { 
+    TFreezeStringQuery, 
+    TOperatorQuery, 
+    TRawStringQuery 
+} from "..";
 
 export type TRelationQueryOptionsDecorator<K = any> = {
     name?: K extends void ? never : K;
@@ -20,7 +24,8 @@ export type TRelationQueryOptionsDecorator<K = any> = {
 };
 
 export type TColumnsDecorator<T> = {
-    [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]: T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
+    [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]:
+        T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery;
 };
 
 export type TRelationsDecorator<T> = Pick<T, {
@@ -28,5 +33,14 @@ export type TRelationsDecorator<T> = Pick<T, {
 }[keyof T]>;
 
 export type TResultDecorator<M extends Model> = {
-    [K in keyof M as M[K] extends Function ? never : K]-?: M[K] extends string | number | boolean | Date ? M[K] : M[K] extends Model ? TResultDecorator<M[K]> | undefined : M[K] extends Array<infer U> ? U extends Model ? TResultDecorator<U>[] | undefined : M[K] : M[K];
-};
+    [K in keyof M as M[K] extends Function ? never : K]-?: 
+        M[K] extends string | number | boolean | Date 
+            ? M[K] 
+            : M[K] extends Model 
+                ? TResultDecorator<M[K]> | undefined 
+                : M[K] extends Array<infer U> 
+                    ? U extends Model 
+                        ? TResultDecorator<U>[] | undefined 
+                        : M[K] 
+                    : M[K];
+}

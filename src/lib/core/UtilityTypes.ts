@@ -31,6 +31,9 @@ import type {
     TRepositoryUpdateMultiple, 
     TRepositoryWhere 
 } from "../types/repository";
+
+declare const UniqueSymbol: unique symbol;
+
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
  *
@@ -184,6 +187,28 @@ export type TSchemaKeyOf<M extends Model, T = TSchemaModel<M>> = keyof {
 } extends never ? string : keyof {
     [K in keyof T as string extends K ? never : K]: T[K];
 };
+
+type DeepExpand<T> = T extends Date
+    ? T
+    : T extends Function
+        ? T
+        
+        : T extends (infer U)[]
+            ? DeepExpand<U>[]
+            : T extends object
+                ? { [K in keyof T]: DeepExpand<T[K]> }
+                : T;
+
+type ResultResolved<M extends Model, K = {}> = (
+    unknown extends TResult<M>
+        ? unknown extends TResultDecorator<M>
+            ? Record<K & string, any>
+            : {} extends TResultDecorator<M>
+                ? Record<K & string, any>
+                : TResultDecorator<K & M>
+        : TResult<K & M>
+);
+
 export declare namespace T {
     // This type is not support any decorator from Model;
     // for mark generic type and set to Model.
@@ -204,14 +229,7 @@ export declare namespace T {
 
     type Repository<M extends Model> = ReturnType<typeof Repository<M>>;
 
-    type Result<M extends Model, K = {}> =
-        unknown extends TResult<M>
-            ? unknown extends TResultDecorator<M>
-                ? Record<K & string, any>
-                : {} extends TResultDecorator<M>
-                    ? Record<K & string, any>
-                    : TResultDecorator<K & M>
-            : TResult<K & M>;
+    type Result<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
 
     type ResultPaginate<M extends Model, K = {}> = TPagination<Result<M, K>>;
 
@@ -258,7 +276,6 @@ export declare namespace T {
                     : never;
               }[keyof TColumnsDecorator<M>];
 
-  
     type Relations<M extends Model> =
         keyof TColumnsDecorator<M> extends never
             ? TRelationModel<M>
