@@ -146,6 +146,9 @@ describe("Testing Model without Pattern & Schema", function () {
     const deleted = await new Post().where("id", 6).delete();
     expect(deleted).to.be.an("boolean");
     expect(deleted).to.be.equal(true);
+
+    const forecDeleted = await new Post().where("id", 9999).forceDelete();
+    expect(forecDeleted).to.be.an("boolean");
   });
 
   it(`Model: Start to mock up the data in table 'postUser' for testing CRUD

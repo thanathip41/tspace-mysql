@@ -333,8 +333,18 @@ class Builder extends AbstractBuilder {
    * @returns {this} this
    */
   from(table: string | null, { push }: { push?: string[] } = {}): this {
-    this.$state.set("TABLE_NAME", table === '' || table == null ? null : `\`${table.replace(/`/g, "")}\``);
+    this.$state.set("TABLE_NAME", table === '' || table == null 
+      ? null 
+      : table.includes(this.$constants('RAW')) 
+        ? this.$utils.checkValueHasRaw(table) as string
+        : `\`${table.replace(/`/g, "")}\``
+      );
 
+    // this.$state.set("TABLE_NAME", table === '' || table == null 
+    //   ? null 
+    //   :`\`${table.replace(/`/g, "")}\``
+    // );
+  
     if(push) {
       const froms = push.map(from => this.$utils.checkValueHasRaw(from)) as string[];
   
@@ -3580,14 +3590,7 @@ class Builder extends AbstractBuilder {
 
     this.limit(1);
 
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
     return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
@@ -3604,14 +3607,7 @@ class Builder extends AbstractBuilder {
       throw new Error("can't delete without where condition");
     }
 
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
@@ -3628,14 +3624,7 @@ class Builder extends AbstractBuilder {
    * @returns {promise<boolean>}
    */
   async forceDelete(): Promise<boolean> {
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 

@@ -39,9 +39,6 @@ await new DB().table('users').find(1)
 await new DB().table('users').alias('u').find(1)
 // SELECT * FROM `users` AS `u` WHERE `u`.`id` = '1' LIMIT 1;
 
-await new DB().fromRaw('u',new DB('users').select('*').limit(1).toString()).find(1)
-// SELECT * FROM ( SELECT * FROM `users` LIMIT 1 ) AS `u` WHERE `u`.`id` = '1' LIMIT 1;
-
 await new DB().alias('u',new DB('users').select('*').limit(1).toString()).find(1)
 // SELECT * FROM ( SELECT * FROM `users` LIMIT 1 ) AS `u` WHERE `u`.`id` = '1' LIMIT 1;
 

@@ -37,7 +37,7 @@ abstract class AbstractModel extends Builder {
     protected $transforms         !: Record<string ,{ 
         before : (value: unknown) => any;
         after  : (value: unknown) => any 
-    }>
+    }> | null
 
 
     protected abstract useUUID(): this

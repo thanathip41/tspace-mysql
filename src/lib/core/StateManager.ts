@@ -10,7 +10,7 @@ const STATE_DEFAULT = {
   VOID: false as boolean,
   DISTINCT: false as boolean,
   SAVE: null as TSave | null,
-  DELETE: null as string | null,
+  DELETE: false as boolean | null,
   UPDATE: null as string[] | null,
   INSERT: null as { columns: string[] , values: string[] } | null,
   SELECT: [] as string[],
@@ -87,7 +87,8 @@ const STATE_MODEL = {
   META: null as string | null,
   CACHE: null as { key : string, expires: number } | null,
   MIDDLEWARES: [] as Function[],
-  BEFORE_INSERTS: [] as Function[]
+  BEFORE_INSERTS: [] as Function[],
+  TRANSFORMS : null as Record<string ,{ before : (value: unknown) => any; after  : (value: unknown) => any }> | null
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

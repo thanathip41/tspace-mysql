@@ -466,10 +466,12 @@ const applyTransforms = async ({ result, transforms , action } : {
     transforms: Record<string, { 
         before?: (v: any) => any | Promise<any>, 
         after?: (v: any) => any | Promise<any> 
-    }>
+    }> | null
     action : 'before' | 'after'
 }) : Promise<void> => {
 
+  if(transforms == null) return;
+  
   if (Array.isArray(result)) {
     const promises = result.map(item => applyTransforms({result: item, transforms , action }))
     await Promise.all(promises);

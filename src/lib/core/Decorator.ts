@@ -532,9 +532,9 @@ export const BeforeInsert = (): Function => {
   }
 };
 
-export const Transform = ({ before , after } : {
-  before : (value: unknown) => any;
-  after  : (value: unknown) => any;
+export const Transform = ({ to , from } : {
+  to : (value: unknown) => any;
+  from  : (value: unknown) => any;
 }): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) {
@@ -545,7 +545,7 @@ export const Transform = ({ before , after } : {
 
     Reflect.defineMetadata(REFLECT_META_TRANSFORM, {
       ...schema,
-      [propertyKey]: { before , after }
+      [propertyKey]: { before : to , after : from }
     }, target);
   };
 };

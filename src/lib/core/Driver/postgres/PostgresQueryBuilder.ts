@@ -93,12 +93,27 @@ export class PostgresQueryBuilder extends QueryBuilder {
   }
 
   public remove() {
-    const sql = this.format([
-      this.$state.get("DELETE"),
+    const query = this.$state.get("DELETE");
+
+    if(!query) {
+      throw new Error("Bad query builder: DELETE state not found. Please check your query configuration.") 
+    }
+
+    let sql = this.format([
+      this.$constants("DELETE"),
+      this.$constants("FROM"),
+      this.$state.get("TABLE_NAME"),
       this.bindWhere(this.$state.get("WHERE")),
       this.bindOrderBy(this.$state.get("ORDER_BY")),
-      "RETURNING *",
+       "RETURNING *",
     ]);
+
+    if (this.$state.get("CTE").length) {
+      sql = `${this.$constants("WITH")} ${this.$state
+        .get("CTE")
+        .join(", ")} ${sql}`;
+    }
+
     return sql;
   }
 

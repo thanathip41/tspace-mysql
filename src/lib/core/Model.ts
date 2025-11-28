@@ -428,6 +428,14 @@ class Model<
     return this;
   }
 
+  protected useTransform (transforms : Record<string ,{ 
+    before : (value: unknown) => any;
+    after  : (value: unknown) => any;
+  }>) : this {
+    this.$state.set('TRANSFORMS',transforms);
+    return this;
+  }
+
   /**
    * The "usePrimaryKey" method is add primary keys for database tables.
    *
@@ -4520,32 +4528,38 @@ class Model<
         this.$state.get("SOFT_DELETE_FORMAT")
       );
 
-      const sql = new Model()
-        .copyModel(this, { where: true, limit: true })
-        .update({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .bind(this.$pool.get())
-        .debug(this.$state.get("DEBUG"))
-        .toString();
+      await new Model()
+      .copyModel(this, { where: true, limit: true, orderBy: true })
+      .update({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .save();
 
-      const result = await this._actionStatement(sql);
-
-      const r = Boolean(this._resultHandler(!!result || false));
+      const r = Boolean(this._resultHandler(true));
 
       await this._observer(r, "updated");
 
       return r;
     }
 
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    const PK = this.$state.get('PRIMARY_KEY');
+    const TEMP = 'TEMP';
+
+    this
+    .CTEs(TEMP, (query) => {
+      return query
+      .copyModel(this, { where: true , limit : true , orderBy : true })
+      .select(PK)
+    })
+    .whereSubQuery(
+      PK,
+      `${new Model().from(TEMP).select(PK)}`
+    )
+    .unset({ limit : true })
+
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
@@ -4562,38 +4576,43 @@ class Model<
    */
   async deleteMany(): Promise<boolean> {
     this._guardWhereCondition();
-
     if (this.$state.get("SOFT_DELETE")) {
       const deletedAt = this._valuePattern(
         this.$state.get("SOFT_DELETE_FORMAT")
       );
+ 
+      await new Model()
+      .copyModel(this, { where: true, limit: true })
+      .debug(this.$state.get("DEBUG"))
+      .bind(this.$pool.get())
+      .updateMany({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .save();
 
-      const sql = new Model()
-        .copyModel(this, { where: true, limit: true })
-        .debug(this.$state.get("DEBUG"))
-        .bind(this.$pool.get())
-        .updateMany({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .toString();
-
-      const result = await this._actionStatement(sql);
-
-      const r = Boolean(this._resultHandler(!!result || false));
+      const r = Boolean(this._resultHandler(true));
 
       await this._observer(r, "updated");
 
       return r;
     }
 
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    const PK = this.$state.get('PRIMARY_KEY');
+    const TEMP = 'TEMP';
+
+    this
+    .CTEs(TEMP, (query) => {
+      return query
+      .copyModel(this, { where: true , limit : true , orderBy : true })
+      .select(PK)
+    })
+    .whereSubQuery(
+      PK,
+      `${new Model().from(TEMP).select(PK)}`
+    )
+    .unset({ limit : true })
+
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
@@ -4606,7 +4625,7 @@ class Model<
 
   /**
    *
-   * The 'delete' method is used to delete records from a database table based on the specified query conditions.
+   * The 'forceDelete' method is used to delete records from a database table based on the specified query conditions.
    *
    * It allows you to remove one or more records that match certain criteria.
    *
@@ -4616,14 +4635,25 @@ class Model<
   async forceDelete(): Promise<boolean> {
     this.disableSoftDelete();
 
-    this.$state.set(
-      "DELETE",
-      [
-        `${this.$constants("DELETE")}`,
-        `${this.$constants("FROM")}`,
-        `${this.$state.get("TABLE_NAME")}`,
-      ].join(" ")
-    );
+    const PK = this.$state.get('PRIMARY_KEY');
+    const TEMP = 'TEMP';
+
+    const from = new Model()
+    .copyModel(this, { where: true , limit : true , orderBy : true })
+    .selectRaw(PK)
+
+    this
+    .unset({ where : true , limit : true})
+    .select(PK)
+    .whereSubQuery(
+      PK,
+      new Model().from(DB.raw(`
+        (${from}) AS ${TEMP}`
+      )).selectRaw(PK).toString()
+    )
+    // 
+
+    this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
@@ -5074,7 +5104,10 @@ class Model<
 
     this.limit(1);
 
-    this._queryUpdateModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+    }
+  
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5112,7 +5145,9 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    this._queryUpdateModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+    }
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5145,7 +5180,9 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    this._queryUpdateModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+    }
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5167,9 +5204,10 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this._queryUpdateModel(data);
-
-    this._queryInsertModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+      this._queryInsertModel();
+    }
 
     this.$state.set("DATA", data);
 
@@ -5229,7 +5267,9 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    this._queryInsertModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertModel();
+    }
 
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
@@ -5263,6 +5303,10 @@ class Model<
     }
 
     this.$state.set("DATA", data);
+
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertModel();
+    }
 
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
@@ -5537,6 +5581,7 @@ class Model<
       }
        
       case "INSERT_NOT_EXISTS": {
+      
         return await this._insertNotExistsModel();
       }
        
@@ -6346,6 +6391,8 @@ class Model<
       }
     }
 
+    this.$state.set('DATA',data);
+
     return data;
   }
 
@@ -6733,10 +6780,10 @@ class Model<
       }
     }
 
-    if(this.$transforms) {
+    if(this.$state.get('TRANSFORMS') != null) {
       await this.$utils.applyTransforms({ 
         result, 
-        transforms : this.$transforms, 
+        transforms : this.$state.get('TRANSFORMS'), 
         action : 'after' 
       })
     }
@@ -6750,7 +6797,8 @@ class Model<
     return result;
   }
 
-  private _queryUpdateModel(objects: Record<string, any>) {
+  private async _queryUpdateModel() {
+    let objects =  this.$state.get("DATA");
     objects = this.$utils.covertDateToDateString(objects);
 
     if (this.$state.get("TIMESTAMP")) {
@@ -6764,6 +6812,14 @@ class Model<
             ? this.$utils.timestamp()
             : this.$utils.covertDateToDateString(objects[updatedAt]),
       };
+    }
+
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this.$utils.applyTransforms({ 
+        result: objects, 
+        transforms : this.$state.get('TRANSFORMS'), 
+        action : 'before' 
+      })
     }
 
     const keyValue = Object.entries(objects).map(([column, value]) => {
@@ -6788,7 +6844,9 @@ class Model<
     return;
   }
 
-  private _queryInsertModel(data: Record<string, any>) {
+  private async _queryInsertModel() {
+    let data = this.$state.get('DATA');
+
     this.$utils.covertDateToDateString(data);
 
     const hasTimestamp = Boolean(this.$state.get("TIMESTAMP"));
@@ -6809,6 +6867,14 @@ class Model<
             ? this.$utils.timestamp()
             : this.$utils.covertDateToDateString(data[updatedAt]),
       };
+    }
+
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this.$utils.applyTransforms({ 
+        result: data, 
+        transforms : this.$state.get('TRANSFORMS'), 
+        action : 'before' 
+      })
     }
 
     const hasUUID = data.hasOwnProperty(this.$state.get("UUID_FORMAT"));
@@ -6954,21 +7020,21 @@ class Model<
     this._guardWhereCondition();
 
     const check = await new Model()
-      .copyModel(this, {
-        where: true,
-        select: true,
-        limit: true,
-        relations: true,
-      })
-      .bind(this.$pool.get())
-      .debug(this.$state.get("DEBUG"))
-      .exists();
+    .copyModel(this, {
+      where: true,
+      select: true,
+      limit: true,
+      relations: true,
+    })
+    .bind(this.$pool.get())
+    .debug(this.$state.get("DEBUG"))
+    .exists();
 
     if (check) return this._resultHandler(null);
 
     const data = await this._beforeInsertData();
 
-    this._queryInsertModel(data);
+    await this._queryInsertModel();
 
     await this._validateSchema(data, "insert");
 
@@ -7003,8 +7069,8 @@ class Model<
 
     const data = await this._beforeInsertData();
 
-    this._queryInsertModel(data);
-
+    await this._queryInsertModel();
+    
     await this._validateSchema(data, "insert");
 
     const result = await this._actionStatement(this._queryBuilder().insert());
@@ -7079,6 +7145,11 @@ class Model<
   private async _updateOrInsertModel(): Promise<
     { [key: string]: any } | { [key: string]: any }[] | null
   > {
+
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryUpdateModel();
+    }
+
     this._guardWhereCondition();
 
     const check =
@@ -7169,14 +7240,18 @@ class Model<
   private async _insertOrSelectModel(): Promise<
     { [key: string]: any } | { [key: string]: any }[] | null
   > {
+    
     this._guardWhereCondition();
 
-    const check =
-      (await new Model()
-        .copyModel(this, { select: true, where: true, limit: true })
-        .bind(this.$pool.get())
-        .debug(this.$state.get("DEBUG"))
-        .exists()) || false;
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryInsertModel();
+    }
+
+    const check = await new Model()
+    .copyModel(this, { select: true, where: true, limit: true })
+    .bind(this.$pool.get())
+    .debug(this.$state.get("DEBUG"))
+    .exists()
 
     switch (check) {
       case false: {
@@ -7249,6 +7324,11 @@ class Model<
 
   private async _updateModel() {
     this._guardWhereCondition();
+
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryUpdateModel();
+      await this._queryInsertModel();
+    }
 
     await this._validateSchema(this.$state.get("DATA"), "update");
 
@@ -7479,6 +7559,10 @@ class Model<
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,
       });
     }
+
+    if(this.$schema != null) this.useSchema(this.$schema);
+
+    if(this.$transforms != null) this.useTransform(this.$transforms);
 
     if (this.$pattern != null) this.usePattern(this.$pattern);
 
