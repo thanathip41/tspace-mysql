@@ -135,10 +135,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(createds).to.be.an("array");
     expect(createds).to.be.jsonSchema(postSchemaArray);
 
-    const updated = (await new Post()
-      .where("id", 6)
-      .update({ title: "was update" })
-      .save()) as Record<string, any>;
+    const updated = (await new Post().where("id", 6).update({ title: "was update" }).save());
     expect(updated).to.be.an("object");
     expect(updated).to.be.jsonSchema(postSchemaObject);
     expect(updated.title).to.be.equal("was update");
@@ -147,8 +144,13 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(deleted).to.be.an("boolean");
     expect(deleted).to.be.equal(true);
 
+    const deletedDisabledSoftDelete = await new Post().where("id", 6).disableSoftDelete().delete();
+    expect(deletedDisabledSoftDelete).to.be.an("boolean");
+    expect(deletedDisabledSoftDelete).to.be.equal(true);
+
     const forecDeleted = await new Post().where("id", 9999).forceDelete();
     expect(forecDeleted).to.be.an("boolean");
+    expect(forecDeleted).to.be.equal(false);
   });
 
   it(`Model: Start to mock up the data in table 'postUser' for testing CRUD

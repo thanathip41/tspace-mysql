@@ -10,3 +10,4 @@ node_modules
 package-lock.json
 npm-test.sqlite3
 app
+__tests-report__

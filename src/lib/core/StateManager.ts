@@ -88,7 +88,7 @@ const STATE_MODEL = {
   CACHE: null as { key : string, expires: number } | null,
   MIDDLEWARES: [] as Function[],
   BEFORE_INSERTS: [] as Function[],
-  TRANSFORMS : null as Record<string ,{ before : (value: unknown) => any; after  : (value: unknown) => any }> | null
+  TRANSFORMS : null as Record<string ,{ to : (value: unknown) => any; from  : (value: unknown) => any }> | null
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

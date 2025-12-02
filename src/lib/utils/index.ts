@@ -49,7 +49,7 @@ const escape = (v : any , hard = false) => {
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(v.includes('$RAW:') && !hard) return v
+    if(checkValueHasRaw(v) && !hard) return v
     return v.replace(/[\0\b\t\n\r\x1a\'\\]/g,"\\'")
 }
 
@@ -60,7 +60,7 @@ const escapeActions = (v : any) => {
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(v.includes('$RAW:')) return v
+    if(checkValueHasRaw(v)) return v
     return v.replace(/[\0\b\r\x1a\'\\]/g,"''")
 }
 
@@ -95,12 +95,12 @@ const generateUUID = () => {
     })
 }
 
-const covertBooleanToNumber = (data : any) => {
+const transfromBooleanToNumber = (data : any) => {
     if(typeOf(data) === 'boolean') return Number(data)
     return data
 }
 
-const covertDateToDateString = (data : any) => {
+const transfromDateToDateString = (data : any) => {
 
     const isDate = (d: unknown) => {
         return typeOf(d) === 'date'
@@ -351,13 +351,17 @@ const softNumber = (n : any) : number =>  {
 }
 
 const checkValueHasRaw = (value: unknown) => {
-    if (typeof value === 'string' && value.includes(CONSTANTS.RAW)) {
-      return `${covertBooleanToNumber(value)}`.replace(CONSTANTS.RAW, "");
-    }
-    return typeof value === 'number' ? value : `'${covertBooleanToNumber(value)}'`;
+   return typeof value === 'string' && value.includes(CONSTANTS.RAW)
 }
 
-const checkValueHasOp = (str: string) => {
+const transfromValueHasRaw = (value: unknown) => {
+    if (checkValueHasRaw(value)) {
+      return `${transfromBooleanToNumber(value)}`.replace(CONSTANTS.RAW, "");
+    }
+    return typeof value === 'number' ? value : `'${transfromBooleanToNumber(value)}'`;
+}
+
+const transfromValueHasOp = (str: string) => {
   if (typeof str !== "string") str = String(str);
 
   if (!str.includes(CONSTANTS.OP) || !str.includes(CONSTANTS.VALUE)) {
@@ -464,10 +468,10 @@ export default ${model}`
 const applyTransforms = async ({ result, transforms , action } : {
     result: any,
     transforms: Record<string, { 
-        before?: (v: any) => any | Promise<any>, 
-        after?: (v: any) => any | Promise<any> 
+        to?: (v: any) => any | Promise<any>, 
+        from?: (v: any) => any | Promise<any> 
     }> | null
-    action : 'before' | 'after'
+    action : 'to' | 'from'
 }) : Promise<void> => {
 
   if(transforms == null) return;
@@ -508,8 +512,8 @@ const utils = {
     escapeActions,
     escapeXSS,
     generateUUID,
-    covertBooleanToNumber,
-    covertDateToDateString,
+    transfromBooleanToNumber,
+    transfromDateToDateString,
     snakeCase,
     camelCase,
     randomString,
@@ -517,8 +521,9 @@ const utils = {
     chunkArray,
     wait,
     softNumber,
+    transfromValueHasRaw,
+    transfromValueHasOp,
     checkValueHasRaw,
-    checkValueHasOp,
     valueAndOperator,
 
     baseModelTemplate,

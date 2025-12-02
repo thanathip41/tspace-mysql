@@ -37,7 +37,7 @@ class Builder extends AbstractBuilder {
    * The 'driver' method is used to get current driver
    * @returns {string} driver
    */
-  driver(): string {
+  public driver(): string {
     return this.$driver;
   }
 
@@ -45,7 +45,7 @@ class Builder extends AbstractBuilder {
    * The 'database' method is used to get current database
    * @returns {string} database
    */
-  database(): string {
+  public database(): string {
     return this.$database;
   }
 
@@ -55,7 +55,7 @@ class Builder extends AbstractBuilder {
    * @param {string} mode
    * @returns {this} this
    */
-  rowLock(mode: "FOR_UPDATE" | "FOR_SHARE"): this {
+  public rowLock(mode: "FOR_UPDATE" | "FOR_SHARE"): this {
     if (!["FOR_UPDATE", "FOR_SHARE"].includes(mode)) {
       throw new Error(`Invalid lock mode: ${mode}`);
     }
@@ -81,7 +81,7 @@ class Builder extends AbstractBuilder {
    * @property {boolean | undefined} options.having
    * @returns {this} this
    */
-  unset(options: {
+  public unset(options: {
     select?: boolean;
     where?: boolean;
     join?: boolean;
@@ -127,7 +127,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {string} return sql query
    */
-  CTEs(as: string, callback: (query: Builder) => Builder): this {
+  public CTEs(as: string, callback: (query: Builder) => Builder): this {
     const query = callback(new DB().from(this.getTableName()));
 
     this.$state.set("CTE", [...this.$state.get("CTE"), `${as} AS (${query})`]);
@@ -140,7 +140,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {string} return sql query
    */
-  getQueries(): string[] {
+  public getQueries(): string[] {
     return this.$state.get("QUERIES");
   }
 
@@ -150,7 +150,7 @@ class Builder extends AbstractBuilder {
    * It allows you to retrieve unique values from one or more columns in the result set, eliminating duplicate rows.
    * @returns {this} this
    */
-  distinct(): this {
+  public distinct(): this {
     this.$state.set("DISTINCT", true);
 
     return this;
@@ -163,7 +163,7 @@ class Builder extends AbstractBuilder {
    * @param {string[]} ...columns
    * @returns {this} this
    */
-  select(...columns: string[]): this {
+  public select(...columns: string[]): this {
     if (!columns.length) {
       this.$state.set("SELECT", ["*"]);
       return this;
@@ -199,7 +199,7 @@ class Builder extends AbstractBuilder {
    * @param {string[]} ...columns
    * @returns {this} this
    */
-  selectRaw(...columns: string[]): this {
+  public selectRaw(...columns: string[]): this {
     if (!columns.length) return this;
 
     let select: string[] = columns.map((column: string) => {
@@ -228,7 +228,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {this} this
    */
-  select1(): this {
+  public select1(): this {
     this.$state.set("SELECT", [..."1"]);
 
     return this;
@@ -242,7 +242,7 @@ class Builder extends AbstractBuilder {
    * @param {string} alias as name of the column
    * @returns {this} this
    */
-  selectObject(
+  public selectObject(
     object: Record<string, string | `${string}.${string}`>,
     alias: string
   ): this {
@@ -274,7 +274,7 @@ class Builder extends AbstractBuilder {
    * @param {string} alias as name of the column
    * @returns {this} this
    */
-  selectArray(
+  public selectArray(
     object: Record<string, `${string}.${string}`>,
     alias: string
   ): this {
@@ -321,7 +321,7 @@ class Builder extends AbstractBuilder {
    * @param   {string} table table name
    * @returns {this} this
    */
-  table(table: string): this {
+  public table(table: string): this {
     this.$state.set("TABLE_NAME", `\`${table.replace(/`/g, "")}\``);
     return this;
   }
@@ -332,21 +332,16 @@ class Builder extends AbstractBuilder {
    * @param {string} table table name
    * @returns {this} this
    */
-  from(table: string | null, { push }: { push?: string[] } = {}): this {
+  public from(table: string | null, { push }: { push?: string[] } = {}): this {
     this.$state.set("TABLE_NAME", table === '' || table == null 
       ? null 
       : table.includes(this.$constants('RAW')) 
-        ? this.$utils.checkValueHasRaw(table) as string
+        ? this.$utils.transfromValueHasRaw(table) as string
         : `\`${table.replace(/`/g, "")}\``
       );
 
-    // this.$state.set("TABLE_NAME", table === '' || table == null 
-    //   ? null 
-    //   :`\`${table.replace(/`/g, "")}\``
-    // );
-  
     if(push) {
-      const froms = push.map(from => this.$utils.checkValueHasRaw(from)) as string[];
+      const froms = push.map(from => this.$utils.transfromValueHasRaw(from)) as string[];
   
       this.$state.set('FROM',[
         ...this.$state.get("FROM"),
@@ -359,17 +354,23 @@ class Builder extends AbstractBuilder {
   /**
    * The 'fromRaw' method is used to set the table name.
    *
-   * @param   {string} alias alias name
-   * @param   {string} from from sql raw sql from make a new alias for this table
+   * @param {string} table table name
    * @returns {this} this
    */
-  fromRaw(alias: string, from?: string): this {
-    this.$state.set("ALIAS", alias);
+  public fromRaw(table: string | null, { push }: { push?: string[] } = {}): this {
+    this.$state.set("TABLE_NAME", table === '' || table == null 
+      ? null 
+      : this.$utils.transfromValueHasRaw(table) as string
+    );
 
-    if (from) {
-      this.$state.set("RAW_ALIAS", from);
+    if(push) {
+      const froms = push.map(from => this.$utils.transfromValueHasRaw(from)) as string[];
+  
+      this.$state.set('FROM',[
+        ...this.$state.get("FROM"),
+        ...froms
+      ])
     }
-
     return this;
   }
 
@@ -380,7 +381,7 @@ class Builder extends AbstractBuilder {
    * @param   {string} from from sql raw sql from make a new alias for this table
    * @returns {this} this
    */
-  alias(alias: string, from?: string): this {
+  public alias(alias: string, from?: string): this {
     this.$state.set("ALIAS", alias);
 
     if (from) {
@@ -397,7 +398,7 @@ class Builder extends AbstractBuilder {
    * @param   {string} from from sql raw sql from make a new alias for this table
    * @returns {this} this
    */
-  as(alias: string, from?: string): this {
+  public as(alias: string, from?: string): this {
     this.$state.set("ALIAS", alias);
 
     if (from) {
@@ -413,7 +414,7 @@ class Builder extends AbstractBuilder {
    * @param {number} second - The number of seconds to sleep
    * @returns {this} this
    */
-  sleep(second: number): this {
+  public sleep(second: number): this {
 
     this.CTEs('sleep',(query) => {
       return query.selectRaw(this._queryBuilder().sleep(second)).from('')
@@ -433,7 +434,7 @@ class Builder extends AbstractBuilder {
    * @param {...string} columns
    * @returns {this} this
    */
-  except(...columns: string[]): this {
+  public except(...columns: string[]): this {
     if (!columns.length) return this;
 
     const exceptColumns = this.$state.get("EXCEPTS");
@@ -448,7 +449,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {this} this
    */
-  exceptTimestamp(): this {
+  public exceptTimestamp(): this {
     this.$state.set("EXCEPTS", ["created_at", "updated_at"]);
 
     return this;
@@ -459,7 +460,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {this} this
    */
-  void(): this {
+  public void(): this {
     this.$state.set("VOID", true);
     return this;
   }
@@ -469,7 +470,7 @@ class Builder extends AbstractBuilder {
    * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
    * @returns {this} this
    */
-  when(
+  public when(
     condition: string | number | undefined | null | Boolean,
     callback: (query: Builder) => Builder
   ): this {
@@ -494,7 +495,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  where(
+  public where(
     column: string | Record<string, any>,
     operator?: any,
     value?: any
@@ -510,7 +511,7 @@ class Builder extends AbstractBuilder {
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     if (value === null) {
       return this.whereNull(column);
@@ -526,7 +527,7 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ].join(" "),
     ]);
 
@@ -544,7 +545,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  orWhere(column: string, operator?: any, value?: any): this {
+  public orWhere(column: string, operator?: any, value?: any): this {
     [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
@@ -552,7 +553,7 @@ class Builder extends AbstractBuilder {
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     if (value === null) {
       return this.orWhereNull(column);
@@ -568,7 +569,7 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ].join(" "),
     ]);
 
@@ -583,7 +584,7 @@ class Builder extends AbstractBuilder {
    * @param {number} day
    * @returns {this}
    */
-  whereDay(column: string, day: number): this {
+  public whereDay(column: string, day: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -605,7 +606,7 @@ class Builder extends AbstractBuilder {
    * @param {number} month
    * @returns {this}
    */
-  whereMonth(column: string, month: number): this {
+  public whereMonth(column: string, month: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -627,7 +628,7 @@ class Builder extends AbstractBuilder {
    * @param {number} year
    * @returns {this}
    */
-  whereYear(column: string, year: number): this {
+  public whereYear(column: string, year: number): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -649,7 +650,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  whereRaw(sql: string): this {
+  public whereRaw(sql: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -669,7 +670,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  orWhereRaw(sql: string): this {
+  public orWhereRaw(sql: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -690,12 +691,12 @@ class Builder extends AbstractBuilder {
    * @param {Object} columns
    * @returns {this}
    */
-  whereObject(columns: Record<string, any>): this {
+  public whereObject(columns: Record<string, any>): this {
     for (const column in columns) {
       const operator = "=";
       const value = this.$utils.escape(columns[column]);
 
-      const useOp = this.$utils.checkValueHasOp(value);
+      const useOp = this.$utils.transfromValueHasOp(value);
 
       if (useOp == null) {
         this.where(column, operator, value);
@@ -790,12 +791,12 @@ class Builder extends AbstractBuilder {
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJSON(
+  public whereJSON(
     column: string,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -803,7 +804,7 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)}->>'$.${key}'`,
         `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ].join(" "),
     ]);
 
@@ -821,7 +822,7 @@ class Builder extends AbstractBuilder {
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJson(
+  public whereJson(
     column: string,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
@@ -836,7 +837,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  whereExists(sql: string | Builder): this {
+  public whereExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -857,7 +858,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  whereNotExists(sql: string | Builder): this {
+  public whereNotExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -878,7 +879,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  orWhereExists(sql: string | Builder): this {
+  public orWhereExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -899,7 +900,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this}
    */
-  orWhereNotExists(sql: string | Builder): this {
+  public orWhereNotExists(sql: string | Builder): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -917,7 +918,7 @@ class Builder extends AbstractBuilder {
    * @param {number} id
    * @returns {this} this
    */
-  whereId(id: number, column: string = "id"): this {
+  public whereId(id: number, column: string = "id"): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -934,7 +935,7 @@ class Builder extends AbstractBuilder {
    * @param {string} email where using email
    * @returns {this}
    */
-  whereEmail(email: string): this {
+  public whereEmail(email: string): this {
     const column: string = "email";
 
     this.$state.set("WHERE", [
@@ -954,7 +955,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} column custom it *if column is not user_id
    * @returns {this}
    */
-  whereUser(userId: number, column: string = "user_id"): this {
+  public whereUser(userId: number, column: string = "user_id"): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -974,13 +975,13 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  whereIn(column: string, array: any[]): this {
+  public whereIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -1006,13 +1007,13 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  orWhereIn(column: string, array: any[]): this {
+  public orWhereIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -1038,13 +1039,13 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  whereNotIn(column: string, array: any[]): this {
+  public whereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -1070,13 +1071,13 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  orWhereNotIn(column: string, array: any[]): this {
+  public orWhereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -1104,7 +1105,7 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  whereSubQuery(
+  public whereSubQuery(
     column: string,
     subQuery: string | Builder,
     options: {
@@ -1138,7 +1139,7 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  whereNotSubQuery(
+  public whereNotSubQuery(
     column: string,
     subQuery: string | Builder,
     options: {
@@ -1173,7 +1174,7 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereSubQuery(
+  public orWhereSubQuery(
     column: string,
     subQuery: string | Builder,
     options: {
@@ -1207,7 +1208,7 @@ class Builder extends AbstractBuilder {
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereNotSubQuery(
+  public orWhereNotSubQuery(
     column: string,
     subQuery: string | Builder,
     options: {
@@ -1239,7 +1240,7 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  whereBetween(column: string, array: [any,any]): this {
+  public whereBetween(column: string, array: [any,any]): this {
 
     if (!array.length) {
       this.$state.set("WHERE", [
@@ -1265,9 +1266,9 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)}`,
         `${this.$constants("BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ].join(" "),
     ]);
 
@@ -1282,7 +1283,7 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  orWhereBetween(column: string, array: [any,any]): this {
+  public orWhereBetween(column: string, array: [any,any]): this {
     
     if (!array.length) {
       this.$state.set("WHERE", [
@@ -1308,9 +1309,9 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(column)}`,
         `${this.$constants("BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ].join(" "),
     ]);
 
@@ -1325,7 +1326,7 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  whereNotBetween(column: string, array: any[]): this {
+  public whereNotBetween(column: string, array: any[]): this {
     if (!Array.isArray(array)) throw new Error("Value is't array");
 
     if (!array.length) {
@@ -1352,9 +1353,9 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)}`,
         `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ].join(" "),
     ]);
 
@@ -1369,7 +1370,7 @@ class Builder extends AbstractBuilder {
    * @param {array} array
    * @returns {this}
    */
-  orWhereNotBetween(column: string, array: any[]): this {
+  public orWhereNotBetween(column: string, array: any[]): this {
     if (!Array.isArray(array)) throw new Error("Value is't array");
 
     if (!array.length) {
@@ -1396,9 +1397,9 @@ class Builder extends AbstractBuilder {
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(column)}`,
         `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ].join(" "),
     ]);
 
@@ -1412,7 +1413,7 @@ class Builder extends AbstractBuilder {
    * @param {string} column
    * @returns {this}
    */
-  whereNull(column: string): this {
+  public whereNull(column: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1432,7 +1433,7 @@ class Builder extends AbstractBuilder {
    * @param {string} column
    * @returns {this}
    */
-  orWhereNull(column: string): this {
+  public orWhereNull(column: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1452,7 +1453,7 @@ class Builder extends AbstractBuilder {
    * @param {string} column
    * @returns {this}
    */
-  whereNotNull(column: string): this {
+  public whereNotNull(column: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1472,7 +1473,7 @@ class Builder extends AbstractBuilder {
    * @param {string} column
    * @returns {this}
    */
-  orWhereNotNull(column: string): this {
+  public orWhereNotNull(column: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1496,7 +1497,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  whereSensitive(column: string, operator?: any, value?: any): this {
+  public whereSensitive(column: string, operator?: any, value?: any): this {
     [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
@@ -1504,7 +1505,7 @@ class Builder extends AbstractBuilder {
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1513,7 +1514,7 @@ class Builder extends AbstractBuilder {
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(column)}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
       ].join(" "),
     ]);
 
@@ -1531,7 +1532,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  whereStrict(column: string, operator?: any, value?: any): this {
+  public whereStrict(column: string, operator?: any, value?: any): this {
     return this.whereSensitive(column, operator, value);
   }
 
@@ -1546,14 +1547,14 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  orWhereSensitive(column: string, operator?: any, value?: any): this {
+  public orWhereSensitive(column: string, operator?: any, value?: any): this {
     [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
       arguments.length === 2
     );
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1562,7 +1563,7 @@ class Builder extends AbstractBuilder {
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(column)}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
       ].join(" "),
     ]);
 
@@ -1576,7 +1577,7 @@ class Builder extends AbstractBuilder {
    * @param {Function} callback callback query
    * @returns {this}
    */
-  whereQuery(callback: Function): this {
+  public whereQuery(callback: Function): this {
     const db: DB = new DB(this.$state.get("TABLE_NAME")?.replace(/`/g, ""));
 
     const repository: DB = callback(db);
@@ -1611,7 +1612,7 @@ class Builder extends AbstractBuilder {
    * @param {function} callback callback query
    * @returns {this}
    */
-  whereGroup(callback: Function): this {
+  public whereGroup(callback: Function): this {
     return this.whereQuery(callback);
   }
 
@@ -1622,7 +1623,7 @@ class Builder extends AbstractBuilder {
    * @param {function} callback callback query
    * @returns {this}
    */
-  orWhereQuery(callback: Function): this {
+  public orWhereQuery(callback: Function): this {
     const db: DB = new DB(this.$state.get("TABLE_NAME")?.replace(/`/g, ""));
 
     const repository: DB = callback(db);
@@ -1657,7 +1658,7 @@ class Builder extends AbstractBuilder {
    * @param {function} callback callback query
    * @returns {this}
    */
-  orWhereGroup(callback: Function): this {
+  public orWhereGroup(callback: Function): this {
     return this.orWhereQuery(callback);
   }
 
@@ -1671,7 +1672,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  whereAny(columns: string[], operator?: any, value?: any): this {
+  public whereAny(columns: string[], operator?: any, value?: any): this {
     [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
@@ -1679,7 +1680,7 @@ class Builder extends AbstractBuilder {
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.whereQuery((query: DB) => {
       for (const index in columns) {
@@ -1708,7 +1709,7 @@ class Builder extends AbstractBuilder {
    * @param {any?} value
    * @returns {this}
    */
-  whereAll(columns: string[], operator?: any, value?: any): this {
+  public whereAll(columns: string[], operator?: any, value?: any): this {
     [value, operator] = this.$utils.valueAndOperator(
       value,
       operator,
@@ -1716,7 +1717,7 @@ class Builder extends AbstractBuilder {
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.whereQuery((query: DB) => {
       for (const column of columns) query.where(column, operator, value);
@@ -1735,7 +1736,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} elseCase else when end of conditions
    * @returns {this}
    */
-  whereCases(cases: { when: string; then: string }[], elseCase?: string): this {
+  public whereCases(cases: { when: string; then: string }[], elseCase?: string): this {
     if (!cases.length) return this;
 
     const query = cases.map(({ when, then }) => {
@@ -1772,7 +1773,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} elseCase else when end of conditions
    * @returns {this}
    */
-  orWhereCases(
+  public orWhereCases(
     cases: { when: string; then: string }[],
     elseCase?: string
   ): this {
@@ -1803,7 +1804,7 @@ class Builder extends AbstractBuilder {
     return this;
   }
 
-  whereReference(tableAndLocalKey: string, tableAndForeignKey?: string): this {
+  public whereReference(tableAndLocalKey: string, tableAndForeignKey?: string): this {
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
@@ -1821,7 +1822,7 @@ class Builder extends AbstractBuilder {
    * @param {string} as assign name
    * @returns {this}
    */
-  case(cases: { when: string; then: string }[], as: string): this {
+  public case(cases: { when: string; then: string }[], as: string): this {
     let query: string[] = [this.$constants("CASE")];
 
     for (let i: number = 0; i < cases.length; i++) {
@@ -1872,7 +1873,7 @@ class Builder extends AbstractBuilder {
    * .get()
    * @returns {this}
    */
-  join(
+  public join(
     localKey: `${string}.${string}` | ((join: Join) => Join),
     referenceKey?: `${string}.${string}`
   ): this {
@@ -1891,7 +1892,7 @@ class Builder extends AbstractBuilder {
    * @param {string} referenceKey reference key in next table
    * @returns {this}
    */
-  rightJoin(
+  public rightJoin(
     localKey: `${string}.${string}` | ((join: Join) => Join),
     referenceKey?: `${string}.${string}`
   ): this {
@@ -1910,7 +1911,7 @@ class Builder extends AbstractBuilder {
    * @param {string} referenceKey reference key in next table
    * @returns {this}
    */
-  leftJoin(
+  public leftJoin(
     localKey: `${string}.${string}` | ((join: Join) => Join),
     referenceKey?: `${string}.${string}`
   ): this {
@@ -1927,7 +1928,7 @@ class Builder extends AbstractBuilder {
    * @param {string} referenceKey reference key in next table
    * @returns {this}
    */
-  crossJoin(
+  public crossJoin(
     localKey: `${string}.${string}` | ((join: Join) => Join),
     referenceKey?: `${string}.${string}`
   ): this {
@@ -1950,7 +1951,7 @@ class Builder extends AbstractBuilder {
    * .get()
    * @returns {this}
    */
-  joinSubQuery({
+  public joinSubQuery({
     localKey,
     foreignKey,
     sql,
@@ -1980,7 +1981,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
    * @returns {this}
    */
-  orderBy(
+  public orderBy(
     column: string,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
@@ -2016,7 +2017,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} order [order=asc] asc, desc
    * @returns {this}
    */
-  orderByRaw(
+  public orderByRaw(
     column: string,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
@@ -2037,7 +2038,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {this}
    */
-  random(): this {
+  public random(): this {
     this.$state.set("ORDER_BY", [
       ...this.$state.get("ORDER_BY"),
       `${this.$constants("RAND")}`,
@@ -2051,7 +2052,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {this}
    */
-  inRandom(): this {
+  public inRandom(): this {
     return this.random();
   }
 
@@ -2062,7 +2063,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  latest(...columns: string[]): this {
+  public latest(...columns: string[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -2093,7 +2094,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  latestRaw(...columns: string[]): this {
+  public latestRaw(...columns: string[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -2121,7 +2122,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  oldest(...columns: string[]): this {
+  public oldest(...columns: string[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -2152,7 +2153,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  oldestRaw(...columns: string[]): this {
+  public oldestRaw(...columns: string[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -2182,7 +2183,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  groupBy(...columns: string[]): this {
+  public groupBy(...columns: string[]): this {
     let groupBy = "id";
 
     if (columns?.length) {
@@ -2212,7 +2213,7 @@ class Builder extends AbstractBuilder {
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  groupByRaw(...columns: string[]): this {
+  public groupByRaw(...columns: string[]): this {
     let groupBy = "id";
 
     if (columns?.length) {
@@ -2239,7 +2240,7 @@ class Builder extends AbstractBuilder {
    * @param {string} condition
    * @returns {this}
    */
-  having(condition: string): this {
+  public having(condition: string): this {
     if (condition.includes(this.$constants("RAW"))) {
       condition = condition?.replace(this.$constants("RAW"), "");
     }
@@ -2256,7 +2257,7 @@ class Builder extends AbstractBuilder {
    * @param {number=} n [number=1]
    * @returns {this}
    */
-  limit(n: number = 1): this {
+  public limit(n: number = 1): this {
     let number = this.$utils.softNumber(n);
 
     if (number < 0 || number === -0) number = 0;
@@ -2272,7 +2273,7 @@ class Builder extends AbstractBuilder {
    * @param {number=} number [number=1]
    * @returns {this}
    */
-  take(number: number = 1): this {
+  public take(number: number = 1): this {
     return this.limit(number);
   }
 
@@ -2283,7 +2284,7 @@ class Builder extends AbstractBuilder {
    * @param {number=} n [number=1]
    * @returns {this}
    */
-  offset(n: number = 1): this {
+  public offset(n: number = 1): this {
     let number = this.$utils.softNumber(n);
 
     if (number < 0 || number === -0) number = 0;
@@ -2301,7 +2302,7 @@ class Builder extends AbstractBuilder {
    * @param {number=} number [number=1]
    * @returns {this}
    */
-  skip(number: number = 1): this {
+  public skip(number: number = 1): this {
     return this.offset(number);
   }
 
@@ -2315,7 +2316,7 @@ class Builder extends AbstractBuilder {
    * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
    * @returns {this} this
    */
-  update(data: Record<string, any>, updateNotExists: string[] = []): this {
+  public update(data: Record<string, any>, updateNotExists: string[] = []): this {
     this.limit(1);
 
     if (!Object.keys(data).length)
@@ -2349,7 +2350,7 @@ class Builder extends AbstractBuilder {
    * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
    * @returns {this} this
    */
-  updateMany(data: Record<string, any>, updateNotExists: string[] = []): this {
+  public updateMany(data: Record<string, any>, updateNotExists: string[] = []): this {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2372,7 +2373,7 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'updateMultiple' method is used to update records in a table based on specific conditions.
+   * The 'updateCases' method is used to update records in a table based on specific conditions.
    *
    * This method allows updating multiple rows at once by specifying an array of update cases.
    * Each case defines which records to update (`when`) and the new values to apply (`columns`).
@@ -2385,16 +2386,16 @@ class Builder extends AbstractBuilder {
    * @returns {this} Returns the current instance for method chaining.
    *
    * @example
-   * new User().updateMultiple([
+   * new User().updateCases([
    *   { when: { id: 1 }, columns: { status: 'active', updatedAt: new Date() } },
    *   { when: { id: 2 }, columns: { status: 'inactive', updatedAt: new Date() } }
    * ]);
    */
-  updateMultiple(
+  public updateCases(
     cases: { when: Record<string, any>; columns: Record<string, any> }[]
   ): this {
     if (!cases.length)
-      throw new Error(`The method 'updateMultiple' must not be empty.`);
+      throw new Error(`The method 'updateCases' must not be empty.`);
 
     this.limit(cases.length);
 
@@ -2438,7 +2439,7 @@ class Builder extends AbstractBuilder {
 
       const when = Object.entries(c.when).map(([key, value]) => {
         value = this.$utils.escape(value);
-        value = this.$utils.covertBooleanToNumber(value);
+        value = this.$utils.transfromBooleanToNumber(value);
         return `${this.bindColumn(key)} = '${value}'`;
       });
 
@@ -2468,11 +2469,11 @@ class Builder extends AbstractBuilder {
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
           : typeof value === "string" && value.includes(this.$constants("RAW"))
-          ? `${this.$utils.covertBooleanToNumber(value)}`.replace(
+          ? `${this.$utils.transfromBooleanToNumber(value)}`.replace(
               this.$constants("RAW"),
               ""
             )
-          : `'${this.$utils.covertBooleanToNumber(value)}'`
+          : `'${this.$utils.transfromBooleanToNumber(value)}'`
       }`;
     });
 
@@ -2495,7 +2496,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  updateNotExists(data: Record<string, any>): this {
+  public updateNotExists(data: Record<string, any>): this {
     this.limit(1);
 
     if (!Object.keys(data).length)
@@ -2520,7 +2521,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  insert(data: Record<string, any>): this {
+  public insert(data: Record<string, any>): this {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2538,7 +2539,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  create(data: Record<string, any>): this {
+  public create(data: Record<string, any>): this {
     return this.insert(data);
   }
 
@@ -2549,7 +2550,7 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  createMultiple(data: any[]): this {
+  public createMultiple(data: any[]): this {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2567,7 +2568,7 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  createMany(data: any[]): this {
+  public createMany(data: any[]): this {
     return this.createMultiple(data);
   }
 
@@ -2578,7 +2579,7 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  insertMultiple(data: any[]): this {
+  public insertMultiple(data: any[]): this {
     return this.createMultiple(data);
   }
 
@@ -2589,7 +2590,7 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  insertMany(data: any[]): this {
+  public insertMany(data: any[]): this {
     return this.createMultiple(data);
   }
 
@@ -2601,7 +2602,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data create not exists data
    * @returns {this} this this
    */
-  createNotExists(data: Record<string, any>): this {
+  public createNotExists(data: Record<string, any>): this {
     this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
@@ -2616,7 +2617,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert not exists data
    * @returns {this} this this
    */
-  insertNotExists(data: Record<string, any> & { length?: never }): this {
+  public insertNotExists(data: Record<string, any> & { length?: never }): this {
     this.createNotExists(data);
     return this;
   }
@@ -2629,7 +2630,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert data
    * @returns {this} this this
    */
-  createOrSelect(data: Record<string, any> & { length?: never }): this {
+  public createOrSelect(data: Record<string, any> & { length?: never }): this {
     this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
@@ -2644,7 +2645,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  insertOrSelect(data: Record<string, any> & { length?: never }): this {
+  public insertOrSelect(data: Record<string, any> & { length?: never }): this {
     this.createOrSelect(data);
     return this;
   }
@@ -2657,7 +2658,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  updateOrCreate(data: Record<string, any> & { length?: never }): this {
+  public updateOrCreate(data: Record<string, any> & { length?: never }): this {
     this.limit(1);
 
     this._queryUpdate(data);
@@ -2677,7 +2678,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  updateOrInsert(data: Record<string, any> & { length?: never }): this {
+  public updateOrInsert(data: Record<string, any> & { length?: never }): this {
     this.updateOrCreate(data);
     return this;
   }
@@ -2690,7 +2691,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  insertOrUpdate(data: Record<string, any> & { length?: never }): this {
+  public insertOrUpdate(data: Record<string, any> & { length?: never }): this {
     this.updateOrCreate(data);
     return this;
   }
@@ -2704,7 +2705,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data create or update data
    * @returns {this} this this
    */
-  createOrUpdate(data: Record<string, any> & { length?: never }): this {
+  public createOrUpdate(data: Record<string, any> & { length?: never }): this {
     this.updateOrCreate(data);
     return this;
   }
@@ -2715,7 +2716,7 @@ class Builder extends AbstractBuilder {
    * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
    * @returns {string} return sql query
    */
-  toString(): string {
+  public toString(): string {
     const sql = this._queryBuilder().any();
     return this._resultHandler(sql);
   }
@@ -2726,7 +2727,7 @@ class Builder extends AbstractBuilder {
    * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
    * @returns {string} return sql query
    */
-  toSQL(): string {
+  public toSQL(): string {
     return this.toString();
   }
 
@@ -2736,7 +2737,7 @@ class Builder extends AbstractBuilder {
    * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
    * @returns {string}
    */
-  toRawSQL(): string {
+  public toRawSQL(): string {
     return this.toString();
   }
 
@@ -2744,7 +2745,7 @@ class Builder extends AbstractBuilder {
    * The 'getTableName' method is used to get table name
    * @returns {string} return table name
    */
-  getTableName(): string {
+  public getTableName(): string {
     const name = this.$state.get("TABLE_NAME");
     if(name == null) return '';
     
@@ -2755,7 +2756,7 @@ class Builder extends AbstractBuilder {
    * The 'getColumns' method is used to get columns
    * @returns {this} this this
    */
-  async getColumns(): Promise<{
+  public async getColumns(): Promise<{
     Field      : string;
     ColumnType : string;
     Type       : string;
@@ -2775,7 +2776,7 @@ class Builder extends AbstractBuilder {
    * The 'getSchema' method is used to get schema information
    * @returns {this} this this
    */
-  async getSchema(): Promise<{
+  public async getSchema(): Promise<{
     Field    : string;
     Key      : 'PRI' | '';
     Type     : string;
@@ -2792,7 +2793,7 @@ class Builder extends AbstractBuilder {
     return await this.showSchema(tableName, { raw: true });
   }
 
-  async getFKs(table?: string): Promise<{
+  public async getFKs(table?: string): Promise<{
     Constraint: string;
     RefTable  : string;
     RefColumn : string;
@@ -2805,7 +2806,7 @@ class Builder extends AbstractBuilder {
     return await this.rawQuery(sql);
   }
 
-  async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
+  public async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasFK({
       database: this.$database,
       table: table ?? String(this.$state.get("TABLE_NAME")),
@@ -2816,7 +2817,7 @@ class Builder extends AbstractBuilder {
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
-  async getIndexes(table?: string): Promise<{
+  public async getIndexes(table?: string): Promise<{
     Column    : string;
     IndexName : string;
     IndexType : string;
@@ -2830,7 +2831,7 @@ class Builder extends AbstractBuilder {
     return await this.rawQuery(sql);
   }
 
-  async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
+  public async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasIndex({
       database: this.$database,
       table: table ?? String(this.$state.get("TABLE_NAME")),
@@ -2846,7 +2847,7 @@ class Builder extends AbstractBuilder {
    * @param {string} column
    * @returns {string} return table.column
    */
-  bindColumn(column: string): string {
+  public bindColumn(column: string): string {
     if (!/\./.test(column)) {
       if (column === "*") return "*";
 
@@ -2879,7 +2880,7 @@ class Builder extends AbstractBuilder {
    * @param {boolean} debug debug sql statements
    * @returns {this} this this
    */
-  debug(debug: boolean = true): this {
+  public debug(debug: boolean = true): this {
     this.$state.set("DEBUG", debug);
     return this;
   }
@@ -2889,7 +2890,7 @@ class Builder extends AbstractBuilder {
    * @param {boolean} debug debug sql statements
    * @returns {this} this this
    */
-  dd(debug: boolean = true): this {
+  public dd(debug: boolean = true): this {
     this.$state.set("DEBUG", debug);
     return this;
   }
@@ -2899,7 +2900,7 @@ class Builder extends AbstractBuilder {
    * @param {Function} func function for callback result
    * @returns {this}
    */
-  hook(func: Function): this {
+  public hook(func: Function): this {
     if (typeof func !== "function")
       throw new Error(`this '${func}' is not a function`);
 
@@ -2912,7 +2913,7 @@ class Builder extends AbstractBuilder {
    * @param {Function} func function for callback result
    * @returns {this}
    */
-  before(func: Function): this {
+  public before(func: Function): this {
     if (typeof func !== "function")
       throw new Error(`this '${func}' is not a function`);
 
@@ -2930,7 +2931,7 @@ class Builder extends AbstractBuilder {
    * @param {string} option.password
    * @returns {this} this
    */
-  connection(options: TConnectionOptions): this {
+  public connection(options: TConnectionOptions): this {
     const {
       driver,
       host,
@@ -2956,7 +2957,7 @@ class Builder extends AbstractBuilder {
     return this;
   }
 
-  loadOptionsEnv(env ?: string) {
+  public loadOptionsEnv(env ?: string) {
     if(env == null || env === '') return null;
     return loadOptionsEnvironment(env);
   }
@@ -2966,7 +2967,7 @@ class Builder extends AbstractBuilder {
    * @param {string} env load environment using with command line arguments
    * @returns {this} this
    */
-  loadEnv(env?: string): this {
+  public loadEnv(env?: string): this {
     if (env === null) return this;
 
     const options = loadOptionsEnvironment(env);
@@ -2993,7 +2994,7 @@ class Builder extends AbstractBuilder {
    * @param {object} connection pool database
    * @returns {this} this
    */
-  bind(connection: TPoolConnected | TConnectionTransaction): this {
+  public bind(connection: TPoolConnected | TConnectionTransaction): this {
     this.$pool.set(connection);
 
     return this;
@@ -3005,7 +3006,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this} this
    */
-  union(sql: string | Builder): this {
+  public union(sql: string | Builder): this {
     this.$state.set("UNION", [...this.$state.get("UNION"), `${sql}`]);
 
     return this;
@@ -3017,7 +3018,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {this} this
    */
-  unionAll(sql: string | Builder): this {
+  public unionAll(sql: string | Builder): this {
     this.$state.set("UNION_ALL", [...this.$state.get("UNION_ALL"), `${sql}`]);
 
     return this;
@@ -3029,7 +3030,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {promise<any>}
    */
-  async rawQuery(sql: string): Promise<any> {
+  public async rawQuery(sql: string): Promise<any> {
     return await this._queryStatement(sql);
   }
 
@@ -3039,7 +3040,7 @@ class Builder extends AbstractBuilder {
    * @param {string} sql
    * @returns {promise<any>}
    */
-  static rawQuery(sql: string): Promise<any> {
+  public static rawQuery(sql: string): Promise<any> {
     return new this().rawQuery(sql);
   }
 
@@ -3050,7 +3051,7 @@ class Builder extends AbstractBuilder {
    * @param {number} value
    * @returns {promise<any>}
    */
-  async increment(column: string = "id", value: number = 1): Promise<any> {
+  public async increment(column: string = "id", value: number = 1): Promise<any> {
     this.$state.set(
       "UPDATE",
       [
@@ -3068,7 +3069,7 @@ class Builder extends AbstractBuilder {
    * @param {number} value
    * @returns {promise<any>}
    */
-  async decrement(column: string = "id", value: number = 1): Promise<any> {
+  public async decrement(column: string = "id", value: number = 1): Promise<any> {
     this.$state.set(
       "UPDATE", [
         `${column} = ${column} - ${value}`,
@@ -3077,7 +3078,7 @@ class Builder extends AbstractBuilder {
     return await this._update(true);
   }
 
-  async version(): Promise<string> {
+  public async version(): Promise<string> {
     const result = await this._queryStatement(
       `${this.$constants("SELECT")} VERSION() as version`
     );
@@ -3090,7 +3091,7 @@ class Builder extends AbstractBuilder {
    * It returns an array instances, ignore all condition.
    * @returns {promise<any>}
    */
-  async all(): Promise<any> {
+  public async all(): Promise<any> {
     return await this._queryStatement(
       [
         `${this.$constants("SELECT")}`,
@@ -3124,7 +3125,7 @@ class Builder extends AbstractBuilder {
    * @param {number} paginationOptions.page default 1
    * @returns {promise<Pagination>}
    */
-  async pagination(paginationOptions?: {
+  public async pagination(paginationOptions?: {
     limit?: number;
     page?: number;
   }): Promise<TPagination> {
@@ -3200,7 +3201,7 @@ class Builder extends AbstractBuilder {
    * @param {number} paginationOptions.page
    * @returns {promise<Pagination>}
    */
-  async paginate(paginationOptions?: {
+  public async paginate(paginationOptions?: {
     limit?: number;
     page?: number;
   }): Promise<TPagination> {
@@ -3223,7 +3224,7 @@ class Builder extends AbstractBuilder {
    * @param {Function?} cb callback function return query sql
    * @returns {promise<object | null>}
    */
-  async first(cb?: Function): Promise<Record<string, any> | null> {
+  public async first(cb?: Function): Promise<Record<string, any> | null> {
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...(await this.exceptColumns()));
 
@@ -3257,7 +3258,7 @@ class Builder extends AbstractBuilder {
    * @param {Function?} cb callback function return query sql
    * @returns {promise<object | null>}
    */
-  async findOne(cb?: Function): Promise<Record<string, any> | null> {
+  public async findOne(cb?: Function): Promise<Record<string, any> | null> {
     return await this.first(cb);
   }
 
@@ -3269,7 +3270,7 @@ class Builder extends AbstractBuilder {
    * If record is null, this method will throw an error
    * @returns {promise<object | Error>}
    */
-  async firstOrError(
+  public async firstOrError(
     message: string,
     options?: Record<string, any>
   ): Promise<Record<string, any>> {
@@ -3306,7 +3307,7 @@ class Builder extends AbstractBuilder {
    * execute data return object | null
    * @returns {promise<object | null>}
    */
-  async findOneOrError(
+  public async findOneOrError(
     message: string,
     options?: Record<string, any>
   ): Promise<Record<string, any>> {
@@ -3320,7 +3321,7 @@ class Builder extends AbstractBuilder {
    * @param {Function?} cb callback function return query sql
    * @returns {promise<any[]>}
    */
-  async get(cb?: Function): Promise<any[]> {
+  public async get(cb?: Function): Promise<any[]> {
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...(await this.exceptColumns()));
 
@@ -3349,7 +3350,7 @@ class Builder extends AbstractBuilder {
    * @param {Function?} cb callback function return query sql
    * @returns {promise<any[]>}
    */
-  async findMany(cb?: Function): Promise<any[]> {
+  public async findMany(cb?: Function): Promise<any[]> {
     return await this.get(cb);
   }
 
@@ -3362,7 +3363,7 @@ class Builder extends AbstractBuilder {
    * It returns a JSON formatted
    * @returns {promise<string>}
    */
-  async toJSON(): Promise<string> {
+  public async toJSON(): Promise<string> {
     const sql: string = this._queryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
@@ -3379,7 +3380,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<Array>}
    */
-  async toArray(column: string = "id"): Promise<any[]> {
+  public async toArray(column: string = "id"): Promise<any[]> {
     this.selectRaw(`${this.bindColumn(column)}`);
 
     const sql: string = this._queryBuilder().select();
@@ -3399,7 +3400,7 @@ class Builder extends AbstractBuilder {
    * It returns a boolean value indicating whether there are any matching records.
    * @returns {promise<boolean>}
    */
-  async exists(): Promise<boolean> {
+  public async exists(): Promise<boolean> {
     const sql = new Builder()
       .copyBuilder(this, { where: true, limit: true, join: true })
       .selectRaw("1")
@@ -3425,7 +3426,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  async count(column: string = "id"): Promise<number> {
+  public async count(column: string = "id"): Promise<number> {
     const distinct = this.$state.get("DISTINCT");
 
     column =
@@ -3459,7 +3460,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  async avg(column: string = "id"): Promise<number> {
+  public async avg(column: string = "id"): Promise<number> {
     const distinct = this.$state.get("DISTINCT");
 
     column = distinct
@@ -3491,7 +3492,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  async sum(column: string = "id"): Promise<number> {
+  public async sum(column: string = "id"): Promise<number> {
     const distinct = this.$state.get("DISTINCT");
 
     column = distinct
@@ -3522,7 +3523,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  async max(column: string = "id"): Promise<number> {
+  public async max(column: string = "id"): Promise<number> {
     const distinct = this.$state.get("DISTINCT");
 
     column = distinct
@@ -3553,7 +3554,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  async min(column: string = "id"): Promise<number> {
+  public async min(column: string = "id"): Promise<number> {
     const distinct = this.$state.get("DISTINCT");
 
     column = distinct
@@ -3583,7 +3584,7 @@ class Builder extends AbstractBuilder {
    * It allows you to remove one record that match certain criteria.
    * @returns {promise<boolean>}
    */
-  async delete(): Promise<boolean> {
+  public async delete(): Promise<boolean> {
     if (!this.$state.get("WHERE").length) {
       throw new Error("can't delete without where condition");
     }
@@ -3602,7 +3603,7 @@ class Builder extends AbstractBuilder {
    * It allows you to remove more records that match certain criteria.
    * @returns {promise<boolean>}
    */
-  async deleteMany(): Promise<boolean> {
+  public async deleteMany(): Promise<boolean> {
     if (!this.$state.get("WHERE").length) {
       throw new Error("can't delete without where condition");
     }
@@ -3623,7 +3624,7 @@ class Builder extends AbstractBuilder {
    * This method should be ignore the soft delete
    * @returns {promise<boolean>}
    */
-  async forceDelete(): Promise<boolean> {
+  public async forceDelete(): Promise<boolean> {
     this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
@@ -3646,7 +3647,7 @@ class Builder extends AbstractBuilder {
    *  const postsByUserId1 = results.get(1)
    * @returns {promise<Array>}
    */
-  async getGroupBy(column: string): Promise<Map<string | number, any[]>> {
+  public async getGroupBy(column: string): Promise<Map<string | number, any[]>> {
     if (this.$state.get("EXCEPTS")?.length)
       this.select(...((await this.exceptColumns()) as any[]));
 
@@ -3712,7 +3713,7 @@ class Builder extends AbstractBuilder {
    *  const postsByUserId1 = results.get(1)
    * @returns {promise<Array>}
    */
-  async findGroupBy(column: string): Promise<Map<string | number, any[]>> {
+  public async findGroupBy(column: string): Promise<Map<string | number, any[]>> {
     return await this.getGroupBy(column);
   }
 
@@ -3722,7 +3723,7 @@ class Builder extends AbstractBuilder {
    * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
    * @returns {Promise<any>} promise
    */
-  async save({ waitMs = 100 } = {}): Promise<
+  public async save({ waitMs = 100 } = {}): Promise<
     Record<string, any> | any[] | null | undefined
   > {
     this.$state.set("AFTER_SAVE", waitMs);
@@ -3750,7 +3751,7 @@ class Builder extends AbstractBuilder {
    * The 'makeSelectStatement' method is used to make select statement.
    * @returns {Promise<string>} string
    */
-  async makeSelectStatement(): Promise<string> {
+  public async makeSelectStatement(): Promise<string> {
     const makeStatement = (columns: string[]) => {
       return [
         `${this.$constants("SELECT")}`,
@@ -3771,7 +3772,7 @@ class Builder extends AbstractBuilder {
    * The 'makeInsertStatement' method is used to make insert table statement.
    * @returns {Promise<string>} string
    */
-  async makeInsertStatement(): Promise<string> {
+  public async makeInsertStatement(): Promise<string> {
     const makeStatement = (columns: string[]) => {
       return [
         `${this.$constants("INSERT")}`,
@@ -3793,7 +3794,7 @@ class Builder extends AbstractBuilder {
    * The 'makeUpdateStatement' method is used to make update table statement.
    * @returns {Promise<string>} string
    */
-  async makeUpdateStatement(): Promise<string> {
+  public async makeUpdateStatement(): Promise<string> {
     const makeStatement = (columns: string[]) => {
       return [
         `${this.$constants("UPDATE")}`,
@@ -3818,7 +3819,7 @@ class Builder extends AbstractBuilder {
    * The 'makeDeleteStatement' method is used to make delete statement.
    * @returns {Promise<string>} string
    */
-  async makeDeleteStatement(): Promise<string> {
+  public async makeDeleteStatement(): Promise<string> {
     const makeStatement = () => {
       return [
         `${this.$constants("DELETE")}`,
@@ -3837,7 +3838,7 @@ class Builder extends AbstractBuilder {
    * The 'makeCreateTableStatement' method is used to make create table statement.
    * @returns {Promise<string>} string
    */
-  async makeCreateTableStatement(): Promise<string> {
+  public async makeCreateTableStatement(): Promise<string> {
     const makeStatement = (columns: string[]) => {
       return [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
@@ -3859,7 +3860,7 @@ class Builder extends AbstractBuilder {
    *
    * @returns {Promise<Array>}
    */
-  async showTables(): Promise<string[]> {
+  public async showTables(): Promise<string[]> {
     const results: any[] = await this._queryStatement(
       this._queryBuilder().getTables(this.database())
     );
@@ -3875,7 +3876,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} table table name
    * @returns {Promise<Array>}
    */
-  async showColumns(
+  public async showColumns(
     table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
@@ -3901,7 +3902,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} table [table= current table name]
    * @returns {Promise<Array>}
    */
-  async showSchema(
+  public async showSchema(
     table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
@@ -3962,7 +3963,7 @@ class Builder extends AbstractBuilder {
    * @param {string=} table table name
    * @returns {Promise<Array>}
    */
-  async showValues(
+  public async showValues(
     table: string = String(this.$state.get("TABLE_NAME"))
   ): Promise<any[]> {
     const sql: string = [
@@ -4003,7 +4004,7 @@ class Builder extends AbstractBuilder {
    * @param {number} rows number of rows
    * @returns {promise<any>}
    */
-  async faker(
+  public async faker(
     rows: number,
     cb?: (results: Record<string, any>, index: number) => Record<string, any>
   ): Promise<void> {
@@ -4085,8 +4086,8 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  async truncate({
-    force = false,
+  public async truncate({
+    force = false
   }: { force?: boolean } = {}): Promise<boolean> {
     if (
       this.$state.get("TABLE_NAME") == null ||
@@ -4123,7 +4124,7 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  async drop({
+  public async drop({
     force = false,
     view = false,
     db = false,
@@ -4574,7 +4575,7 @@ class Builder extends AbstractBuilder {
   }
 
   private _queryUpdate(data: Record<string, any>) {
-    this.$utils.covertDateToDateString(data);
+    this.$utils.transfromDateToDateString(data);
 
     const values = Object.entries(data).map(([column, value]) => {
       if (
@@ -4586,7 +4587,7 @@ class Builder extends AbstractBuilder {
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this.$utils.checkValueHasRaw(value)
+          : this.$utils.transfromValueHasRaw(value)
       }`;
     });
 
@@ -4599,7 +4600,7 @@ class Builder extends AbstractBuilder {
   }
 
   private _queryInsert(data: Record<string, any>) {
-    data = this.$utils.covertDateToDateString(data);
+    data = this.$utils.transfromDateToDateString(data);
 
     const columns: string[] = Object.keys(data).map(
       (c: string) => `\`${c.replace(/\`/g, "")}\``
@@ -4623,7 +4624,7 @@ class Builder extends AbstractBuilder {
       return `${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this.$utils.checkValueHasRaw(value)
+          : this.$utils.transfromValueHasRaw(value)
       }`;
     });
 
@@ -4641,7 +4642,7 @@ class Builder extends AbstractBuilder {
     let values: string[] = [];
 
     for (let objects of data) {
-      this.$utils.covertDateToDateString(objects);
+      this.$utils.transfromDateToDateString(objects);
 
       const vals = Object.values(objects).map((value) => {
         if (
@@ -4660,7 +4661,7 @@ class Builder extends AbstractBuilder {
         return `${
           value == null || value === this.$constants("NULL")
             ? this.$constants("NULL")
-            : this.$utils.checkValueHasRaw(value)
+            : this.$utils.transfromValueHasRaw(value)
         }`;
       });
       values.push(`${vals.join(",")}`);

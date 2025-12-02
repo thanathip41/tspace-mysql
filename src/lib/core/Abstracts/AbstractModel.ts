@@ -35,8 +35,8 @@ abstract class AbstractModel extends Builder {
         deleted:  Function 
     })
     protected $transforms         !: Record<string ,{ 
-        before : (value: unknown) => any;
-        after  : (value: unknown) => any 
+        to : (value: unknown) => any;
+        from  : (value: unknown) => any 
     }> | null
 
 

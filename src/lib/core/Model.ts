@@ -428,11 +428,12 @@ class Model<
     return this;
   }
 
-  protected useTransform (transforms : Record<string ,{ 
-    before : (value: unknown) => any;
-    after  : (value: unknown) => any;
+  protected useTransform (transforms : Record<string, { 
+    to: (value: unknown) => any | Promise<any>;
+    from: (value: unknown) => any | Promise<any>;
   }>) : this {
-    this.$state.set('TRANSFORMS',transforms);
+
+    this.$state.set('TRANSFORMS', transforms);
     return this;
   }
 
@@ -797,32 +798,6 @@ class Model<
   }
 
   /**
-   * The "beforeCreatingTable" method is used exection function when creating the table.
-   * @param {Function} fn functions for executing before creating the table
-   * @returns {this} this
-   * @example
-   * class User extends Model {
-   *   constructor() {
-   *     this.beforeCreatingTable(async () => {
-   *         await new User()
-   *          .create({
-   *            ...columns
-   *          })
-   *          .save()
-   *      })
-   *   }
-   * }
-   */
-  protected beforeCreatingTable(fn: () => Promise<any>): this {
-    if (!(fn instanceof Function))
-      throw this._assertError(`This '${fn}' is not a function.`);
-
-    this.$state.set("BEFORE_CREATING_TABLE", fn);
-
-    return this;
-  }
-
-  /**
    * The "whenCreatingTable" method is used exection function when creating the table.
    * @param {Function} fn functions for executing when creating the table
    * @returns {this} this
@@ -995,7 +970,7 @@ class Model<
    * @param {Record<string, any>} [metadata] - Optional metadata to store with the audit.
    * @returns {this} this
    */
-  audit(userId: number, metadata?: Record<string, any>): this {
+  public audit(userId: number, metadata?: Record<string, any>): this {
     if (metadata) this.$state.set("AUDIT_METADATA", metadata);
 
     this.$state.set("AUDIT", userId);
@@ -1003,7 +978,7 @@ class Model<
     return this;
   }
 
-  meta(meta: "MAIN" | "SUBORDINATE") {
+  public meta(meta: "MAIN" | "SUBORDINATE") {
     this.$state.set("META", meta);
     return this;
   }
@@ -1012,7 +987,7 @@ class Model<
    * The 'typeOfSchema' method is used get type of schema.
    * @returns {TS} type of schema
    */
-  typeOfSchema(): TS {
+  public typeOfSchema(): TS {
     return {} as TS;
   }
 
@@ -1020,7 +995,7 @@ class Model<
    * The 'typeOfRelation' method is used get type of relation.
    * @returns {TR} type of Relation
    */
-  typeOfRelation(): TR {
+  public typeOfRelation(): TR {
     return {} as TR;
   }
 
@@ -1031,7 +1006,7 @@ class Model<
    * @property {number} expires ms
    * @returns {this} this
    */
-  cache({ key, expires }: { key: string; expires: number }): this {
+  public cache({ key, expires }: { key: string; expires: number }): this {
     this.$state.set("CACHE", {
       key,
       expires,
@@ -1046,7 +1021,7 @@ class Model<
    * @param {string[]} ...columns
    * @returns {this} this
    */
-  select<K extends T.ColumnKeys<this> | "*">(...columns: K[]): this {
+  public select<K extends T.ColumnKeys<this> | "*">(...columns: K[]): this {
     if (!columns.length) {
       this.$state.set("SELECT", ["*"]);
       return this;
@@ -1090,7 +1065,7 @@ class Model<
     return this;
   }
 
-  addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
+  public addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let select: string[] = columns.map((c) => {
       const column = String(c);
 
@@ -1115,7 +1090,7 @@ class Model<
    * @param {...string} columns
    * @returns {this} this
    */
-  except<K extends T.ColumnKeys<this>>(...columns: K[]): this {
+  public except<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     if (!columns.length) return this;
 
     const exceptColumns = this.$state.get("EXCEPTS");
@@ -1130,7 +1105,7 @@ class Model<
    * @override
    * @returns {this} this
    */
-  exceptTimestamp(): this {
+  public exceptTimestamp(): this {
     let excepts: string[] = [];
 
     if (this.$state.get("SOFT_DELETE")) {
@@ -1163,7 +1138,7 @@ class Model<
    * @param {string?} order by default order = 'asc' but you can used 'asc' or  'desc'
    * @returns {this}
    */
-  orderBy<K extends T.ColumnKeys<this>>(
+  public orderBy<K extends T.ColumnKeys<this>>(
     column: K,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
@@ -1207,7 +1182,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  latest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
+  public latest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -1247,7 +1222,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  oldest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
+  public oldest<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let orderBy = "`id`";
 
     if (columns?.length) {
@@ -1286,7 +1261,7 @@ class Model<
    * @param {string?} columns [column=id]
    * @returns {this}
    */
-  groupBy<K extends T.ColumnKeys<this>>(...columns: K[]): this {
+  public groupBy<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let groupBy = "id";
 
     if (columns?.length) {
@@ -1321,7 +1296,7 @@ class Model<
    * @param {string} column
    * @returns {string} return table.column
    */
-  bindColumn(column: string, pattern = true): string {
+  public bindColumn(column: string, pattern = true): string {
     if (!/\./.test(column)) {
       if (column === "*") return "*";
 
@@ -1354,7 +1329,7 @@ class Model<
    * The 'makeSelectStatement' method is used to make select statement.
    * @returns {Promise<string>} string
    */
-  async makeSelectStatement(): Promise<string> {
+  public async makeSelectStatement(): Promise<string> {
     const schemaModel = this.getSchemaModel();
 
     const makeStatement = (columns: string[]) => {
@@ -1388,7 +1363,7 @@ class Model<
    * The 'makeInsertStatement' method is used to make insert table statement.
    * @returns {Promise<string>} string
    */
-  async makeInsertStatement(): Promise<string> {
+  public async makeInsertStatement(): Promise<string> {
     const schemaModel = this.getSchemaModel();
 
     const makeStatement = (columns: string[]) => {
@@ -1423,7 +1398,7 @@ class Model<
    * The 'makeUpdateStatement' method is used to make update table statement.
    * @returns {Promise<string>} string
    */
-  async makeUpdateStatement(): Promise<string> {
+  public async makeUpdateStatement(): Promise<string> {
     const schemaModel = this.getSchemaModel();
 
     const makeStatement = (columns: string[]) => {
@@ -1459,7 +1434,7 @@ class Model<
    * The 'makeDeleteStatement' method is used to make delete statement.
    * @returns {Promise<string>} string
    */
-  async makeDeleteStatement(): Promise<string> {
+  public async makeDeleteStatement(): Promise<string> {
     const makeStatement = () => {
       return [
         `${this.$constants("DELETE")}`,
@@ -1479,7 +1454,7 @@ class Model<
    * The 'makeCreateTableStatement' method is used to make create table statement.
    * @returns {Promise<string>} string
    */
-  async makeCreateTableStatement(): Promise<string> {
+  public async makeCreateTableStatement(): Promise<string> {
     const schemaModel = this.getSchemaModel();
 
     const makeStatement = (columns: string[]) => {
@@ -1519,7 +1494,7 @@ class Model<
    * @param {Model} instance instance of model
    * @returns {this} this
    */
-  clone(instance: Model): this {
+  public clone(instance: Model): this {
     const copy = Object.fromEntries(instance.$state.all());
 
     this.$state.clone(copy);
@@ -1534,7 +1509,7 @@ class Model<
    * @param {Object} options keep data
    * @returns {Model} Model
    */
-  copyModel(
+  public copyModel(
     instance: Model,
     options?: {
       update?: boolean;
@@ -1743,7 +1718,7 @@ class Model<
    * @override
    * @returns {string} return sql query
    */
-  CTEs<M extends Model>(
+  public CTEs<M extends Model>(
     as: string,
     callback: (query: M) => M,
     bindModel?: new () => M
@@ -1765,7 +1740,7 @@ class Model<
    * @param {boolean} condition
    * @returns {this} this
    */
-  disableSoftDelete(condition: boolean = false): this {
+  public disableSoftDelete(condition: boolean = false): this {
     this.$state.set("SOFT_DELETE", condition);
     return this;
   }
@@ -1775,7 +1750,7 @@ class Model<
    * @param {boolean} condition
    * @returns {this} this
    */
-  ignoreSoftDelete(condition: boolean = false): this {
+  public ignoreSoftDelete(condition: boolean = false): this {
     this.$state.set("SOFT_DELETE", condition);
     return this;
   }
@@ -1785,7 +1760,7 @@ class Model<
    *
    * @returns {this} this
    */
-  disableVoid(): this {
+  public disableVoid(): this {
     this.$state.set("VOID", false);
     return this;
   }
@@ -1795,7 +1770,7 @@ class Model<
    *
    * @returns {this} this
    */
-  ignoreVoid(): this {
+  public ignoreVoid(): this {
     this.$state.set("VOID", false);
     return this;
   }
@@ -1805,7 +1780,7 @@ class Model<
    *
    * @returns {this} this
    */
-  disabledGlobalScope(condition: boolean = false): this {
+  public disabledGlobalScope(condition: boolean = false): this {
     this.$state.set("GLOBAL_SCOPE", condition);
     return this;
   }
@@ -1815,7 +1790,7 @@ class Model<
    *
    * @returns {this} this
    */
-  ignoreGlobalScope(condition: boolean = false): this {
+  public ignoreGlobalScope(condition: boolean = false): this {
     this.$state.set("GLOBAL_SCOPE", condition);
     return this;
   }
@@ -1848,7 +1823,7 @@ class Model<
    *  await new User().with('posts').findMany()
    *
    */
-  with<
+  public with<
     K extends T.RelationKeys<this>
   >(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
@@ -1889,7 +1864,7 @@ class Model<
    *  await new User().relations('posts').findMany()
    *
    */
-  relations<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public relations<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.with(...nameRelations);
   }
 
@@ -1901,7 +1876,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  withAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public withAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "all"));
@@ -1918,7 +1893,7 @@ class Model<
    * @param {...string} nameRelations if data exists return empty
    * @returns {this} this
    */
-  relationsAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public relationsAll<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withAll(...nameRelations);
   }
 
@@ -1928,7 +1903,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  withCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public withCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "count"));
@@ -1942,7 +1917,7 @@ class Model<
    * @param {...string} nameRelations if data exists return 0
    * @returns {this} this
    */
-  relationsCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public relationsCount<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS", this.$relation.apply(nameRelations, "count"));
@@ -1959,7 +1934,7 @@ class Model<
    * @param {...string} nameRelations if data exists return blank
    * @returns {this} this
    */
-  withTrashed<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public withTrashed<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set(
@@ -1979,7 +1954,7 @@ class Model<
    * @param {...string} nameRelations if data exists return blank
    * @returns {this} this
    */
-  relationsTrashed<K extends T.RelationKeys<this>>(
+  public relationsTrashed<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     return this.withTrashed(...nameRelations);
@@ -2011,7 +1986,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withExists('posts').findMany()
    */
-  withExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public withExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS_EXISTS", true);
@@ -2047,7 +2022,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().relationsExists('posts').findMany()
    */
-  relationsExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public relationsExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withExists(...nameRelations);
   }
 
@@ -2078,7 +2053,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().has('posts').findMany()
    */
-  has<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public has<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     return this.withExists(...nameRelations);
   }
 
@@ -2109,7 +2084,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().withNotExists('posts').findMany()
    */
-  withNotExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
+  public withNotExists<K extends T.RelationKeys<this>>(...nameRelations: K[]): this {
     if (!nameRelations.length) return this;
 
     this.$state.set("RELATIONS_EXISTS", true);
@@ -2149,7 +2124,7 @@ class Model<
    *  // use with for results of relationship if relations is exists
    *  await new User().relationsNotExists('posts').findMany()
    */
-  relationsNotExists<K extends T.RelationKeys<this>>(
+  public relationsNotExists<K extends T.RelationKeys<this>>(
     ...nameRelations: K[]
   ): this {
     if (!nameRelations.length) return this;
@@ -2213,7 +2188,7 @@ class Model<
    *  .findMany()
    * @returns {this} this
    */
-  withQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+  public withQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
@@ -2244,7 +2219,7 @@ class Model<
     return this;
   }
 
-  withQueryExists<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+  public withQueryExists<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
@@ -2324,7 +2299,7 @@ class Model<
    *  .findMany()
    * @returns {this} this
    */
-  relationQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+  public relationQuery<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
@@ -2395,7 +2370,7 @@ class Model<
    *  .findMany()
    * @returns {this} this
    */
-  relationQueryExists<
+  public relationQueryExists<
     K extends T.RelationKeys<this>,
     R extends T.Relations<this>
   >(
@@ -2427,7 +2402,7 @@ class Model<
    * @param {string} name name relation in registry in your model
    * @returns {Model} model instance
    */
-  findWithQuery<K extends T.RelationKeys<this>>(name: K): Model | null {
+  public findWithQuery<K extends T.RelationKeys<this>>(name: K): Model | null {
     const instance = this.$relation.returnCallback(String(name));
 
     return instance == null ? null : instance;
@@ -2810,7 +2785,7 @@ class Model<
    * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
    * @returns {this} this
    */
-  onlyTrashed(): this {
+  public onlyTrashed(): this {
     this.disableSoftDelete();
 
     const column = this._valuePattern(this.$state.get("SOFT_DELETE_FORMAT"));
@@ -2827,7 +2802,7 @@ class Model<
    * a special "deleted_at" timestamp column is set to a non-null value to indicate that the record has been deleted.
    * @returns {this} this
    */
-  trashed(): this {
+  public trashed(): this {
     return this.onlyTrashed();
   }
 
@@ -2835,7 +2810,7 @@ class Model<
    * restore data in trashed
    * @returns {promise}
    */
-  async restore(): Promise<T.Result<this>[]> {
+  public async restore(): Promise<T.Result<this>[]> {
     this.disableSoftDelete();
 
     const updatedAt: string = this._valuePattern(
@@ -2866,7 +2841,7 @@ class Model<
    *
    * @returns {string} string
    */
-  toTableName(): string | null {
+  public toTableName(): string | null {
     return this.getTableName();
   }
 
@@ -2875,7 +2850,7 @@ class Model<
    * @param {string} column
    * @returns {string} string
    */
-  toTableNameAndColumn(column: string): string {
+  public toTableNameAndColumn(column: string): string {
     return `\`${this.getTableName()}\`.\`${this._valuePattern(column)}\``;
   }
 
@@ -2886,7 +2861,7 @@ class Model<
    * @param {any?} value
    * @returns {this} this
    */
-  where<K extends T.ColumnKeys<this>>(
+  public where<K extends T.ColumnKeys<this>>(
     column: K | Record<string, any>,
     operator?: any,
     value?: any
@@ -2901,11 +2876,11 @@ class Model<
       arguments.length === 2
     );
 
-    value = this.$utils.covertDateToDateString(value);
+    value = this.$utils.transfromDateToDateString(value);
 
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
@@ -2923,7 +2898,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.checkValueHasRaw(this.$utils.escape(value))
+                  this.$utils.transfromValueHasRaw(this.$utils.escape(value))
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -2943,16 +2918,18 @@ class Model<
       return this.whereIn(column, value);
     }
 
+    const wheres = this.$state.get("WHERE")
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      .join(" ")
+      .replace(/^\s+/, "")
     ]);
 
     return this;
@@ -2965,7 +2942,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  orWhere<K extends T.ColumnKeys<this>>(
+  public orWhere<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -2978,9 +2955,9 @@ class Model<
 
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
-    value = this.$utils.covertDateToDateString(value);
+    value = this.$utils.transfromDateToDateString(value);
 
     const virtualColumn = this._getBlueprintByKey(String(column), {
       mapQuery: true,
@@ -2998,7 +2975,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.checkValueHasRaw(this.$utils.escape(value))
+                  this.$utils.transfromValueHasRaw(this.$utils.escape(value))
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3018,13 +2995,15 @@ class Model<
       return this.orWhereIn(column, value);
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3039,11 +3018,13 @@ class Model<
    * @param {number} day
    * @returns {this}
    */
-  whereDay<K extends T.ColumnKeys<this>>(column: K, day: number): this {
+  public whereDay<K extends T.ColumnKeys<this>>(column: K, day: number): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `DAY(${this.bindColumn(String(column))})`,
         `=`,
         `'${`00${this.$utils.escape(day)}`.slice(-2)}'`,
@@ -3061,11 +3042,13 @@ class Model<
    * @param {number} month
    * @returns {this}
    */
-  whereMonth<K extends T.ColumnKeys<this>>(column: K, month: number): this {
+  public whereMonth<K extends T.ColumnKeys<this>>(column: K, month: number): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `MONTH(${this.bindColumn(String(column))})`,
         `=`,
         `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
@@ -3083,11 +3066,13 @@ class Model<
    * @param {number} year
    * @returns {this}
    */
-  whereYear<K extends T.ColumnKeys<this>>(column: K, year: number): this {
+  public whereYear<K extends T.ColumnKeys<this>>(column: K, year: number): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `YEAR(${this.bindColumn(String(column))})`,
         `=`,
         `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`,
@@ -3104,7 +3089,7 @@ class Model<
    * @param {Object} columns
    * @returns {this}
    */
-  whereObject<
+  public whereObject<
     K extends T.ColumnKeys<this>,
     T extends T.Columns<this>
   >(columns: { [P in K & keyof T]: T[P] }): this {
@@ -3121,7 +3106,7 @@ class Model<
         continue;
       }
 
-      const useOp = this.$utils.checkValueHasOp(value);
+      const useOp = this.$utils.transfromValueHasOp(value);
 
       if (useOp == null) {
         this.where(column, operator, value);
@@ -3218,21 +3203,23 @@ class Model<
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJSON<K extends T.ColumnKeys<this>>(
+  public whereJSON<K extends T.ColumnKeys<this>>(
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
+
+    const wheres = this.$state.get("WHERE");
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}->>'$.${key}'`,
         `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-        `${this.$utils.checkValueHasRaw(value)}`,
+        `${this.$utils.transfromValueHasRaw(value)}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3250,7 +3237,7 @@ class Model<
    * @property {string?} property.operator
    * @returns   {this}
    */
-  whereJson<K extends T.ColumnKeys<this>>(
+  public whereJson<K extends T.ColumnKeys<this>>(
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
@@ -3263,11 +3250,14 @@ class Model<
    * @param {string?} column custom it *if column is not user_id
    * @returns {this}
    */
-  whereUser(userId: number, column: string = "user_id"): this {
+  public whereUser(userId: number, column: string = "user_id"): this {
+
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
       ]
         .join(" ")
@@ -3282,11 +3272,18 @@ class Model<
    * @param {string} sql
    * @returns {this}
    */
-  whereExists(sql: string | Model): this {
+  public whereExists(sql: string | Model | DB): this {
+
+    if (sql instanceof Model && !sql.$state.get("SELECT").length) {
+      sql.select1();
+    }
+
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.$constants("EXISTS")}`,
         `(${sql})`,
       ].join(" "),
@@ -3301,13 +3298,14 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+  public whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
@@ -3324,10 +3322,12 @@ class Model<
       }
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IN")}`,
         `(${values})`,
@@ -3345,21 +3345,23 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+  public orWhereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     const values = array.length
       ? `${array
           .map((value: string) =>
-            this.$utils.checkValueHasRaw(this.$utils.escape(value))
+            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IN")}`,
         `(${values})`,
@@ -3377,21 +3379,23 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+  public whereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) return this;
 
     const values = `${array
       .map((value: string) =>
-        this.$utils.checkValueHasRaw(this.$utils.escape(value))
+        this.$utils.transfromValueHasRaw(this.$utils.escape(value))
       )
       .join(",")}`;
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("NOT_IN")}`,
         `(${values})`,
@@ -3409,21 +3413,23 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+  public orWhereNotIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) return this;
 
     const values = `${array
       .map((value: string) =>
-        this.$utils.checkValueHasRaw(this.$utils.escape(value))
+        this.$utils.transfromValueHasRaw(this.$utils.escape(value))
       )
       .join(",")}`;
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("NOT_IN")}`,
         `(${values})`,
@@ -3441,7 +3447,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  whereSubQuery<K extends T.ColumnKeys<this>>(
+  public whereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model | DB,
     options: {
@@ -3452,10 +3458,12 @@ class Model<
       subQuery.select("id");
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         options.operator,
         `(${subQuery})`,
@@ -3473,21 +3481,24 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  whereNotSubQuery<K extends T.ColumnKeys<this>>(
+  public whereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model | DB,
     options: {
       operator?: (typeof CONSTANTS)["NOT_EQ"] | (typeof CONSTANTS)["NOT_IN"];
     } = { operator: CONSTANTS["NOT_IN"] }
   ): this {
+
     if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
       subQuery.select("id");
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         options.operator,
         `(${subQuery})`,
@@ -3505,7 +3516,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereSubQuery<K extends T.ColumnKeys<this>>(
+  public orWhereSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model | DB,
     options: {
@@ -3516,10 +3527,12 @@ class Model<
       subQuery.select("id");
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         options.operator,
         `(${subQuery})`,
@@ -3537,7 +3550,7 @@ class Model<
    * @param {string} subQuery
    * @returns {this}
    */
-  orWhereNotSubQuery<K extends T.ColumnKeys<this>>(
+  public orWhereNotSubQuery<K extends T.ColumnKeys<this>>(
     column: K,
     subQuery: string | Model | DB,
     options: {
@@ -3548,10 +3561,12 @@ class Model<
       subQuery.select("id");
     }
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         options.operator,
         `(${subQuery})`,
@@ -3569,13 +3584,15 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
+  public whereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
     
+    const wheres = this.$state.get("WHERE");
+
     if (!array.length) {
       this.$state.set("WHERE", [
-        ...this.$state.get("WHERE"),
+        ...wheres,
         [
-          this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+          wheres.length ? `${this.$constants("AND")}` : "",
           `${this.bindColumn(String(column))}`,
           `${this.$constants("BETWEEN")}`,
           `${this.$constants(this.$constants("NULL"))}`,
@@ -3592,14 +3609,14 @@ class Model<
     const [value1, value2] = array;
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3614,13 +3631,15 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  orWhereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
+  public orWhereBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
     
+    const wheres = this.$state.get("WHERE");
+
     if (!array.length) {
       this.$state.set("WHERE", [
-        ...this.$state.get("WHERE"),
+        ...wheres,
         [
-          this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+          wheres.length ? `${this.$constants("OR")}` : "",
           `${this.bindColumn(String(column))}`,
           `${this.$constants("BETWEEN")}`,
           `${this.$constants(this.$constants("NULL"))}`,
@@ -3637,14 +3656,14 @@ class Model<
     const [value1, value2] = array;
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3659,14 +3678,65 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  whereNotBetween<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
-    if (!Array.isArray(array)) array = [array];
+  public whereNotBetween<K extends T.ColumnKeys<this>>(column: K, array: [any,any]): this {
+    
+    const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
       this.$state.set("WHERE", [
-        ...this.$state.get("WHERE"),
+        ...wheres,
         [
-          this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+          wheres.length ? `${this.$constants("AND")}` : "",
+          `${this.bindColumn(String(column))}`,
+          `${this.$constants("NOT_BETWEEN")}`,
+          `${this.$constants(this.$constants("NULL"))}`,
+          `${this.$constants("AND")}`,
+          `${this.$constants(this.$constants("NULL"))}`,
+        ]
+          .join(" ")
+          .replace(/^\s+/, ""),
+      ]);
+
+      return this;
+    }
+
+    const [value1, value2] = array;
+
+    this.$state.set("WHERE", [
+      ...wheres,
+      [
+        wheres.length ? `${this.$constants("AND")}` : "",
+        `${this.bindColumn(String(column))}`,
+        `${this.$constants("NOT_BETWEEN")}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$constants("AND")}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+      ]
+        .join(" ")
+        .replace(/^\s+/, ""),
+    ]);
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {string} column
+   * @param {array} array
+   * @returns {this}
+   */
+  public orWhereNotBetween<K extends T.ColumnKeys<this>>(
+    column: K,
+    array: [any,any]
+  ): this {
+    
+    const wheres = this.$state.get("WHERE");
+
+    if (!array.length) {
+      this.$state.set("WHERE", [
+        ...wheres,
+        [
+          wheres.length ? `${this.$constants("OR")}` : "",
           `${this.bindColumn(String(column))}`,
           `${this.$constants("NOT_BETWEEN")}`,
           `${this.$constants(this.$constants("NULL"))}`,
@@ -3685,61 +3755,12 @@ class Model<
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
-        `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
-    ]);
-
-    return this;
-  }
-
-  /**
-   * @override
-   * @param {string} column
-   * @param {array} array
-   * @returns {this}
-   */
-  orWhereNotBetween<K extends T.ColumnKeys<this>>(
-    column: K,
-    array: any[]
-  ): this {
-    if (!Array.isArray(array)) array = [array];
-
-    if (!array.length) {
-      this.$state.set("WHERE", [
-        ...this.$state.get("WHERE"),
-        [
-          this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-          `${this.bindColumn(String(column))}`,
-          `${this.$constants("NOT_BETWEEN")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-          `${this.$constants("AND")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-        ]
-          .join(" ")
-          .replace(/^\s+/, ""),
-      ]);
-
-      return this;
-    }
-
-    const [value1, value2] = array;
-
-    this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
-      [
         this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value1))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
         `${this.$constants("AND")}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value2))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3753,11 +3774,14 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  whereNull<K extends T.ColumnKeys<this>>(column: K): this {
+  public whereNull<K extends T.ColumnKeys<this>>(column: K): this {
+
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IS_NULL")}`,
       ]
@@ -3773,11 +3797,13 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  orWhereNull<K extends T.ColumnKeys<this>>(column: K): this {
+  public orWhereNull<K extends T.ColumnKeys<this>>(column: K): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IS_NULL")}`,
       ]
@@ -3793,11 +3819,13 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  whereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
+  public whereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IS_NOT_NULL")}`,
       ]
@@ -3813,11 +3841,13 @@ class Model<
    * @param {string} column
    * @returns {this}
    */
-  orWhereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
+  public orWhereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.bindColumn(String(column))}`,
         `${this.$constants("IS_NOT_NULL")}`,
       ]
@@ -3835,7 +3865,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereSensitive<K extends T.ColumnKeys<this>>(
+  public whereSensitive<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3848,16 +3878,18 @@ class Model<
 
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
+
+    const wheres = this.$state.get("WHERE");
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3873,7 +3905,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereStrict<K extends T.ColumnKeys<this>>(
+  public whereStrict<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3885,16 +3917,19 @@ class Model<
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+
+    value = this.$utils.transfromBooleanToNumber(value);
+
+    const wheres = this.$state.get("WHERE");
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3910,7 +3945,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  orWhereSensitive<K extends T.ColumnKeys<this>>(
+  public orWhereSensitive<K extends T.ColumnKeys<this>>(
     column: K,
     operator?: any,
     value?: any
@@ -3922,16 +3957,19 @@ class Model<
     );
 
     value = this.$utils.escape(value);
-    value = this.$utils.covertBooleanToNumber(value);
+
+    value = this.$utils.transfromBooleanToNumber(value);
+
+    const wheres = this.$state.get("WHERE");
 
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+        wheres.length ? `${this.$constants("OR")}` : "",
         `${this.$constants("BINARY")}`,
         `${this.bindColumn(String(column))}`,
         `${operator}`,
-        `${this.$utils.checkValueHasRaw(this.$utils.escape(value))}`,
+        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
       ]
         .join(" ")
         .replace(/^\s+/, ""),
@@ -3948,7 +3986,7 @@ class Model<
    * @param {model} callback callback query
    * @returns {this}
    */
-  whereHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+  public whereHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
@@ -3982,7 +4020,7 @@ class Model<
    * @param {model} callback callback query
    * @returns {this}
    */
-  whereNotHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
+  public whereNotHas<K extends T.RelationKeys<this>, R extends T.Relations<this>>(
     nameRelation: K,
     callback: (
       query: `$${K & string}` extends keyof R
@@ -4014,8 +4052,8 @@ class Model<
    * @param {Function} callback callback query
    * @returns {this}
    */
-  whereQuery<
-    T extends Model,
+  public whereQuery<
+    T extends Model | unknown,
     M = T extends this ? this : T extends Model ? T : this
   >(callback: (query: M) => M): this {
     const copy = new Model().copyModel(this) as M;
@@ -4036,10 +4074,12 @@ class Model<
 
     const query: string = where.join(" ");
 
+    const wheres = this.$state.get("WHERE");
+
     this.$state.set("WHERE", [
-      ...this.$state.get("WHERE"),
+      ...wheres,
       [
-        this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
+        wheres.length ? `${this.$constants("AND")}` : "",
         `(${query})`,
       ]
         .join(" ")
@@ -4056,7 +4096,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereAny<K extends T.ColumnKeys<this>>(
+  public whereAny<K extends T.ColumnKeys<this>>(
     columns: K[],
     operator?: any,
     value?: any
@@ -4069,7 +4109,7 @@ class Model<
 
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.whereQuery((query: Model) => {
       for (const index in columns) {
@@ -4098,7 +4138,7 @@ class Model<
    * @param {any?} value
    * @returns {this}
    */
-  whereAll<K extends T.ColumnKeys<this>>(
+  public whereAll<K extends T.ColumnKeys<this>>(
     columns: K[],
     operator?: any,
     value?: any
@@ -4111,7 +4151,7 @@ class Model<
 
     value = this.$utils.escape(value);
 
-    value = this.$utils.covertBooleanToNumber(value);
+    value = this.$utils.transfromBooleanToNumber(value);
 
     this.whereQuery((query: Model) => {
       for (const key in columns) {
@@ -4131,7 +4171,7 @@ class Model<
    * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
    * @returns {this} this
    */
-  when<
+  public when<
     T extends Model | unknown,
     M = T extends this ? this : T extends Model ? T : this
   >(
@@ -4155,7 +4195,7 @@ class Model<
    * @param {string} sql
    * @returns {this} this
    */
-  union(sql: string | Model): this {
+  public union(sql: string | Model): this {
     this.$state.set("UNION", [...this.$state.get("UNION"), `${sql}`]);
 
     return this;
@@ -4168,7 +4208,7 @@ class Model<
    * @param {string} sql
    * @returns {this} this
    */
-  unionAll(sql: string | Model): this {
+  public unionAll(sql: string | Model): this {
     this.$state.set("UNION_ALL", [...this.$state.get("UNION_ALL"), `${sql}`]);
 
     return this;
@@ -4183,7 +4223,7 @@ class Model<
    * @param   {TModelConstructorOrObject} m2 reference Model
    * @returns {this}
    */
-  joinModel(
+  public joinModel(
     m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelConstructorOrObject
   ): this {
@@ -4252,7 +4292,7 @@ class Model<
    * @param   {TModelConstructorOrObject} m2  reference Model
    * @returns {this}
    */
-  rightJoinModel(
+  public rightJoinModel(
     m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelConstructorOrObject
   ): this {
@@ -4321,7 +4361,7 @@ class Model<
    * @param   {TModelConstructorOrObject} m2  reference Model
    * @returns {this}
    */
-  leftJoinModel(
+  public leftJoinModel(
     m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelConstructorOrObject
   ): this {
@@ -4389,7 +4429,7 @@ class Model<
    * @param   {TModelConstructorOrObject} m2  reference Model
    * @returns {this}
    */
-  crossJoinModel(
+  public crossJoinModel(
     m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelConstructorOrObject
   ): this {
@@ -4448,77 +4488,11 @@ class Model<
     return this;
   }
 
-  private _handleJoinModel(
-    m1: TModelConstructorOrObject,
-    m2: TModelConstructorOrObject
-  ) {
-    let model1: Model = typeof m1 === "object" ? new m1.model() : new m1();
-    let model2: Model = typeof m2 === "object" ? new m2.model() : new m2();
-    let localKey: string =
-      typeof m1 === "object"
-        ? m1.key != null && m1.key !== ""
-          ? String(m1.key)
-          : ""
-        : "";
-    let foreignKey: string =
-      typeof m2 === "object"
-        ? m2.key != null && m2.key !== ""
-          ? String(m2.key)
-          : ""
-        : "";
-    let alias1: string =
-      typeof m1 === "object"
-        ? m1.alias != null && m1.alias !== ""
-          ? m1.alias
-          : ""
-        : "";
-    let alias2: string =
-      typeof m2 === "object"
-        ? m2.alias != null && m2.alias !== ""
-          ? m2.alias
-          : ""
-        : "";
-
-    if (alias1 !== "") {
-      if (
-        model1["$state"].get("MODEL_NAME") === this["$state"].get("MODEL_NAME")
-      ) {
-        this.alias(alias1);
-      }
-      model1.alias(alias1);
-    }
-
-    if (alias2 !== "") {
-      model2.alias(alias2);
-    }
-
-    const table1 = model1.getTableName() as string;
-    const table2 = model2.getTableName() as string;
-
-    localKey = localKey === "" || localKey == null ? "id" : localKey;
-
-    foreignKey =
-      foreignKey === "" || foreignKey == null
-        ? model2["_valuePattern"](`${pluralize.singular(table1)}_id`)
-        : foreignKey;
-
-    return {
-      table1,
-      table2,
-      model1,
-      model2,
-      alias1,
-      alias2,
-      localKey,
-      foreignKey,
-    };
-  }
-
   /**
    * @override
    * @returns {promise<boolean>} promise boolean
    */
-  async delete(): Promise<boolean> {
+  public async delete(): Promise<boolean> {
     this._guardWhereCondition();
 
     this.limit(1);
@@ -4547,23 +4521,25 @@ class Model<
     const PK = this.$state.get('PRIMARY_KEY');
     const TEMP = 'TEMP';
 
+    const from = new Model()
+    .copyModel(this, { where: true , limit : true , orderBy : true })
+    .selectRaw(PK)
+
     this
-    .CTEs(TEMP, (query) => {
-      return query
-      .copyModel(this, { where: true , limit : true , orderBy : true })
-      .select(PK)
-    })
+    .unset({ where : true , limit : true})
+    .select(PK)
     .whereSubQuery(
       PK,
-      `${new Model().from(TEMP).select(PK)}`
+      new Model().from(DB.raw(`
+        (${from}) AS ${TEMP}`
+      )).selectRaw(PK).toString()
     )
-    .unset({ limit : true })
 
     this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(!!result || false));
+    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
     await this._observer(r, "deleted");
 
@@ -4574,8 +4550,9 @@ class Model<
    * @override
    * @returns {promise<boolean>} promise boolean
    */
-  async deleteMany(): Promise<boolean> {
+  public async deleteMany(): Promise<boolean> {
     this._guardWhereCondition();
+
     if (this.$state.get("SOFT_DELETE")) {
       const deletedAt = this._valuePattern(
         this.$state.get("SOFT_DELETE_FORMAT")
@@ -4600,23 +4577,25 @@ class Model<
     const PK = this.$state.get('PRIMARY_KEY');
     const TEMP = 'TEMP';
 
+    const from = new Model()
+    .copyModel(this, { where: true, limit: true, orderBy : true })
+    .selectRaw(PK)
+
     this
-    .CTEs(TEMP, (query) => {
-      return query
-      .copyModel(this, { where: true , limit : true , orderBy : true })
-      .select(PK)
-    })
+    .unset({ where : true , limit : true })
+    .select(PK)
     .whereSubQuery(
       PK,
-      `${new Model().from(TEMP).select(PK)}`
+      new Model().from(DB.raw(`
+        (${from}) AS ${TEMP}`
+      )).selectRaw(PK).toString()
     )
-    .unset({ limit : true })
 
     this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(!!result || false));
+    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
     await this._observer(r, "deleted");
 
@@ -4632,7 +4611,7 @@ class Model<
    * This method should be ignore the soft delete
    * @returns {promise<boolean>}
    */
-  async forceDelete(): Promise<boolean> {
+  public async forceDelete(): Promise<boolean> {
     this.disableSoftDelete();
 
     const PK = this.$state.get('PRIMARY_KEY');
@@ -4651,15 +4630,16 @@ class Model<
         (${from}) AS ${TEMP}`
       )).selectRaw(PK).toString()
     )
-    // 
-
+    
     this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
 
-    if (result) return Boolean(this._resultHandler(!!result || false));
+    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
-    return Boolean(this._resultHandler(!!result || false));
+    await this._observer(r, "deleted");
+
+    return r;
   }
 
   /**
@@ -4670,7 +4650,7 @@ class Model<
    * @property {boolean} options.oldest
    * @returns {string} return sql query
    */
-  toString({
+  public toString({
     latest = false,
     oldest = false,
   }: {
@@ -4700,7 +4680,7 @@ class Model<
    * @property {boolean} options.oldest
    * @returns {string} return sql query
    */
-  toSQL({
+  public toSQL({
     latest = false,
     oldest = false,
   }: {
@@ -4715,7 +4695,7 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<Array>}
    */
-  async toArray<K extends T.ColumnKeys<this> | "id">(
+  public async toArray<K extends T.ColumnKeys<this> | "id">(
     column?: K
   ): Promise<any[]> {
     if (column == null) column = "id" as K;
@@ -4738,7 +4718,7 @@ class Model<
    * @override
    * @returns {promise<boolean>}
    */
-  async exists(): Promise<boolean> {
+  public async exists(): Promise<boolean> {
     const sql = new Model()
       .copyModel(this, { where: true, limit: true, join: true })
       .selectRaw("1")
@@ -4763,7 +4743,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async first<K>(cb?: Function): Promise<T.Result<this, K> | null> {
+  public async first<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
@@ -4796,7 +4776,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<Record<string,any> | null>} Record | null
    */
-  async findOne<K>(cb?: Function): Promise<T.Result<this, K> | null> {
+  public async findOne<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     return await this.first(cb);
   }
 
@@ -4804,7 +4784,7 @@ class Model<
    * @override
    * @returns {promise<object | Error>} Record | throw error
    */
-  async firstOrError<K>(
+  public async firstOrError<K>(
     message?: string,
     options?: Record<string, any>
   ): Promise<T.Result<this, K>> {
@@ -4833,7 +4813,7 @@ class Model<
    * @override
    * @returns {promise<T.Result<this>>} Record | throw error
    */
-  async findOneOrError<K>(
+  public async findOneOrError<K>(
     message?: string,
     options?: Record<string, any>
   ): Promise<T.Result<this, K>> {
@@ -4845,7 +4825,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async get<K>(cb?: Function): Promise<T.Result<this, K>[]> {
+  public async get<K>(cb?: Function): Promise<T.Result<this, K>[]> {
     
     if (this.$state.get("VOID")) return [];
 
@@ -4877,7 +4857,7 @@ class Model<
    * @param {Function?} cb callback function return query sql
    * @returns {promise<array>} Array
    */
-  async findMany<K>(cb?: Function): Promise<T.Result<this, K>[]> {
+  public async findMany<K>(cb?: Function): Promise<T.Result<this, K>[]> {
     return await this.get(cb);
   }
   /**
@@ -4887,7 +4867,7 @@ class Model<
    * @property {number} paginationOptions.page
    * @returns  {promise<Pagination>} Pagination
    */
-  async pagination<K>(paginationOptions?: {
+  public async pagination<K>(paginationOptions?: {
     limit?: number;
     page?: number;
     alias?: boolean;
@@ -4930,7 +4910,7 @@ class Model<
    * @property  {number}  paginationOptions.page
    * @returns   {promise<Pagination>} Pagination
    */
-  async paginate<K>(paginationOptions?: {
+  public async paginate<K>(paginationOptions?: {
     limit?: number;
     page?: number;
     alias?: boolean;
@@ -4949,7 +4929,7 @@ class Model<
    *  const postsByUserId1 = results.get(1)
    * @returns {Promise<object>} Object binding with your column pairs
    */
-  async getGroupBy<K, C extends T.ColumnKeys<this>>(
+  public async getGroupBy<K, C extends T.ColumnKeys<this>>(
     column: C
   ): Promise<Map<string | number, T.Result<this, K>[]>> {
 
@@ -5016,7 +4996,7 @@ class Model<
    *  const postsByUserId1 = results.get(1)
    * @returns {Promise<object>} Object binding with your column pairs
    */
-  async findGroupBy<K, C extends T.ColumnKeys<this>>(
+  public async findGroupBy<K, C extends T.ColumnKeys<this>>(
     column: C
   ): Promise<Map<string | number, T.Result<this, K>[]>> {
     return await this.getGroupBy(column);
@@ -5027,7 +5007,7 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  insert<
+  public insert<
     K extends T.ColumnKeys<this>,
     C extends T.Columns<this>
   >(data: {
@@ -5054,7 +5034,7 @@ class Model<
    * @param {object} data for insert
    * @returns {this} this
    */
-  create<
+  public create<
     K extends T.ColumnKeys<this>,
     C extends T.Columns<this>
   >(data: {
@@ -5075,7 +5055,7 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  update<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+  public update<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     data: { [P in K & keyof T]: T[P] },
     updateNotExists: T.ColumnKeys<this>[] = []
   ): this {
@@ -5120,7 +5100,7 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  updateMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+  public updateMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     data: { [P in K & keyof T]: T[P] },
     updateNotExists: string[] = []
   ): this {
@@ -5154,236 +5134,7 @@ class Model<
     return this;
   }
 
-  /**
-   * @override
-   * @param {object} data
-   * @returns {this} this
-   */
-  updateNotExists<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    this.limit(1);
-
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
-
-    for (const column in data) {
-      //@ts-ignore
-      const value = data[column];
-      data = {
-        ...data,
-        [column]: this._updateHandler(column, value as any),
-      };
-    }
-
-    this.$state.set("DATA", data);
-
-    if(this.$state.get('TRANSFORMS') == null) {
-      this._queryUpdateModel();
-    }
-
-    this.$state.set("SAVE", "UPDATE");
-
-    return this;
-  }
-
-  /**
-   * @override
-   * @param {object} data for update or create
-   * @returns {this} this
-   */
-  updateOrCreate<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    this.limit(1);
-
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
-
-    if(this.$state.get('TRANSFORMS') == null) {
-      this._queryUpdateModel();
-      this._queryInsertModel();
-    }
-
-    this.$state.set("DATA", data);
-
-    this.$state.set("SAVE", "UPDATE_OR_INSERT");
-
-    return this;
-  }
-
-  /**
-   * @override
-   * @param {object} data for update or create
-   * @returns {this} this
-   */
-  updateOrInsert<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    return this.updateOrCreate(data);
-  }
-
-  /**
-   * @override
-   * @param {object} data for update or create
-   * @returns {this} this
-   */
-  insertOrUpdate<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    return this.updateOrCreate(data);
-  }
-
-  /**
-   * @override
-   * @param {object} data for update or create
-   * @returns {this} this
-   */
-  createOrUpdate<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    return this.updateOrCreate(data);
-  }
-
-  /**
-   * @override
-   * @param {object} data for create
-   * @returns {this} this
-   */
-  createOrSelect<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
-
-    this.$state.set("DATA", data);
-
-    if(this.$state.get('TRANSFORMS') == null) {
-      this._queryInsertModel();
-    }
-
-    this.$state.set("SAVE", "INSERT_OR_SELECT");
-
-    return this;
-  }
-
-  /**
-   * @override
-   * @param {object} data for update or create
-   * @returns {this} this
-   */
-  insertOrSelect<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    return this.createOrSelect(data);
-  }
-
-  /**
-   *
-   * @override
-   * @param {object} data create not exists data
-   * @returns {this} this
-   */
-  createNotExists<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
-
-    this.$state.set("DATA", data);
-
-    if(this.$state.get('TRANSFORMS') == null) {
-      this._queryInsertModel();
-    }
-
-    this.$state.set("SAVE", "INSERT_NOT_EXISTS");
-
-    return this;
-  }
-
-  /**
-   *
-   * @override
-   * @param {object} data create not exists data
-   * @returns {this} this this
-   */
-  insertNotExists<
-    K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
-  >(data: { [P in K & keyof T]: T[P] }): this {
-    return this.createNotExists(data);
-  }
-
-  /**
-   * @override
-   * @param {Record<string,any>[]} data create multiple data
-   * @returns {this} this this
-   */
-  createMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
-    if (!Array.isArray(data) || !data.length) {
-      throw this._assertError("This method must require a non-empty array.");
-    }
-
-    this.$state.set("DATA", data);
-
-    this._queryInsertMultipleModel(data);
-
-    this.$state.set("SAVE", "INSERT_MULTIPLE");
-
-    return this;
-  }
-
-  /**
-   *
-   * @override
-   * @param {Record<string,any>[]} data create multiple data
-   * @returns {this} this
-   */
-  createMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
-    return this.createMultiple(data);
-  }
-
-  /**
-   *
-   * @override
-   * @param {Record<string,any>[]} data create multiple data
-   * @returns {this} this
-   */
-  insertMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
-    return this.createMultiple(data);
-  }
-
-  /**
-   *
-   * @override
-   * @param {Record<string,any>[]} data create multiple data
-   * @returns {this} this
-   */
-  insertMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
-    return this.createMultiple(data);
-  }
-
-  /**
+    /**
    *
    * @override
    * @param {Array<{when: Record<string, string | number | boolean | null | undefined>, columns: Record<string, string | number | boolean | null | undefined>}>>} cases
@@ -5395,7 +5146,7 @@ class Model<
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
    */
-  updateMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+  public updateCases<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
     cases: {
       when: { [P in K & keyof T]: T[P] };
       columns: { [P in K & keyof T]: T[P] };
@@ -5470,7 +5221,7 @@ class Model<
 
       const when = Object.entries(c.when).map(([key, value]) => {
         value = this.$utils.escape(value);
-        value = this.$utils.covertBooleanToNumber(value);
+        value = this.$utils.transfromBooleanToNumber(value);
         return `${this.bindColumn(key)} = '${value}'`;
       });
 
@@ -5481,7 +5232,7 @@ class Model<
         c.columns[updatedAt] =
           c.columns[updatedAt] === undefined
             ? this.$utils.timestamp()
-            : this.$utils.covertDateToDateString(c.columns[updatedAt]);
+            : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
       }
 
       for (const [key, value] of Object.entries(c.columns)) {
@@ -5510,7 +5261,145 @@ class Model<
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this.$utils.checkValueHasRaw(value)
+          : this.$utils.transfromValueHasRaw(value)
+      }`;
+    });
+
+    this.$state.set("DATA", columns);
+
+    this.$state.set(
+      "UPDATE",
+      keyValue
+    );
+
+    this.whereRaw("1");
+
+    this.$state.set("SAVE", "UPDATE");
+
+    return this;
+  }
+
+  public updateCases1<
+  T extends T.Columns<this>,
+  K extends keyof T,
+  U extends Model | unknown,
+  M = U extends this ? this : U extends Model ? U : this
+>(
+  cases: {
+    when: ((query: M) => M),
+    columns: { [P in K]: T[P] }
+  }[]
+): this {
+    if (!cases.length) {
+      throw this._assertError("This method must require a non-empty array.");
+    }
+
+    this.limit(cases.length);
+
+    const updateColumns: Record<string, any> = cases.reduce(
+      (columns: Record<string, any[]>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach(
+              (key) =>
+                (columns[key] = [
+                  this.$constants("RAW"),
+                  this.$constants("CASE"),
+                  `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
+                  this.$constants("END"),
+                ])
+            ),
+          columns
+        );
+      },
+      {}
+    );
+
+    const columns: Record<string, any> = cases.reduce(
+      (columns: Record<string, string>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach((key) => (columns[key] = "")),
+          columns
+        );
+      },
+      {}
+    );
+
+    if (this.$state.get("TIMESTAMP")) {
+      const updatedAt: string = this._valuePattern(
+        this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT
+      );
+      columns[updatedAt] = [];
+      updateColumns[updatedAt] = [
+        this.$constants("RAW"),
+        this.$constants("CASE"),
+        `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
+        this.$constants("END"),
+      ];
+    }
+
+    for (let i = cases.length - 1; i >= 0; i--) {
+      const c = cases[i] as unknown as {
+        when: Record<string, any>;
+        columns: Record<string, any>;
+      };
+
+      if (c.when == null || !Object.keys(c.when).length) {
+        throw this._assertError(
+          `This 'when' property is missing some properties.`
+        );
+      }
+
+      if (c.columns == null || !Object.keys(c.columns).length) {
+        throw this._assertError(
+          `This 'columns' property is missing some properties.`
+        );
+      }
+
+      const when = Object.entries(c.when).map(([key, value]) => {
+        value = this.$utils.escape(value);
+        value = this.$utils.transfromBooleanToNumber(value);
+        return `${this.bindColumn(key)} = '${value}'`;
+      });
+
+      if (this.$state.get("TIMESTAMP")) {
+        const updatedAt: string = this._valuePattern(
+          this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT
+        );
+        c.columns[updatedAt] =
+          c.columns[updatedAt] === undefined
+            ? this.$utils.timestamp()
+            : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
+      }
+
+      for (const [key, value] of Object.entries(c.columns)) {
+        if (updateColumns[key] == null) continue;
+        const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
+        const str = `${this.$constants("WHEN")} ${when.join(
+          ` ${this.$constants("AND")} `
+        )} ${this.$constants("THEN")} '${value}'`;
+        updateColumns[key].splice(startIndex + 1, 0, str);
+      }
+    }
+
+    for (const key in columns) {
+      if (updateColumns[key] == null) continue;
+      columns[key] = `( ${updateColumns[key].join(" ")} )`;
+    }
+
+    const keyValue = Object.entries(columns).map(([column, value]) => {
+      if (
+        typeof value === "string" &&
+        !value.includes(this.$constants("RAW"))
+      ) {
+        value = this.$utils.escapeActions(value);
+      }
+
+      return `${this.bindColumn(column)} = ${
+        value == null || value === this.$constants("NULL")
+          ? this.$constants("NULL")
+          : this.$utils.transfromValueHasRaw(value)
       }`;
     });
 
@@ -5529,10 +5418,239 @@ class Model<
   }
 
   /**
+   * @override
+   * @param {object} data
+   * @returns {this} this
+   */
+  public updateNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    this.limit(1);
+
+    if (!Object.keys(data).length) {
+      throw this._assertError("This method must require at least 1 argument.");
+    }
+
+    for (const column in data) {
+      //@ts-ignore
+      const value = data[column];
+      data = {
+        ...data,
+        [column]: this._updateHandler(column, value as any),
+      };
+    }
+
+    this.$state.set("DATA", data);
+
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+    }
+
+    this.$state.set("SAVE", "UPDATE");
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {object} data for update or create
+   * @returns {this} this
+   */
+  public updateOrCreate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    this.limit(1);
+
+    if (!Object.keys(data).length) {
+      throw this._assertError("This method must require at least 1 argument.");
+    }
+
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryUpdateModel();
+      this._queryInsertModel();
+    }
+
+    this.$state.set("DATA", data);
+
+    this.$state.set("SAVE", "UPDATE_OR_INSERT");
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {object} data for update or create
+   * @returns {this} this
+   */
+  public updateOrInsert<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    return this.updateOrCreate(data);
+  }
+
+  /**
+   * @override
+   * @param {object} data for update or create
+   * @returns {this} this
+   */
+  public insertOrUpdate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    return this.updateOrCreate(data);
+  }
+
+  /**
+   * @override
+   * @param {object} data for update or create
+   * @returns {this} this
+   */
+  public createOrUpdate<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    return this.updateOrCreate(data);
+  }
+
+  /**
+   * @override
+   * @param {object} data for create
+   * @returns {this} this
+   */
+  public createOrSelect<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    if (!Object.keys(data).length) {
+      throw this._assertError("This method must require at least 1 argument.");
+    }
+
+    this.$state.set("DATA", data);
+
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertModel();
+    }
+
+    this.$state.set("SAVE", "INSERT_OR_SELECT");
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {object} data for update or create
+   * @returns {this} this
+   */
+  public insertOrSelect<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    return this.createOrSelect(data);
+  }
+
+  /**
+   *
+   * @override
+   * @param {object} data create not exists data
+   * @returns {this} this
+   */
+  public createNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    if (!Object.keys(data).length) {
+      throw this._assertError("This method must require at least 1 argument.");
+    }
+
+    this.$state.set("DATA", data);
+
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertModel();
+    }
+
+    this.$state.set("SAVE", "INSERT_NOT_EXISTS");
+
+    return this;
+  }
+
+  /**
+   *
+   * @override
+   * @param {object} data create not exists data
+   * @returns {this} this this
+   */
+  public insertNotExists<
+    K extends T.ColumnKeys<this>,
+    T extends T.Columns<this>
+  >(data: { [P in K & keyof T]: T[P] }): this {
+    return this.createNotExists(data);
+  }
+
+  /**
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this this
+   */
+  public createMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
+  ): this {
+    if (!Array.isArray(data) || !data.length) {
+      throw this._assertError("This method must require a non-empty array.");
+    }
+
+    this.$state.set("DATA", data);
+
+    this._queryInsertMultipleModel(data);
+
+    this.$state.set("SAVE", "INSERT_MULTIPLE");
+
+    return this;
+  }
+
+  /**
+   *
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this
+   */
+  public createMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
+  ): this {
+    return this.createMultiple(data);
+  }
+
+  /**
+   *
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this
+   */
+  public insertMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
+  ): this {
+    return this.createMultiple(data);
+  }
+
+  /**
+   *
+   * @override
+   * @param {Record<string,any>[]} data create multiple data
+   * @returns {this} this
+   */
+  public insertMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+    data: { [P in K & keyof T]: T[P] }[]
+  ): this {
+    return this.createMultiple(data);
+  }
+
+  /**
    * The 'getSchemaModel' method is used get a schema model
    * @returns {Record<string, Blueprint> | null} Record<string, Blueprint> | null
    */
-  getSchemaModel(): Record<string, Blueprint> | null {
+  public getSchemaModel(): Record<string, Blueprint> | null {
     if (this.$schema == null) return this.$state.get("SCHEMA_TABLE");
     return this.$schema;
   }
@@ -5542,7 +5660,7 @@ class Model<
    * @param {ValidateSchema} schema
    * @returns {this} this
    */
-  validation(schema?: TValidateSchema): this {
+  public validation(schema?: TValidateSchema): this {
     if(schema == null) return this;
 
     this.$state.set("VALIDATE_SCHEMA", true);
@@ -5555,7 +5673,7 @@ class Model<
    * @param {string} column
    * @returns {string} return table.column
    */
-  bindPattern(column: string): string {
+  public bindPattern(column: string): string {
     return this._valuePattern(column);
   }
 
@@ -5563,7 +5681,11 @@ class Model<
    * @override
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
-  async save({ waitMs = 0 } = {}): Promise<any> {
+  public async save({ waitMs = 0 } = {}): Promise<
+    | T.Result<this>
+    | T.Result<this>[] 
+    | null
+  > {
    
     this.$state.set("AFTER_SAVE", waitMs);
 
@@ -5607,7 +5729,7 @@ class Model<
    * @param {Function} callback function will be called data and index
    * @returns {promise<void>}
    */
-  async faker<K>(
+  public async faker<K>(
     rows: number,
     callback?: (results: T.Result<this, K>, index: number) => T.Result<this, K>
   ): Promise<void> {
@@ -5703,7 +5825,7 @@ class Model<
    * @property {boolean} options.index - add index to column
    * @returns {Promise<void>}
    */
-  async sync({
+  public async sync({
     force = false,
     foreign = false,
     changed = false,
@@ -5729,7 +5851,7 @@ class Model<
    * @param {string} [options.env] - Environment name to load configuration from.
    * @returns {Promise<Array<{ model: string, template: string }>>}
    */
-  async buildModelTemplate({
+  public async buildModelTemplate({
     decorator,
     env,
   }: {
@@ -6784,7 +6906,7 @@ class Model<
       await this.$utils.applyTransforms({ 
         result, 
         transforms : this.$state.get('TRANSFORMS'), 
-        action : 'after' 
+        action : 'from' 
       })
     }
 
@@ -6799,7 +6921,7 @@ class Model<
 
   private async _queryUpdateModel() {
     let objects =  this.$state.get("DATA");
-    objects = this.$utils.covertDateToDateString(objects);
+    objects = this.$utils.transfromDateToDateString(objects);
 
     if (this.$state.get("TIMESTAMP")) {
       const updatedAt: string = this._valuePattern(
@@ -6810,7 +6932,7 @@ class Model<
         [updatedAt]:
           objects[updatedAt] === undefined
             ? this.$utils.timestamp()
-            : this.$utils.covertDateToDateString(objects[updatedAt]),
+            : this.$utils.transfromDateToDateString(objects[updatedAt]),
       };
     }
 
@@ -6818,7 +6940,7 @@ class Model<
       await this.$utils.applyTransforms({ 
         result: objects, 
         transforms : this.$state.get('TRANSFORMS'), 
-        action : 'before' 
+        action : 'to' 
       })
     }
 
@@ -6832,7 +6954,7 @@ class Model<
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this.$utils.checkValueHasRaw(value)
+          : this.$utils.transfromValueHasRaw(value)
       }`;
     });
 
@@ -6847,7 +6969,7 @@ class Model<
   private async _queryInsertModel() {
     let data = this.$state.get('DATA');
 
-    this.$utils.covertDateToDateString(data);
+    this.$utils.transfromDateToDateString(data);
 
     const hasTimestamp = Boolean(this.$state.get("TIMESTAMP"));
 
@@ -6861,11 +6983,11 @@ class Model<
         [createdAt]:
           data[createdAt] === undefined
             ? this.$utils.timestamp()
-            : this.$utils.covertDateToDateString(data[createdAt]),
+            : this.$utils.transfromDateToDateString(data[createdAt]),
         [updatedAt]:
           data[updatedAt] === undefined
             ? this.$utils.timestamp()
-            : this.$utils.covertDateToDateString(data[updatedAt]),
+            : this.$utils.transfromDateToDateString(data[updatedAt]),
       };
     }
 
@@ -6873,7 +6995,7 @@ class Model<
       await this.$utils.applyTransforms({ 
         result: data, 
         transforms : this.$state.get('TRANSFORMS'), 
-        action : 'before' 
+        action : 'to' 
       })
     }
 
@@ -6909,7 +7031,7 @@ class Model<
       return `${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
-          : this.$utils.checkValueHasRaw(value)
+          : this.$utils.transfromValueHasRaw(value)
       }`;
     });
 
@@ -6937,7 +7059,7 @@ class Model<
     const newData: Record<string, any>[] = [];
 
     for (let objects of data) {
-      this.$utils.covertDateToDateString(data);
+      this.$utils.transfromDateToDateString(data);
 
       if (hasTimestamp) {
         const createdAt: string = this._valuePattern(format.CREATED_AT);
@@ -6948,11 +7070,11 @@ class Model<
           [createdAt]:
             objects[createdAt] === undefined
               ? this.$utils.timestamp()
-              : this.$utils.covertDateToDateString(objects[createdAt]),
+              : this.$utils.transfromDateToDateString(objects[createdAt]),
           [updatedAt]:
             objects[updatedAt] === undefined
               ? this.$utils.timestamp()
-              : this.$utils.covertDateToDateString(objects[updatedAt]),
+              : this.$utils.transfromDateToDateString(objects[updatedAt]),
         };
 
         columns = [...columns, `\`${createdAt}\``, `\`${updatedAt}\``];
@@ -6989,7 +7111,7 @@ class Model<
         return `${
           value == null || value === this.$constants("NULL")
             ? this.$constants("NULL")
-            : this.$utils.checkValueHasRaw(value)
+            : this.$utils.transfromValueHasRaw(value)
         }`;
       });
 
@@ -7142,9 +7264,7 @@ class Model<
     return this._resultHandler(results);
   }
 
-  private async _updateOrInsertModel(): Promise<
-    { [key: string]: any } | { [key: string]: any }[] | null
-  > {
+  private async _updateOrInsertModel(): Promise<any> {
 
     if(this.$state.get('TRANSFORMS') != null) {
       await this._queryUpdateModel();
@@ -7237,9 +7357,7 @@ class Model<
     }
   }
 
-  private async _insertOrSelectModel(): Promise<
-    { [key: string]: any } | { [key: string]: any }[] | null
-  > {
+  private async _insertOrSelectModel(): Promise<any> {
     
     this._guardWhereCondition();
 
@@ -7653,6 +7771,72 @@ class Model<
     }
 
     return blueprint;
+  }
+
+  private _handleJoinModel(
+    m1: TModelConstructorOrObject,
+    m2: TModelConstructorOrObject
+  ) {
+    let model1: Model = typeof m1 === "object" ? new m1.model() : new m1();
+    let model2: Model = typeof m2 === "object" ? new m2.model() : new m2();
+    let localKey: string =
+      typeof m1 === "object"
+        ? m1.key != null && m1.key !== ""
+          ? String(m1.key)
+          : ""
+        : "";
+    let foreignKey: string =
+      typeof m2 === "object"
+        ? m2.key != null && m2.key !== ""
+          ? String(m2.key)
+          : ""
+        : "";
+    let alias1: string =
+      typeof m1 === "object"
+        ? m1.alias != null && m1.alias !== ""
+          ? m1.alias
+          : ""
+        : "";
+    let alias2: string =
+      typeof m2 === "object"
+        ? m2.alias != null && m2.alias !== ""
+          ? m2.alias
+          : ""
+        : "";
+
+    if (alias1 !== "") {
+      if (
+        model1["$state"].get("MODEL_NAME") === this["$state"].get("MODEL_NAME")
+      ) {
+        this.alias(alias1);
+      }
+      model1.alias(alias1);
+    }
+
+    if (alias2 !== "") {
+      model2.alias(alias2);
+    }
+
+    const table1 = model1.getTableName() as string;
+    const table2 = model2.getTableName() as string;
+
+    localKey = localKey === "" || localKey == null ? "id" : localKey;
+
+    foreignKey =
+      foreignKey === "" || foreignKey == null
+        ? model2["_valuePattern"](`${pluralize.singular(table1)}_id`)
+        : foreignKey;
+
+    return {
+      table1,
+      table2,
+      model1,
+      model2,
+      alias1,
+      alias2,
+      localKey,
+      foreignKey,
+    };
   }
 
   private _initialModel(): this {

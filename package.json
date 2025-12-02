@@ -49,7 +49,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "prepare": "npm run build",
-    "test:db": "cross-env-shell NODE_ENV=test.$npm_config_db ts-mocha './__tests__/**/0*.test.ts' --reporter spec --no-timeouts --recursive --exit",
+    "test:db": "rm -rf __tests-report__ && cross-env NODE_ENV=test.$npm_config_db ts-mocha  ./__tests__/**/0*.test.ts --reporter spec --no-timeouts --recursive --reporter mochawesome --reporter-options reportDir=__tests-report__,reportFilename=errors.html,reportTitle=Unit-test --exit",
     "test:mysql": "npm run test:db --db=mysql",
     "test:mariadb": "npm run test:db --db=mariadb",
     "test:postgres": "npm run test:db --db=postgres",

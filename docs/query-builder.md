@@ -333,7 +333,7 @@ const user = await new DB("users")
  */
 
 const user = await new DB("users")
-  .updateMultiple([
+  .updateCases([
     {
       when: {
         id: 1,
@@ -930,7 +930,7 @@ create(objects)
 createMultiple(array objects)
 update (objects)
 updateMany (objects)
-updateMultiple(array objects)
+updateCases(array objects)
 createNotExists(objects)
 updateOrCreate (objects)
 onlyTrashed()

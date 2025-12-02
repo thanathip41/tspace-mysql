@@ -980,7 +980,7 @@ class RepositoryHandler<
     }
 
     /**
-     * The 'updateMultiple' method is used to update records in a table based on specific conditions.
+     * The 'updateCases' method is used to update records in a table based on specific conditions.
      *
      * This method allows updating multiple rows at once by specifying an array of update cases.
      * Each case defines which records to update (`when`) and the new values to apply (`columns`).
@@ -992,7 +992,7 @@ class RepositoryHandler<
      * @property {?transaction} options.transaction
      * @return {promise<TS[]>}
      * @example
-     * const saveUpdateMultiple = await userRepository.updateMultiple({
+     * const saveUpdateMultiple = await userRepository.updateCases({
      *   cases : [
      *     {
      *       when : {
@@ -1017,13 +1017,13 @@ class RepositoryHandler<
      * })
      * 
      */
-    async updateMultiple ({
+    async updateCases ({
         cases,
         debug,
         transaction
     } : T.RepositoryUpdateMultiple<TM>): Promise<T.Result<TM>[]> {
 
-        if(!cases.length) throw new Error("The method updateMultiple can't use without cases condition")
+        if(!cases.length) throw new Error("The method updateCases can't use without cases condition")
 
         const instance = new this._model() as Model
 
@@ -1035,7 +1035,7 @@ class RepositoryHandler<
             instance.bind(transaction)
         }
 
-        return await instance.updateMultiple(cases as any).save() as Promise<T.Result<TM>[]>
+        return await instance.updateCases(cases as any).save() as Promise<T.Result<TM>[]>
 
     }
 
