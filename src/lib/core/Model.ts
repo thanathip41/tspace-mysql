@@ -4060,14 +4060,16 @@ class Model<
 
     const repository = callback(copy);
 
-    if (repository instanceof Promise)
+    if (repository instanceof Promise) {
       throw this._assertError(
         'The "whereQuery" method is not supported a Promise'
       );
-
-    if (!(repository instanceof Model))
+    }
+      
+    if (!(repository instanceof Model)) {
       throw this._assertError(`Unknown callback query: '${repository}'`);
-
+    }
+      
     const where: string[] = repository?.$state.get("WHERE") || [];
 
     if (!where.length) return this;
@@ -5146,156 +5148,21 @@ class Model<
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
    */
-  public updateCases<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    cases: {
-      when: { [P in K & keyof T]: T[P] };
-      columns: { [P in K & keyof T]: T[P] };
-    }[]
-  ): this {
-    if (!cases.length) {
-      throw this._assertError("This method must require a non-empty array.");
-    }
-
-    this.limit(cases.length);
-
-    const updateColumns: Record<string, any> = cases.reduce(
-      (columns: Record<string, any[]>, item) => {
-        return (
-          item.columns &&
-            Object.keys(item.columns).forEach(
-              (key) =>
-                (columns[key] = [
-                  this.$constants("RAW"),
-                  this.$constants("CASE"),
-                  `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
-                  this.$constants("END"),
-                ])
-            ),
-          columns
-        );
-      },
-      {}
-    );
-
-    const columns: Record<string, any> = cases.reduce(
-      (columns: Record<string, string>, item) => {
-        return (
-          item.columns &&
-            Object.keys(item.columns).forEach((key) => (columns[key] = "")),
-          columns
-        );
-      },
-      {}
-    );
-
-    if (this.$state.get("TIMESTAMP")) {
-      const updatedAt: string = this._valuePattern(
-        this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT
-      );
-      columns[updatedAt] = [];
-      updateColumns[updatedAt] = [
-        this.$constants("RAW"),
-        this.$constants("CASE"),
-        `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
-        this.$constants("END"),
-      ];
-    }
-
-    for (let i = cases.length - 1; i >= 0; i--) {
-      const c = cases[i] as unknown as {
-        when: Record<string, any>;
-        columns: Record<string, any>;
-      };
-
-      if (c.when == null || !Object.keys(c.when).length) {
-        throw this._assertError(
-          `This 'when' property is missing some properties.`
-        );
-      }
-
-      if (c.columns == null || !Object.keys(c.columns).length) {
-        throw this._assertError(
-          `This 'columns' property is missing some properties.`
-        );
-      }
-
-      const when = Object.entries(c.when).map(([key, value]) => {
-        value = this.$utils.escape(value);
-        value = this.$utils.transfromBooleanToNumber(value);
-        return `${this.bindColumn(key)} = '${value}'`;
-      });
-
-      if (this.$state.get("TIMESTAMP")) {
-        const updatedAt: string = this._valuePattern(
-          this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT
-        );
-        c.columns[updatedAt] =
-          c.columns[updatedAt] === undefined
-            ? this.$utils.timestamp()
-            : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
-      }
-
-      for (const [key, value] of Object.entries(c.columns)) {
-        if (updateColumns[key] == null) continue;
-        const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
-        const str = `${this.$constants("WHEN")} ${when.join(
-          ` ${this.$constants("AND")} `
-        )} ${this.$constants("THEN")} '${value}'`;
-        updateColumns[key].splice(startIndex + 1, 0, str);
-      }
-    }
-
-    for (const key in columns) {
-      if (updateColumns[key] == null) continue;
-      columns[key] = `( ${updateColumns[key].join(" ")} )`;
-    }
-
-    const keyValue = Object.entries(columns).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
-
-      return `${this.bindColumn(column)} = ${
-        value == null || value === this.$constants("NULL")
-          ? this.$constants("NULL")
-          : this.$utils.transfromValueHasRaw(value)
-      }`;
-    });
-
-    this.$state.set("DATA", columns);
-
-    this.$state.set(
-      "UPDATE",
-      keyValue
-    );
-
-    this.whereRaw("1");
-
-    this.$state.set("SAVE", "UPDATE");
-
-    return this;
-  }
-
-  public updateCases1<
-  T extends T.Columns<this>,
-  K extends keyof T,
-  U extends Model | unknown,
-  M = U extends this ? this : U extends Model ? U : this
->(
+  public updateCases<
+    T extends T.Columns<this>,
+    K extends keyof T,
+    U extends Model | unknown,
+    M = U extends this ? this : U extends Model ? U : this
+  >(
   cases: {
-    when: ((query: M) => M),
-    columns: { [P in K]: T[P] }
+    when: ((query: M) => M) | Partial<{ [P in K & keyof T]: T[P] }>,
+    columns: Partial<{ [P in K & keyof T]: T[P] }>;
   }[]
 ): this {
     if (!cases.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
 
-    this.limit(cases.length);
-
     const updateColumns: Record<string, any> = cases.reduce(
       (columns: Record<string, any[]>, item) => {
         return (
@@ -5341,11 +5208,11 @@ class Model<
 
     for (let i = cases.length - 1; i >= 0; i--) {
       const c = cases[i] as unknown as {
-        when: Record<string, any>;
+        when: Function | Record<string, any>;
         columns: Record<string, any>;
       };
 
-      if (c.when == null || !Object.keys(c.when).length) {
+      if (c.when == null) {
         throw this._assertError(
           `This 'when' property is missing some properties.`
         );
@@ -5357,11 +5224,38 @@ class Model<
         );
       }
 
-      const when = Object.entries(c.when).map(([key, value]) => {
-        value = this.$utils.escape(value);
-        value = this.$utils.transfromBooleanToNumber(value);
-        return `${this.bindColumn(key)} = '${value}'`;
-      });
+      const transformWhen = (when : any) : string[] => {
+        if(when instanceof Function || when instanceof Model ) {
+
+            const copy = new Model().copyModel(this);
+
+            const model = when(copy);
+
+            if (model instanceof Promise) {
+              throw this._assertError(
+                "This 'when' property is not supported a Promise"
+              );
+            }
+      
+            if (!(model instanceof Model)) {
+              throw this._assertError(`Unknown callback query: '${model}'`);
+            }
+      
+            const wheres: string[] = model?.$state.get("WHERE") || [];
+
+            return wheres
+        }
+
+        const model = new Model()
+        .copyModel(this)
+        .whereObject({...c.when });
+
+        const wheres: string[] = model?.$state.get("WHERE") || [];
+
+        return wheres
+      }
+
+      const when = transformWhen(c.when)
 
       if (this.$state.get("TIMESTAMP")) {
         const updatedAt: string = this._valuePattern(
@@ -5379,6 +5273,7 @@ class Model<
         const str = `${this.$constants("WHEN")} ${when.join(
           ` ${this.$constants("AND")} `
         )} ${this.$constants("THEN")} '${value}'`;
+
         updateColumns[key].splice(startIndex + 1, 0, str);
       }
     }
@@ -5411,6 +5306,8 @@ class Model<
     );
 
     this.whereRaw("1");
+
+    this.void();
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -5594,9 +5491,17 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this this
    */
-  public createMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
+  public createMultiple<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>,
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+      ? any
+      : undefined extends C[P]
+          ? never
+          : P
+    ]: Extract<C[P], Date> extends never ? C[P] : any;
+  }[]) : this {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
@@ -5616,9 +5521,18 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  public createMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
+  public createMany<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>,
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+      ? any
+      : undefined extends C[P]
+          ? never
+          : P
+    ]: Extract<C[P], Date> extends never ? C[P] : any;
+  }[]) : this {
+    //@ts-ignore
     return this.createMultiple(data);
   }
 
@@ -5628,9 +5542,18 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  public insertMultiple<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
+  public insertMultiple<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>,
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+      ? any
+      : undefined extends C[P]
+          ? never
+          : P
+    ]: Extract<C[P], Date> extends never ? C[P] : any;
+  }[]) : this {
+    //@ts-ignore
     return this.createMultiple(data);
   }
 
@@ -5640,9 +5563,19 @@ class Model<
    * @param {Record<string,any>[]} data create multiple data
    * @returns {this} this
    */
-  public insertMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
-    data: { [P in K & keyof T]: T[P] }[]
-  ): this {
+  public insertMany<
+    K extends T.ColumnKeys<this>,
+    C extends T.Columns<this>,
+  >(data: {
+    [P in Exclude<K & keyof C, "id"> as null extends C[P]
+      ? any
+      : undefined extends C[P]
+          ? never
+          : P
+    ]: Extract<C[P], Date> extends never ? C[P] : any;
+  }[]) : this {
+
+    //@ts-ignore
     return this.createMultiple(data);
   }
 

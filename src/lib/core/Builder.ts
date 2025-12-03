@@ -2392,7 +2392,10 @@ class Builder extends AbstractBuilder {
    * ]);
    */
   public updateCases(
-    cases: { when: Record<string, any>; columns: Record<string, any> }[]
+    cases: { 
+      when: ((query: Builder) => Builder) | Record<string, any>,
+      columns: Record<string, any> 
+    }[]
   ): this {
     if (!cases.length)
       throw new Error(`The method 'updateCases' must not be empty.`);
@@ -2432,16 +2435,44 @@ class Builder extends AbstractBuilder {
     for (let i = cases.length - 1; i >= 0; i--) {
       const c = cases[i];
 
-      if (c.when == null || !Object.keys(c.when).length)
+      if (c.when == null) {
         throw new Error(`This 'when' property is missing some properties`);
-      if (c.columns == null || !Object.keys(c.columns).length)
+      }
+        
+      if (c.columns == null || !Object.keys(c.columns).length) {
         throw new Error(`This 'columns' property is missing some properties`);
+      }
+        
+      const transformWhen = (when : any) : string[] => {
+        if(when instanceof Function || when instanceof Builder ) {
 
-      const when = Object.entries(c.when).map(([key, value]) => {
-        value = this.$utils.escape(value);
-        value = this.$utils.transfromBooleanToNumber(value);
-        return `${this.bindColumn(key)} = '${value}'`;
-      });
+            const copy = new Builder().copyBuilder(this);
+
+            const builder = when(copy);
+
+            if (builder instanceof Promise) {
+              throw new Error("This 'when' property is not supported a Promise")
+            }
+      
+            if (!(builder instanceof Builder)) {
+              throw new Error(`Unknown callback query: '${builder}'`)
+            }
+      
+            const wheres: string[] = builder?.$state.get("WHERE") || [];
+
+            return wheres
+        }
+
+        const builder = new Builder()
+        .copyBuilder(this)
+        .whereObject({...c.when });
+
+        const wheres: string[] = builder?.$state.get("WHERE") || [];
+
+        return wheres
+      }
+
+      const when = transformWhen(c.when)
 
       for (const [key, value] of Object.entries(c.columns)) {
         if (updateColumns[key] == null) continue;
@@ -2481,6 +2512,10 @@ class Builder extends AbstractBuilder {
       "UPDATE",
       keyValue
     );
+
+    this.whereRaw("1");
+
+    this.void();
 
     this.$state.set("SAVE", "UPDATE");
 
