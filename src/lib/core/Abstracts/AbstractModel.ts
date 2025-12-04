@@ -70,6 +70,46 @@ abstract class AbstractModel extends Builder {
     //@ts-ignore
     abstract restore() : Promise<T.Result<this>[]>
 
+    //@ts-ignore
+    abstract whereHas<K extends T.RelationKeys<this>,R extends T.Relations<this>,>(
+        nameRelations : K , 
+        callback: (
+        query: `$${K & string}` extends keyof R
+        ? R[`$${K & string}`] extends (infer X)[]
+        ? X
+        : R[`$${K & string}`] extends Model
+            ? R[`$${K & string}`]
+            : Model
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
+            ? X
+            : R[K] extends Model
+            ? R[K]
+            : Model
+        : Model
+    ) => any,
+    ) : this
+
+    //@ts-ignore
+    abstract whereNotHas<K extends T.RelationKeys<this>,R extends T.Relations<this>,>(
+        nameRelations : K , 
+        callback: (
+        query: `$${K & string}` extends keyof R
+        ? R[`$${K & string}`] extends (infer X)[]
+        ? X
+        : R[`$${K & string}`] extends Model
+            ? R[`$${K & string}`]
+            : Model
+        : K extends keyof R
+        ? R[K] extends (infer X)[]
+            ? X
+            : R[K] extends Model
+            ? R[K]
+            : Model
+        : Model
+    ) => any,
+    ) : this
+
     // @ts-ignore
     abstract with<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
     // @ts-ignore

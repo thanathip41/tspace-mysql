@@ -545,7 +545,7 @@ export const Transform = ({ to , from } : {
 
     Reflect.defineMetadata(REFLECT_META_TRANSFORM, {
       ...schema,
-      [propertyKey]: { before : to , after : from }
+      [propertyKey]: { to , from }
     }, target);
   };
 };

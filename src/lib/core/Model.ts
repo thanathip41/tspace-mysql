@@ -21,7 +21,7 @@ import type {
   TModelConstructorOrObject,
   TRelationKeys,
   TDriver,
-  TPoolConnected,
+  TPoolConnected
 } from "../types";
 
 import type { 
@@ -737,7 +737,7 @@ class Model<
 
   /**
    * The "useHooks" method is used to assign hook function when execute returned results to callback function.
-   * @param {Function[]} arrayFunctions functions for callback result
+   * @param {Function[]} funs functions for callback result
    * @returns {this} this
    * @example
    * class User extends Model {
@@ -1743,6 +1743,27 @@ class Model<
   public disableSoftDelete(condition: boolean = false): this {
     this.$state.set("SOFT_DELETE", condition);
     return this;
+  }
+
+  /**
+   * The 'disableSoftDelete' method is used to disable the soft delete.
+   *
+   * @param {boolean} condition
+   * @returns {this} this
+   */
+  public disableTransform(condition: boolean = false): this {
+    if(condition) return this;
+
+    this.$state.set("TRANSFORMS",null);
+    return this;
+  }
+
+  public disabledValidateSchema(condition: boolean = false): this {
+    if(condition) return this;
+
+    this.$state.set("VALIDATE_SCHEMA" , false);    
+    this.$state.set("VALIDATE_SCHEMA_DEFINED" , null);
+    return this
   }
 
   /**
@@ -5026,6 +5047,10 @@ class Model<
 
     this.$state.set("DATA", data);
 
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertModel();
+    }
+
     this.$state.set("SAVE", "INSERT");
 
     return this;
@@ -5308,6 +5333,10 @@ class Model<
     this.whereRaw("1");
 
     this.void();
+
+    this.disableTransform();
+
+    this.disabledValidateSchema();
 
     this.$state.set("SAVE", "UPDATE");
 
@@ -6577,6 +6606,7 @@ class Model<
       }
 
       if (s.match && !s.match.test(r)) {
+        console.log(r ,'hi')
         throw this._assertError(
           `This column "${column}" is not match a regular expression`
         );
@@ -6924,6 +6954,7 @@ class Model<
       };
     }
 
+    
     if(this.$state.get('TRANSFORMS') != null) {
       await this.$utils.applyTransforms({ 
         result: data, 
