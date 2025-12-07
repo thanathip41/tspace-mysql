@@ -9,42 +9,43 @@ import type {
   TValidateSchemaDecorator 
 } from "../types";
 
-export const REFLECT_META_RELATIONS = {
-  hasOne        : 'relation:hasOne',
-  hasMany       : 'relation:hasMany',
-  belongsTo     : 'relation:belongsTo',
-  belongsToMany : 'relation:belongsToMany'
-};
-
-export const REFLECT_META_SCHEMA = 'model:schema';
-
-export const REFLECT_META_VALIDATE_SCHEMA = 'model:validateSchema';
-
-export const REFLECT_META_TABLE = 'model:table';
-
-export const REFLECT_META_UUID = {
-  enabled: 'model:uuidEnabled',
-  column : 'model:uuidColumn'
-};
-
-export const REFLECT_META_OBSERVER = 'model:observer';
-
-export const REFLECT_META_TIMESTAMP = {
-  enabled: 'model:timestampEnabled',
-  columns: 'model:timestampColumns'
-};
-
-export const REFLECT_META_SOFT_DELETE = {
-  enabled: 'model:softDeleteEnabled',
-  columns: 'model:softDeleteColumns'
-};
-
-export const REFLECT_META_PATTERN = 'model:pattern';
-
-export const REFLECT_META_HOOKS = 'model:hooks';
-
-export const REFLECT_META_TRANSFORM = 'model:transform';
-
+export const REFLECT_META = {
+  RELATIONS : {
+    hasOne        : 'relation:hasOne',
+    hasMany       : 'relation:hasMany',
+    belongsTo     : 'relation:belongsTo',
+    belongsToMany : 'relation:belongsToMany'
+  },
+  SCHEMA : 'model:schema',
+  VALIDATE_SCHEMA : 'model:validateSchema',
+  TABLE : 'model:table',
+  UUID : {
+    enabled: 'model:uuidEnabled',
+    column : 'model:uuidColumn'
+  },
+  OBSERVER : 'model:observer',
+  TIMESTAMP : {
+    enabled: 'model:timestampEnabled',
+    columns: 'model:timestampColumns'
+  },
+  SOFT_DELETE: {
+    enabled: 'model:softDeleteEnabled',
+    columns: 'model:softDeleteColumns'
+  },
+  PATTERN : 'model:pattern',
+  HOOKS : 'model:hooks',
+  TRANSFORM : 'model:transform',
+  BEFORE : {
+    INSERT : 'model:beforeInsert',
+    UPDATE : 'model:beforeUpdate',
+    REMOVE : 'model:beforeRemove'
+  },
+  AFTER : {
+    INSERT : 'model:afterInsert',
+    UPDATE : 'model:afterUpdate',
+    REMOVE : 'model:afterRemove'
+  }
+}
 
 /**
  * Decorator to mark a class with a database table name.
@@ -63,7 +64,7 @@ export const REFLECT_META_TRANSFORM = 'model:transform';
  */
 export const Table = (name: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_TABLE, name, target);
+    Reflect.defineMetadata(REFLECT_META.TABLE, name, target);
   };
 };
 
@@ -89,7 +90,7 @@ export const TableSingular = (): ClassDecorator => {
 
     const singular = pluralize.singular(name);
 
-    Reflect.defineMetadata(REFLECT_META_TABLE, singular, target);
+    Reflect.defineMetadata(REFLECT_META.TABLE, singular, target);
   };
 };
 
@@ -116,7 +117,7 @@ export const TablePlural = (): ClassDecorator => {
 
     const plural = pluralize.plural(name);
 
-    Reflect.defineMetadata(REFLECT_META_TABLE, plural, target);
+    Reflect.defineMetadata(REFLECT_META.TABLE, plural, target);
   };
 };
 
@@ -136,8 +137,8 @@ export const TablePlural = (): ClassDecorator => {
  */
 export const UUID = (column?: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_UUID.enabled, true, target);
-    Reflect.defineMetadata(REFLECT_META_UUID.enabled, column, target);
+    Reflect.defineMetadata(REFLECT_META.UUID.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META.UUID.enabled, column, target);
   };
 };
 
@@ -169,7 +170,7 @@ export const Observer = (observer: new () => {
   deleted: Function;
 }): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_OBSERVER, observer, target);
+    Reflect.defineMetadata(REFLECT_META.OBSERVER, observer, target);
   };
 };
 
@@ -189,8 +190,8 @@ export const Observer = (observer: new () => {
  */
 export const Timestamp = (columns?: { createdAt: string; updatedAt: string }): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_TIMESTAMP.enabled, true, target);
-    Reflect.defineMetadata(REFLECT_META_TIMESTAMP.columns, columns, target);
+    Reflect.defineMetadata(REFLECT_META.TIMESTAMP.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META.TIMESTAMP.columns, columns, target);
   };
 };
 
@@ -210,8 +211,8 @@ export const Timestamp = (columns?: { createdAt: string; updatedAt: string }): C
  */
 export const SoftDelete = (column?: string): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_SOFT_DELETE.enabled, true, target);
-    Reflect.defineMetadata(REFLECT_META_SOFT_DELETE.columns, column, target);
+    Reflect.defineMetadata(REFLECT_META.SOFT_DELETE.enabled, true, target);
+    Reflect.defineMetadata(REFLECT_META.SOFT_DELETE.columns, column, target);
   };
 };
 
@@ -231,7 +232,7 @@ export const SoftDelete = (column?: string): ClassDecorator => {
  */
 export const Pattern = (pattern: TPattern): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_PATTERN, pattern, target);
+    Reflect.defineMetadata(REFLECT_META.PATTERN, pattern, target);
   };
 };
 
@@ -248,7 +249,7 @@ export const Pattern = (pattern: TPattern): ClassDecorator => {
  */
 export const CamelCase = (): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_PATTERN, "camelCase", target);
+    Reflect.defineMetadata(REFLECT_META.PATTERN, "camelCase", target);
   };
 };
 
@@ -265,7 +266,7 @@ export const CamelCase = (): ClassDecorator => {
  */
 export const SnakeCase = (): ClassDecorator => {
   return (target) => {
-    Reflect.defineMetadata(REFLECT_META_PATTERN, "snake_case", target);
+    Reflect.defineMetadata(REFLECT_META.PATTERN, "snake_case", target);
   };
 };
 
@@ -299,15 +300,54 @@ export const Column = (blueprint: () => Blueprint): Function => {
       throw new Error("Unable to determine property name for Column decorator");
     }
     
-    const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, target) || {};
+    const schema = Reflect.getMetadata(REFLECT_META.SCHEMA, target) || {};
 
-    Reflect.defineMetadata(REFLECT_META_SCHEMA, {
+    Reflect.defineMetadata(REFLECT_META.SCHEMA, {
       ...schema,
       [propertyKey]: blueprint()
     }, target);
   };
 };
 
+/**
+ * A decorator factory that registers custom `to` and `from` transform functions
+ * for a property. Useful for serialization/deserialization logic (e.g. ORM, DTO).
+ *
+ * @param {Object} options - Transform options.
+ * @param {(value: unknown) => any | Promise<any>} options.to - Function executed when transforming *to* database/output.
+ * @param {(value: unknown) => any | Promise<any>} options.from - Function executed when transforming *from* database/input.
+ * @returns {Function} A property decorator that stores transform metadata.
+ *
+ * @throws {Error} If the property name cannot be determined.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @Transform({
+ *     to: (v) => JSON.stringify(v),
+ *     from: (v) => JSON.parse(v),
+ *   })
+ *   profile;
+ * }
+ * ```
+ */
+export const Transform = ({ to , from } : {
+  to : (value: unknown) => any | Promise<any>;
+  from  : (value: unknown) => any | Promise<any>;
+}): Function => {
+  return (target: Object, propertyKey: string) => {
+    if (!propertyKey) {
+      throw new Error("Unable to determine property name for Transform decorator");
+    }
+    
+    const schema = Reflect.getMetadata(REFLECT_META.TRANSFORM, target) || {};
+
+    Reflect.defineMetadata(REFLECT_META.TRANSFORM, {
+      ...schema,
+      [propertyKey]: { to , from }
+    }, target);
+  };
+};
 
 /**
  * Decorator to attach validation rules to a model property.
@@ -349,9 +389,9 @@ export const Column = (blueprint: () => Blueprint): Function => {
  */
 export const Validate = (validate: TValidateSchemaDecorator): Function => {
   return (target: Object, propertyKey: string | symbol) => {
-    const existing = Reflect.getMetadata(REFLECT_META_VALIDATE_SCHEMA, target) || {};
+    const existing = Reflect.getMetadata(REFLECT_META.VALIDATE_SCHEMA, target) || {};
 
-    Reflect.defineMetadata(REFLECT_META_VALIDATE_SCHEMA, { 
+    Reflect.defineMetadata(REFLECT_META.VALIDATE_SCHEMA, { 
       ...existing, 
       [propertyKey]: validate 
     }, target);
@@ -379,10 +419,10 @@ export const HasOne = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasOne decorator");
 
-    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasOne, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META.RELATIONS.hasOne, target) || [];
 
     Reflect.defineMetadata(
-      REFLECT_META_RELATIONS.hasOne,
+      REFLECT_META.RELATIONS.hasOne,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -410,10 +450,10 @@ export const HasMany = (options: TRelationQueryOptionsDecorator): Function => {
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for HasMany decorator");
 
-    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.hasMany, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META.RELATIONS.hasMany, target) || [];
 
     Reflect.defineMetadata(
-      REFLECT_META_RELATIONS.hasMany,
+      REFLECT_META.RELATIONS.hasMany,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -441,10 +481,10 @@ export const BelongsTo = (options: TRelationQueryOptionsDecorator): Function => 
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsTo decorator");
 
-    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsTo, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META.RELATIONS.belongsTo, target) || [];
 
     Reflect.defineMetadata(
-      REFLECT_META_RELATIONS.belongsTo,
+      REFLECT_META.RELATIONS.belongsTo,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
@@ -472,16 +512,44 @@ export const BelongsToMany = (options: TRelationQueryOptionsDecorator): Function
   return (target: Object, propertyKey: string) => {
     if (!propertyKey) throw new Error("Unable to determine property name for BelongsToMany decorator");
 
-    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META_RELATIONS.belongsToMany, target) || [];
+    const existing: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(REFLECT_META.RELATIONS.belongsToMany, target) || [];
 
     Reflect.defineMetadata(
-      REFLECT_META_RELATIONS.belongsToMany,
+      REFLECT_META.RELATIONS.belongsToMany,
       [...existing, { ...options, name: options.name ?? propertyKey }],
       target
     );
   };
 };
 
+/**
+ * Decorator that registers a method as a generic lifecycle hook.
+ * Unlike specific hooks such as `@BeforeInsert` or `@AfterUpdate`,
+ * this decorator is **multi-purpose** and collects all tagged methods
+ * into a single metadata registry (`REFLECT_META.HOOKS`).
+ *
+ * These hook methods can later be invoked by the ORM/engine at any stage
+ * depending on your custom logic.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-method class member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @Hooks()
+ *   logAction() {
+ *     console.log("A lifecycle action happened");
+ *   }
+ * }
+ * ```
+ *
+ * @example
+ * // Later, your ORM engine could do:
+ * const hooks = Reflect.getMetadata(REFLECT_META.HOOKS, userInstance) || [];
+ * for (const hook of hooks) hook.call(userInstance);
+ */
 export const Hooks = (): Function => { 
 
   return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
@@ -495,9 +563,9 @@ export const Hooks = (): Function => {
 
     const original = descriptor.value as (...args: any[]) => any; 
 
-    const hooks : Function[] = Reflect.getMetadata(REFLECT_META_HOOKS, target) || [];
+    const hooks : Function[] = Reflect.getMetadata(REFLECT_META.HOOKS, target) || [];
     
-    Reflect.defineMetadata(REFLECT_META_HOOKS, [...hooks, original], target);
+    Reflect.defineMetadata(REFLECT_META.HOOKS, [...hooks, original], target);
 
     descriptor.value = function (this: any, ...args: any[]) {
       return original.apply(this, args);
@@ -507,6 +575,26 @@ export const Hooks = (): Function => {
   }
 };
 
+/**
+ * Decorator that registers a method to be executed **before an insert operation**.
+ * Works similarly to TypeORM's `@BeforeInsert`.  
+ *
+ * The decorated method will be stored in metadata and executed later by the ORM engine.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @BeforeInsert()
+ *   setCreatedAt() {
+ *     this.createdAt = new Date();
+ *   }
+ * }
+ * ```
+ */
 export const BeforeInsert = (): Function => { 
 
   return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
@@ -520,9 +608,9 @@ export const BeforeInsert = (): Function => {
 
     const original = descriptor.value as (...args: any[]) => any; 
 
-    const existing: Function[] = Reflect.getMetadata("model:beforeInsert", target) || [];
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.BEFORE.INSERT, target) || [];
     
-    Reflect.defineMetadata("model:beforeInsert", [...existing,original], target);
+    Reflect.defineMetadata(REFLECT_META.BEFORE.INSERT, [...existing,original], target);
 
     descriptor.value = function (this: any, ...args: any[]) {
       return original.apply(this, args);
@@ -532,20 +620,212 @@ export const BeforeInsert = (): Function => {
   }
 };
 
-export const Transform = ({ to , from } : {
-  to : (value: unknown) => any;
-  from  : (value: unknown) => any;
-}): Function => {
-  return (target: Object, propertyKey: string) => {
-    if (!propertyKey) {
-      throw new Error("Unable to determine property name for Transform decorator");
-    }
-    
-    const schema = Reflect.getMetadata(REFLECT_META_TRANSFORM, target) || {};
+/**
+ * Decorator that registers a method to be executed **before an update operation**.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @BeforeUpdate()
+ *   updateTimestamp() {
+ *     this.updatedAt = new Date();
+ *   }
+ * }
+ * ```
+ */
+export const BeforeUpdate = (): Function => { 
 
-    Reflect.defineMetadata(REFLECT_META_TRANSFORM, {
-      ...schema,
-      [propertyKey]: { to , from }
-    }, target);
-  };
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@BeforeUpdate can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.BEFORE.UPDATE, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META.BEFORE.UPDATE, [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
+};
+
+/**
+ * Decorator that registers a method to be executed **before a remove/delete operation**.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @BeforeRemove()
+ *   handleBeforeDelete() {
+ *     console.log("User will be deleted");
+ *   }
+ * }
+ * ```
+ */
+export const BeforeRemove = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@BeforeRemove can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.BEFORE.REMOVE, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META.BEFORE.REMOVE, [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
+};
+
+/**
+ * Decorator that registers a method to be executed **after an insert operation**.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @AfterInsert()
+ *   notifyCreated() {
+ *     console.log("User inserted");
+ *   }
+ * }
+ * ```
+ */
+export const AfterInsert = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@afterInsert can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.AFTER.INSERT, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META.AFTER.INSERT, [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
+};
+
+/**
+ * Decorator that registers a method to be executed **after an update operation**.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @AfterUpdate()
+ *   logUpdate() {
+ *     console.log("User updated");
+ *   }
+ * }
+ * ```
+ */
+export const AfterUpdate = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@afterUpdate can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.AFTER.UPDATE, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META.AFTER.UPDATE, [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
+};
+
+/**
+ * Decorator that registers a method to be executed **after a remove/delete operation**.
+ *
+ * @returns {Function} A method decorator.
+ *
+ * @throws {Error} If applied to a non-function member.
+ *
+ * @example
+ * ```ts
+ * class User {
+ *   @AfterRemove()
+ *   logDeletion() {
+ *     console.log("User removed");
+ *   }
+ * }
+ * ```
+ */
+export const AfterRemove = (): Function => { 
+
+  return (target: Object, propertyKey: string, descriptor?: PropertyDescriptor) => {
+    if (!descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(target, propertyKey)!;
+    }
+
+    if (typeof descriptor.value !== 'function') {
+      throw new Error(`@afterRemove can only be applied to methods.`);
+    }
+
+    const original = descriptor.value as (...args: any[]) => any; 
+
+    const existing: Function[] = Reflect.getMetadata(REFLECT_META.AFTER.REMOVE, target) || [];
+    
+    Reflect.defineMetadata(REFLECT_META.AFTER.REMOVE, [...existing,original], target);
+
+    descriptor.value = function (this: any, ...args: any[]) {
+      return original.apply(this, args);
+    };
+
+    return descriptor;
+  }
 };

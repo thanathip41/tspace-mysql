@@ -28,19 +28,7 @@ import type {
   TRelationQueryOptionsDecorator, 
 } from "../types/decorator";
 
-import { 
-  REFLECT_META_SCHEMA, 
-  REFLECT_META_RELATIONS, 
-  REFLECT_META_TABLE, 
-  REFLECT_META_VALIDATE_SCHEMA, 
-  REFLECT_META_SOFT_DELETE, 
-  REFLECT_META_PATTERN, 
-  REFLECT_META_TIMESTAMP, 
-  REFLECT_META_OBSERVER, 
-  REFLECT_META_UUID,
-  REFLECT_META_HOOKS,
-  REFLECT_META_TRANSFORM
-} from "./Decorator";
+import { REFLECT_META } from "./Decorator";
 
 let globalSettings: TGlobalSetting = {
   softDelete  : false,
@@ -823,29 +811,67 @@ class Model<
     return this;
   }
 
-  /**
-   * The "beforeCreatingTable" method is used exection function when creating the table.
-   * @param {Function[]} funcs functions for executing before creating the table
-   * @returns {this} this
-   * @example
-   * class User extends Model {
-   *   constructor() {
-   *     this.beforeCreatingTable(async () => {
-   *         await new User()
-   *          .create({
-   *            ...columns
-   *          })
-   *          .save()
-   *      })
-   *   }
-   * }
-   */
   protected beforeInsert(funcs: Function[]): this {
     for (const func of funcs) {
       if (typeof func !== "function")
         throw this._assertError(`this 'function' is not a function`);
 
       this.$state.set("BEFORE_INSERTS", [...this.$state.get("BEFORE_INSERTS"), func]);
+    }
+
+    return this;
+  }
+
+  protected afterInsert(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("AFTER_INSERTS", [...this.$state.get("AFTER_INSERTS"), func]);
+    }
+
+    return this;
+  }
+
+  protected beforeUpdate(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("BEFORE_UPDATES", [...this.$state.get("BEFORE_UPDATES"), func]);
+    }
+
+    return this;
+  }
+
+  protected afterUpdate(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("AFTER_UPDATES", [...this.$state.get("AFTER_UPDATES"), func]);
+    }
+
+    return this;
+  }
+
+  protected beforeRemove(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("BEFORE_REMOVES", [...this.$state.get("BEFORE_REMOVES"), func]);
+    }
+
+    return this;
+  }
+
+  protected afterRemove(funcs: Function[]): this {
+    for (const func of funcs) {
+      if (typeof func !== "function")
+        throw this._assertError(`this 'function' is not a function`);
+
+      this.$state.set("AFTER_REMOVES", [...this.$state.get("AFTER_REMOVES"), func]);
     }
 
     return this;
@@ -4532,11 +4558,10 @@ class Model<
       })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
+      .void()
       .save();
 
       const r = Boolean(this._resultHandler(true));
-
-      await this._observer(r, "updated");
 
       return r;
     }
@@ -4560,11 +4585,14 @@ class Model<
 
     this.$state.set("DELETE",true);
 
+    await this._beforeRemove();
+
     const result = await this._actionStatement(this._queryBuilder().remove());
 
     const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
     await this._observer(r, "deleted");
+    await this._afterRemove(r);
 
     return r;
   }
@@ -4580,7 +4608,7 @@ class Model<
       const deletedAt = this._valuePattern(
         this.$state.get("SOFT_DELETE_FORMAT")
       );
- 
+
       await new Model()
       .copyModel(this, { where: true, limit: true })
       .debug(this.$state.get("DEBUG"))
@@ -4588,11 +4616,10 @@ class Model<
       .updateMany({
         [deletedAt]: this.$utils.timestamp(),
       })
+      .void()
       .save();
 
       const r = Boolean(this._resultHandler(true));
-
-      await this._observer(r, "updated");
 
       return r;
     }
@@ -4616,11 +4643,14 @@ class Model<
 
     this.$state.set("DELETE",true);
 
+    await this._beforeRemove();
+
     const result = await this._actionStatement(this._queryBuilder().remove());
 
     const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
     await this._observer(r, "deleted");
+    await this._afterRemove(r);
 
     return r;
   }
@@ -5180,7 +5210,7 @@ class Model<
     M = U extends this ? this : U extends Model ? U : this
   >(
   cases: {
-    when: ((query: M) => M) | Partial<{ [P in K & keyof T]: T[P] }>,
+    condition: ((query: M) => M) | Partial<{ [P in K & keyof T]: T[P] }>,
     columns: Partial<{ [P in K & keyof T]: T[P] }>;
   }[]
 ): this {
@@ -5233,13 +5263,13 @@ class Model<
 
     for (let i = cases.length - 1; i >= 0; i--) {
       const c = cases[i] as unknown as {
-        when: Function | Record<string, any>;
+        condition: Function | Record<string, any>;
         columns: Record<string, any>;
       };
 
-      if (c.when == null) {
+      if (c.condition == null) {
         throw this._assertError(
-          `This 'when' property is missing some properties.`
+          `This 'condition' property is missing some properties.`
         );
       }
 
@@ -5249,38 +5279,39 @@ class Model<
         );
       }
 
-      const transformWhen = (when : any) : string[] => {
-        if(when instanceof Function || when instanceof Model ) {
+      const transformWhen = (query : any) : string[] => {
 
-            const copy = new Model().copyModel(this);
+        if(query instanceof Function || query instanceof Model ) {
 
-            const model = when(copy);
+          const copy = new Model().copyModel(this);
 
-            if (model instanceof Promise) {
-              throw this._assertError(
-                "This 'when' property is not supported a Promise"
-              );
-            }
-      
-            if (!(model instanceof Model)) {
-              throw this._assertError(`Unknown callback query: '${model}'`);
-            }
-      
-            const wheres: string[] = model?.$state.get("WHERE") || [];
+          const model = query(copy);
 
-            return wheres
+          if (model instanceof Promise) {
+            throw this._assertError(
+              "This 'query' property is not supported a Promise"
+            );
+          }
+    
+          if (!(model instanceof Model)) {
+            throw this._assertError(`Unknown callback query: '${model}'`);
+          }
+    
+          const wheres: string[] = model?.$state.get("WHERE") || [];
+
+          return wheres
         }
 
         const model = new Model()
         .copyModel(this)
-        .whereObject({...c.when });
+        .whereObject({...c.condition });
 
         const wheres: string[] = model?.$state.get("WHERE") || [];
 
         return wheres
       }
 
-      const when = transformWhen(c.when)
+      const when = transformWhen(c.condition)
 
       if (this.$state.get("TIMESTAMP")) {
         const updatedAt: string = this._valuePattern(
@@ -6460,24 +6491,88 @@ class Model<
     return this._buildQueryStatement();
   }
 
-  private async _beforeInsertData() {
+  private async _beforeInsert() {
     let data = this.$state.get("DATA");
 
-    const beforeInserts = this.$state.get('BEFORE_INSERTS') ?? [];
+    const funcs = this.$state.get('BEFORE_INSERTS') ?? [];
 
-    if(beforeInserts.length) { 
-      for(const fn of beforeInserts) { 
-        data = await fn(data); 
-      } 
-
-      if(data == null) {
-        throw new Error('BeforeInsert hooks must return the final data object.')
+    if(funcs.length) { 
+      for(const fn of funcs) { 
+        const callback = await fn(data);
+        if(callback) data = callback; 
       }
     }
 
     this.$state.set('DATA',data);
 
     return data;
+  }
+
+  private async _afterInsert(data : any) {
+
+    const funcs = this.$state.get('AFTER_INSERTS') ?? [];
+
+    if(funcs.length) { 
+      for(const fn of funcs) { 
+        await fn(data); 
+      }
+    }
+  }
+
+  private async _beforeUpdate() {
+    let data = this.$state.get("DATA");
+
+    const funs = this.$state.get('BEFORE_UPDATES') ?? [];
+
+    if(funs.length) { 
+      for(const fn of funs) { 
+        const callback = await fn(data);
+        if(callback) data = callback;
+      } 
+    }
+
+    this.$state.set('DATA',data);
+
+    return data;
+  }
+
+  private async _afterUpdate(data : any) {
+
+    const funcs = this.$state.get('AFTER_UPDATES') ?? [];
+
+    if(funcs.length) { 
+      for(const fn of funcs) { 
+        await fn(data); 
+      }
+    }
+  }
+
+  private async _beforeRemove() {
+    let data = this.$state.get("DATA");
+
+    const funcs = this.$state.get('BEFORE_REMOVES') ?? [];
+
+    if(funcs.length) { 
+      for(const fn of funcs) { 
+        const callback = await fn(data);
+        if(callback) data = callback;
+      } 
+    }
+
+    this.$state.set('DATA',data);
+
+    return data;
+  }
+
+  private async _afterRemove(data : any) {
+
+    const funcs = this.$state.get('AFTER_REMOVES') ?? [];
+
+    if(funcs.length) { 
+      for(const fn of funcs) { 
+        await fn(data); 
+      }
+    }
   }
 
   private async _validateSchema(
@@ -6820,13 +6915,13 @@ class Model<
     if (this._isPatternSnakeCase()) {
       const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
       await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
-      this._observer(empty, "selected");
+      await this._observer(empty, "selected");
       return empty;
     }
 
     const empty = this._resultHandler(emptyData);
     await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
-    this._observer(empty, "selected");
+    await this._observer(empty, "selected");
 
     return empty;
   }
@@ -7118,7 +7213,7 @@ class Model<
 
     if (check) return this._resultHandler(null);
 
-    const data = await this._beforeInsertData();
+    const data = await this._beforeInsert();
 
     await this._queryInsertModel();
 
@@ -7153,7 +7248,7 @@ class Model<
 
   private async _insertModel(): Promise<any> {
 
-    const data = await this._beforeInsertData();
+    const data = await this._beforeInsert();
 
     await this._queryInsertModel();
     
@@ -7186,6 +7281,8 @@ class Model<
     }
 
     await this._observer(resultData, "created");
+
+    await this._afterInsert(resultData);
 
     return this._resultHandler(resultData);
   }
@@ -7224,6 +7321,8 @@ class Model<
       .get();
 
     await this._observer(results, "created");
+
+    await this._afterInsert(results);
 
     return this._resultHandler(results);
   }
@@ -7278,6 +7377,7 @@ class Model<
 
         const r = this._resultHandler(resultData);
         await this._observer(r, "created");
+        await this._afterInsert(r);
 
         return r;
       }
@@ -7306,6 +7406,7 @@ class Model<
           const r = this._resultHandler(data);
 
           await this._observer(r, "updated");
+          await this._afterUpdate(r);
 
           return r;
         }
@@ -7315,6 +7416,7 @@ class Model<
         const r = this._resultHandler(resultData);
 
         await this._observer(r, "updated");
+        await this._afterUpdate(r);
 
         return r;
       }
@@ -7378,6 +7480,8 @@ class Model<
 
         await this._observer(r, "created");
 
+        await this._afterInsert(r);
+
         return r;
       }
       case true: {
@@ -7406,6 +7510,8 @@ class Model<
 
   private async _updateModel() {
     this._guardWhereCondition();
+
+    await this._beforeUpdate();
 
     if(this.$state.get('TRANSFORMS') != null) {
       await this._queryUpdateModel();
@@ -7436,6 +7542,7 @@ class Model<
       const r = this._resultHandler(data);
 
       await this._observer(r, "updated");
+      await this._afterUpdate(r);
 
       return r;
     }
@@ -7445,6 +7552,7 @@ class Model<
     const r = this._resultHandler(resultData);
 
     await this._observer(r, "updated");
+    await this._afterUpdate(r);
 
     return r;
   }
@@ -7510,84 +7618,84 @@ class Model<
   >(): this {
 
     const table = Reflect.getMetadata(
-      REFLECT_META_TABLE, 
+      REFLECT_META.TABLE, 
       this.constructor
     ) || null;
 
     if (table) this.$table = table;
 
     const observer = Reflect.getMetadata(
-      REFLECT_META_OBSERVER, 
+      REFLECT_META.OBSERVER, 
       this.constructor
     ) || null;
 
     if (observer) this.$observer = observer;
 
     const uuidIsEnabled = Reflect.getMetadata(
-      REFLECT_META_UUID.enabled, 
+      REFLECT_META.UUID.enabled, 
       this.constructor
     ) || null;
 
     if (uuidIsEnabled) {
       this.$uuid = true;
       this.$uuidColumn = Reflect.getMetadata(
-        REFLECT_META_UUID.column, 
+        REFLECT_META.UUID.column, 
         this.constructor
       ) || null;
     }
 
     const timestamp = Reflect.getMetadata(
-      REFLECT_META_TIMESTAMP.enabled, 
+      REFLECT_META.TIMESTAMP.enabled, 
       this.constructor
     ) || null;
 
     if (timestamp) {
       this.$timestamp = true;
       this.$timestampColumns = Reflect.getMetadata(
-        REFLECT_META_TIMESTAMP.columns, 
+        REFLECT_META.TIMESTAMP.columns, 
         this.constructor
       ) || null;
     }
 
     const pattern = Reflect.getMetadata(
-      REFLECT_META_PATTERN, 
+      REFLECT_META.PATTERN, 
       this.constructor
     ) || null;
 
     if (pattern) this.$pattern = pattern;
 
     const softDelete = Reflect.getMetadata(
-      REFLECT_META_SOFT_DELETE.enabled, 
+      REFLECT_META.SOFT_DELETE.enabled, 
       this.constructor
     ) || null;
 
     if (softDelete) {
       this.$softDelete = true;
       this.$softDeleteColumn = Reflect.getMetadata(
-          REFLECT_META_SOFT_DELETE.columns,
+          REFLECT_META.SOFT_DELETE.columns,
           this.constructor
         ) || null;
     }
 
-    const schema = Reflect.getMetadata(REFLECT_META_SCHEMA, this) || null;
+    const schema = Reflect.getMetadata(REFLECT_META.SCHEMA, this) || null;
 
     if (schema) this.$schema = schema;
 
-    const transforms = Reflect.getMetadata(REFLECT_META_TRANSFORM, this) || null;
+    const transforms = Reflect.getMetadata(REFLECT_META.TRANSFORM, this) || null;
 
     if(transforms) {
       this.$transforms = transforms;
     }
 
     const validate = Reflect.getMetadata(
-      REFLECT_META_VALIDATE_SCHEMA, 
+      REFLECT_META.VALIDATE_SCHEMA, 
       this
     ) || null;
 
     if (validate) this.$validateSchema = validate;
 
     const hasOnes: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
-      REFLECT_META_RELATIONS.hasOne, 
+      REFLECT_META.RELATIONS.hasOne, 
       this
     ) || [];
 
@@ -7601,7 +7709,7 @@ class Model<
     }
 
     const hasManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
-      REFLECT_META_RELATIONS.hasMany, 
+      REFLECT_META.RELATIONS.hasMany, 
       this
     ) || [];
 
@@ -7615,7 +7723,7 @@ class Model<
     }
 
     const belongsTos: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
-      REFLECT_META_RELATIONS.belongsTo, 
+      REFLECT_META.RELATIONS.belongsTo, 
       this
     ) || [];
 
@@ -7629,7 +7737,7 @@ class Model<
     }
 
     const belongsToManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
-      REFLECT_META_RELATIONS.belongsToMany, 
+      REFLECT_META.RELATIONS.belongsToMany, 
       this
     ) || [];
 
@@ -7663,19 +7771,64 @@ class Model<
     if (this.$observer != null) this.useObserver(this.$observer);
 
     const hooks = Reflect.getMetadata(
-      REFLECT_META_HOOKS, 
+      REFLECT_META.HOOKS, 
       this
     ) || [];
 
     if(hooks.length) this.useHooks(hooks);
 
     const beforeInserts =  Reflect.getMetadata(
-      "model:beforeInsert", 
+      REFLECT_META.BEFORE.INSERT, 
       this
     ) || [];
 
     if(beforeInserts.length) {
       this.beforeInsert(beforeInserts);
+    }
+
+    const afterInserts =  Reflect.getMetadata(
+      REFLECT_META.AFTER.INSERT, 
+      this
+    ) || [];
+
+    if(afterInserts.length) {
+      this.afterInsert(afterInserts);
+    }
+
+    const beforeUpdates =  Reflect.getMetadata(
+      REFLECT_META.BEFORE.UPDATE, 
+      this
+    ) || [];
+
+    if(beforeUpdates.length) {
+      this.beforeUpdate(beforeUpdates);
+    }
+
+    const afterUpdates =  Reflect.getMetadata(
+      REFLECT_META.AFTER.UPDATE, 
+      this
+    ) || [];
+
+    if(afterUpdates.length) {
+      this.afterUpdate(afterUpdates);
+    }
+
+    const beforeRemoves =  Reflect.getMetadata(
+      REFLECT_META.BEFORE.REMOVE, 
+      this
+    ) || [];
+
+    if(beforeRemoves.length) {
+      this.beforeRemove(beforeRemoves);
+    }
+
+    const afterRemoves =  Reflect.getMetadata(
+      REFLECT_META.AFTER.REMOVE, 
+      this
+    ) || [];
+
+    if(afterRemoves.length) {
+      this.afterRemove(afterRemoves);
     }
 
     return this;

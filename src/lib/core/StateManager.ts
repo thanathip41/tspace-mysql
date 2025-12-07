@@ -44,51 +44,59 @@ const STATE_DB = {
 } as const
 
 const STATE_MODEL = {
-  ...STATE_DEFAULT,
-  AUDIT : null as number | null,
-  AUDIT_METADATA : null as Record<string,any> | null,
-  MODEL_NAME: 'model' as string,
-  UUID_FORMAT: 'uuid' as string,
-  UUID: false as boolean,
-  SOFT_DELETE: false as boolean,
-  SOFT_DELETE_FORMAT: 'deleted_at' as string,
-  SOFT_DELETE_RELATIONS: false as boolean,
-  REGISTRY: {} as Record<string, string>,
-  PATTERN: 'default' as string,
-  RELATION: [] as any[],
-  RELATIONS: [] as any[],
-  RELATIONS_TRASHED: false as boolean,
-  RELATIONS_EXISTS: false as boolean,
-  TIMESTAMP: false as boolean,
-  TIMESTAMP_FORMAT: {
-    CREATED_AT: 'created_at' as string,
-    UPDATED_AT: 'updated_at' as string,
-  } as const,
-  LOGGER: false as boolean,
-  LOGGER_OPTIONS: null as { 
-    selected : boolean;
-    inserted : boolean;
-    updated  : boolean;
-    deleted  : boolean;
-  } | null,
-  TABLE_LOGGER: '$loggers' as string,
-  TABLE_AUDIT : '$audits' as string,
-  VALIDATE_SCHEMA: false as boolean,
-  VALIDATE_SCHEMA_DEFINED: null as TValidateSchema | null,
-  FUNCTION_RELATION: false as boolean,
-  SCHEMA_TABLE: null as Record<string, Blueprint> | null,
-  RETRY: 0 as number,
-  OBSERVER: null as (new () => any) | null,
-  DATA: null as any | null,
-  BEFORE_CREATING_TABLE: null as Function | null,
-  GLOBAL_SCOPE: true as boolean,
-  GLOBAL_SCOPE_QUERY: null as Function | null,
-  QUERIES: [] as string[],
-  META: null as string | null,
-  CACHE: null as { key : string, expires: number } | null,
-  MIDDLEWARES: [] as Function[],
-  BEFORE_INSERTS: [] as Function[],
-  TRANSFORMS : null as Record<string ,{ to : (value: unknown) => any; from  : (value: unknown) => any }> | null
+    ...STATE_DEFAULT,
+    AUDIT : null as number | null,
+    AUDIT_METADATA : null as Record<string,any> | null,
+    MODEL_NAME: 'model' as string,
+    UUID_FORMAT: 'uuid' as string,
+    UUID: false as boolean,
+    SOFT_DELETE: false as boolean,
+    SOFT_DELETE_FORMAT: 'deleted_at' as string,
+    SOFT_DELETE_RELATIONS: false as boolean,
+    REGISTRY: {} as Record<string, string>,
+    PATTERN: 'default' as string,
+    RELATION: [] as any[],
+    RELATIONS: [] as any[],
+    RELATIONS_TRASHED: false as boolean,
+    RELATIONS_EXISTS: false as boolean,
+    TIMESTAMP: false as boolean,
+    TIMESTAMP_FORMAT: {
+        CREATED_AT: 'created_at' as string,
+        UPDATED_AT: 'updated_at' as string,
+    } as const,
+    LOGGER: false as boolean,
+    LOGGER_OPTIONS: null as { 
+        selected : boolean;
+        inserted : boolean;
+        updated  : boolean;
+        deleted  : boolean;
+    } | null,
+    TABLE_LOGGER: '$loggers' as string,
+    TABLE_AUDIT : '$audits' as string,
+    VALIDATE_SCHEMA: false as boolean,
+    VALIDATE_SCHEMA_DEFINED: null as TValidateSchema | null,
+    FUNCTION_RELATION: false as boolean,
+    SCHEMA_TABLE: null as Record<string, Blueprint> | null,
+    RETRY: 0 as number,
+    OBSERVER: null as (new () => any) | null,
+    DATA: null as any | null,
+    BEFORE_CREATING_TABLE: null as Function | null,
+    GLOBAL_SCOPE: true as boolean,
+    GLOBAL_SCOPE_QUERY: null as Function | null,
+    QUERIES: [] as string[],
+    META: null as string | null,
+    CACHE: null as { key : string, expires: number } | null,
+    MIDDLEWARES: [] as Function[],
+    TRANSFORMS : null as Record<string ,{ 
+        to : (value: unknown) => any | Promise<any>; 
+        from  : (value: unknown) => any | Promise<any> 
+    }> | null,
+    BEFORE_INSERTS: [] as Function[],
+    AFTER_INSERTS: [] as Function[],
+    BEFORE_UPDATES: [] as Function[],
+    AFTER_UPDATES: [] as Function[],
+    BEFORE_REMOVES: [] as Function[],
+    AFTER_REMOVES: [] as Function[],
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

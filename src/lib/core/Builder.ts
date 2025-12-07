@@ -2393,7 +2393,7 @@ class Builder extends AbstractBuilder {
    */
   public updateCases(
     cases: { 
-      when: ((query: Builder) => Builder) | Record<string, any>,
+      condition: ((query: Builder) => Builder) | Record<string, any>,
       columns: Record<string, any> 
     }[]
   ): this {
@@ -2435,7 +2435,7 @@ class Builder extends AbstractBuilder {
     for (let i = cases.length - 1; i >= 0; i--) {
       const c = cases[i];
 
-      if (c.when == null) {
+      if (c.condition == null) {
         throw new Error(`This 'when' property is missing some properties`);
       }
         
@@ -2465,14 +2465,14 @@ class Builder extends AbstractBuilder {
 
         const builder = new Builder()
         .copyBuilder(this)
-        .whereObject({...c.when });
+        .whereObject({...c.condition });
 
         const wheres: string[] = builder?.$state.get("WHERE") || [];
 
         return wheres
       }
 
-      const when = transformWhen(c.when)
+      const when = transformWhen(c.condition)
 
       for (const [key, value] of Object.entries(c.columns)) {
         if (updateColumns[key] == null) continue;
