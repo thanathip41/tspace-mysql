@@ -581,6 +581,22 @@ await new User()
  *  }
 */
 
+/**
+ * Query users that have related posts matching a condition,
+ * without loading the related posts (uses WHERE EXISTS)
+ */
+await new User()
+.whereHas("posts", (query) => query.where('title','LIKE',"%post%"))
+.findOne()
+/** 
+  SELECT * FROM `users` 
+  WHERE EXISTS (
+    SELECT 1 FROM `posts` 
+    WHERE `posts`.`title` LIKE '%post%' AND `users`.`id` = `posts`.`user_id`
+  ) 
+  LIMIT 1
+*/
+
 ```
 
 ### Deeply Nested Relations

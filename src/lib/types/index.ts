@@ -367,3 +367,11 @@ export type TPoolCusterConnected = {
 export type TIsEnum<T> = string extends T ? false : number extends T ? false : boolean extends T ? false : [
     T
 ] extends [string | number] ? true : false;
+
+export type TLifecycle =
+| "beforeInsert"
+| "afterInsert"
+| "beforeUpdate"
+| "afterUpdate"
+| "beforeRemove"
+| "afterRemove";

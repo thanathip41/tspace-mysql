@@ -515,12 +515,18 @@ class DB extends AbstractDB {
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
     if (this.$cluster) {
+
       const cluster = new PoolConnection().clusterConnect();
+
       const masters = cluster.masters;
-      if (!masters.length) throw new Error("No Master available in cluster");
+
+      if (!masters.length) {
+        throw new Error("No Master available in cluster");
+      }
+
       const length = masters.length;
 
-      let selectedIndex: number = Math.floor(Math.random() * length);
+      let selectedIndex: number = 0;
 
       if (options?.nodeId != null) {
         if (options.nodeId > length) {
@@ -529,18 +535,23 @@ class DB extends AbstractDB {
           );
         }
         selectedIndex = options.nodeId - 1;
-      } else if (options?.primaryId != null) {
-        selectedIndex = options.primaryId % length;
+      } 
+      
+      else if (options?.primaryId != null) {
+        selectedIndex = Math.round(options.primaryId % length);
       }
 
       const writer = masters[selectedIndex];
 
-      if (writer == null) throw new Error("No Master available in cluster");
+      if (writer == null) {
+        throw new Error("No Master available in cluster");
+      }
 
       return await writer.connection();
     }
 
     const pool = new PoolConnection().connect();
+
     return await pool.connection();
   }
 

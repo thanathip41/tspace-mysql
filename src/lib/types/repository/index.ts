@@ -349,7 +349,7 @@ export type TRepositoryUpdate<M extends Model<any, any> = Model<any, any>> = {
 
 export type TRepositoryUpdateMultiple<M extends Model<any, any> = Model<any, any>> = {
     cases: {
-        when: Partial<T.Columns<M>>;
+        condition: ((query: M) => M) | Partial<T.Columns<M>>;
         columns: Partial<T.Columns<M>>;
     }[];
     debug?: boolean;

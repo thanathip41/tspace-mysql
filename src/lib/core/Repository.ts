@@ -1023,19 +1023,22 @@ class RepositoryHandler<
         transaction
     } : T.RepositoryUpdateMultiple<TM>): Promise<T.Result<TM>[]> {
 
-        if(!cases.length) throw new Error("The method updateCases can't use without cases condition")
+        if(!cases.length) {
+            throw new Error("The method updateCases can't use without cases condition")
+        }
 
         const instance = new this._model() as Model
 
         if(debug != null && debug) {
-            instance.debug()
+            instance.debug();
         }
 
         if(transaction != null) {
-            instance.bind(transaction)
+            instance.bind(transaction);
         }
 
-        return await instance.updateCases(cases as any).save() as Promise<T.Result<TM>[]>
+        //@ts-ignore
+        return await instance.updateCases(cases).save() as Promise<T.Result<TM>[]>
 
     }
 

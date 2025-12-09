@@ -335,7 +335,7 @@ const user = await new DB("users")
 const user = await new DB("users")
   .updateCases([
     {
-      when: {
+      condition: {
         id: 1,
         name: "name1",
       },
@@ -930,7 +930,7 @@ create(objects)
 createMultiple(array objects)
 update (objects)
 updateMany (objects)
-updateCases(array objects)
+updateCases([{ condition, columns }])
 createNotExists(objects)
 updateOrCreate (objects)
 onlyTrashed()
@@ -968,6 +968,12 @@ relationsTrashed(name1 , name2,...nameN) // withTrashed(name1, name2,...nameN)
  * @relation call a name of relation in registry, callback query of data
  */
 relationQuery(name, (callback) ) // withQuery(name1, (callback))
+
+/**
+ * @relation where of relation in registry, callback query of data
+ */
+whereHas(relation,(callback))
+whereNotHas(relation,(callback))
 
 
 /**
