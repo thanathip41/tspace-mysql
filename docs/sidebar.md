@@ -1,4 +1,5 @@
 - [Getting Started]()
+- [Integrations](integrations)
 - [SQL Like](sql-like)
 - [Query Builder](query-builder)
 - [Database Transactions](database-transactions)
@@ -12,4 +13,3 @@
 - [Stored Procedure](stored-procedure)
 - [Blueprint](blueprint)
 - [Cli](cli)
-- [Integrations](integrations)

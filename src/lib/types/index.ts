@@ -168,7 +168,7 @@ export type TPoolConnected = {
     connection: () => Promise<TConnection>;
 };
 
-export type TModelConstructorOrObject = {
+export type TModelOrObject = {
     model: new () => Model<any, any>;
     alias?: string;
     key?: string;
@@ -200,7 +200,7 @@ export type TExecute = {
     };
 };
 
-export type TPattern = 'snake_case' | 'camelCase';
+export type TPattern = 'snake_case' | 'camelCase' | 'default';
 
 export type TValidateSchema = null | Record<string, NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor | {
     type: NumberConstructor | StringConstructor | DateConstructor | BooleanConstructor;

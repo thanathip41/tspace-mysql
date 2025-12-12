@@ -48,6 +48,26 @@ class User extends Model {
      *     deleted_at  : Blueprint.timestamp().null()
      *  }) // auto-generated table when table is not exists and auto-create column when column not exists
      *
+     *  this.useLifecycle('beforeInsert', () => console.log('beforeInsert'))
+     *  this.useLifecycle('afterInsert',  () => console.log('afterInsert'))
+     *  this.useLifecycle('beforeUpdate', () => console.log('beforeUpdate'))
+     *  this.useLifecycle('afterUpdate',  () => console.log('afterUpdate'))
+     *  this.useLifecycle('beforeRemove', () => console.log('beforeRemove'))
+     *  this.useLifecycle('afterRemove',  () => console.log('afterRemove'))
+     * 
+     *  this.useTransform({
+     *    name : {
+     *       to   : async (name) => `${name}-> transform@before`,
+     *       from : async (name) => `${name}-> transform@after`,
+     *    }
+     *  })
+     * 
+     *  this.useHooks([
+     *    (r:any) => console.log(r,'hook1'),
+     *    (r:any) => console.log(r,'hook2'),
+     *    (r:any) => console.log(r,'hook3')
+     *  ])
+     *  
      *  // validate input when create or update reference to the schema in 'this.useSchema'
      *  this.useValidateSchema({
      *   id : Number,
@@ -1008,8 +1028,9 @@ const users = await new User()
 
 ## Decorator
 
-Decorators can be used in a Model.
-Let's illustrate this with an example of a decorators:
+Decorators can be applied directly to your model classes.
+When used, they automatically register the type into the system — no extra setup required.
+Here’s a simple example of how a decorator works:
 
 ```js
 
@@ -1018,9 +1039,12 @@ import {
   Table ,TableSingular, TablePlural,
   UUID, SoftDelete, Timestamp,
   Pattern, Column, Validate, Observer,
-
   // ------- relations --------
-  HasOne, HasMany, BelongsTo, BelongsToMany
+  HasOne, HasMany, BelongsTo, BelongsToMany,
+  // ------- Hook -------------
+  Transform, Observer, Hooks,
+  BeforeInsert, BeforeUpdate , BeforeRemove,
+  AfterInsert, AfterUpdate , AfterRemove
 } from 'tspace-mysql'
 import { Post } from './Post'
 import { PostUser } from './PostUser'
@@ -1076,6 +1100,10 @@ class User extends Model {
   public email!: string
 
   @Column(() => Blueprint.varchar(50).null())
+  @Transform({
+    to   : async (name:string) => `${name}-> transform@before`,
+    from : async (name:string) => `${name}-> transform@after`,
+  })
   public name !: string
 
   @Column(() => Blueprint.varchar(50).null())
@@ -1098,6 +1126,50 @@ class User extends Model {
 
   @HasMany({ model: () => Post })
   public posts!: Post[]
+
+  @Hooks()
+  hook1(result:any) {
+    console.log(result,'hook1')
+  }
+
+  @Hooks()
+  hook2(result:any) {
+    console.log(result,'hook2')
+  }
+
+  @BeforeInsert()
+  async beforeInsert(result:any) {
+    console.log(result ,'@BeforeInsert\n')
+    result.email = +new Date()+ '_overrideByBeforeInsert@gmail.com'
+  }
+
+  @AfterInsert()
+  async afterInsert(result:any) {
+    console.log(result ,'@AfterInsert\n')
+    result.email = +new Date()+ '_overrideByAfterInsert@gmail.com'
+  }
+
+  @BeforeUpdate()
+  async beforeUpdate(result:any) {
+    console.log(result ,'@BeforeUpdate\n')
+    result.email = +new Date()+ '_overrideByBeforeUpdate@gmail.com'
+  }
+
+  @AfterUpdate()
+  async afterUpdate(result:any) {
+    console.log(result ,'@AfterUpdate\n')
+    result.email = +new Date()+ '_overrideByAfterUpdate@gmail.com'
+  }
+
+  @BeforeRemove()
+  async beforeRemove() {
+    console.log('@BeforeRemove\n')
+  }
+
+  @AfterRemove()
+  async afterRemove() {
+    console.log('@AfterRemove\n')
+  }
 }
 
 ```
@@ -1282,13 +1354,19 @@ class User extends Model {
     this.hasMany({ name: "posts", model: Post });
 
     // if you need to initialize data when creating the table, you can use the following.
-    this.whenCreatingTable(async () => {
-      return await new User()
+    this.onCreatedTable(async () => {
+      console.log('hi onCreatedTable');
+
+      await new User()
         .create({
           ...columns,
         })
         .void()
         .save();
+    });
+
+     this.onSyncTable(async () => {
+      console.log('hi onSyncTable');
     });
 
     this.useSchema({

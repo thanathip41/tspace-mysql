@@ -80,7 +80,6 @@ const STATE_MODEL = {
     RETRY: 0 as number,
     OBSERVER: null as (new () => any) | null,
     DATA: null as any | null,
-    BEFORE_CREATING_TABLE: null as Function | null,
     GLOBAL_SCOPE: true as boolean,
     GLOBAL_SCOPE_QUERY: null as Function | null,
     QUERIES: [] as string[],
@@ -91,12 +90,16 @@ const STATE_MODEL = {
         to : (value: unknown) => any | Promise<any>; 
         from  : (value: unknown) => any | Promise<any> 
     }> | null,
-    BEFORE_INSERTS: [] as Function[],
-    AFTER_INSERTS: [] as Function[],
-    BEFORE_UPDATES: [] as Function[],
-    AFTER_UPDATES: [] as Function[],
-    BEFORE_REMOVES: [] as Function[],
-    AFTER_REMOVES: [] as Function[],
+    
+    LIFECYCLE_BEFORE_INSERTS: [] as Function[],
+    LIFECYCLE_AFTER_INSERTS: [] as Function[],
+    LIFECYCLE_BEFORE_UPDATES: [] as Function[],
+    LIFECYCLE_AFTER_UPDATES: [] as Function[],
+    LIFECYCLE_BEFORE_REMOVES: [] as Function[],
+    LIFECYCLE_AFTER_REMOVES: [] as Function[],
+
+    ON_CREATED_TABLE: null as Function | null,
+    ON_SYNC_TABLE:null as Function | null,
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

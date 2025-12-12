@@ -9,13 +9,11 @@ import {
   postSchemaObject,
   userSchemaArray,
   userSchemaObject,
-} from "./default-spec";
-import {
   postDataArray,
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./mock-data-spec";
+} from "./default-spec";
 import { DB } from "../src/lib";
 
 chai.use(chaiJsonSchema);
@@ -135,7 +133,7 @@ describe("Testing Model without Pattern & Schema", function () {
     expect(createds).to.be.an("array");
     expect(createds).to.be.jsonSchema(postSchemaArray);
 
-    const updated = (await new Post().where("id", 6).update({ title: "was update" }).save());
+    const updated = (await new Post().where("id", 6).update({ title: "was update" }).save()) as Record<string,any>
     expect(updated).to.be.an("object");
     expect(updated).to.be.jsonSchema(postSchemaObject);
     expect(updated.title).to.be.equal("was update");

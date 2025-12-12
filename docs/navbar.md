@@ -6,6 +6,15 @@
   * [Cluster Database](?id=cluster-database)
   * [Example Framework](?id=example-framework)
 
+* [Integrations](integrations)
+  * [Http](integrations?id=http)
+  * [Expressjs](integrations)
+  * [Fastify](integrations?id=expressjs)
+  * [Nestjs](integrations?id=nestjs)
+  * [Bun](integrations?id=bun-native)
+  * [Elysia](integrations?id=elysia)
+  * [Hono](integrations?id=hono)
+
 * [SQL Like](sql-like)
   * [Select Statements](sql-like?id=select-statements)
   * [Insert Statements](sql-like?id=insert-statements)

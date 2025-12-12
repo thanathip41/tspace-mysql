@@ -9,13 +9,12 @@ import {
   postSchemaObject,
   userSchemaArray,
   userSchemaObject,
-} from "./default-spec";
-import {
   postDataArray,
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./mock-data-spec";
+} from "./default-spec";
+
 import { DB, Repository } from "../src/lib";
 import { OP } from "../src/lib/core/Operator";
 

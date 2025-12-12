@@ -143,38 +143,6 @@ export const UUID = (column?: string): ClassDecorator => {
 };
 
 /**
- * Decorator to attach an observer class to a model.
- *
- * The observer class should have `selected`, `created`, `updated`, and `deleted` methods.
- *
- * @param {new () => { selected: Function; created: Function; updated: Function; deleted: Function }} observer - Observer class constructor.
- * @returns {ClassDecorator} A class decorator that sets the model observer.
- *
- * @example
- * ```ts
- * class UserObserver {
- *   selected() {}
- *   created() {}
- *   updated() {}
- *   deleted() {}
- * }
- *
- * @Observer(UserObserver)
- * class User extends Model {}
- * ```
- */
-export const Observer = (observer: new () => {
-  selected: Function;
-  created: Function;
-  updated: Function;
-  deleted: Function;
-}): ClassDecorator => {
-  return (target) => {
-    Reflect.defineMetadata(REFLECT_META.OBSERVER, observer, target);
-  };
-};
-
-/**
  * Decorator to enable automatic timestamps on a model.
  *
  * Stores metadata indicating that `createdAt` and `updatedAt` columns should be handled.
@@ -523,6 +491,38 @@ export const BelongsToMany = (options: TRelationQueryOptionsDecorator): Function
 };
 
 /**
+ * Decorator to attach an observer class to a model.
+ *
+ * The observer class should have `selected`, `created`, `updated`, and `deleted` methods.
+ *
+ * @param {new () => { selected: Function; created: Function; updated: Function; deleted: Function }} observer - Observer class constructor.
+ * @returns {ClassDecorator} A class decorator that sets the model observer.
+ *
+ * @example
+ * ```ts
+ * class UserObserver {
+ *   selected() {}
+ *   created() {}
+ *   updated() {}
+ *   deleted() {}
+ * }
+ *
+ * @Observer(UserObserver)
+ * class User extends Model {}
+ * ```
+ */
+export const Observer = (observer: new () => {
+  selected: Function;
+  created: Function;
+  updated: Function;
+  deleted: Function;
+}): ClassDecorator => {
+  return (target) => {
+    Reflect.defineMetadata(REFLECT_META.OBSERVER, observer, target);
+  };
+};
+
+/**
  * Decorator that registers a method as a generic lifecycle hook.
  * Unlike specific hooks such as `@BeforeInsert` or `@AfterUpdate`,
  * this decorator is **multi-purpose** and collects all tagged methods
@@ -829,3 +829,16 @@ export const AfterRemove = (): Function => {
     return descriptor;
   }
 };
+
+export const D  = {
+  Table, TableSingular, TablePlural,
+  UUID, SoftDelete, Timestamp,
+  Pattern, CamelCase , SnakeCase,
+  Column, Validate,
+  // ------- Relations --------
+  HasOne, HasMany, BelongsTo, BelongsToMany,
+  // ------- Hook -------------
+  Transform, Observer, Hooks,
+  BeforeInsert, BeforeUpdate , BeforeRemove,
+  AfterInsert, AfterUpdate , AfterRemove
+}

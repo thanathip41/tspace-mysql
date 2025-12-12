@@ -294,38 +294,49 @@ class Schema {
     changed: boolean;
     index: boolean;
   }) {
+    
     const query = this.$db["_queryBuilder"]() as QueryBuilder;
 
-    const checkTables = await this.$db
-      .debug(log)
-      .rawQuery(query.getTables(this.$db.database()));
+    const rawTables = await this.$db
+    .debug(log)
+    .rawQuery(query.getTables(this.$db.database()));
 
-    const existsTables = checkTables.map(
+    const tables = rawTables.map(
       (c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0]
     );
 
     for (const model of models) {
+      
       if (model == null) continue;
-
-      const query = model["_queryBuilder"]() as QueryBuilder;
 
       let rawSchemaModel = model.getSchemaModel();
 
       if (!rawSchemaModel) continue;
 
-      const schemaModel: Record<string, Blueprint> = {};
+      const onSyncTable = model["$state"].get(
+        "ON_SYNC_TABLE"
+      );
 
-      for (const column in rawSchemaModel) {
-        const blueprint = rawSchemaModel[column];
-        if (blueprint.isVirtual) continue;
-        schemaModel[model['_valuePattern'](column)] = blueprint;
-      }
+      const onCreatedTable = model["$state"].get(
+        "ON_CREATED_TABLE"
+      );
 
-      const checkTableIsExists = existsTables.some(
+      const schemaModel = Object
+      .entries(rawSchemaModel)
+      .reduce((prev, [column, blueprint]) => {
+          if (!blueprint.isVirtual) {
+            prev[model['_valuePattern'](column)] = blueprint;
+          }
+          return prev;
+        },
+        {} as Record<string, Blueprint>
+      );
+
+      const talbeIsExists = tables.some(
         (table: string) => table === model.getTableName()
       );
 
-      if (!checkTableIsExists) {
+      if (!talbeIsExists) {
         const sql = this.createTable(
           this.$db.database(),
           `\`${model.getTableName()}\``,
@@ -334,19 +345,24 @@ class Schema {
 
         await model.debug(log).rawQuery(sql);
 
-        const beforeCreatingTheTable = model["$state"].get(
-          "BEFORE_CREATING_TABLE"
-        );
-
-        if (beforeCreatingTheTable != null) await beforeCreatingTheTable();
+        if (onCreatedTable) {
+          await onCreatedTable();
+        }
       }
 
-      if (foreign) {
-        await this._syncForeignKey({
+      if (!force) {
+        if (onSyncTable) {
+          await onSyncTable();
+        }
+        continue;
+      }
+
+      if(changed) {
+        await this._syncChangeColumn({
           schemaModel,
           model,
           log,
-        });
+        })
       }
 
       if (index) {
@@ -357,159 +373,19 @@ class Schema {
         });
       }
 
-      if (!force) continue;
-
-      const schemaTable = await model.getSchema();
-      const schemaTableKeys = schemaTable.map(
-        (k: { Field: string }) => k.Field
-      );
-      const schemaModelKeys = Object.keys(schemaModel);
-
-      // Is main matching for postgres
-      const isTypeMatch = ({
-        typeTable,
-        typeSchema,
-      }: {
-        typeTable: string;
-        typeSchema: string;
-      }) => {
-        const mappings: Record<string, (string | RegExp)[]> = {
-          integer: ["int", "integer"],
-          boolean: ["boolean", "tinyint(1)"],
-          smallint: ["smallint", "tinyint(1)"],
-          "tinyint(1)": ["boolean"],
-          json: ["json"],
-          text: ["text", /^longtext$/i],
-          "timestamp without time zone": ["timestamp", "datetime"],
-        };
-
-        // Enum in postgres too hard for maping
-        // if have value add in Blueprint.enum, The sync column is not supported
-        if (
-          /^character varying(\(\d+\))?$/i.test(typeTable) &&
-          /^enum\(.+\)$/i.test(typeSchema)
-        ) {
-          return true;
-        }
-
-        if (typeTable.startsWith("character varying")) {
-          const typeTableFormated = typeTable.replace(
-            "character varying",
-            "varchar"
-          );
-          if (typeTableFormated === typeSchema) return true;
-          return false;
-        }
-
-        if (typeTable in mappings) {
-          return mappings[typeTable].some((pattern) => {
-            if (typeof pattern === "string") {
-              return typeSchema.toLowerCase() === pattern.toLowerCase();
-            }
-            if (pattern instanceof RegExp) {
-              return pattern.test(typeSchema.toLowerCase());
-            }
-            return false;
-          });
-        }
-
-        if (typeTable === typeSchema) {
-          return true;
-        }
-
-        return false;
-      };
-
-      const wasChangedColumns = changed
-        ? Object.entries(schemaModel)
-            .map(([key, value]) => {
-              const find = schemaTable.find((t) => t.Field === key);
-
-              if (find == null) return null;
-
-              const typeTable = String(find.Type).toLowerCase();
-
-              const typeSchema = String(value.type).toLowerCase();
-
-              const sameType = isTypeMatch({ typeTable, typeSchema });
-
-              return sameType ? null : key;
-            })
-            .filter((d) => d != null)
-        : [];
-
-      if (wasChangedColumns.length) {
-        for (const column of wasChangedColumns) {
-          if (column == null) continue;
-
-          const { type, attributes } = this.detectSchema(schemaModel[column]);
-
-          if (type == null || attributes == null) continue;
-
-          await this.$db
-            .debug(log)
-            .rawQuery(
-              query.changeColumn({
-                table: model.getTableName(),
-                type,
-                column,
-                attributes,
-              })
-            )
-            .catch((err) => {
-              console.log(
-                `\x1b[31mERROR: Failed to change the column '${column}' caused by '${err.message}'\x1b[0m`
-              );
-            });
-        }
+      if (foreign) {
+        await this._syncForeignKey({
+          schemaModel,
+          model,
+          log,
+        });
       }
 
-      const missingColumns = schemaModelKeys.filter(
-        (schemaModelKey) => !schemaTableKeys.includes(schemaModelKey)
-      );
-
-      if (!missingColumns.length) continue;
-
-      const entries = Object.entries(schemaModel);
-
-      for (const column of missingColumns) {
-        const indexWithColumn = entries.findIndex(([key]) => key === column);
-
-        const findAfterIndex = indexWithColumn
-          ? entries[indexWithColumn - 1][0]
-          : null;
-
-        const { type, attributes } = this.detectSchema(schemaModel[column]);
-
-        if (type == null || findAfterIndex == null || attributes == null) {
-          continue;
-        }
-
-        await this.$db
-          .debug(log)
-          .rawQuery(
-            query.addColumn({
-              table: model.getTableName(),
-              type,
-              column,
-              attributes,
-              after: findAfterIndex,
-            })
-          )
-          .catch((err) => {
-            console.log(
-              `\x1b[31mERROR: Failed to add the column '${column}' caused by '${err.message}'\x1b[0m`
-            );
-          });
+      if (onSyncTable) {
+        await onSyncTable();
       }
-
-      await this._syncForeignKey({
-        schemaModel,
-        model,
-        log,
-      });
     }
-
+    
     return;
   }
 
@@ -522,6 +398,7 @@ class Schema {
     model: Model;
     log: boolean;
   }) {
+
     for (const key in schemaModel) {
       if (schemaModel[key]?.foreignKey == null) continue;
       const foreign = schemaModel[key].foreignKey;
@@ -713,6 +590,162 @@ class Schema {
           });
       }
     }
+  }
+
+  private async _syncChangeColumn({
+    schemaModel,
+    model,
+    log,
+  }: {
+    schemaModel: Record<string, any>;
+    model: Model;
+    log: boolean;
+  }) {
+
+    const schemaTable = await model.getSchema();
+
+    const query = model["_queryBuilder"]() as QueryBuilder;
+
+    const schemaTableKeys = schemaTable.map(
+      (k: { Field: string }) => k.Field
+    );
+
+    const schemaModelKeys = Object.keys(schemaModel);
+
+    const isTypeMatch = ({
+      typeTable,
+      typeSchema,
+    }: {
+      typeTable: string;
+      typeSchema: string;
+    }) => {
+      const mappings: Record<string, (string | RegExp)[]> = {
+        integer: ["int", "integer"],
+        boolean: ["boolean", "tinyint(1)"],
+        smallint: ["smallint", "tinyint(1)"],
+        "tinyint(1)": ["boolean"],
+        json: ["json"],
+        text: ["text", /^longtext$/i],
+        "timestamp without time zone": ["timestamp", "datetime"],
+      };
+
+      // Enum in postgres too hard for maping
+      // if have value add in Blueprint.enum, The sync column is not supported
+      if (
+        /^character varying(\(\d+\))?$/i.test(typeTable) &&
+        /^enum\(.+\)$/i.test(typeSchema)
+      ) {
+        return true;
+      }
+
+      if (typeTable.startsWith("character varying")) {
+        const typeTableFormated = typeTable.replace(
+          "character varying",
+          "varchar"
+        );
+        if (typeTableFormated === typeSchema) return true;
+        return false;
+      }
+
+      if (typeTable in mappings) {
+        return mappings[typeTable].some((pattern) => {
+          if (typeof pattern === "string") {
+            return typeSchema.toLowerCase() === pattern.toLowerCase();
+          }
+          if (pattern instanceof RegExp) {
+            return pattern.test(typeSchema.toLowerCase());
+          }
+          return false;
+        });
+      }
+
+      if (typeTable === typeSchema) {
+        return true;
+      }
+
+      return false;
+    };
+
+    const wasChangedColumns =  Object.entries(schemaModel)
+    .map(([key, value]) => {
+      const find = schemaTable.find((t) => t.Field === key);
+
+      if (find == null) return null;
+
+      const typeTable = String(find.Type).toLowerCase();
+
+      const typeSchema = String(value.type).toLowerCase();
+
+      const sameType = isTypeMatch({ typeTable, typeSchema });
+
+      return sameType ? null : key;
+    })
+    .filter((d) => d != null)
+
+    if (wasChangedColumns.length) {
+      for (const column of wasChangedColumns) {
+        if (column == null) continue;
+
+        const { type, attributes } = this.detectSchema(schemaModel[column]);
+
+        if (type == null || attributes == null) continue;
+
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.changeColumn({
+              table: model.getTableName(),
+              type,
+              column,
+              attributes,
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to change the column '${column}' caused by '${err.message}'\x1b[0m`
+            );
+          });
+      }
+    }
+
+    const missingColumns = schemaModelKeys.filter(
+      (schemaModelKey) => !schemaTableKeys.includes(schemaModelKey)
+    );
+
+    if (!missingColumns.length) return;
+
+      const entries = Object.entries(schemaModel);
+
+      for (const column of missingColumns) {
+        const indexWithColumn = entries.findIndex(([key]) => key === column);
+
+        const findAfterIndex = indexWithColumn
+          ? entries[indexWithColumn - 1][0]
+          : null;
+
+        const { type, attributes } = this.detectSchema(schemaModel[column]);
+
+        if (type == null || findAfterIndex == null || attributes == null) {
+          continue;
+        }
+
+        await this.$db
+        .debug(log)
+        .rawQuery(
+          query.addColumn({
+            table: model.getTableName(),
+            type,
+            column,
+            attributes,
+            after: findAfterIndex,
+          })
+        )
+        .catch((err) => {
+          console.log(
+            `\x1b[31mERROR: Failed to add the column '${column}' caused by '${err.message}'\x1b[0m`
+          );
+        });
+      }
   }
 }
 

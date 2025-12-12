@@ -1,7 +1,7 @@
 import pluralize from "pluralize"
 import { Model } from "./Model"
 import type { 
-    TModelConstructorOrObject 
+    TModelOrObject 
 } from "../types"
 
 class JoinModel {
@@ -12,7 +12,7 @@ class JoinModel {
         protected type : 'INNER_JOIN' | 'LEFT_JOIN' | 'RIGHT_JOIN' | 'CROSS_JOIN' = 'INNER_JOIN'
     ) {}
 
-    on (m1: TModelConstructorOrObject, m2 : TModelConstructorOrObject) {
+    on (m1: TModelOrObject, m2 : TModelOrObject) {
 
         const {
             alias1,
@@ -74,7 +74,7 @@ class JoinModel {
         return this
     }
 
-    and (m1: TModelConstructorOrObject, m2 : TModelConstructorOrObject) {
+    and (m1: TModelOrObject, m2 : TModelOrObject) {
 
         if(!this.join.length) {
             return this.on(m1, m2)
@@ -99,7 +99,7 @@ class JoinModel {
         return this
     }
 
-    or (m1: TModelConstructorOrObject, m2 : TModelConstructorOrObject) {
+    or (m1: TModelOrObject, m2 : TModelOrObject) {
 
         if(!this.join.length) {
             return this.on(m1, m2)
@@ -180,8 +180,8 @@ class JoinModel {
     }
 
     private _handleJoinModel ( 
-        m1: TModelConstructorOrObject,
-        m2: TModelConstructorOrObject
+        m1: TModelOrObject,
+        m2: TModelOrObject
     ) {
 
         let model1      : Model  = typeof m1 === 'object' ? new m1.model() : new m1()

@@ -1958,7 +1958,7 @@ class Builder extends AbstractBuilder {
   }: {
     localKey: string;
     foreignKey: string;
-    sql: string;
+    sql: string | DB;
   }): this {
     this.$state.set("JOIN", [
       ...this.$state.get("JOIN"),
@@ -4716,7 +4716,7 @@ class Builder extends AbstractBuilder {
     return;
   }
 
-  private _handleJoin(
+  protected _handleJoin(
     type:
       | "INNER_JOIN"
       | "LEFT_JOIN"

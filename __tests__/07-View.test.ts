@@ -15,12 +15,15 @@ describe("Testing View", function () {
           synchronize: true,
           expression: `
             SELECT 
-            ROW_NUMBER() OVER (ORDER BY users.id) AS id, 
-            users.id AS user_id, users.name, users.email, 
-            COUNT(posts.id) AS post_count 
-            FROM users 
-            LEFT JOIN posts ON users.id = posts.user_id 
-            GROUP BY users.id, users.name
+              ROW_NUMBER() OVER (ORDER BY users.id) AS id, 
+              users.id AS user_id, users.name, users.email, 
+              COUNT(posts.id) AS post_count 
+            FROM 
+              users 
+            LEFT JOIN 
+              posts ON users.id = posts.user_id 
+            GROUP BY 
+              users.id, users.name
           `,
         });
       }

@@ -10,18 +10,17 @@ import {
   userSchemaArray,
   userSchemaObject,
   pattern,
-} from "./schema-spec";
-import {
   postDataArray,
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./mock-data-spec";
+} from "./snakeCase-spec";
+
 import { DB, Model } from "../src/lib";
 
 chai.use(chaiJsonSchema);
 
-describe("Testing Model with Pattern & Schema", function () {
+describe("Testing Model with SnakeCase & Schema", function () {
   /* ##################################################### */
 
   it(`Model: Start to test Schema 

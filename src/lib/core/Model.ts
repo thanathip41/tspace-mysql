@@ -18,7 +18,7 @@ import type {
   TGlobalSetting,
   TPattern,
   TRelationQueryOptions,
-  TModelConstructorOrObject,
+  TModelOrObject,
   TRelationKeys,
   TDriver,
   TPoolConnected,
@@ -30,6 +30,7 @@ import type {
 } from "../types/decorator";
 
 import { REFLECT_META } from "./Decorator";
+import { Join } from "./Join";
 
 let globalSettings: TGlobalSetting = {
   softDelete  : false,
@@ -203,7 +204,7 @@ class Model<
    * Suported only methods -> select , except , where , orderBy, GroupBy , limit and offset
    * @example
    *  class User extends Model {
-   *     constructor() {
+   *     boot() {
    *      super()
    *      this.globalScope(query => {
    *           return query.where('id' , '>' , 10)
@@ -287,7 +288,7 @@ class Model<
    * 
    * @example
    *  class User extends Model {
-   *     constructor() {
+   *     boot() {
    *      super()
    *      this.useGlobalScope(query => {
    *           return query.where('id' , '>' , 10)
@@ -330,7 +331,7 @@ class Model<
    *   }
    *
    *   class User extends Model {
-   *      constructor() {
+   *      boot() {
    *          super()
    *          this.useObserver(UserObserve)
    *      }
@@ -358,7 +359,7 @@ class Model<
    * @property {boolean} options.deleted  - default is true
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.useLogger({
    *          selected : true,
@@ -398,7 +399,7 @@ class Model<
    * @example
    * import { Blueprint } from 'tspace-mysql';
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.useSchema ({
    *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
@@ -433,7 +434,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.usePrimaryKey()
    *     }
@@ -452,7 +453,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.useUUID()
    *     }
@@ -478,13 +479,13 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.usePattern('camelCase')
    *     }
    * }
    */
-  protected usePattern(pattern: "snake_case" | "camelCase"): this {
+  protected usePattern(pattern: TPattern): this {
     const allowPattern = [
       this.$constants("PATTERN").snakeCase,
       this.$constants("PATTERN").camelCase,
@@ -511,7 +512,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.useCamelCase()
    *     }
@@ -528,7 +529,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        super()
    *        this.SnakeCase()
    *     }
@@ -551,7 +552,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        this.useSoftDelete('deletedAt')
    *     }
    * }
@@ -573,7 +574,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        this.useTimestamp({
    *           createdAt : 'createdAt',
    *           updatedAt : 'updatedAt'
@@ -603,7 +604,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        this.useTable('setTableNameIsUser') // => 'setTableNameIsUser'
    *     }
    * }
@@ -619,7 +620,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        this.useTableSingular() // => 'user'
    *     }
    * }
@@ -638,7 +639,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *     constructor() {
+   *     boot() {
    *        this.useTablePlural() // => 'users'
    *     }
    * }
@@ -656,7 +657,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *   constructor() {
+   *   boot() {
    *     this.useValidationSchema({
    *      id : Number,
    *       uuid :  Number,
@@ -695,7 +696,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *   constructor() {
+   *   boot() {
    *     this.useValidationSchema({
    *       id : Number,
    *       uuid :  string,
@@ -730,7 +731,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *   constructor() {
+   *   boot() {
    *     this.useHook([(results) => console.log(results)])
    *   }
    * }
@@ -752,7 +753,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *   constructor() {
+   *   boot() {
    *     this.useMiddleware(() => function ...)
    *   }
    * }
@@ -817,19 +818,19 @@ class Model<
 
     const MAP: Record<
       TLifecycle, 
-      | "BEFORE_INSERTS"
-      | "AFTER_INSERTS"
-      | "BEFORE_UPDATES"
-      | "AFTER_UPDATES"
-      | "BEFORE_REMOVES"
-      | "AFTER_REMOVES"
+      | "LIFECYCLE_BEFORE_INSERTS"
+      | "LIFECYCLE_AFTER_INSERTS"
+      | "LIFECYCLE_BEFORE_UPDATES"
+      | "LIFECYCLE_AFTER_UPDATES"
+      | "LIFECYCLE_BEFORE_REMOVES"
+      | "LIFECYCLE_AFTER_REMOVES"
     > = {
-      beforeInsert : "BEFORE_INSERTS",
-      afterInsert  : "AFTER_INSERTS",
-      beforeUpdate : "BEFORE_UPDATES",
-      afterUpdate  : "AFTER_UPDATES",
-      beforeRemove : "BEFORE_REMOVES",
-      afterRemove  : "AFTER_REMOVES",
+      beforeInsert : "LIFECYCLE_BEFORE_INSERTS",
+      afterInsert  : "LIFECYCLE_AFTER_INSERTS",
+      beforeUpdate : "LIFECYCLE_BEFORE_UPDATES",
+      afterUpdate  : "LIFECYCLE_AFTER_UPDATES",
+      beforeRemove : "LIFECYCLE_BEFORE_REMOVES",
+      afterRemove  : "LIFECYCLE_AFTER_REMOVES",
     };
 
     const lists = Array.isArray(funcs) ? funcs : [funcs];
@@ -854,7 +855,7 @@ class Model<
    * @returns {this} this
    * @example
    * class User extends Model {
-   *   constructor() {
+   *   boot() {
    *     this.whenCreatingTable(async () => {
    *         await new User()
    *          .create({
@@ -865,11 +866,62 @@ class Model<
    *   }
    * }
    */
-  protected whenCreatingTable(fn: () => Promise<any>): this {
+  protected whenCreatingTable(fn: () => Promise<any> | any): this {
     if (!(fn instanceof Function))
       throw this._assertError(`This '${fn}' is not a function.`);
 
-    this.$state.set("BEFORE_CREATING_TABLE", fn);
+    this.$state.set("ON_CREATED_TABLE", fn);
+
+    return this;
+  }
+
+  /**
+   * The "onCreatingTable" method is used exection function when creating the table.
+   * @param {Function} fn functions for executing when creating the table
+   * @returns {this} this
+   * @example
+   * class User extends Model {
+   *   boot() {
+   *     this.onCreatingTable(async () => {
+   *         await new User()
+   *          .create({
+   *            ...columns
+   *          })
+   *          .save()
+   *      })
+   *   }
+   * }
+   */
+  protected onCreatedTable(fn: () => Promise<any> | any): this {
+    if (!(fn instanceof Function)) {
+      throw this._assertError(`This '${fn}' is not a function.`);
+    }
+    
+    this.$state.set("ON_CREATED_TABLE", fn);
+
+    return this;
+  }
+
+  /**
+   * The "onSyncTable" method is used exection function when sync the table.
+   * @param {Function} fn functions for executing when sync table
+   * @returns {this} this
+   * @example
+   * class User extends Model {
+   *   boot() {
+   *     this.onSyncTable(async () => {
+   *        console.log('onSyncTable!!')
+   *      })
+   *   }
+   * }
+   */
+  public onSyncTable (fn: () => Promise<any> | any): this {
+
+    if (!(fn instanceof Function)) {
+      throw this._assertError(`This '${fn}' is not a function.`);
+    }
+      
+    this.$state.set("ON_SYNC_TABLE", fn);
 
     return this;
   }
@@ -1564,12 +1616,12 @@ class Model<
     newInstance.$state.set("LOGGER", false);
     newInstance.$state.set("AUDIT", null);
     newInstance.$state.set("AUDIT_METADATA", null);
-    newInstance.$state.set("BEFORE_INSERTS",[]);
-    newInstance.$state.set("BEFORE_UPDATES",[]);
-    newInstance.$state.set("BEFORE_REMOVES",[]);
-    newInstance.$state.set("AFTER_INSERTS",[]);
-    newInstance.$state.set("AFTER_UPDATES",[]);
-    newInstance.$state.set("AFTER_REMOVES",[]);
+    newInstance.$state.set("LIFECYCLE_BEFORE_INSERTS",[]);
+    newInstance.$state.set("LIFECYCLE_BEFORE_UPDATES",[]);
+    newInstance.$state.set("LIFECYCLE_BEFORE_REMOVES",[]);
+    newInstance.$state.set("LIFECYCLE_AFTER_INSERTS",[]);
+    newInstance.$state.set("LIFECYCLE_AFTER_UPDATES",[]);
+    newInstance.$state.set("LIFECYCLE_AFTER_REMOVES",[]);
 
     if (options?.relations == null || !options.relations)
       newInstance.$state.set("RELATIONS", []);
@@ -2114,9 +2166,7 @@ class Model<
    * @param {...string} nameRelations
    * @returns {this} this
    * @example
-   *   import { Model } from 'tspace-mysql'
-   *   import { pattern } from '../../tests/schema-spec';
-   *   import { TRelationOptions } from '../types';
+
    *   class User extends Model {
    *       constructor(){
    *           super()
@@ -2154,9 +2204,6 @@ class Model<
    * @param {...string} nameRelations
    * @returns {this} this
    * @example
-   *   import { Model } from 'tspace-mysql'
-   *   import { pattern } from '../../tests/schema-spec';
-   *   import { TRelationOptions } from '../types';
    *   class User extends Model {
    *       constructor(){
    *           super()
@@ -4267,17 +4314,193 @@ class Model<
   }
 
   /**
+   * @override
+   * @param {string | TModelOrObject | Join} localKey local key in current table or using Model
+   * @param {string | TModelOrObject | Join} referenceKey reference key in next table or using Model
+   * @example
+   * await new User()
+   * .select('users.id as userId','posts.id as postId','email')
+   * .join('users.id','posts.id')
+   * .join('posts.category_id','categories.id')
+   * .where('users.id',1)
+   * .where('posts.id',2)
+   * .get()
+   * 
+   *  await new User()
+   * .select('users.id as userId','posts.id as postId','email')
+   * .join(User,Post)
+   * .join(Post,Category)
+   * .get()
+   * 
+   * 
+   * @returns {this}
+   */
+  public join(
+    localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
+    referenceKey?: `${string}.${string}` | TModelOrObject
+  ): this {
+
+    if(
+      (typeof localKey === "function" && typeof localKey === "function") && 
+      (this._isModel(localKey) && this._isModel(referenceKey))
+    ) {
+
+      return this.joinModel(
+        localKey as TModelOrObject , 
+        referenceKey as TModelOrObject
+      )
+    }
+
+    this._handleJoin(
+      "INNER_JOIN", 
+      localKey as `${string}.${string}` | ((join: Join) => Join), 
+      referenceKey as `${string}.${string}`
+    );
+
+    return this;
+  }
+
+  /**
+   * 
+   * @override
+   * @param {string} localKey local key in current table
+   * @param {string} referenceKey reference key in next table
+   * @returns {this}
+   */
+  public rightJoin(
+    localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
+    referenceKey?: `${string}.${string}` | TModelOrObject
+  ): this {
+  
+    if(
+      (typeof localKey === "function" && typeof localKey === "function") && 
+      (this._isModel(localKey) && this._isModel(referenceKey))
+    ) {
+
+      return this.joinModel(
+        localKey as TModelOrObject , 
+        referenceKey as TModelOrObject
+      )
+    }
+
+    this._handleJoin(
+      "RIGHT_JOIN", 
+      localKey as `${string}.${string}` | ((join: Join) => Join), 
+      referenceKey as `${string}.${string}`
+    );
+
+    return this;
+  }
+  
+  /**
+   *
+   * @override
+   * @param {string} localKey local key in current table
+   * @param {string} referenceKey reference key in next table
+   * @returns {this}
+   */
+  public leftJoin(
+    localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
+    referenceKey?: `${string}.${string}` | TModelOrObject
+  ): this {
+    
+    if(
+      (typeof localKey === "function" && typeof localKey === "function") && 
+      (this._isModel(localKey) && this._isModel(referenceKey))
+    ) {
+
+      return this.joinModel(
+        localKey as TModelOrObject , 
+        referenceKey as TModelOrObject
+      )
+    }
+
+    this._handleJoin(
+      "LEFT_JOIN", 
+      localKey as `${string}.${string}` | ((join: Join) => Join), 
+      referenceKey as `${string}.${string}`
+    );
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {string} localKey local key in current table
+   * @param {string} referenceKey reference key in next table
+   * @returns {this}
+   */
+  public crossJoin(
+    localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
+    referenceKey?: `${string}.${string}` | TModelOrObject
+  ): this {
+    
+    if(
+      (typeof localKey === "function" && typeof localKey === "function") && 
+      (this._isModel(localKey) && this._isModel(referenceKey))
+    ) {
+
+      return this.joinModel(
+        localKey as TModelOrObject , 
+        referenceKey as TModelOrObject
+      )
+    }
+
+    this._handleJoin(
+      "CROSS_JOIN", 
+      localKey as `${string}.${string}` | ((join: Join) => Join), 
+      referenceKey as `${string}.${string}`
+    );
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param    {object}  property object { localKey , foreignKey , sqlr }
+   * @property {string} property.localKey local key in current table
+   * @property {string} property.foreignKey reference key in next table
+   * @property {string} property.sql sql string
+   * @example
+   * await new DB('users')
+   * .joinSubQuery({ localKey : 'id' , foreignKey : 'userId' , sql : '....sql'})
+   * .get()
+   * @returns {this}
+   */
+  public joinSubQuery({
+    localKey,
+    foreignKey,
+    sql,
+  }: {
+    localKey: string;
+    foreignKey: string;
+    sql: string | Model | DB;
+  }): this {
+    this.$state.set("JOIN", [
+      ...this.$state.get("JOIN"),
+      [
+        `${this.$constants("INNER_JOIN")}`,
+        `(${sql}) as subquery`,
+        `${this.$constants("ON")}`,
+        `${this.bindColumn(localKey)} = subquery.\`${foreignKey}\``,
+      ].join(" "),
+    ]);
+
+    return this;
+  }
+
+  /**
    * The 'joinModel' method is used to perform a join operation between two Models.
    *
    * Joins are used to combine data from different tables based on a specified condition, allowing you to retrieve data from related tables in a single query.
    *
-   * @param   {TModelConstructorOrObject} m1  main Model
-   * @param   {TModelConstructorOrObject} m2 reference Model
+   * @param   {TModelOrObject} m1  main Model
+   * @param   {TModelOrObject} m2 reference Model
    * @returns {this}
    */
   public joinModel(
-    m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
-    m2?: TModelConstructorOrObject
+    m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+    m2?: TModelOrObject
   ): this {
     if (typeof m1 === "function" && !this._isModel(m1)) {
       const cb = m1 as unknown as Function;
@@ -4304,8 +4527,8 @@ class Model<
       localKey,
       foreignKey,
     } = this._handleJoinModel(
-      m1 as unknown as TModelConstructorOrObject,
-      m2 as unknown as TModelConstructorOrObject
+      m1 as unknown as TModelOrObject,
+      m2 as unknown as TModelOrObject
     );
 
     this.join(
@@ -4340,13 +4563,13 @@ class Model<
    * A right join, also known as a right outer join, retrieves all rows from the right table and the matching rows from the left table.
    *
    * If there is no match in the left table, NULL values are returned for columns from the left table
-   * @param   {TModelConstructorOrObject} m1  main Model
-   * @param   {TModelConstructorOrObject} m2  reference Model
+   * @param   {TModelOrObject} m1  main Model
+   * @param   {TModelOrObject} m2  reference Model
    * @returns {this}
    */
   public rightJoinModel(
-    m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
-    m2?: TModelConstructorOrObject
+    m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+    m2?: TModelOrObject
   ): this {
     if (typeof m1 === "function" && !this._isModel(m1)) {
       const cb = m1 as unknown as Function;
@@ -4373,8 +4596,8 @@ class Model<
       localKey,
       foreignKey,
     } = this._handleJoinModel(
-      m1 as unknown as TModelConstructorOrObject,
-      m2 as unknown as TModelConstructorOrObject
+      m1 as unknown as TModelOrObject,
+      m2 as unknown as TModelOrObject
     );
 
     this.rightJoin(
@@ -4409,13 +4632,13 @@ class Model<
    * A left join retrieves all rows from the left table and the matching rows from the right table.
    *
    * If there is no match in the right table, NULL values are returned for columns from the right table.
-   * @param   {TModelConstructorOrObject} m1  main Model
-   * @param   {TModelConstructorOrObject} m2  reference Model
+   * @param   {TModelOrObject} m1  main Model
+   * @param   {TModelOrObject} m2  reference Model
    * @returns {this}
    */
   public leftJoinModel(
-    m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
-    m2?: TModelConstructorOrObject
+    m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+    m2?: TModelOrObject
   ): this {
     if (typeof m1 === "function" && !this._isModel(m1)) {
       const cb = m1 as unknown as Function;
@@ -4442,8 +4665,8 @@ class Model<
       localKey,
       foreignKey,
     } = this._handleJoinModel(
-      m1 as unknown as TModelConstructorOrObject,
-      m2 as unknown as TModelConstructorOrObject
+      m1 as unknown as TModelOrObject,
+      m2 as unknown as TModelOrObject
     );
 
     this.leftJoin(
@@ -4477,13 +4700,13 @@ class Model<
    *
    * A cross join, also known as a Cartesian join, combines every row from the first table with every row from the second table.
    *
-   * @param   {TModelConstructorOrObject} m1  main Model
-   * @param   {TModelConstructorOrObject} m2  reference Model
+   * @param   {TModelOrObject} m1  main Model
+   * @param   {TModelOrObject} m2  reference Model
    * @returns {this}
    */
   public crossJoinModel(
-    m1: TModelConstructorOrObject | ((join: JoinModel) => JoinModel),
-    m2?: TModelConstructorOrObject
+    m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+    m2?: TModelOrObject
   ): this {
     if (typeof m1 === "function" && !this._isModel(m1)) {
       const cb = m1 as unknown as Function;
@@ -4510,8 +4733,8 @@ class Model<
       localKey,
       foreignKey,
     } = this._handleJoinModel(
-      m1 as unknown as TModelConstructorOrObject,
-      m2 as unknown as TModelConstructorOrObject
+      m1 as unknown as TModelOrObject,
+      m2 as unknown as TModelOrObject
     );
 
     this.crossJoin(
@@ -6514,9 +6737,9 @@ class Model<
   private async _runBefore(action: "insert" | "update" | "remove"): Promise<void> {
 
     const BEFORE_MAP = {
-      insert: "BEFORE_INSERTS",
-      update: "BEFORE_UPDATES",
-      remove: "BEFORE_REMOVES",
+      insert: "LIFECYCLE_BEFORE_INSERTS",
+      update: "LIFECYCLE_BEFORE_UPDATES",
+      remove: "LIFECYCLE_BEFORE_REMOVES",
     } as const;
 
     const key = BEFORE_MAP[action];
@@ -6542,9 +6765,9 @@ class Model<
   ): Promise<void> {
 
      const AFTER_MAP = {
-      insert: "AFTER_INSERTS",
-      update: "AFTER_UPDATES",
-      remove: "AFTER_REMOVES",
+      insert: "LIFECYCLE_AFTER_INSERTS",
+      update: "LIFECYCLE_AFTER_UPDATES",
+      remove: "LIFECYCLE_AFTER_REMOVES",
     } as const;
 
     const key = AFTER_MAP[action];
@@ -7878,8 +8101,8 @@ class Model<
   }
 
   private _handleJoinModel(
-    m1: TModelConstructorOrObject,
-    m2: TModelConstructorOrObject
+    m1: TModelOrObject,
+    m2: TModelOrObject
   ) {
     let model1: Model = typeof m1 === "object" ? new m1.model() : new m1();
     let model2: Model = typeof m2 === "object" ? new m2.model() : new m2();

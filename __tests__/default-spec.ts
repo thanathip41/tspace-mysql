@@ -1,4 +1,4 @@
-import { Blueprint, Model } from "../src/lib";
+import { Blueprint, DB, Model } from "../src/lib";
 
 export class User extends Model {
   constructor() {
@@ -24,7 +24,6 @@ export class User extends Model {
     });
   }
 }
-
 export class Post extends Model {
   constructor() {
     super();
@@ -51,7 +50,6 @@ export class Post extends Model {
     });
   }
 }
-
 export class PostUser extends Model {
   constructor() {
     super();
@@ -120,7 +118,7 @@ export const postSchemaObject = {
   properties: {
     id: { type: "integer" },
     uuid: { anyOf: [{ type: "string" }, { type: "null" }] },
-    userId: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    user_id: { anyOf: [{ type: "integer" }, { type: "null" }] },
     title: { type: "string" },
     subtitle: { anyOf: [{ type: "string" }, { type: "null" }] },
     description: { anyOf: [{ type: "string" }, { type: "null" }] },
@@ -154,3 +152,67 @@ export const postSchemaArray = {
     ...postSchemaObject,
   },
 };
+
+const pattern = 'default';
+
+export const userDataObject = Model.formatPattern({
+  data: {
+    uuid: DB.generateUUID(),
+    email: "test01@example.com",
+    name: "name:test01",
+    username: "test01",
+    password: "xxxxxxxxxx",
+    status: Math.random() < 0.5,
+    created_at: new Date(),
+    updated_at: new Date(),
+    deleted_at: null,
+  },
+  pattern,
+});
+
+export const userDataArray = [2, 3, 4, 5, 6].map((i) => {
+  return Model.formatPattern({
+    data: {
+      uuid: DB.generateUUID(),
+      email: `test0${i}@example.com`,
+      name: `name:test0${i}`,
+      username: `test0${i}`,
+      password: "xxxxxxxxxx",
+      status: Math.random() < 0.5,
+      created_at: new Date(),
+      updated_at: new Date(),
+      deleted_at: null,
+    },
+    pattern,
+  });
+});
+
+export const postDataObject = Model.formatPattern({
+  data: {
+    uuid: DB.generateUUID(),
+    user_id: 1,
+    title: "title:01",
+    subtitle: "subtitle:test01",
+    description: "test01",
+    created_at: new Date(),
+    updated_at: new Date(),
+    deleted_at: null,
+  },
+  pattern,
+});
+
+export const postDataArray = [2, 3, 4, 5, 6].map((i) => {
+  return Model.formatPattern({
+    data: {
+     uuid: DB.generateUUID(),
+      user_id: i === 4 ? null : i,
+      title: `title:0${i}`,
+      subtitle: `subtitle:test0${i}`,
+      description: `test0${i}`,
+      created_at: new Date(),
+      updated_at: new Date(),
+      deleted_at: null,
+    },
+    pattern,
+  });
+});
