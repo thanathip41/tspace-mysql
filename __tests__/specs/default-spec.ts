@@ -1,4 +1,4 @@
-import { Blueprint, DB, Model } from "../src/lib";
+import { Blueprint, DB, Model } from '../../src/lib'
 
 export class User extends Model {
   constructor() {

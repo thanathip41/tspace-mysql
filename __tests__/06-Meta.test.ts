@@ -1,7 +1,7 @@
 import chai, { expect } from "chai";
 import { describe, it } from "mocha";
 import chaiJsonSchema from "chai-json-schema";
-import { User as UserWithSchema } from "./schema-spec";
+import { User } from "./specs/schema-spec";
 import { Meta } from "../src/lib";
 
 chai.use(chaiJsonSchema);
@@ -9,7 +9,7 @@ chai.use(chaiJsonSchema);
 describe("Testing Meta", function () {
   /* ##################################################### */
   it(`Meta: Start to get metadata from Model User with assign schema`, async function () {
-    const metaUserWithSchema = Meta(UserWithSchema);
+    const metaUserWithSchema = Meta(User);
 
     const table = metaUserWithSchema.table();
     const column = metaUserWithSchema.column("id");
@@ -22,9 +22,8 @@ describe("Testing Meta", function () {
     const indexes = metaUserWithSchema.indexes();
     const nullable = metaUserWithSchema.nullable();
     const defaults = metaUserWithSchema.defaults();
-    //@ts-ignore
-    const enums = metaUserWithSchema.enums("role");
-
+    const enums = metaUserWithSchema.enums('role');
+   
     expect(table).to.be.equal("users");
     expect(column).to.be.equal("id");
     expect(columnRef).to.be.equal("`users`.`id`");

@@ -1,7 +1,7 @@
 import chai , { expect  } from 'chai'
 import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
-import { userSchemaObject , userSchemaArray , userDataObject, userDataArray } from './default-spec'
+import { userSchemaObject , userSchemaArray , userDataObject, userDataArray } from './specs/default-spec'
 import { DB }  from '../src/lib'
 
 chai.use(chaiJsonSchema)

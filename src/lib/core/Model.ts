@@ -360,7 +360,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.useLogger({
    *          selected : true,
    *          inserted : true,
@@ -377,10 +376,12 @@ class Model<
     updated = true,
     deleted = true,
   } = {}): this {
+
     this.$state.set(
       "LOGGER",
       ![selected, inserted, updated, deleted].every((v) => v === false)
     );
+
     this.$state.set("LOGGER_OPTIONS", {
       selected,
       inserted,
@@ -400,7 +401,6 @@ class Model<
    * import { Blueprint } from 'tspace-mysql';
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.useSchema ({
    *            id          : new Blueprint().int().notNull().primary().autoIncrement(),
    *            uuid        : new Blueprint().varchar(50).null(),
@@ -418,6 +418,30 @@ class Model<
     return this;
   }
 
+   /**
+   * The "useTransform " method is used to define value transformers for model columns..
+   *
+   * Each transformer defines how a value is converted:
+   * - `to`   : before persisting to the database
+   * - `from` : after retrieving from the database
+   *
+   * Transformers can be synchronous or asynchronous.
+   *
+   * @param {object} transforms
+   * @example
+   * import { Blueprint } from 'tspace-mysql';
+   * class User extends Model {
+   *     boot() {
+   *        this.useTransform({
+   *            name : {
+   *              to   : async (v) => `${v}-> transform@before`,
+   *              from : async (v) => `${v}-> transform@after`,
+   *            },
+   *         })
+   *     }
+   * }
+   * @returns {this} this
+   */
   protected useTransform (transforms : Record<string, { 
     to: (value: unknown) => any | Promise<any>;
     from: (value: unknown) => any | Promise<any>;
@@ -435,7 +459,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.usePrimaryKey()
    *     }
    * }
@@ -454,7 +477,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.useUUID()
    *     }
    * }
@@ -480,7 +502,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.usePattern('camelCase')
    *     }
    * }
@@ -513,7 +534,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.useCamelCase()
    *     }
    * }
@@ -530,7 +550,6 @@ class Model<
    * @example
    * class User extends Model {
    *     boot() {
-   *        super()
    *        this.SnakeCase()
    *     }
    * }
@@ -6576,10 +6595,6 @@ class Model<
     }
   }
 
-  private _isPatternSnakeCase() {
-    return this.$state.get("PATTERN") === this.$constants("PATTERN").snakeCase;
-  }
-
   protected _classToTableName(
     className?: string | null,
     { singular = false } = {}
@@ -7047,8 +7062,19 @@ class Model<
       prev_page: prevPage,
     };
 
-    if (this._isPatternSnakeCase()) {
+    const pattern = this.$state.get("PATTERN");
+
+    if(pattern === 'snake_case') {
       return this.$utils.snakeCase(
+        this._resultHandler({
+          meta,
+          data,
+        })
+      );
+    }
+
+    if(pattern === 'camelCase') {
+      return this.$utils.camelCase(
         this._resultHandler({
           meta,
           data,
@@ -7105,10 +7131,10 @@ class Model<
             total: 0,
             limit: Number(this.$state.get("LIMIT")),
             count: 0,
-            currentPage: Number(this.$state.get("PAGE")),
-            lastPage: 0,
-            nextPage: 0,
-            prevPage: 0,
+            current_page: Number(this.$state.get("PAGE")),
+            last_page: 0,
+            next_page: 0,
+            prev_page: 0,
           },
           data: [],
         };
@@ -7119,7 +7145,14 @@ class Model<
         throw this._assertError("Missing method first get or pagination");
     }
 
-    if (this._isPatternSnakeCase()) {
+    if (this.$state.get('PATTERN') === 'snake_case') {
+      const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
+      await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
+      await this._observer(empty, "selected");
+      return empty;
+    }
+
+    if (this.$state.get('PATTERN') === 'camelCase') {
       const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
       await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
       await this._observer(empty, "selected");

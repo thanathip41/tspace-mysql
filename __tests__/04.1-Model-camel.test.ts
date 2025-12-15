@@ -9,18 +9,21 @@ import {
   User,
   userSchemaArray,
   userSchemaObject,
-  pattern,
   postDataArray,
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./snakeCase-spec";
+} from "./specs/camel-spec";
+
+import { 
+  PostUser as PostUserSnakeCase
+}  from "./specs/snake-spec";
 
 import { DB, Model } from "../src/lib";
 
 chai.use(chaiJsonSchema);
 
-describe("Testing Model with SnakeCase & Schema", function () {
+describe("Testing Model CamelCase Pattern", function () {
   /* ##################################################### */
 
   it(`Model: Start to test Schema 
@@ -30,11 +33,18 @@ describe("Testing Model with SnakeCase & Schema", function () {
     - Sync Index
     - Sync Fk
   `, async function () {
+
     await new DB("user_post_counts")
-      .drop({ force: true, view: true })
-      .catch((err) => {
-        return false;
-      });
+    .drop({ force: true, view: true })
+    .catch((err) => {
+      return false;
+    });
+
+    await new PostUserSnakeCase()
+    .drop({ force: true })
+    .catch((err) => {
+      return false;
+    });
 
     const dropPostUser = await new PostUser()
       .drop({ force: true })
@@ -231,21 +241,11 @@ describe("Testing Model with SnakeCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("currentPage");
+    expect(pagination.meta).to.have.property("lastPage");
+    expect(pagination.meta).to.have.property("nextPage");
+    expect(pagination.meta).to.have.property("prevPage");
 
     expect(pagination.data).to.be.jsonSchema(userSchemaArray);
 
@@ -284,21 +284,11 @@ describe("Testing Model with SnakeCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("currentPage");
+    expect(pagination.meta).to.have.property("lastPage");
+    expect(pagination.meta).to.have.property("nextPage");
+    expect(pagination.meta).to.have.property("prevPage");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(userSchemaArray);
@@ -340,21 +330,11 @@ describe("Testing Model with SnakeCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("currentPage");
+    expect(pagination.meta).to.have.property("lastPage");
+    expect(pagination.meta).to.have.property("nextPage");
+    expect(pagination.meta).to.have.property("prevPage");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(postSchemaArray);
@@ -392,21 +372,11 @@ describe("Testing Model with SnakeCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("currentPage");
+    expect(pagination.meta).to.have.property("lastPage");
+    expect(pagination.meta).to.have.property("nextPage");
+    expect(pagination.meta).to.have.property("prevPage");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(postSchemaArray);
@@ -481,16 +451,16 @@ describe("Testing Model with SnakeCase & Schema", function () {
       expect(user?.posts).to.be.equal(0);
 
       await new Post()
-        .createMultiple(postDataArray.map((v) => ({ ...v, user_id: user.id })))
+        .createMultiple(postDataArray.map((v) => ({ ...v, userId: user.id })))
         .save();
 
-      const posts = await new Post().where("user_id", user.id).get();
+      const posts = await new Post().where("userId", user.id).get();
 
       for (const post of posts) {
         await new PostUser()
           .create({
-            user_id: user.id,
-            post_id: post.id,
+            userId: user.id,
+            postId: post.id,
           })
           .save();
       }

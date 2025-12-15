@@ -9,18 +9,21 @@ import {
   User,
   userSchemaArray,
   userSchemaObject,
-  pattern,
   postDataArray,
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./camelCase-spec";
+} from "./specs/snake-spec";
+
+import { 
+  PostUser as PostUserCamelCase
+}  from "./specs/camel-spec";
 
 import { DB, Model } from "../src/lib";
 
 chai.use(chaiJsonSchema);
 
-describe("Testing Model with CamelCase & Schema", function () {
+describe("Testing Model Snake_case Pattern", function () {
   /* ##################################################### */
 
   it(`Model: Start to test Schema 
@@ -30,11 +33,18 @@ describe("Testing Model with CamelCase & Schema", function () {
     - Sync Index
     - Sync Fk
   `, async function () {
+
     await new DB("user_post_counts")
-      .drop({ force: true, view: true })
-      .catch((err) => {
-        return false;
-      });
+    .drop({ force: true, view: true })
+    .catch((err) => {
+      return false;
+    });
+
+    await new PostUserCamelCase()
+    .drop({ force: true })
+    .catch((err) => {
+      return false;
+    });
 
     const dropPostUser = await new PostUser()
       .drop({ force: true })
@@ -148,11 +158,11 @@ describe("Testing Model with CamelCase & Schema", function () {
     expect(deleted).to.be.equal(true);
   });
 
-  it(`Model: Start to mock up the data in table 'postUser' for testing CRUD
+  it(`Model: Start to mock up the data in table 'post_user' for testing CRUD
     - CreateMultiple : new PostUser().createMultiple([]).save()
   `, async function () {
     const createds = await new PostUser()
-      .createMultiple([1, 2, 3, 4, 5].map((v) => ({ userId: v, postId: v })))
+      .createMultiple([1, 2, 3, 4, 5].map((v) => ({ user_id: v, post_id: v })))
       .save();
 
     expect(createds).to.be.an("array");
@@ -231,21 +241,11 @@ describe("Testing Model with CamelCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("current_page");
+    expect(pagination.meta).to.have.property("last_page");
+    expect(pagination.meta).to.have.property("next_page");
+    expect(pagination.meta).to.have.property("prev_page");
 
     expect(pagination.data).to.be.jsonSchema(userSchemaArray);
 
@@ -284,21 +284,11 @@ describe("Testing Model with CamelCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("current_page");
+    expect(pagination.meta).to.have.property("last_page");
+    expect(pagination.meta).to.have.property("next_page");
+    expect(pagination.meta).to.have.property("prev_page");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(userSchemaArray);
@@ -330,7 +320,7 @@ describe("Testing Model with CamelCase & Schema", function () {
 
     for (const result of results) {
       expect(result).to.have.property("user");
-      if (result.userId == null && result.user == null) continue;
+      if (result.user_id == null && result.user == null) continue;
       expect(result.user).to.be.an("object");
       expect(result.user).to.be.jsonSchema(userSchemaObject);
     }
@@ -340,28 +330,18 @@ describe("Testing Model with CamelCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("current_page");
+    expect(pagination.meta).to.have.property("last_page");
+    expect(pagination.meta).to.have.property("next_page");
+    expect(pagination.meta).to.have.property("prev_page");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(postSchemaArray);
 
     for (const result of pagination.data) {
       expect(result).to.have.property("user");
-      if (result.userId == null && result.user == null) continue;
+      if (result.user_id == null && result.user == null) continue;
       expect(result.user).to.be.an("object");
       expect(result.user).to.be.jsonSchema(userSchemaObject);
     }
@@ -392,21 +372,11 @@ describe("Testing Model with CamelCase & Schema", function () {
     expect(pagination.meta).to.be.an("object");
     expect(pagination.meta).to.have.property("total");
     expect(pagination.meta).to.have.property("limit");
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "count", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "currentPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "lastPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "nextPage", pattern })
-    );
-    expect(pagination.meta).to.have.property(
-      Model.formatPattern({ data: "prevPage", pattern })
-    );
+    expect(pagination.meta).to.have.property("count");
+    expect(pagination.meta).to.have.property("current_page");
+    expect(pagination.meta).to.have.property("last_page");
+    expect(pagination.meta).to.have.property("next_page");
+    expect(pagination.meta).to.have.property("prev_page");
 
     expect(pagination.data).to.be.an("array");
     expect(pagination.data).to.be.jsonSchema(postSchemaArray);

@@ -1,6 +1,7 @@
 
 import { Blueprint } from "./Blueprint";
 import type { 
+    TPattern,
     TSave, 
     TValidateSchema 
 } from "../types";
@@ -54,7 +55,7 @@ const STATE_MODEL = {
     SOFT_DELETE_FORMAT: 'deleted_at' as string,
     SOFT_DELETE_RELATIONS: false as boolean,
     REGISTRY: {} as Record<string, string>,
-    PATTERN: 'default' as string,
+    PATTERN: 'default' as TPattern,
     RELATION: [] as any[],
     RELATIONS: [] as any[],
     RELATIONS_TRASHED: false as boolean,

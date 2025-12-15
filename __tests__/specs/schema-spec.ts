@@ -1,83 +1,77 @@
-import { Blueprint, Model }  from '../src/lib'
+import { Blueprint, Model, T }  from '../../src/lib'
 
-export const pattern : 'snake_case' | 'camelCase'  = 'snake_case' 
-export class User extends Model {
+const schema = {
+    id  : Blueprint.int().primary().autoIncrement(),
+    uuid      : Blueprint.varchar(50).null(),
+    email     : Blueprint.varchar(50).null().index('users.email@index'),
+    name      : Blueprint.varchar(255).null(),
+    username  : Blueprint.varchar(255).null(),
+    password  : Blueprint.varchar(255).null(),
+    status    : Blueprint.boolean().default(0),
+    role      : Blueprint.enum('admin','user').default('user'),
+    created_at : Blueprint.timestamp().null(),
+    updated_at : Blueprint.timestamp().null(),
+    deleted_at : Blueprint.timestamp().null(),
+}
+
+type TS = T.Schema<typeof schema>
+type TR = T.Relation<{
+
+}>
+
+export class User extends Model<TS,TR> {
     constructor() {
         super()
-        this.usePattern(pattern)
         this.useUUID()
         this.useTimestamp()
         this.useSoftDelete()
         this.hasMany({ model : Post , name : 'posts'  })
         this.hasOne({ model : Post , name : 'post' })
         
-        this.useSchema(Model.formatPattern({ 
-            data : {
-                id        : Blueprint.int().primary().autoIncrement(),
-                uuid      : Blueprint.varchar(50).null(),
-                email     : Blueprint.varchar(50).null().index('users.email@index'),
-                name      : Blueprint.varchar(255).null(),
-                username  : Blueprint.varchar(255).null(),
-                password  : Blueprint.varchar(255).null(),
-                status    : Blueprint.boolean().default(0),
-                role      : Blueprint.enum('admin','user').default('user'),
-                createdAt : Blueprint.timestamp().null(),
-                updatedAt : Blueprint.timestamp().null(),
-                deletedAt : Blueprint.timestamp().null(),
-            },
-            pattern
-        }))
+        this.useSchema(schema)
     }
 }
 
 export class Post extends Model {
     constructor() {
         super()
-        this.usePattern(pattern)
         this.useUUID()
         this.useTimestamp()
         this.useSoftDelete()
         this.belongsTo({ name : 'user' , model : User })
         this.belongsToMany({ name : 'subscribers' , model : User , modelPivot : PostUser })
        
-        this.useSchema(Model.formatPattern({
-            data :  { 
-                id          : Blueprint.int().notNull().primary().autoIncrement(),
-                uuid        : Blueprint.varchar(50).null(),
-                userId      : Blueprint.int().null().foreign({ on: User }),
-                title       : Blueprint.varchar(100).notNull(),
-                subtitle    : Blueprint.varchar(100).null(),
-                description : Blueprint.varchar(255).null(),
-                createdAt   : Blueprint.timestamp().null(),
-                updatedAt   : Blueprint.timestamp().null(),
-                deletedAt   : Blueprint.timestamp().null()
-            },
-            pattern
-        }))
+        this.useSchema({
+            id          : Blueprint.int().notNull().primary().autoIncrement(),
+            uuid        : Blueprint.varchar(50).null(),
+            userId      : Blueprint.int().null().foreign({ on: User }),
+            title       : Blueprint.varchar(100).notNull(),
+            subtitle    : Blueprint.varchar(100).null(),
+            description : Blueprint.varchar(255).null(),
+            createdAt   : Blueprint.timestamp().null(),
+            updatedAt   : Blueprint.timestamp().null(),
+            deletedAt   : Blueprint.timestamp().null()
+        })
     }
 }
 
 export class PostUser extends Model {
     constructor() {
         super()
-        this.usePattern(pattern)
         this.useUUID()
         this.useTimestamp()
         this.useSoftDelete()
         this.useTableSingular()
        
-        this.useSchema(Model.formatPattern({
-            data : { 
-                id          : Blueprint.int().notNull().primary().autoIncrement(),
-                uuid        : Blueprint.varchar(50).null(),
-                userId      : Blueprint.int().notNull().foreign({ on: User }),
-                postId      : Blueprint.int().notNull().foreign({ on: Post }),
-                createdAt   : Blueprint.timestamp().null(),
-                updatedAt   : Blueprint.timestamp().null(),
-                deletedAt   : Blueprint.timestamp().null()
-            },
-            pattern
-        }))
+        this.useSchema( { 
+            id          : Blueprint.int().notNull().primary().autoIncrement(),
+            uuid        : Blueprint.varchar(50).null(),
+            userId      : Blueprint.int().notNull().foreign({ on: User }),
+            postId      : Blueprint.int().notNull().foreign({ on: Post }),
+            createdAt   : Blueprint.timestamp().null(),
+            updatedAt   : Blueprint.timestamp().null(),
+            deletedAt   : Blueprint.timestamp().null()
+        })
     }
 }
 

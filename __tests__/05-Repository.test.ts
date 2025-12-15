@@ -13,7 +13,7 @@ import {
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./default-spec";
+} from "./specs/default-spec";
 
 import { DB, Repository } from "../src/lib";
 import { OP } from "../src/lib/core/Operator";

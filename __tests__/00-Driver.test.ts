@@ -23,7 +23,7 @@ describe('Testing Driver', function () {
         ---------------------------- \x1b[34m
     `)
 
-    const validDrivers = ['mysql','postgres' ,'mariadb','mssql','sqlite3']
+    const validDrivers = ['mysql','postgres' ,'mariadb']
     expect(validDrivers).to.include(driver)
 
     const sqlFile = path.join(path.resolve(), "dbs", `${driver}.sql`);

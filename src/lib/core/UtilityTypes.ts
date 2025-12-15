@@ -249,25 +249,34 @@ export declare namespace T {
         | TRawStringQuery
         | TFreezeStringQuery;
 
-    type ColumnsEnum<M extends Model> =
+    // The ColumnEnumMap not working with T.Schema but work with Decorator & T.SchemaStrcit
+    type ColumnEnumMap<M extends Model> =
         keyof TColumnsDecorator<M> extends never
             ? {
-                // @ts-ignore
-                [K in TSchemaKeyOf<M> as TIsEnum<NonNullable<M[K]>> extends true ? K : never]: NonNullable<M[K]>;
+                [K in keyof TSchemaModel<M> as
+                    TIsEnum<NonNullable<TSchemaModel<M>[K]>> extends true
+                        ? K
+                        : never
+                ]: TSchemaModel<M>[K];
             }
             : {
-                [K in keyof TColumnsDecorator<M> as TIsEnum<NonNullable<TColumnsDecorator<M>[K]>> extends true ? K : never]:
-                NonNullable<TColumnsDecorator<M>[K]>;
+                [K in keyof TColumnsDecorator<M> as
+                    TIsEnum<NonNullable<TColumnsDecorator<M>[K]>> extends true
+                        ? K
+                        : never
+                ]: TColumnsDecorator<M>[K];
             };
 
+    // The ColumnsEnumKeys not working with T.Schema but work with Decorator & T.SchemaStrcit
     type ColumnEnumKeys<M extends Model> =
         keyof TColumnsDecorator<M> extends never
             ? {
-                // @ts-ignore
-                [K in TSchemaKeyOf<M>]: TIsEnum<NonNullable<M[K]>> extends true
+                [K in keyof TSchemaModel<M>]: TIsEnum<
+                    NonNullable<TSchemaModel<M>[K]>
+                > extends true
                     ? K
                     : never;
-              }[TSchemaKeyOf<M>]
+              }[keyof TSchemaModel<M>]
             : {
                 [K in keyof TColumnsDecorator<M>]: TIsEnum<
                     NonNullable<TColumnsDecorator<M>[K]>

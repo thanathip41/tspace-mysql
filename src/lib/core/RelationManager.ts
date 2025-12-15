@@ -941,7 +941,7 @@ class RelationManager  {
             const pivotResults : Record<string,any>[] = await queryPivot
             .meta('SUBORDINATE')
             .select(localKeyPivotTable)
-            .selectRaw(`${this.$model["$constants"]('COUNT')}(${localKeyPivotTable}) ${this.$model["$constants"]('AS')} \`aggregate\``)
+            .selectRaw(`${this.$model["$constants"]('COUNT')}(\`${localKeyPivotTable}\`) ${this.$model["$constants"]('AS')} \`aggregate\``)
             .whereIn(localKeyPivotTable,mainResultIds)
             .groupBy(localKeyPivotTable)
             .when(relation.exists, (query : Model) => query.whereExists(sqlPivotExists))

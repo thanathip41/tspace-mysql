@@ -13,12 +13,17 @@ import {
   postDataObject,
   userDataArray,
   userDataObject,
-} from "./default-spec";
+} from "./specs/default-spec";
+
+import { 
+  PostUser as PostUserCamelCase
+}  from "./specs/camel-spec";
+
 import { DB } from "../src/lib";
 
 chai.use(chaiJsonSchema);
 
-describe("Testing Model without Pattern & Schema", function () {
+describe("Testing Model Default Pattern", function () {
   /* ##################################################### */
 
   it(`Model: Start to test Schema 
@@ -28,58 +33,70 @@ describe("Testing Model without Pattern & Schema", function () {
     - Sync Index
     - Sync Fk
   `, async function () {
+
     await new DB("user_post_counts")
-      .drop({ force: true, view: true })
-      .catch((err) => {
-        return false;
-      });
+    .drop({ force: true, view: true })
+    .catch((err) => {
+      return false;
+    });
+    
+    await new PostUserCamelCase()
+    .drop({ force: true })
+    .catch((err) => {
+      return false;
+    });
 
     const dropPostUser = await new PostUser()
-      .drop({ force: true })
-      .catch((err) => {
-        return false;
-      });
-
-    expect(dropPostUser).to.be.equal(true);
-
-    const dropPost = await new Post().drop({ force: true }).catch((err) => {
+    .drop({ force: true })
+    .catch((err) => {
+      console.log(err)
       return false;
     });
 
-    expect(dropPost).to.be.equal(true);
-
-    const dropUser = await new User().drop({ force: true }).catch((err) => {
+    const dropPost = await new Post()
+    .drop({ force: true })
+    .catch((err) => {
+      console.log(err)
       return false;
     });
 
-    expect(dropUser).to.be.equal(true);
+    const dropUser = await new User()
+    .drop({ force: true })
+    .catch((err) => {
+      console.log(err)
+      return false;
+    });
 
     await new User()
-      .sync({
-        force: true,
-        changed: true,
-        foreign: true,
-        index: true,
-      })
-      .catch((err) => console.log(err));
+    .sync({
+      force: true,
+      changed: true,
+      foreign: true,
+      index: true,
+    })
+    .catch((err) => console.log(err));
 
     await new Post()
-      .sync({
-        force: true,
-        changed: true,
-        foreign: true,
-        index: true,
-      })
-      .catch((err) => console.log(err));
+    .sync({
+      force: true,
+      changed: true,
+      foreign: true,
+      index: true,
+    })
+    .catch((err) => console.log(err));
 
     await new PostUser()
-      .sync({
-        force: true,
-        changed: true,
-        foreign: true,
-        index: true,
-      })
-      .catch((err) => console.log(err));
+    .sync({
+      force: true,
+      changed: true,
+      foreign: true,
+      index: true,
+    })
+    .catch((err) => console.log(err));
+
+    expect(dropPostUser).to.be.equal(true);
+    expect(dropPost).to.be.equal(true);
+    expect(dropUser).to.be.equal(true);
   });
 
   it(`Model: Start to mock up the data in table 'users' for testing CRUD
@@ -89,6 +106,7 @@ describe("Testing Model without Pattern & Schema", function () {
     - Update : new User().where('id',6).update({ name : 'was update'}).save()
     - Delete : new User().where('id',6).delete()
   `, async function () {
+
     const created = await new User().create(userDataObject).save();
     expect(created).to.be.an("object");
     expect(created).to.be.jsonSchema(userSchemaObject);
