@@ -288,11 +288,11 @@ class Schema {
     index,
   }: {
     models: (Model | null)[];
-    force: boolean;
-    log: boolean;
-    foreign: boolean;
-    changed: boolean;
-    index: boolean;
+    force   : boolean; // forece will sync table & missing column
+    log     : boolean;
+    foreign : boolean;
+    changed : boolean;
+    index   : boolean;
   }) {
     
     const query = this.$db["_queryBuilder"]() as QueryBuilder;
@@ -307,19 +307,11 @@ class Schema {
 
     for (const model of models) {
       
-      if (model == null) continue;
+      if (model == null || !force) continue;
 
       let rawSchemaModel = model.getSchemaModel();
 
       if (!rawSchemaModel) continue;
-
-      const onSyncTable = model["$state"].get(
-        "ON_SYNC_TABLE"
-      );
-
-      const onCreatedTable = model["$state"].get(
-        "ON_CREATED_TABLE"
-      );
 
       const schemaModel = Object
       .entries(rawSchemaModel)
@@ -332,32 +324,24 @@ class Schema {
         {} as Record<string, Blueprint>
       );
 
-      const talbeIsExists = tables.some(
-        (table: string) => table === model.getTableName()
-      );
 
-      if (!talbeIsExists) {
-        const sql = this.createTable(
-          this.$db.database(),
-          `\`${model.getTableName()}\``,
-          schemaModel
-        );
+      if(force) {
 
-        await model.debug(log).rawQuery(sql);
+        await this._syncTable({
+          schemaModel,
+          model,
+          log,
+          tables
+        })
 
-        if (onCreatedTable) {
-          await onCreatedTable();
-        }
+        await this._syncMissingColumn({
+          schemaModel,
+          model,
+          log,
+        })
       }
 
-      if (!force) {
-        if (onSyncTable) {
-          await onSyncTable();
-        }
-        continue;
-      }
-
-      if(changed) {
+      if (changed) {
         await this._syncChangeColumn({
           schemaModel,
           model,
@@ -380,6 +364,11 @@ class Schema {
           log,
         });
       }
+
+      // ---- After sync will calling some function in registry ----
+      const onSyncTable = model["$state"].get(
+        "ON_SYNC_TABLE"
+      );
 
       if (onSyncTable) {
         await onSyncTable();
@@ -606,12 +595,6 @@ class Schema {
 
     const query = model["_queryBuilder"]() as QueryBuilder;
 
-    const schemaTableKeys = schemaTable.map(
-      (k: { Field: string }) => k.Field
-    );
-
-    const schemaModelKeys = Object.keys(schemaModel);
-
     const isTypeMatch = ({
       typeTable,
       typeSchema,
@@ -707,6 +690,27 @@ class Schema {
           });
       }
     }
+  }
+
+  private async _syncMissingColumn({
+    schemaModel,
+    model,
+    log,
+  }: {
+    schemaModel: Record<string, any>;
+    model: Model;
+    log: boolean;
+  }) {
+
+    const schemaTable = await model.getSchema();
+
+    const query = model["_queryBuilder"]() as QueryBuilder;
+
+    const schemaTableKeys = schemaTable.map(
+      (k: { Field: string }) => k.Field
+    );
+
+    const schemaModelKeys = Object.keys(schemaModel);
 
     const missingColumns = schemaModelKeys.filter(
       (schemaModelKey) => !schemaTableKeys.includes(schemaModelKey)
@@ -746,6 +750,41 @@ class Schema {
           );
         });
       }
+  }
+
+  private async _syncTable({
+    schemaModel,
+    model,
+    log,
+    tables
+  }: {
+    schemaModel: Record<string, any>;
+    model: Model;
+    log: boolean;
+    tables: string[]
+  }) {
+
+    const onCreatedTable = model["$state"].get(
+      "ON_CREATED_TABLE"
+    );
+
+    const talbeIsExists = tables.some(
+      (table: string) => table === model.getTableName()
+    );
+
+    if (!talbeIsExists) {
+      const sql = this.createTable(
+        this.$db.database(),
+        `\`${model.getTableName()}\``,
+        schemaModel
+      );
+
+      await model.debug(log).rawQuery(sql);
+
+      if (onCreatedTable) {
+        await onCreatedTable();
+      }
+    }
   }
 }
 

@@ -1121,10 +1121,10 @@ class User extends Model {
   @Column(() => Blueprint.timestamp().null())
   public deleted_at!: Date
 
-  @HasOne({ model: () => Post })
+  @HasOne({ model: () => Post }) // or @HasOne(() => Post)
   public post!: Post
 
-  @HasMany({ model: () => Post })
+  @HasMany({ model: () => Post }) // or @HasMany(() => Post)
   public posts!: Post[]
 
   @Hooks()

@@ -177,10 +177,10 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  */
 export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>;
 /**
- * The 'TResultPaginate' type is used to get type of result from model using paginate , pagination
+ * The 'TPaginateResult' type is used to get type of result from model using paginate , pagination
  * @generic {Model} M Model
  */
-export type TResultPaginate<M extends Model> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>;
+export type TPaginateResult<M extends Model> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>;
 
 export type TSchemaKeyOf<M extends Model, T = TSchemaModel<M>> = keyof {
     [K in keyof T as string extends K ? never : K]: T[K];
@@ -212,6 +212,7 @@ type ResultResolved<M extends Model, K = {}> = (
 export declare namespace T {
     // This type is not support any decorator from Model;
     // for mark generic type and set to Model.
+
     // -----------------------------------------------------
     type Schema<T, S = {}>  = TSchema<T, S>;
     type SchemaStrict<T, S = {}> = TSchemaStrict<T, S>;
@@ -231,7 +232,21 @@ export declare namespace T {
 
     type Result<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
 
-    type ResultPaginate<M extends Model, K = {}> = TPagination<Result<M, K>>;
+    type ResultPaginate<M extends Model, K = {}> = DeepExpand<TPagination<Result<M, K>>>
+
+    type PaginateResult<M extends Model, K = {}> = DeepExpand<TPagination<Result<M, K>>>
+    
+    type InsertResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
+
+    type InsertManyResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>[];
+
+    type InsertNotExistsResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>> | null
+
+    type UpdateResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>> | null
+
+    type UpdateManyResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>[]
+
+    type DeleteResult = boolean
 
     type Columns<M extends Model> =
         keyof TColumnsDecorator<M> extends never
@@ -311,11 +326,16 @@ export declare namespace T {
     type GroupByOptions<M extends Model> =
         TRepositoryGroupBy<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
 
-    type RelationOptions<M extends Model> =
-        TRepositoryRelation<TRelationModelWithoutDecorator<M>, M>;
+    type RelationOptions<M extends Model> = TRepositoryRelation<
+        TRelationModelWithoutDecorator<M>, 
+        M
+    >;
 
-    type RepositoryOptions<M extends Model> =
-        TRepositoryRequest<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
+    type RepositoryOptions<M extends Model> = TRepositoryRequest<
+        TSchemaModelWithoutDecorator<M>, 
+        TRelationModelWithoutDecorator<M>, 
+        M
+    >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>
     type RepositoryCreateMultiple<M extends Model> = TRepositoryCreateMultiple<M>;

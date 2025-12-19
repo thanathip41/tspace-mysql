@@ -15,22 +15,6 @@
   * [Elysia](integrations?id=elysia)
   * [Hono](integrations?id=hono)
 
-* [SQL Like](sql-like)
-  * [Select Statements](sql-like?id=select-statements)
-  * [Insert Statements](sql-like?id=insert-statements)
-  * [Update Statements](sql-like?id=update-statements)
-  * [Delete Statements](sql-like?id=delete-statements)
-
-* [Query Builder](query-builder)
-  * [Table Name & Alias Name](query-builder?id=table-name--alias-name)
-  * [Returning Results](query-builder?id=returning-results)
-  * [Query Statement](query-builder?id=query-statements)
-  * [Select Statements](query-builder?id=select-statements)
-  * [Insert Statements](query-builder?id=insert-statements)
-  * [Update Statements](query-builder?id=update-statements)
-  * [Delete Statements](query-builder?id=delete-statements)
-  * [Raw Expressions](query-builder?id=raw-expressions)
-
 * [Model](model?id=basic-model-setup)
   * [Basic Model Setup](model?id=basic-model-setup)
   * [Schema](model?id=schema)

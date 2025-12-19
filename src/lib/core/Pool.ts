@@ -110,7 +110,6 @@ export class PoolConnection  {
     hostList.forEach((h, i) => {
       let type : 'master' | 'slave' = i === 0 ? 'master' : 'slave';
       let host = h;
-      let port = null;
 
       if (h.includes('@')) {
         const [_t, _h] = h.split('@');

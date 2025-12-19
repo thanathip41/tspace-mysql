@@ -258,7 +258,11 @@
     .match-keyword:hover {
       background-color: #fdd835; 
       cursor: pointer;
-  }
+    }
+
+    .docsify-tabs__content {
+      padding: 0 !important;
+    }
   </style>
 </head>
 <body>
@@ -284,9 +288,6 @@
 </div>
 
 </body>
-<script src="https://cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
 <script>
     window.$docsify = {
       name: "TspaceMysql",
@@ -321,9 +322,16 @@
             })
           })
         }
-      ]
+      ],
+      tabs: {
+        persist: true 
+      }
     }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docsify-tabs@1"></script>
 
 <script>
 const urls = [
@@ -342,7 +350,8 @@ const urls = [
   "injection.md",
   "stored-procedure.md",
   "view.md",
-  "integrations.md"
+  "integrations.md",
+  "comparisons.md"
 ];
  const $query   = (element) => document.querySelector(element);
 

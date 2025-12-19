@@ -26,7 +26,7 @@ import type {
 } from "../types";
 
 import type { 
-  TRelationQueryOptionsDecorator, 
+  TRelationOptionsDecorator, 
 } from "../types/decorator";
 
 import { REFLECT_META } from "./Decorator";
@@ -4786,7 +4786,8 @@ class Model<
    * @override
    * @returns {promise<boolean>} promise boolean
    */
-  public async delete(): Promise<boolean> {
+  public async delete(): Promise<T.DeleteResult> {
+
     this._guardWhereCondition();
 
     this.limit(1);
@@ -4809,13 +4810,11 @@ class Model<
       .debug(this.$state.get("DEBUG"))
       .save();
 
-      const r = Boolean(this._resultHandler(result));
+      await this._observer(result, "updated");
 
-      await this._observer(r, "updated");
+      await this._runAfter("update",result);
 
-      await this._runAfter("update",r);
-
-      return r;
+      return Boolean(this._resultHandler(result))
     }
 
     const PK = this.$state.get("PRIMARY_KEY");
@@ -4876,13 +4875,11 @@ class Model<
       .bind(this.$pool.get())
       .save();
 
-      const r = Boolean(this._resultHandler(result));
+      await this._observer(result, "updated");
 
-      await this._observer(r, "updated");
+      await this._runAfter("update",result);
 
-      await this._runAfter("update",r);
-
-      return r;
+      return Boolean(this._resultHandler(result));
     }
 
     const PK = this.$state.get("PRIMARY_KEY");
@@ -5186,7 +5183,7 @@ class Model<
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<T.ResultPaginate<this, K>> {
+  }): Promise<T.PaginateResult<this, K>> {
    
     let limit = 15;
     let page = 1;
@@ -5229,7 +5226,7 @@ class Model<
     limit?: number;
     page?: number;
     alias?: boolean;
-  }): Promise<T.ResultPaginate<this, K>> {
+  }): Promise<T.PaginateResult<this, K>> {
     return await this.pagination(paginationOptions);
   }
 
@@ -5686,12 +5683,12 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
+    this.$state.set("DATA", data);
+
     if(this.$state.get('TRANSFORMS') == null) {
       this._queryUpdateModel();
       this._queryInsertModel();
     }
-
-    this.$state.set("DATA", data);
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
@@ -5830,7 +5827,9 @@ class Model<
 
     this.$state.set("DATA", data);
 
-    this._queryInsertMultipleModel(data);
+    if(this.$state.get('TRANSFORMS') == null) {
+      this._queryInsertMultipleModel();
+    }
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
@@ -5937,39 +5936,45 @@ class Model<
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
   public async save({ waitMs = 0 } = {}): Promise<
-    | T.Result<this>
-    | T.Result<this>[] 
+    | T.InsertResult<this>
+    | T.InsertManyResult<this>
+    | T.InsertNotExistsResult<this>
+    | T.UpdateResult<this>
+    | T.UpdateManyResult<this>
     | null
+    | undefined
   > {
    
     this.$state.set("AFTER_SAVE", waitMs);
 
     switch (String(this.$state.get("SAVE"))) {
+
       case "INSERT": {
         return await this._insertModel();
       }
-  
-      case "UPDATE": {
-        return await this._updateModel();
-      }
-       
+
       case "INSERT_MULTIPLE": {
-        return await this._createMultipleModel();
+        return await this._insertMultipleModel();
       }
        
       case "INSERT_NOT_EXISTS": {
       
         return await this._insertNotExistsModel();
       }
+
+      case "INSERT_OR_SELECT": {
+        return await this._insertOrSelectModel();
+      }
+
+      case "UPDATE": {
+        return await this._updateModel();
+      }
+       
        
       case "UPDATE_OR_INSERT": {
         return await this._updateOrInsertModel();
       }
-        
-      case "INSERT_OR_SELECT": {
-        return await this._insertOrSelectModel();
-      }
-        
+          
       default: {
         throw this._assertError(`Unknown this method '${this.$state.get("SAVE")}'`);
       }
@@ -6923,7 +6928,7 @@ class Model<
       }
 
       if (s.match && !s.match.test(r)) {
-        console.log(r ,'hi')
+        
         throw this._assertError(
           `This column "${column}" is not match a regular expression`
         );
@@ -7344,7 +7349,9 @@ class Model<
     return;
   }
 
-  private _queryInsertMultipleModel(data: any[]) {
+  private async _queryInsertMultipleModel() {
+    const data = this.$state.get("DATA") ?? [];
+
     let values: string[] = [];
 
     let columns: string[] = Object.keys([...data][0]).map(
@@ -7358,7 +7365,8 @@ class Model<
     const newData: Record<string, any>[] = [];
 
     for (let objects of data) {
-      this.$utils.transfromDateToDateString(data);
+
+      this.$utils.transfromDateToDateString(objects);
 
       if (hasTimestamp) {
         const createdAt: string = this._valuePattern(format.CREATED_AT);
@@ -7377,6 +7385,14 @@ class Model<
         };
 
         columns = [...columns, `\`${createdAt}\``, `\`${updatedAt}\``];
+      }
+
+      if(this.$state.get('TRANSFORMS') != null) {
+        await this.$utils.applyTransforms({ 
+          result: objects, 
+          transforms : this.$state.get('TRANSFORMS'), 
+          action : 'to' 
+        })
       }
 
       const hasUUID = objects.hasOwnProperty(this.$state.get("UUID_FORMAT"));
@@ -7455,8 +7471,10 @@ class Model<
 
     await this._runBefore("insert");
 
-    await this._queryInsertModel();
-
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryInsertModel();
+    }
+    
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
     const result = await this._actionStatement(this._queryBuilder().insert());
@@ -7490,7 +7508,9 @@ class Model<
 
     await this._runBefore("insert");
 
-    await this._queryInsertModel();
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryInsertModel();
+    }
     
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
@@ -7527,8 +7547,14 @@ class Model<
     return this._resultHandler(resultData);
   }
 
-  private async _createMultipleModel(): Promise<any> {
+  private async _insertMultipleModel(): Promise<any> {
     const data = this.$state.get("DATA") ?? [];
+
+    await this._runBefore("insert");
+
+    if(this.$state.get('TRANSFORMS') != null) {
+      await this._queryInsertMultipleModel();
+    }
 
     for (const v of data) {
       await this._validateSchema(v, "insert");
@@ -7569,10 +7595,6 @@ class Model<
 
   private async _updateOrInsertModel(): Promise<any> {
 
-    if(this.$state.get('TRANSFORMS') != null) {
-      await this._queryUpdateModel();
-    }
-
     this._guardWhereCondition();
 
     const check =
@@ -7584,6 +7606,13 @@ class Model<
 
     switch (check) {
       case false: {
+        
+        await this._runBefore("insert");
+
+        if(this.$state.get('TRANSFORMS') != null) {
+          await this._queryInsertModel();
+        }
+
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
         const result = await this._actionStatement(
@@ -7623,6 +7652,13 @@ class Model<
       }
 
       case true: {
+
+         await this._runBefore("update");
+
+        if(this.$state.get('TRANSFORMS') != null) {
+          await this._queryUpdateModel();
+        }
+
         await this._validateSchema(this.$state.get("DATA"), "update");
 
         const result = await this._actionStatement(
@@ -7667,10 +7703,6 @@ class Model<
     
     this._guardWhereCondition();
 
-    if(this.$state.get('TRANSFORMS') != null) {
-      await this._queryInsertModel();
-    }
-
     const check = await new Model()
     .copyModel(this, { select: true, where: true, limit: true })
     .bind(this.$pool.get())
@@ -7680,6 +7712,10 @@ class Model<
     switch (check) {
       case false: {
         await this._runBefore("insert");
+
+        if(this.$state.get('TRANSFORMS') != null) {
+          await this._queryInsertModel();
+        }
 
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
@@ -7758,16 +7794,16 @@ class Model<
 
     if(this.$state.get('TRANSFORMS') != null) {
       await this._queryUpdateModel();
-      await this._queryInsertModel();
     }
 
     await this._validateSchema(this.$state.get("DATA"), "update");
 
     const result = await this._actionStatement(this._queryBuilder().update());
 
-    if (this.$state.get("VOID") || !result || result == null)
+    if (this.$state.get("VOID") || !result || result == null) {
       return this._resultHandler(undefined);
-
+    }
+      
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
     const data = await new Model()
@@ -7937,7 +7973,7 @@ class Model<
 
     if (validate) this.$validateSchema = validate;
 
-    const hasOnes: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+    const hasOnes: TRelationOptionsDecorator[] = Reflect.getMetadata(
       REFLECT_META.RELATIONS.hasOne, 
       this
     ) || [];
@@ -7951,7 +7987,7 @@ class Model<
       });
     }
 
-    const hasManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+    const hasManys: TRelationOptionsDecorator[] = Reflect.getMetadata(
       REFLECT_META.RELATIONS.hasMany, 
       this
     ) || [];
@@ -7965,7 +8001,7 @@ class Model<
       });
     }
 
-    const belongsTos: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+    const belongsTos: TRelationOptionsDecorator[] = Reflect.getMetadata(
       REFLECT_META.RELATIONS.belongsTo, 
       this
     ) || [];
@@ -7979,7 +8015,7 @@ class Model<
       });
     }
 
-    const belongsToManys: TRelationQueryOptionsDecorator[] = Reflect.getMetadata(
+    const belongsToManys: TRelationOptionsDecorator[] = Reflect.getMetadata(
       REFLECT_META.RELATIONS.belongsToMany, 
       this
     ) || [];

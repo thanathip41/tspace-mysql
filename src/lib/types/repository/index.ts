@@ -82,10 +82,10 @@ export type TRepositoryWhere<
             K extends keyof TRelationsDecorator<M>
               ? TRelationsDecorator<M>[K] extends (infer U)[]
                 ? U extends Model
-                  ? TRepositoryWhere<any, unknown, U>
+                  ? TRepositoryWhere<any, unknown, U> | boolean
                   : never
                 : TRelationsDecorator<M>[K] extends Model
-                  ? TRepositoryWhere<any, unknown, TRelationsDecorator<M>[K]>
+                  ? TRepositoryWhere<any, unknown, TRelationsDecorator<M>[K]> | boolean
                   : never
               : K extends keyof TColumnsDecorator<M>
                 ? TColumnsDecorator<M>[K]
@@ -105,14 +105,14 @@ export type TRepositoryWhere<
               : R extends Record<string, any>
                 ? R[`$${string & K}`] extends (infer U)[]
                   ? U extends Model
-                    ? TRepositoryWhere<T.SchemaModel<U>, T.RelationModel<U>, M>
+                    ? TRepositoryWhere<T.SchemaModel<U>, T.RelationModel<U>, M> | boolean
                     : never
                   : R[`$${K & string}`] extends Model
                     ? TRepositoryWhere<
                         T.SchemaModel<R[`$${K & string}`]>,
                         T.RelationModel<R[`$${K & string}`]>,
                         M
-                      >
+                      > | boolean
                     : never
                 : never
             : K extends keyof T

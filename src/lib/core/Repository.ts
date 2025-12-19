@@ -242,7 +242,7 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
      */
-    async pagination<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.ResultPaginate<TM,K>> {
+    async pagination<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.PaginateResult<TM,K>> {
 
         const instance = this._handlerRequest(options)
 
@@ -297,7 +297,7 @@ class RepositoryHandler<
      * 
      *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
      */
-    async paginate<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.ResultPaginate<TM,K>> {
+    async paginate<K>(options : Partial<T.RepositoryOptions<TM>> & { page ?: number } = {}) : Promise<T.PaginateResult<TM,K>> {
         return await this.pagination(options)
     }
 
@@ -1312,19 +1312,33 @@ class RepositoryHandler<
         if(where != null) {
 
             for(const column in where) {
-                const value = where[column]
+                const value = where[column];
+                if(value === true || value === false) {
+                    
+                    const isRelation = instance.findWithQuery(column);
+
+                    if(isRelation) {
+                        if(value === true) instance.whereHas(column,(q) => q);
+                        if(value === false) {
+                            console.log('where not Has')
+                            instance.whereNotHas(column,(q) => q);
+                        }
+                        delete where[column];
+                        continue
+                    }
+                }
                 const cbRelation = this._handleRelationQuery({
                     instance,
                     name : column,
                     options : { where: value }
                 })
-
+              
                 if(cbRelation == null) continue
+                
                 delete where[column]
             }
 
-            //@ts-ignore
-            instance.whereObject(where)
+            instance.whereObject(where as Record<string,any>)
         }
 
         if(whereRaw != null) {

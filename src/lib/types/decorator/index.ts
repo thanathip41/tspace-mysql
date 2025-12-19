@@ -5,7 +5,7 @@ import type {
     TRawStringQuery 
 } from "..";
 
-export type TRelationQueryOptionsDecorator<K = any> = {
+export type TRelationOptionsDecorator<K = any> = {
     name?: K extends void ? never : K;
     model: () => new () => Model<any, any>;
     as?: string;
