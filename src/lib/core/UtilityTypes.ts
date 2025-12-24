@@ -17,6 +17,64 @@ import type {
     TResultDecorator 
 } from "../types/decorator";
 
+
+type DeepExpand<T> = T extends Date
+    ? T
+    : T extends Function
+        ? T
+        
+        : T extends (infer U)[]
+            ? DeepExpand<U>[]
+            : T extends object
+                ? { [K in keyof T]: DeepExpand<T[K]> }
+                : T;
+                
+type ResultResolved<M extends Model, K = {}> = (
+    unknown extends TResult<M>
+        ? unknown extends TResultDecorator<M>
+            ? Record<K & string, any>
+            : {} extends TResultDecorator<M>
+                ? Record<K & string, any>
+                : TResultDecorator<K & M>
+        : TResult<K & M>
+);
+
+type Filter<T, S> = {
+  [K in keyof T & keyof S]:
+    S[K] extends true
+      ? NonNullable<T[K]>
+      : S[K] extends object
+        ? NonNullable<T[K]> extends (infer U)[]
+          ? DeepExpand<Filter<U, S[K]>>[]
+          : NonNullable<T[K]> extends object
+            ? DeepExpand<Filter<NonNullable<T[K]>, S[K]>>
+            : never
+        : never
+}
+
+type ResultFilterResolved<T, S> =
+  S extends undefined
+    ? T
+    : DeepExpand<Filter<T, S>>
+
+type IsOnlyObjects<T> = {
+  [K in keyof T]: T[K] extends object 
+    ? true 
+    : false
+}[keyof T] extends true ? true : false;
+
+type RecursiveInject<S, M extends Model> = {
+    [K in keyof S]: S[K] extends object
+        ? K extends keyof T.Relations<M>
+            ? RecursiveInject<S[K], Extract<T.Relations<M>[K], Model>>
+            : S[K]
+        : S[K]
+} & (
+    IsOnlyObjects<S> extends true 
+        ? { [P in keyof T.Columns<M>]: true } 
+        : {}
+);
+
 import type { 
     TRepositoryCreate, 
     TRepositoryCreateMultiple, 
@@ -31,8 +89,6 @@ import type {
     TRepositoryUpdateMultiple, 
     TRepositoryWhere 
 } from "../types/repository";
-
-declare const UniqueSymbol: unique symbol;
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -93,7 +149,8 @@ export type TSchemaStrict<T, S = {}> = {
  */
 export type TSchema<T, S = {}> = {
     [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U : any;
-} & {
+} 
+& {
     [key: string]: any;
 };
 /**
@@ -176,6 +233,7 @@ export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
  * @generic {Model} M Model
  */
 export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>;
+
 /**
  * The 'TPaginateResult' type is used to get type of result from model using paginate , pagination
  * @generic {Model} M Model
@@ -188,31 +246,9 @@ export type TSchemaKeyOf<M extends Model, T = TSchemaModel<M>> = keyof {
     [K in keyof T as string extends K ? never : K]: T[K];
 };
 
-type DeepExpand<T> = T extends Date
-    ? T
-    : T extends Function
-        ? T
-        
-        : T extends (infer U)[]
-            ? DeepExpand<U>[]
-            : T extends object
-                ? { [K in keyof T]: DeepExpand<T[K]> }
-                : T;
-
-type ResultResolved<M extends Model, K = {}> = (
-    unknown extends TResult<M>
-        ? unknown extends TResultDecorator<M>
-            ? Record<K & string, any>
-            : {} extends TResultDecorator<M>
-                ? Record<K & string, any>
-                : TResultDecorator<K & M>
-        : TResult<K & M>
-);
-
 export declare namespace T {
     // This type is not support any decorator from Model;
     // for mark generic type and set to Model.
-
     // -----------------------------------------------------
     type Schema<T, S = {}>  = TSchema<T, S>;
     type SchemaStrict<T, S = {}> = TSchemaStrict<T, S>;
@@ -232,7 +268,41 @@ export declare namespace T {
 
     type Result<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
 
-    type ResultPaginate<M extends Model, K = {}> = DeepExpand<TPagination<Result<M, K>>>
+    type ResultFiltered<
+        M extends Model, 
+        K = {}, 
+        S = undefined, // selected by columns
+        SR = undefined // selected by relations
+    > = ResultFilterResolved<
+        Result<M,K>,
+        S extends undefined
+        ? SR extends undefined
+            ? undefined
+            : { [K in keyof Columns<M>]: true } & {
+                [K in keyof SR]: 
+                    SR[K] extends true
+                    ? K extends keyof Result<M>
+                        ? true
+                        : false
+                    : SR[K] extends { relations: infer R }
+                        ? K extends keyof Result<M>
+                            ? NonNullable<Result<M>[K]> extends object
+                                ? { [P in keyof NonNullable<Result<M>[K]>]: true } & { [RK in keyof R]: true }
+                                : never
+                            : never
+                        : false
+                }
+        : SR extends undefined
+        ? RecursiveInject<S,M> & Omit<S, keyof RecursiveInject<S,M>>
+        : S & Omit<SR, keyof S>
+    >
+
+    type PaginateResultFiltered<
+        M extends Model,
+        K = {}, 
+        S = undefined, 
+        SR = undefined
+    > = DeepExpand<TPagination<ResultFiltered<M, K, S, SR>>>
 
     type PaginateResult<M extends Model, K = {}> = DeepExpand<TPagination<Result<M, K>>>
     
@@ -310,31 +380,29 @@ export declare namespace T {
             ? TRelationKeys<TRelationModel<M>>
             : keyof TRelationsDecorator<M>)
 
-    type TSchemaModelWithoutDecorator<M extends Model>   = ReturnType<M['typeOfSchema']>;
-
-    type TRelationModelWithoutDecorator<M extends Model> = ReturnType<M['typeOfRelation']>;
-
     type WhereOptions<M extends Model> =
-        TRepositoryWhere<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
+        TRepositoryWhere<TSchemaModel<M>, TRelationModel<M>, M>;
 
     type SelectOptions<M extends Model> =
-        TRepositorySelect<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
+        TRepositorySelect<TSchemaModel<M>, TRelationModel<M>, M>;
 
     type OrderByOptions<M extends Model> =
-        TRepositoryOrderBy<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
+        TRepositoryOrderBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
     type GroupByOptions<M extends Model> =
-        TRepositoryGroupBy<TSchemaModelWithoutDecorator<M>, TRelationModelWithoutDecorator<M>, M>;
+        TRepositoryGroupBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
     type RelationOptions<M extends Model> = TRepositoryRelation<
-        TRelationModelWithoutDecorator<M>, 
+        TRelationModel<M>, 
         M
     >;
 
-    type RepositoryOptions<M extends Model> = TRepositoryRequest<
-        TSchemaModelWithoutDecorator<M>, 
-        TRelationModelWithoutDecorator<M>, 
-        M
+    type RepositoryOptions<M extends Model,S = undefined, SR = undefined> = TRepositoryRequest<
+        TSchemaModel<M>, 
+        TRelationModel<M>, 
+        M,
+        S,
+        SR
     >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>

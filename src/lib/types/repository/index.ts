@@ -269,7 +269,9 @@ export type TRepositoryRelation<
 export type TRepositoryRequest<
   T extends Record<string, any> = any,
   R = unknown,
-  M extends Model<any, any> = Model<any, any>
+  M extends Model<any, any> = Model<any, any>,
+  S = undefined,
+  SR = undefined
 > = {
   debug?: boolean;
   cache?: {
@@ -278,9 +280,9 @@ export type TRepositoryRequest<
   };
   when?: {
     condition: boolean;
-    query: () => TRepositoryRequest<T, R, M>;
+    query: () => TRepositoryRequest<T, R, M, S, SR>;
   };
-  select?: "*" | TRepositorySelect<T, R, M>;
+  select?: S extends {} ? S : "*" | TRepositorySelect<T, R, M>;
   except?: TRepositorySelect<T, R, M>;
   join?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
   leftJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
@@ -293,8 +295,8 @@ export type TRepositoryRequest<
   orderBy?: TRepositoryOrderBy<T, R, M>;
   limit?: number;
   offset?: number;
-  relations?: TRepositoryRelation<R, M>;
-  relationsExists?: TRepositoryRelation<R, M>;
+  relations?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
+  relationsExists?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
   model?: (model: M) => M;
   hooks?: Function[];
   audit?: {
