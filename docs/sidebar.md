@@ -1,4 +1,5 @@
 - [Getting Started]()
+- [Comparisons](comparisons)
 - [Integrations](integrations)
 - [SQL Like](sql-like)
 - [Query Builder](query-builder)

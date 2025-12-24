@@ -1,9 +1,26 @@
+## ORMs Comparison
+Comparing how different ORMs validate queries, selected fields, and result shapes at compile time.
 
-### Schema
+
+| Feature / API | TypeORM (Repo) | TypeORM (QueryBuilder) | Prisma | Tspace-mysql (Repo) | Tspace-mysql (Builder) |
+|--------------|----------------|------------------------|--------|---------------------|------------------------|
+| Partial select typing | ⚠ Medium  | ❌ Unsafe | ✅ Safe | ✅ Safe | ⚠ Medium  |
+| Invalid field detection | ✅ Compile-time | ❌ Runtime | ✅ Compile-time | ✅ Compile-time | ✅ Compile-time |
+| Result shape accuracy | ⚠ Approximate | ❌ Inaccurate | ✅ Exact | ✅ Exact | ⚠ Approximate |
+| Where condition typing | ✅ Strong  | ❌ None (string-based) | ✅ Strong | ✅ Strong | ✅ Strong |
+| Relation name safety | ✅ Strong  | ❌ Not supported | ✅ Strong | ✅ Strong | ✅ Strong |
+| Join safety | ❌ None  | ❌ None | ❌ Not supported | ❌ None | ❌ None |
+| Error detection time | ✅Compile-time | ❌Runtime | ✅Compile-time | ✅Compile-time | ✅Compile-time |
+| Code generation required | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
+| Built-in `.paginate()` method | ❌ No | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
+| Custom chainable methods | ❌ Not supported | ⚠ Possible (hacky) | ❌ Not supported | ✅ First-class | ✅ First-class |
+
+
+
+## Schema
 Setup schema
 <!-- tabs:start -->
-#### **Tspace-mysql**
-
+### **Tspace-mysql**
 ```js
 // User.ts
 import {
@@ -44,7 +61,7 @@ class User extends Model {
 }
 ```
 
-#### **Typeorm**
+### **Typeorm**
 
 ```js
 // User.entity.ts
@@ -86,7 +103,7 @@ class User {
 }
 ```
 
-#### **Prisma**
+### **Prisma**
 
 ```js
 // schema.prisma
@@ -120,7 +137,7 @@ TypeORM provides a select option for its find methods (e.g. find, findByIds, fin
 const postRepository = Repository(Post)
 const publishedPosts = await postRepository.findMany({
   where: { published: true },
-  select: { id : true , title : true },
+  select: { id : true , title : true }
 })
 
 ```
@@ -128,21 +145,20 @@ const publishedPosts = await postRepository.findMany({
 #### **Model**
 
 ```js
-@Entity()
 export class Post {
-  @PrimaryGeneratedColumn()
+  @Column(() => Blueprint.int().notNull().primary().autoIncrement())
   id: number
 
-  @Column()
+  @Column(() => Blueprint.varchar().null())
   title: string
 
-  @Column({ nullable: true })
-  content: string
+  @Column(() => Blueprint.varchar().null())
+  content: string | null
 
-  @Column({ default: false })
+  @Column(() => Blueprint.boolean().default(false))
   published: boolean
 
-  @ManyToOne((type) => User, (user) => user.posts)
+  @BelongsTo(() => Post)
   author: User
 }
 ```
@@ -158,12 +174,12 @@ TypeORM provides a select option for its find methods (e.g. find, findByIds, fin
 const postRepository = getManager().getRepository(Post)
 const publishedPosts = await postRepository.find({
   where: { published: true },
-  select: ['id', 'title'],
+  select: ['id', 'title']
 })
 
 ```
 
-#### **Model**
+#### **`Model`**
 
 ```js
 @Entity()
