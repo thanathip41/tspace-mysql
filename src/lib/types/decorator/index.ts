@@ -23,9 +23,14 @@ export type TRelationOptionsDecorator<K = any> = {
     modelPivot?:() => new () => Model<any, any>;
 };
 
-export type TColumnsDecorator<T> = {
-    [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]:
-        T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery;
+export type TColumnsDecorator<
+  T,
+  Options extends { InputQuery?: boolean } = {}
+> = {
+  [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]:
+    Options['InputQuery'] extends true
+      ? T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
+      : T[K]
 };
 
 export type TRelationsDecorator<T> = Pick<T, {

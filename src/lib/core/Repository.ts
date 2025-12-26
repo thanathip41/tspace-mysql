@@ -62,12 +62,7 @@ class RepositoryHandler<
       throw new Error("The instance is not initialized");
     }
 
-    return (await instance.first()) as Promise<T.ResultFiltered<
-      M,
-      K,
-      S,
-      SR
-    > | null>;
+    return await instance.first() as unknown as Promise<T.ResultFiltered<M, K, S, SR> | null>
   }
 
   /**

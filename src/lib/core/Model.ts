@@ -3207,7 +3207,7 @@ class Model<
    */
   public whereObject<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(columns: { [P in K & keyof T]: T[P] }): this {
     for (let column in columns) {
       const operator = "=";
@@ -5321,7 +5321,7 @@ class Model<
    */
   public insert<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>
+    C extends T.ColumnOptions<this>
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
     ? any
@@ -5352,7 +5352,7 @@ class Model<
    */
   public create<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>
+    C extends T.ColumnOptions<this>
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any
@@ -5371,7 +5371,7 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  public update<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+  public update<K extends T.ColumnKeys<this>, T extends T.ColumnOptions<this>>(
     data: { [P in K & keyof T]: T[P] },
     updateNotExists: T.ColumnKeys<this>[] = []
   ): this {
@@ -5416,7 +5416,7 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  public updateMany<K extends T.ColumnKeys<this>, T extends T.Columns<this>>(
+  public updateMany<K extends T.ColumnKeys<this>, T extends T.ColumnOptions<this>>(
     data: { [P in K & keyof T]: T[P] },
     updateNotExists: string[] = []
   ): this {
@@ -5463,7 +5463,7 @@ class Model<
    * @returns {this} this
    */
   public updateCases<
-    T extends T.Columns<this>,
+    T extends T.ColumnOptions<this>,
     K extends keyof T,
     U extends Model | unknown,
     M = U extends this ? this : U extends Model ? U : this
@@ -5640,7 +5640,7 @@ class Model<
    */
   public updateNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     this.limit(1);
 
@@ -5675,7 +5675,7 @@ class Model<
    */
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     this.limit(1);
 
@@ -5702,7 +5702,7 @@ class Model<
    */
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
@@ -5714,7 +5714,7 @@ class Model<
    */
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
@@ -5726,7 +5726,7 @@ class Model<
    */
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     return this.updateOrCreate(data);
   }
@@ -5738,7 +5738,7 @@ class Model<
    */
   public createOrSelect<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5762,7 +5762,7 @@ class Model<
    */
   public insertOrSelect<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     return this.createOrSelect(data);
   }
@@ -5775,7 +5775,7 @@ class Model<
    */
   public createNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -5800,7 +5800,7 @@ class Model<
    */
   public insertNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.Columns<this>
+    T extends T.ColumnOptions<this>
   >(data: { [P in K & keyof T]: T[P] }): this {
     return this.createNotExists(data);
   }
@@ -5812,7 +5812,7 @@ class Model<
    */
   public createMultiple<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>,
+    C extends T.ColumnOptions<this>,
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any
@@ -5844,7 +5844,7 @@ class Model<
    */
   public createMany<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>,
+    C extends T.ColumnOptions<this>,
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any
@@ -5865,7 +5865,7 @@ class Model<
    */
   public insertMultiple<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>,
+    C extends T.ColumnOptions<this>,
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any
@@ -5886,7 +5886,7 @@ class Model<
    */
   public insertMany<
     K extends T.ColumnKeys<this>,
-    C extends T.Columns<this>,
+    C extends T.ColumnOptions<this>,
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any

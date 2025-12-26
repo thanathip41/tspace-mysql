@@ -325,25 +325,25 @@ export type TRepositoryRequestAggregate<
 
 
 export type TRepositoryCreate<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.Columns<M>>;
+    data: Partial<T.ColumnOptions<M>>;
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
 };
 
 export type TRepositoryCreateMultiple<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.Columns<M>>[];
+    data: Partial<T.ColumnOptions<M>>[];
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
 };
 
 export type TRepositoryCreateOrThings<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.Columns<M>>;
+    data: Partial<T.ColumnOptions<M>>;
     where: T.WhereOptions<M>
     debug?: boolean;
 };
 
 export type TRepositoryUpdate<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.Columns<M>>;
+    data: Partial<T.ColumnOptions<M>>;
     where: T.WhereOptions<M>
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
@@ -351,8 +351,8 @@ export type TRepositoryUpdate<M extends Model<any, any> = Model<any, any>> = {
 
 export type TRepositoryUpdateMultiple<M extends Model<any, any> = Model<any, any>> = {
     cases: {
-        condition: ((query: M) => M) | Partial<T.Columns<M>>;
-        columns: Partial<T.Columns<M>>;
+        condition: ((query: M) => M) | Partial<T.ColumnOptions<M>>;
+        columns: Partial<T.ColumnOptions<M>>;
     }[];
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;

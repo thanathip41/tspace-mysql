@@ -8,13 +8,14 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 | Invalid field detection | ✅ Compile-time | ❌ Runtime | ✅ Compile-time | ✅ Compile-time | ✅ Compile-time |
 | Result shape accuracy | ⚠ Approximate | ❌ Inaccurate | ✅ Exact | ✅ Exact | ⚠ Approximate |
 | Where condition typing | ✅ Strong  | ❌ None (string-based) | ✅ Strong | ✅ Strong | ✅ Strong |
+| Relations | ✅ Supported  | ❌ Not supported | ✅ Supported | ✅ Supported | ✅ Supported |
 | Relation name safety | ✅ Strong  | ❌ Not supported | ✅ Strong | ✅ Strong | ✅ Strong |
-| Join safety | ❌ None  | ❌ None | ❌ Not supported | ❌ None | ❌ None |
+| Self Join | ❌ Not supported  | ❌ Not supported | ❌ Not supported | ✅ Supported | ✅ Supported |
 | Error detection time | ✅Compile-time | ❌Runtime | ✅Compile-time | ✅Compile-time | ✅Compile-time |
 | Code generation required | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
+| Query flexibility | ⚠ Medium| ✅ Very High | ⚠ Medium |✅ High | ✅ Very High |
 | Built-in `.paginate()` method | ❌ No | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
 | Custom chainable methods | ❌ Not supported | ⚠ Possible (hacky) | ❌ Not supported | ✅ First-class | ✅ First-class |
-
 
 
 ## Schema
