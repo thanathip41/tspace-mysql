@@ -12,9 +12,9 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 | Relation name safety | ✅ Strong  | ❌ Not supported | ✅ Strong | ✅ Strong | ✅ Strong |
 | Self Join | ❌ Not supported  | ❌ Not supported | ❌ Not supported | ✅ Supported | ✅ Supported |
 | Error detection time | ✅Compile-time | ❌Runtime | ✅Compile-time | ✅Compile-time | ✅Compile-time |
-| Code generation required | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
-| Query flexibility | ⚠ Medium| ✅ Very High | ⚠ Medium |✅ High | ✅ Very High |
+| No code generation needed | ✅ Yes | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
 | Built-in `.paginate()` method | ❌ No | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
+| Query flexibility | ⚠ Medium| ✅ Very High | ⚠ Medium |✅ High | ✅ Very High |
 | Custom chainable methods | ❌ Not supported | ⚠ Possible (hacky) | ❌ Not supported | ✅ First-class | ✅ First-class |
 
 
