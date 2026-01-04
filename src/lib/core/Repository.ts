@@ -1253,7 +1253,7 @@ class RepositoryHandler<
       const filterRelations: string[] = [];
 
       for (const name in relations) {
-        const value = relations[name];
+        const value = relations[name]
 
         if (typeof value === "boolean" && value) {
           filterRelations.push(name);
@@ -1276,7 +1276,7 @@ class RepositoryHandler<
       const filterRelations: string[] = [];
 
       for (const name in relationsExists) {
-        const value = relationsExists[name];
+        const value = relationsExists[name]
 
         if (typeof value === "boolean" && value) {
           filterRelations.push(name);

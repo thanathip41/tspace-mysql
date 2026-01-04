@@ -282,7 +282,13 @@ export type TRepositoryRequest<
     condition: boolean;
     query: () => TRepositoryRequest<T, R, M, S, SR>;
   };
-  select?: S extends {} ? S : "*" | TRepositorySelect<T, R, M>;
+  select?: S extends {}
+    ? S & {
+        [K in keyof S]: K extends keyof TRepositorySelect<T, R, M>
+          ? S[K]
+          : never
+      }
+    : "*" | TRepositorySelect<T, R, M>;
   except?: TRepositorySelect<T, R, M>;
   join?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
   leftJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
@@ -295,7 +301,7 @@ export type TRepositoryRequest<
   orderBy?: TRepositoryOrderBy<T, R, M>;
   limit?: number;
   offset?: number;
-  relations?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
+  relations?: SR extends {} ? SR : TRepositoryRelation<R, M>;
   relationsExists?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
   model?: (model: M) => M;
   hooks?: Function[];

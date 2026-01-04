@@ -89,70 +89,81 @@ type RecursiveInject<S, M extends Model> = {
         : {}
 );
 
+type RelatedModel<M extends Model, K extends keyof T.Relations<M>> =
+    NonNullable<T.Relations<M>[K]> extends Model
+        ? NonNullable<T.Relations<M>[K]>
+        : never;
+
 type ExpandRelations<M extends Model, SR> = {
-    [K in keyof SR]: SR[K] extends true
+    [K in keyof SR]:
+        SR[K] extends true
         ? K extends keyof T.Relations<M>
-            ? NonNullable<T.Relations<M>[K]> extends object
-                ? { [P in keyof NonNullable<T.Columns<M>>]: true }
-                : never
+            ? {
+                [P in keyof T.Columns<RelatedModel<M, K>>]: true
+            }
             : never
         : SR[K] extends { relations: infer R }
             ? K extends keyof T.Relations<M>
-                ? NonNullable<T.Relations<M>[K]> extends object
-                    ? { [P in keyof NonNullable<T.Columns<M>>]: true } & { [RK in keyof R]: true }
-                    : never
+                ? SR[K] extends { select : infer S } 
+                ? {
+                    [RK in keyof R]: true
+                  }
+                  & S
+                
+                : {
+                    [P in keyof T.Columns<RelatedModel<M, K>>]: true
+                  } 
+                  & {
+                    [RK in keyof R]: true
+                  }
                 : never
-            : false
+            : SR[K] extends { select : infer S }
+                ? S
+                : never
 };
 
-type GetRelations<T> = T extends { relations: infer R } ? R : never;
-
 type SmartMerge<T1, T2> = {
-    //@ts-expect-error
-  [K in keyof T1 | (keyof T2 extends infer K2 ? K2 extends keyof T1 ? never : K2 : never)]: 
+    [
+        //@ts-ignore
+        K in | keyof T1 | (
+            keyof T2 extends infer K2
+                ? K2 extends keyof T1
+                    ? never
+                    : K2
+                : never
+            )
+    ]:
     K extends keyof T1
       ? K extends keyof T2
         ? T1[K] extends true
           ? true
           : T1[K] extends object
             ? T2[K] extends object
-              ? MergeNested<T1[K], T2[K]>
+              ? SmartMerge<
+                  T1[K],
+                  (
+                    (T2[K] extends { select: infer S } ? S : {}) &
+                    (T2[K] extends { relations: infer R } ? R : {}) &
+                    Omit<T2[K], 'select' | 'relations'>
+                  )
+                >
               : T1[K]
             : T1[K]
         : T1[K]
       : K extends keyof T2
         ? T2[K] extends object
-          ? T2[K] extends { relations: any }
-            ? GetRelations<T2[K]>
-            : T2[K]
+          ? SmartMerge<
+              {},
+              (
+                (T2[K] extends { select: infer S } ? S : {}) &
+                (T2[K] extends { relations: infer R } ? R : {}) &
+                Omit<T2[K], 'select' | 'relations'>
+              )
+            >
           : T2[K]
-        : never
+        : never;
 };
 
-type MergeNested<T1, T2> = T2 extends { relations: unknown }
-  ? {
-      [K in keyof T1 | keyof GetRelations<T2>]: 
-        K extends keyof T1
-          ? K extends keyof GetRelations<T2>
-            ? GetRelations<T2>[K] extends true
-              ? T1[K] extends true
-                ? true
-                : T1[K] extends object
-                  ? T1[K]
-                  : true
-              : GetRelations<T2>[K] extends object
-                ? T1[K] extends object
-                  ? T1[K] extends true
-                    ? GetRelations<T2>[K]
-                    : MergeNested<T1[K], { relations: GetRelations<T2>[K] }>
-                  : GetRelations<T2>[K]
-                : T1[K]
-            : T1[K]
-          : K extends keyof GetRelations<T2>
-            ? GetRelations<T2>[K]
-            : never
-    }
-  : T1;
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -355,17 +366,9 @@ export declare namespace T {
                     ? undefined
                     : { [K in keyof Columns<M>]: true } & ExpandRelations<M, SR>
                 : SR extends undefined
-            ? RecursiveInject<S,M>
-            : SmartMerge<S, SR>
-
-            // SmartMerge<
-            //    S,
-            //     SR
-            // >
-        >
-        // : SmartMerge<DeepExpand<RecursiveInject<S,M>>, DeepExpand<ExpandRelations<M, SR>>>
-        // : RecursiveInject<S,M>
-        
+                    ? RecursiveInject<S,M>
+                    : SmartMerge<S, SR>
+            >   
 
     type PaginateResultFiltered<
         M extends Model,
