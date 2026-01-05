@@ -16,7 +16,7 @@ import type {
 } from "../decorator";
 
 export type TRepositorySelect<
-  T extends Record<string, any> = any,
+  T = unknown,
   R = unknown,
   M extends Model = Model
 > =
@@ -65,8 +65,30 @@ export type TRepositorySelect<
               : never;
       }>;
 
+export type TRepositoryExcept<
+  T = unknown,
+  M extends Model = Model
+> =
+  [unknown] extends [T]
+    ? keyof TColumnsDecorator<M> extends never
+      ? TNestedBoolean
+      : Partial<{
+          [K in keyof TColumnsDecorator<M>]:
+            K extends `${string}.${string}` | TRawStringQuery
+              ? boolean
+              :  K extends keyof TColumnsDecorator<M>
+                  ? boolean
+                  : never;
+        }>
+    : Partial<{
+        [K in TSchemaKeys<T>]:
+          K extends keyof T
+          ? boolean
+          : never;
+      }>;
+
 export type TRepositoryWhere<
-  T extends Record<string, any> = any,
+  T = unknown,
   R = unknown,
   M extends Model = Model
 > =
@@ -121,7 +143,7 @@ export type TRepositoryWhere<
       }>;
 
 export type TRepositoryOrderBy<
-  T extends Record<string, any> = any,
+  T = unknown,
   R = unknown,
   M extends Model = Model
 > =
@@ -171,7 +193,7 @@ export type TRepositoryOrderBy<
       }>;
 
 export type TRepositoryGroupBy<
-  T extends Record<string, any> = any,
+  T = unknown,
   R = unknown,
   M extends Model = Model
 > =
@@ -267,21 +289,13 @@ export type TRepositoryRelation<
       }>;
 
 export type TRepositoryRequest<
-  T extends Record<string, any> = any,
-  R = unknown,
-  M extends Model<any, any> = Model<any, any>,
-  S = undefined,
-  SR = undefined
+  T  = unknown,
+  R  = unknown,
+  M  extends Model<any, any> = Model<any, any>,
+  S  = undefined,
+  SR = undefined,
+  E  = undefined
 > = {
-  debug?: boolean;
-  cache?: {
-    key: string;
-    expires: number;
-  };
-  when?: {
-    condition: boolean;
-    query: () => TRepositoryRequest<T, R, M, S, SR>;
-  };
   select?: S extends {}
     ? S & {
         [K in keyof S]: K extends keyof TRepositorySelect<T, R, M>
@@ -289,7 +303,13 @@ export type TRepositoryRequest<
           : never
       }
     : "*" | TRepositorySelect<T, R, M>;
-  except?: TRepositorySelect<T, R, M>;
+  except?: E extends {}
+    ? E & {
+        [K in keyof E]: K extends keyof TRepositoryExcept<T,M>
+          ? E[K]
+          : never
+      }
+    : TRepositoryExcept<T,M>;
   join?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
   leftJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
   rightJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
@@ -301,9 +321,19 @@ export type TRepositoryRequest<
   orderBy?: TRepositoryOrderBy<T, R, M>;
   limit?: number;
   offset?: number;
+
+  debug?: boolean;
+  cache?: {
+    key: string;
+    expires: number;
+  };
+  when?: {
+    condition: boolean;
+    query: () => TRepositoryRequest<T, R, M, S, SR>;
+  };
   relations?: SR extends {} ? SR : TRepositoryRelation<R, M>;
   relationsExists?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
-  model?: (model: M) => M;
+  using?: (model: M) => M;
   hooks?: Function[];
   audit?: {
     userId: number;

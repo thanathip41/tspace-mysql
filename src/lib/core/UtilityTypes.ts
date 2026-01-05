@@ -2,6 +2,10 @@ import { Blueprint }    from "./Blueprint";
 import { Model }        from "./Model";
 import { Repository }   from "./Repository";
 import type { 
+    TDeepExpand,
+    TResultFilterResolved,
+    TResultResolved,
+    TSelectionMerger,
     TFreezeStringQuery, 
     TIsEnum, 
     TOperatorQuery, 
@@ -14,7 +18,6 @@ import type {
 import type { 
     TColumnsDecorator, 
     TRelationsDecorator, 
-    TResultDecorator 
 } from "../types/decorator";
 
 import type { 
@@ -22,6 +25,7 @@ import type {
     TRepositoryCreateMultiple, 
     TRepositoryCreateOrThings, 
     TRepositoryDelete, 
+    TRepositoryExcept, 
     TRepositoryGroupBy, 
     TRepositoryOrderBy, 
     TRepositoryRelation, 
@@ -31,139 +35,6 @@ import type {
     TRepositoryUpdateMultiple, 
     TRepositoryWhere 
 } from "../types/repository";
-
-type DeepExpand<T> = T extends Date
-    ? T
-    : T extends Function
-        ? T
-        
-        : T extends (infer U)[]
-            ? DeepExpand<U>[]
-            : T extends object
-                ? { [K in keyof T]: DeepExpand<T[K]> }
-                : T;
-                
-type ResultResolved<M extends Model, K = {}> = (
-    unknown extends TResult<M>
-        ? unknown extends TResultDecorator<M>
-            ? Record<K & string, any>
-            : {} extends TResultDecorator<M>
-                ? Record<K & string, any>
-                : TResultDecorator<K & M>
-        : TResult<K & M>
-);
-
-type Filter<T, S> = {
-  [K in keyof T & keyof S]:
-    S[K] extends true
-      ? NonNullable<T[K]>
-      : S[K] extends object
-        ? NonNullable<T[K]> extends (infer U)[]
-          ? DeepExpand<Filter<U, S[K]>>[]
-          : NonNullable<T[K]> extends object
-            ? DeepExpand<Filter<NonNullable<T[K]>, S[K]>>
-            : never
-        : never
-}
-
-type ResultFilterResolved<T, S> =
-  S extends undefined
-    ? T
-    : DeepExpand<Filter<T, S>>
-
-type IsOnlyObjects<T> = {
-  [K in keyof T]: T[K] extends object 
-    ? true 
-    : false
-}[keyof T] extends true ? true : false;
-
-type RecursiveInject<S, M extends Model> = {
-    [K in keyof S]: S[K] extends object
-        ? K extends keyof T.Relations<M>
-            ? RecursiveInject<S[K], Extract<T.Relations<M>[K], Model>>
-            : S[K]
-        : S[K]
-} & (
-    IsOnlyObjects<S> extends true 
-        ? { [P in keyof T.Columns<M>]: true } 
-        : {}
-);
-
-type RelatedModel<M extends Model, K extends keyof T.Relations<M>> =
-    NonNullable<T.Relations<M>[K]> extends Model
-        ? NonNullable<T.Relations<M>[K]>
-        : never;
-
-type ExpandRelations<M extends Model, SR> = {
-    [K in keyof SR]:
-        SR[K] extends true
-        ? K extends keyof T.Relations<M>
-            ? {
-                [P in keyof T.Columns<RelatedModel<M, K>>]: true
-            }
-            : never
-        : SR[K] extends { relations: infer R }
-            ? K extends keyof T.Relations<M>
-                ? SR[K] extends { select : infer S } 
-                ? {
-                    [RK in keyof R]: true
-                  }
-                  & S
-                
-                : {
-                    [P in keyof T.Columns<RelatedModel<M, K>>]: true
-                  } 
-                  & {
-                    [RK in keyof R]: true
-                  }
-                : never
-            : SR[K] extends { select : infer S }
-                ? S
-                : never
-};
-
-type SmartMerge<T1, T2> = {
-    [
-        //@ts-ignore
-        K in | keyof T1 | (
-            keyof T2 extends infer K2
-                ? K2 extends keyof T1
-                    ? never
-                    : K2
-                : never
-            )
-    ]:
-    K extends keyof T1
-      ? K extends keyof T2
-        ? T1[K] extends true
-          ? true
-          : T1[K] extends object
-            ? T2[K] extends object
-              ? SmartMerge<
-                  T1[K],
-                  (
-                    (T2[K] extends { select: infer S } ? S : {}) &
-                    (T2[K] extends { relations: infer R } ? R : {}) &
-                    Omit<T2[K], 'select' | 'relations'>
-                  )
-                >
-              : T1[K]
-            : T1[K]
-        : T1[K]
-      : K extends keyof T2
-        ? T2[K] extends object
-          ? SmartMerge<
-              {},
-              (
-                (T2[K] extends { select: infer S } ? S : {}) &
-                (T2[K] extends { relations: infer R } ? R : {}) &
-                Omit<T2[K], 'select' | 'relations'>
-              )
-            >
-          : T2[K]
-        : never;
-};
-
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -338,63 +209,77 @@ export declare namespace T {
 
     // --- The type support decorator and self set generic type in model ---
     type SchemaModel<M extends Model> = keyof TColumnsDecorator<M> extends never
-        ? TSchemaModel<M>
-        : TColumnsDecorator<M>;
-
+        ? TDeepExpand<TSchemaModel<M>>
+        : TDeepExpand<TColumnsDecorator<M>>;
+ 
     type RelationModel<M extends Model> = keyof TColumnsDecorator<M> extends never
-        ? TRelationModel<M>
-        : TRelationsDecorator<M>;
+        ? TDeepExpand<TRelationModel<M>>
+        : TDeepExpand<TRelationsDecorator<M>>;
 
     type Repository<M extends Model> = ReturnType<typeof Repository<M>>;
 
-    type Result<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
-
-    type Test<M extends Model, K = {}> = ExpandRelations<M,K>
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
 
     type ResultFiltered<
-        M extends Model, 
-        K = {}, 
-        S = undefined, // selected by columns
-        SR = undefined // selected by relations
-    > = 
+        M  extends Model, 
+        K  = {}, 
+        S  = undefined,  // selected by columns
+        SR = undefined,  // selected by relations
+        E  = undefined   // omited by except columns
+    > = (
         [S, SR] extends [undefined, undefined]
-        ? Columns<M>
-        : ResultFilterResolved<
-            Result<M,K>,
-            S extends undefined
-                ? SR extends undefined
-                    ? undefined
-                    : { [K in keyof Columns<M>]: true } & ExpandRelations<M, SR>
-                : SR extends undefined
-                    ? RecursiveInject<S,M>
-                    : SmartMerge<S, SR>
-            >   
+        
+        ? T.Columns<M>
+        : TResultFilterResolved<
+            T.Result<M, K>, 
+            TSelectionMerger<    
+            S extends undefined 
+                ? { [ K in keyof T.Columns<M> ]: true } // default values from all colums
+                : S,
+            SR>
+        >
+
+    ) extends infer $Resolved
+        ? S extends undefined
+            ? E extends undefined
+                ? $Resolved
+                : TDeepExpand<
+                    Omit<
+                    $Resolved,
+                    E extends object
+                        ? { [K in keyof E]: E[K] extends true ? K : never }[keyof E]
+                        : never
+                    >
+                >
+            : $Resolved
+        : never;
 
     type PaginateResultFiltered<
         M extends Model,
         K = {}, 
         S = undefined, 
-        SR = undefined
-    > = DeepExpand<TPagination<ResultFiltered<M, K, S, SR>>>
+        SR = undefined,
+        E = undefined
+    > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E>>>
 
-    type PaginateResult<M extends Model, K = {}> = DeepExpand<TPagination<Result<M, K>>>
+    type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M, K>>>
     
-    type InsertResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>;
+    type InsertResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
 
-    type InsertManyResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>[];
+    type InsertManyResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>[];
 
-    type InsertNotExistsResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>> | null
+    type InsertNotExistsResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> | null
 
-    type UpdateResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>> | null
+    type UpdateResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> | null
 
-    type UpdateManyResult<M extends Model, K = {}> = DeepExpand<ResultResolved<M, K>>[]
+    type UpdateManyResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>[]
 
     type DeleteResult = boolean
 
     type Columns<
         M extends Model,
         Options extends { InputQuery?: boolean } = {}
-        > = DeepExpand<
+        > = TDeepExpand<
         keyof TColumnsDecorator<M> extends never
             ? {
                 [K in keyof TSchemaModel<M>]:
@@ -413,7 +298,8 @@ export declare namespace T {
         | TRawStringQuery
         | TFreezeStringQuery;
 
-    // The ColumnEnumMap not working with T.Schema but work with Decorator & T.SchemaStrcit
+    // ColumnEnumMap does not work with T.Schema,
+    // but it works with decorators and T.SchemaStrict.
     type ColumnEnumMap<M extends Model> =
         keyof TColumnsDecorator<M> extends never
             ? {
@@ -431,7 +317,8 @@ export declare namespace T {
                 ]: TColumnsDecorator<M>[K];
             };
 
-    // The ColumnsEnumKeys not working with T.Schema but work with Decorator & T.SchemaStrcit
+    // ColumnEnumKeys does not work with T.Schema,
+    // but it works with decorators and T.SchemaStrict.
     type ColumnEnumKeys<M extends Model> =
         keyof TColumnsDecorator<M> extends never
             ? {
@@ -467,6 +354,9 @@ export declare namespace T {
     type SelectOptions<M extends Model> =
         TRepositorySelect<TSchemaModel<M>, TRelationModel<M>, M>;
 
+    type ExceptOptions<M extends Model> =
+        TRepositoryExcept<TSchemaModel<M>, M>;
+
     type OrderByOptions<M extends Model> =
         TRepositoryOrderBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
@@ -478,12 +368,13 @@ export declare namespace T {
         M
     >;
 
-    type RepositoryOptions<M extends Model,S = undefined, SR = undefined> = TRepositoryRequest<
+    type RepositoryOptions<M extends Model, S = undefined, SR = undefined, E = undefined> = TRepositoryRequest<
         TSchemaModel<M>, 
         TRelationModel<M>, 
         M,
         S,
-        SR
+        SR,
+        E
     >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>

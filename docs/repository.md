@@ -48,7 +48,7 @@ const user = await userRepository.findOne({
       }
     })
   },
-  model : (query) => {
+  using : (query) => {
     return query // returning self model you can using any method in your model.
     // query.where('id',1)
     // query.customMethodWhereUser(1)
@@ -65,8 +65,10 @@ const users = await userRepository.findMany({
   orderBy : {
     id : 'ASC',
     name : 'DESC'
-  }
-  groupBy : ['id'],
+  },
+  groupBy : {
+    id : true
+  },
   where : {
     id: OP.in([1,2,3])
   }
@@ -89,7 +91,7 @@ const findFullName = await userRepository.findOne({
   select : {
     name : true,
     [`${DB.raw('CONCAT(firstName," ",lastName) as fullName')}`]: true
-  }
+  },
   whereRaw : [
     `CONCAT(firstName," ",lastName) LIKE '%${search}%'`
   ]

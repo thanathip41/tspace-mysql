@@ -3,6 +3,8 @@ import { TCache as Cache } from '../core/Cache';
 import { CONSTANTS } from '../constants';
 import { Join } from "../core/Join";
 import { QueryBuilder } from "../core/Driver";
+import { TResult } from "../core";
+import { TResultDecorator } from "./decorator";
 
 export type TCache = Cache;
 
@@ -376,3 +378,89 @@ export type TLifecycle =
 | "afterUpdate"
 | "beforeRemove"
 | "afterRemove";
+
+
+export type TDeepExpand<T> = T extends Date
+    ? T
+    : T extends Function
+        ? T
+        : T extends Model
+            ? T
+            : T extends (infer U)[]
+            ? TDeepExpand<U>[]
+            : T extends object
+                ? { [K in keyof T]: TDeepExpand<T[K]> }
+                : T;
+                
+export type TResultResolved<M extends Model, K = {}> = (
+    unknown extends TResult<M>
+        ? unknown extends TResultDecorator<M>
+            ? Record<K & string, any>
+            : {} extends TResultDecorator<M>
+                ? Record<K & string, any>
+                : TResultDecorator<K & M>
+        : TResult<K & M>
+);
+
+export type TFilter<T, S> = {
+  [K in keyof T & keyof S]:
+    S[K] extends true
+      ? NonNullable<T[K]>
+      : S[K] extends object
+        ? NonNullable<T[K]> extends (infer U)[]
+          ? TDeepExpand<TFilter<U, S[K]>>[]
+          : NonNullable<T[K]> extends object
+            ? TDeepExpand<TFilter<NonNullable<T[K]>, S[K]>>
+            : never
+        : never
+}
+
+export type TResultFilterResolved<T, S> =
+  S extends undefined
+    ? T
+    : TDeepExpand<TFilter<T, S>>
+
+export type TSelectionMerger<T1, T2> = {
+    [
+        K in 
+        | keyof T1 
+        | Exclude<keyof T2, keyof T1>
+            // | (
+            // keyof T2 extends infer K2
+            //     ? K2 extends keyof T1
+            //         ? never
+            //         : K2
+            //     : never
+            // )
+    ]:
+    K extends keyof T1
+      ? K extends keyof T2
+        ? T1[K] extends true
+          ? true
+          : T1[K] extends object
+            ? T2[K] extends object
+              ? TSelectionMerger<
+                  T1[K],
+                  (
+                    (T2[K] extends { select: infer S } ? S : {}) &
+                    (T2[K] extends { relations: infer R } ? R : {}) &
+                    Omit<T2[K], 'select' | 'relations'>
+                  )
+                >
+              : T1[K]
+            : T1[K]
+        : T1[K]
+      : K extends keyof T2
+        ? T2[K] extends object
+          ? TSelectionMerger<
+              {},
+              (
+                (T2[K] extends { select: infer S } ? S : {}) &
+                (T2[K] extends { relations: infer R } ? R : {}) &
+                Omit<T2[K], 'select' | 'relations'>
+              )
+            >
+          : T2[K]
+        : never;
+};
+

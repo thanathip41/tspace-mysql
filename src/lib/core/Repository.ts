@@ -1,7 +1,7 @@
 import { Model } from "./Model";
 import type { T } from "./UtilityTypes";
 
-class RepositoryHandler<
+class RepositoryFactory<
   TS extends Record<string, any> = Record<string, any>,
   TR = unknown,
   M extends Model<TS, TR> = Model<TS, TR>
@@ -41,7 +41,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const user = await userRepository.findOne({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -50,19 +50,21 @@ class RepositoryHandler<
    *  const user = await userRepository.findOne()
    */
   async first<
-    K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    K  = {},
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR> | null> {
+    options: T.RepositoryOptions<M, S, SR, E> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E> | null> {
+
     const instance = this._handlerRequest(options);
 
     if (!instance) {
       throw new Error("The instance is not initialized");
     }
 
-    return await instance.first() as unknown as Promise<T.ResultFiltered<M, K, S, SR> | null>
+    return await instance.first() as Promise<T.ResultFiltered<M, K, S, SR, E> | null>
   }
 
   /**
@@ -98,7 +100,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const user = await userRepository.findOne({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -108,11 +110,12 @@ class RepositoryHandler<
    */
   async findOne<
     K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR> | null> {
+    options: T.RepositoryOptions<M, S, SR, E> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E> | null> {
     return await this.first(options);
   }
 
@@ -149,7 +152,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const users = await userRepository.get({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -159,17 +162,18 @@ class RepositoryHandler<
    */
   async get<
     K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR>[]> {
+    options: T.RepositoryOptions<M, S, SR, E> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E>[]> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
     return (await instance.get()) as unknown as Promise<
-      T.ResultFiltered<M, K, S, SR>[]
+      T.ResultFiltered<M, K, S, SR, E>[]
     >;
   }
 
@@ -206,7 +210,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const users = await userRepository.findMany({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -216,11 +220,12 @@ class RepositoryHandler<
    */
   async findMany<
     K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR>[]> {
+    options: T.RepositoryOptions<M, S, SR, E> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR , E>[]> {
     return await this.get(options);
   }
 
@@ -259,7 +264,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const users = await userRepository.pagination({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -267,18 +272,14 @@ class RepositoryHandler<
    *
    *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
    */
-  // <
-  //     K = {},
-  //     S extends T.SelectOptions<M> | undefined = undefined,
-  //     SR extends T.RelationOptions<M> | undefined = undefined
-  // >(options: T.RepositoryOptions<M, S, SR> = {}): Promise<T.ResultFiltered<M,K,S,SR>[]>
   async pagination<
     K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR>> & { page?: number } = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR>> {
+    options: Partial<T.RepositoryOptions<M, S, SR, E>> & { page?: number } = {}
+  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E>> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -286,7 +287,7 @@ class RepositoryHandler<
     return (await instance.pagination({
       limit: options.limit,
       page: options.page,
-    })) as unknown as Promise<T.PaginateResultFiltered<M, K, S, SR>>;
+    })) as unknown as Promise<T.PaginateResultFiltered<M, K, S, SR, E>>;
   }
 
   /**
@@ -324,7 +325,7 @@ class RepositoryHandler<
    * const userRepository =  Repository(User)
    *
    *  const users = await userRepository.paginate({
-   *       select : ['id','name'],
+   *       select : { id: true, name: true },
    *       where : {
    *           id: 1
    *       }
@@ -334,11 +335,12 @@ class RepositoryHandler<
    */
   async paginate<
     K = {},
-    S extends T.SelectOptions<M> | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR>> & { page?: number } = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR>> {
+    options: Partial<T.RepositoryOptions<M, S, SR, E>> & { page?: number } = {}
+  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E>> {
     return await this.pagination(options);
   }
 
@@ -1179,13 +1181,13 @@ class RepositoryHandler<
     options: any;
     exists?: boolean;
   }) {
-    const cbRelation = instance.findWithQuery(name);
+    const callbackRelation = instance.findWithQuery(name);
 
-    if (cbRelation == null) return null;
+    if (callbackRelation == null) return null;
 
     if (options == null) {
       const instanceRelation = this._handlerRequest({
-        instance: cbRelation,
+        instance: callbackRelation,
       });
 
       if (instanceRelation == null) return null;
@@ -1196,12 +1198,12 @@ class RepositoryHandler<
         instance.relationQuery(name, () => instanceRelation);
       }
 
-      return cbRelation;
+      return callbackRelation;
     }
 
     const instanceRelation = this._handlerRequest({
       ...options,
-      instance: cbRelation,
+      instance: callbackRelation,
     });
 
     if (instanceRelation == null) return null;
@@ -1212,7 +1214,7 @@ class RepositoryHandler<
       instance.relationQuery(name, () => instanceRelation);
     }
 
-    return cbRelation;
+    return callbackRelation;
   }
 
   private _handlerRequest(
@@ -1238,7 +1240,7 @@ class RepositoryHandler<
       when,
       hooks,
       debug,
-      model,
+      using,
       audit,
       instance,
     } = options;
@@ -1310,13 +1312,13 @@ class RepositoryHandler<
         for (const column in select) {
           const value = select[column];
 
-          const cbRelation = this._handleRelationQuery({
+          const callbackRelation = this._handleRelationQuery({
             instance,
             name: column,
             options: { select: value },
           });
 
-          if (cbRelation != null) continue;
+          if (callbackRelation != null) continue;
 
           if (value === true) instance.select(column);
         }
@@ -1327,13 +1329,13 @@ class RepositoryHandler<
       for (const column in except) {
         const value = except[column];
 
-        const cbRelation = this._handleRelationQuery({
+        const callbackRelation = this._handleRelationQuery({
           instance,
           name: column,
           options: { except: value },
         });
 
-        if (cbRelation != null) continue;
+        if (callbackRelation != null) continue;
 
         if (value === true) {
           instance.except(column);
@@ -1375,13 +1377,13 @@ class RepositoryHandler<
             continue;
           }
         }
-        const cbRelation = this._handleRelationQuery({
+        const callbackRelation = this._handleRelationQuery({
           instance,
           name: column,
           options: { where: value },
         });
 
-        if (cbRelation == null) continue;
+        if (callbackRelation == null) continue;
 
         delete where[column];
       }
@@ -1406,13 +1408,13 @@ class RepositoryHandler<
       for (const column in groupBy) {
         const value = groupBy[column];
 
-        const cbRelation = this._handleRelationQuery({
+        const callbackRelation = this._handleRelationQuery({
           instance,
           name: column,
           options: { groupBy: value },
         });
 
-        if (cbRelation != null) continue;
+        if (callbackRelation != null) continue;
 
         instance.groupBy(column);
       }
@@ -1426,13 +1428,13 @@ class RepositoryHandler<
       for (const column in orderBy) {
         const value = orderBy[column];
 
-        const cbRelation = this._handleRelationQuery({
+        const callbackRelation = this._handleRelationQuery({
           instance,
           name: column,
           options: { orderBy: value },
         });
 
-        if (cbRelation != null) continue;
+        if (callbackRelation != null) continue;
 
         instance.orderBy(column, value as "ASC" | "DESC");
       }
@@ -1460,7 +1462,7 @@ class RepositoryHandler<
         limit,
         offset,
         relations,
-        when: whenCb,
+        when: callbackWhen,
       } = when.query() as T.RepositoryOptions<M>;
 
       instance = this._handlerRequest({
@@ -1476,12 +1478,12 @@ class RepositoryHandler<
         limit,
         offset,
         relations,
-        when: whenCb,
+        when: callbackWhen,
         instance,
       }) as M;
     }
 
-    if (model) model(instance as M);
+    if (using) using(instance as M);
 
     if (debug) instance.debug();
 
@@ -1507,7 +1509,7 @@ class RepositoryHandler<
  *
  * The 'bind' method is used to bind the model to the repository
  * @param {Model} model A class constructor for a model
- * @returns {RepositoryHandler<T,R>}
+ * @returns {RepositoryFactory<T,R>}
  *
  * @example
  * import { Repository } from 'tspace-mysql'
@@ -1521,8 +1523,8 @@ class RepositoryHandler<
  */
 export const Repository = <M extends Model<any, any>>(
   model: new () => M
-): RepositoryHandler<T.SchemaModel<M>, T.RelationModel<M>, M> => {
-  return new RepositoryHandler<T.SchemaModel<M>, T.RelationModel<M>, M>(model);
+): RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M> => {
+  return new RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M>(model);
 };
 
 export default Repository;

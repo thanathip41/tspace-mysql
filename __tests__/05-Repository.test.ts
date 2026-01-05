@@ -497,7 +497,7 @@ describe("Testing Repository", function () {
     expect(exists).to.be.equal(null);
 
     const notExists = await Repository(User).first({
-      model: (query) => query.withNotExists("posts"),
+      using: (query) => query.withNotExists("posts"),
       where: {
         posts: {
           id: 999,
@@ -526,7 +526,7 @@ describe("Testing Repository", function () {
     });
 
     const usersWithoutPosts = await Repository(User).get({
-      model: (query) => query.withCount("posts"),
+      using: (query) => query.withCount("posts"),
     });
 
     for (const user of usersWithoutPosts) {
@@ -553,7 +553,7 @@ describe("Testing Repository", function () {
     }
 
     const users = await Repository(User).get({
-      model: (query) => query.withCount("posts"),
+      using: (query) => query.withCount("posts"),
     });
 
     for (const user of users) {
@@ -561,7 +561,7 @@ describe("Testing Repository", function () {
     }
 
     const posts = await Repository(Post).get({
-      model: (query) => query.withCount("subscribers"),
+      using: (query) => query.withCount("subscribers"),
     });
 
     for (const post of posts) {

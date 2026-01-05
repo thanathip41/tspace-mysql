@@ -5,12 +5,13 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 | Feature / API | TypeORM (Repo) | TypeORM (QueryBuilder) | Prisma | Tspace-mysql (Repo) | Tspace-mysql (Builder) |
 |--------------|----------------|------------------------|--------|---------------------|------------------------|
 | Partial select typing | ⚠ Medium  | ❌ Unsafe | ✅ Safe | ✅ Safe | ⚠ Medium  |
+| Except columns | ❌ Not supported | ❌ Not supported | ✅ Supported (v6.2+)| ✅ Supported | ✅ Supported|
 | Invalid field detection | ✅ Compile-time | ❌ Runtime | ✅ Compile-time | ✅ Compile-time | ✅ Compile-time |
 | Result shape accuracy | ⚠ Approximate | ❌ Inaccurate | ✅ Exact | ✅ Exact | ⚠ Approximate |
 | Where condition typing | ✅ Strong  | ❌ None (string-based) | ✅ Strong | ✅ Strong | ✅ Strong |
 | Relations | ✅ Supported  | ❌ Not supported | ✅ Supported | ✅ Supported | ✅ Supported |
 | Relation name safety | ✅ Strong  | ❌ Not supported | ✅ Strong | ✅ Strong | ✅ Strong |
-| Self Join | ❌ Not supported  | ❌ Not supported | ❌ Not supported | ✅ Supported | ✅ Supported |
+| Self Join | ❌ Not supported  | ✅ Supported | ❌ Not supported | ✅ Supported | ✅ Supported |
 | Error detection time | ✅Compile-time | ❌Runtime | ✅Compile-time | ✅Compile-time | ✅Compile-time |
 | No code generation needed | ✅ Yes | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
 | Built-in `.paginate()` method | ❌ No | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
