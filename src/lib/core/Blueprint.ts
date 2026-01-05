@@ -25,6 +25,7 @@ class Blueprint<T = any> {
   private _index: string | null = null;
   private _column: string | null = null;
   private _isVirtual: boolean = false;
+  private _isEnum : boolean = false;
   private _sql: {
     select?: string;
     where?: string;
@@ -579,6 +580,7 @@ class Blueprint<T = any> {
     );
     instance._valueType = String;
     instance._enum = enumValues as any;
+    instance._isEnum = true;
     return instance;
   }
 
@@ -854,7 +856,7 @@ class Blueprint<T = any> {
     return this._valueType;
   }
 
-  get valueEnum() {
+  get enums() {
     return this._enum
   }
 
@@ -864,6 +866,10 @@ class Blueprint<T = any> {
 
   get isVirtual() {
     return this._isVirtual
+  }
+
+  get isEnum() {
+    return this._isEnum
   }
 
   private _addAssignType(type: string) {

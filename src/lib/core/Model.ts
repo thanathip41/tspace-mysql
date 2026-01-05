@@ -1128,12 +1128,11 @@ class Model<
         return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
       }
 
-      const virtualColumn = this._getBlueprintByKey(column, {
-        mapQuery: true,
-      });
+      const blueprint = this._getBlueprintByColumn(column);
 
-      if (virtualColumn) {
-        const sql = virtualColumn.sql?.select;
+      if (blueprint?.isVirtual) {
+        const sql = blueprint.sql?.select;
+
         if (sql == null) return this.bindColumn(column);
 
         if (sql.toLowerCase().includes(" as ")) {
@@ -1236,12 +1235,11 @@ class Model<
     column: K,
     order: "ASC" | "asc" | "DESC" | "desc" = "ASC"
   ): this {
-    const virtualColumn = this._getBlueprintByKey(String(column), {
-      mapQuery: true,
-    });
+    const blueprint = this._getBlueprintByColumn(String(column));
+  
+    if (blueprint?.isVirtual) {
 
-    if (virtualColumn) {
-      const sql = virtualColumn.sql?.where;
+      const sql = blueprint.sql?.where;
 
       if (sql) {
         this.$state.set("ORDER_BY", [
@@ -1284,16 +1282,14 @@ class Model<
         .map((c: string) => {
           if (/\./.test(c)) return this.bindColumn(c.replace(/'/g, ""));
 
-          if (c.includes(this.$constants("RAW")))
+          if (c.includes(this.$constants("RAW"))) {
             return c?.replace(this.$constants("RAW"), "");
+          }
 
-          const virtualColumn = this._getBlueprintByKey(c, {
-            mapQuery: true,
-          });
+          const blueprint = this._getBlueprintByColumn(String(c));
 
-          if (virtualColumn) {
-            const sql = virtualColumn.sql?.orderBy;
-
+          if (blueprint?.isVirtual) {
+            const sql = blueprint.sql?.orderBy;
             if (sql) return sql;
           }
 
@@ -1326,12 +1322,10 @@ class Model<
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
 
-          const virtualColumn = this._getBlueprintByKey(c, {
-            mapQuery: true,
-          });
+          const blueprint = this._getBlueprintByColumn(String(c));
 
-          if (virtualColumn) {
-            const sql = virtualColumn.sql?.orderBy;
+          if (blueprint?.isVirtual) {
+            const sql = blueprint.sql?.orderBy;
 
             if (sql) return sql;
           }
@@ -1365,12 +1359,10 @@ class Model<
           if (c.includes(this.$constants("RAW")))
             return c?.replace(this.$constants("RAW"), "");
 
-          const virtualColumn = this._getBlueprintByKey(c, {
-            mapQuery: true,
-          });
+          const blueprint = this._getBlueprintByColumn(String(c));
 
-          if (virtualColumn) {
-            const sql = virtualColumn.sql?.groupBy;
+          if (blueprint?.isVirtual) {
+            const sql = blueprint.sql?.groupBy;
 
             if (sql) return sql;
           }
@@ -2998,12 +2990,10 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    const virtualColumn = this._getBlueprintByKey(String(column), {
-      mapQuery: true,
-    });
+    const blueprint = this._getBlueprintByColumn(String(column));
 
-    if (virtualColumn) {
-      const sql = virtualColumn.sql?.where;
+    if (blueprint?.isVirtual) {
+      const sql = blueprint.sql?.where;
 
       if (sql) {
         if (value === null) {
@@ -3075,12 +3065,10 @@ class Model<
 
     value = this.$utils.transfromDateToDateString(value);
 
-    const virtualColumn = this._getBlueprintByKey(String(column), {
-      mapQuery: true,
-    });
+    const blueprint = this._getBlueprintByColumn(String(column));
 
-    if (virtualColumn) {
-      const sql = virtualColumn.sql?.where;
+    if (blueprint?.isVirtual) {
+      const sql = blueprint.sql?.where;
 
       if (sql) {
         if (value === null) {
@@ -3426,12 +3414,10 @@ class Model<
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
 
-    const virtualColumn = this._getBlueprintByKey(String(column), {
-      mapQuery: true,
-    });
+    const blueprint = this._getBlueprintByColumn(String(column));
 
-    if (virtualColumn) {
-      const sql = virtualColumn.sql?.where;
+    if (blueprint?.isVirtual) {
+      const sql = blueprint.sql?.where;
 
       if (sql) {
         return this.whereRaw(`${sql} ${this.$constants("IN")} (${values})`);
@@ -6002,17 +5988,16 @@ class Model<
 
     const schemaModel = this.getSchemaModel();
 
-    const fields: Array<{ Field: string; Type: string }> =
-      schemaModel == null
-        ? await this.getSchema()
-        : Object.entries(schemaModel)
-            .map(([key, value]) => {
-              return {
-                Field: key,
-                Type: value.type,
-              };
-            })
-            .filter((v) => v != null);
+    const fields = schemaModel == null
+      ? await this.getSchema()
+      : Object.entries(schemaModel)
+          .map(([key, value]) => {
+            return {
+              Field: key,
+              Type: value.type,
+            };
+          })
+          .filter((v) => v != null);
 
     const fakers: any[] = [];
 
@@ -6027,21 +6012,22 @@ class Model<
       let columnAndValue: Record<string, any> = {};
 
       for (const { Field: field, Type: type } of fields) {
+
         if (passed(field)) continue;
 
-        const virtualColumn = this._getBlueprintByKey(field, {
-          mapQuery: true,
-          schemaColumns: schemaModel,
-        });
+        const blueprint = this._getBlueprintByColumn(field, { schema : schemaModel });
 
-        if (virtualColumn) continue;
+        if(blueprint?.isVirtual) continue;
+
+        const value = field === uuid
+        ? this.$utils.faker("uuid")
+        : blueprint?.isEnum 
+          ? blueprint.enums[Math.floor(Math.random() * blueprint.enums.length)] 
+          : this.$utils.faker(type)
 
         columnAndValue = {
           ...columnAndValue,
-          [field]:
-            field === uuid
-              ? this.$utils.faker("uuid")
-              : this.$utils.faker(type),
+          [field]: value,
         };
       }
 
@@ -8149,24 +8135,20 @@ class Model<
     }
   }
 
-  private _getBlueprintByKey(
-    column: string,
-    {
-      mapQuery,
-      schemaColumns,
-    }: { mapQuery?: boolean; schemaColumns?: any } = {}
-  ) {
-    schemaColumns = schemaColumns ?? this.getSchemaModel();
-    if (!schemaColumns) return null;
+  private _getBlueprintByColumn(column: string, { schema } : { 
+    schema ?: Record<string, Blueprint<any>> | null 
+  } = {}
+  ) : Blueprint | null {
 
-    const blueprint = schemaColumns[column];
+    schema = schema ?? this.getSchemaModel();
+   
+    if (!schema) return null;
+
+    const blueprint = schema[column];
+
     if (!blueprint) return null;
 
-    if (mapQuery) {
-      return blueprint.sql ? blueprint : null;
-    }
-
-    return blueprint;
+    return blueprint as Blueprint
   }
 
   private _handleJoinModel(
