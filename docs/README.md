@@ -37,6 +37,19 @@ npm install tspace-mysql --save
 npm install -g tspace-mysql
 ```
 
+## TypeScript
+
+The TypeScript version is specified only for **development and build-time** purposes and does **not** restrict how consumers use the library.
+
+This library is built using **TypeScript 5.9.3**.  
+The minimum supported **TypeScript version is >= 5.6.2**.
+
+If you are contributing to this library or building it locally, install the pinned TypeScript version:
+
+```sh
+npm install -D typescript@5.9.3
+```
+
 ## Configuration
 
 To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
