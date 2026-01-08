@@ -1,47 +1,50 @@
 import { Tool } from '../tools'
 import dotenv from 'dotenv'
 
-const environment = () : string => {
-    const NODE_ENV = process.env?.NODE_ENV
-    const env = Tool.path.join(Tool.path.resolve(), '.env')
-    
-    if(NODE_ENV == null)  return env
-    const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`)
-    if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment
+const resolveEnvPath = (customEnv ?: string) : string => {
+    const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
+    const env = Tool.path.join(Tool.path.resolve(), '.env');
 
-    return env
+    if(NODE_ENV == null) {
+        return env;
+    }
+
+    const envWithNodeEnv = Tool.path.join(
+        Tool.path.resolve(), 
+        `.env.${NODE_ENV}`
+    );
+
+    if (Tool.fs.existsSync(envWithNodeEnv)) {
+        return envWithNodeEnv;
+    }
+
+    return env;
 }
 
-dotenv.config({ path : environment() })
+dotenv.config({ path : resolveEnvPath() })
 
 const ENV = process.env
 
 const rawEnv =  {
-    CLUSTER                 : ENV.DB_CLUSTER ?? false,
-    DRIVER                  : ENV.DB_DRIVER ?? 'mysql2',
     HOST                    : ENV.DB_HOST ?? 'localhost',
     PORT                    : ENV.DB_PORT ?? 3306,
     USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
     PASSWORD                : ENV.DB_PASSWORD ?? '', 
     DATABASE                : ENV.DB_DATABASE, 
     CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 20,
-    QUEUE_LIMIT             : ENV.DB_QUEUE_LIMIT ?? 0,
-    TIMEOUT                 : ENV.DB_TIMEOUT ?? 1000 * 120,
-    CHARSET                 : ENV.DB_CHARSET ?? 'utf8mb4',
+
+    DATE_STRINGS            : ENV.DB_DATE_STRINGS ?? false,
+  
+    CLUSTER                 : ENV.DB_CLUSTER ?? false,
+    DRIVER                  : ENV.DB_DRIVER ?? 'mysql2',
+    CACHE                   : ENV.DB_CACHE ?? 'memory' as 'memory' | 'db' | 'redis',
     CONNECTION_ERROR        : ENV.DB_CONNECTION_ERROR ?? false,
     CONNECTION_SUCCESS      : ENV.DB_CONNECTION_SUCCESS ?? false,
-    WAIT_FOR_CONNECTIONS    : ENV.DB_WAIT_FOR_CONNECTIONS  ??  true,
-    DATE_STRINGS            : ENV.DB_DATE_STRINGS ?? false,
-    KEEP_ALIVE_DELAY        : ENV.DB_KEEP_ALIVE_DELAY ??  0,
-    ENABLE_KEEP_ALIVE       : ENV.DB_ENABLE_KEEP_ALIVE ?? true,
-    MULTIPLE_STATEMENTS     : ENV.DB_MULTIPLE_STATEMENTS ??  false,
-    CACHE                   : ENV.DB_CACHE ?? 'memory' as 'memory' | 'db' | 'redis'
 } as const 
 
-type RawEnv = typeof rawEnv
-
-const parseEnv = (env: typeof rawEnv): RawEnv => {
-    const parsed = {} as Record<string,any>
+const parseEnv = <T extends object>(env: T): T  => {
+    
+    const parsed: Record<string,unknown> = {}
 
     for (const [key, value] of Object.entries(env)) {
 
@@ -66,44 +69,32 @@ const parseEnv = (env: typeof rawEnv): RawEnv => {
         parsed[key] = value
     }
 
-    return parsed as RawEnv
+    return parsed as T
 }
 
-const env = parseEnv(rawEnv)
+const env = parseEnv<typeof rawEnv>(rawEnv)
 
-export const loadOptionsEnvironment = (customEnv?: string) => {
-    const environment = () : string => {
-        const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
-        const env = Tool.path.join(Tool.path.resolve(), '.env');
-
-        if(NODE_ENV == null) return env;
-
-        const envWithEnviroment = Tool.path.join(Tool.path.resolve() , `.env.${NODE_ENV}`);
-
-        if (Tool.fs.existsSync(envWithEnviroment)) return envWithEnviroment;
+export const loadOptionsEnv = (customEnv?: string) => {
     
-        return env
-    }
-    const pathEnv = environment();
+    const pathEnv = resolveEnvPath(customEnv);
 
     dotenv.config({ path : pathEnv, override: true });
 
-    const ENV = process.env
+    const ENV = process.env;
  
     const rawEnv =  {
         cluster              : ENV.DB_CLUSTER ?? false,
         driver               : ENV.DB_DRIVER ?? 'mysql2',
-        host                 : ENV?.DB_HOST,
-        port                 : ENV?.DB_PORT || 3306,
-        username             : ENV?.DB_USERNAME ,
-        password             : ENV?.DB_PASSWORD || '', 
-        database             : ENV?.DB_DATABASE, 
+        host                 : ENV.DB_HOST,
+        port                 : ENV.DB_PORT || 3306,
+        username             : ENV.DB_USERNAME,
+        password             : ENV.DB_PASSWORD || '', 
+        database             : ENV.DB_DATABASE, 
     } as const
 
-    //@ts-ignore
-    const env = parseEnv(rawEnv)
+    const env = parseEnv<typeof rawEnv>(rawEnv);
     
-    return Object.freeze(env) as unknown as typeof rawEnv
+    return Object.freeze(env) as typeof rawEnv;
 }
 
 const Config = Object.freeze(env);

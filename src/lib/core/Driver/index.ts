@@ -232,6 +232,14 @@ export abstract class QueryBuilder {
     attributes: string[];
   }): string;
 
+  public abstract getChildFKs({
+    database,
+    table,
+  }: {
+    database: string;
+    table: string;
+  }) : string;
+
   public abstract getFKs({
     database,
     table,
@@ -246,6 +254,14 @@ export abstract class QueryBuilder {
     constraint,
   }: {
     database: string;
+    table: string;
+    constraint: string;
+  }): string;
+
+  public abstract dropFK({
+    table,
+    constraint,
+  }: {
     table: string;
     constraint: string;
   }): string;
@@ -300,6 +316,7 @@ export abstract class QueryBuilder {
   public abstract dropDatabase(database: string): string;
   public abstract dropView(view: string): string;
   public abstract dropTable(table: string): string;
+  public abstract truncate(table: string): string;
   public abstract sleep(second : number) : string;
 
   public abstract format(sql: (string | null)[] | string): string;

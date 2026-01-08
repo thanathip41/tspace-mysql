@@ -6,41 +6,47 @@ import type {
 } from "../../../types";
 
 type MariadbConnectionOptions = {
-  connectionLimit         : string,
-  dateStrings             : boolean,
-  connectTimeout          : number,
-  waitForConnections      : boolean,
-  queueLimit              : number,
-  charset                 : string,
-  host                    : string,
-  port                    : number,
-  database                : string,
-  user                    : string,
-  username                : string,
-  password                : string,
+  host                    : string;
+  port                    : number;
+  database                : string;
+  user                    : string;
+  username                : string;
+  password                : string;
+  connectionLimit         ?: number;
+  connectTimeout          ?: number;
 }
 
 export class MariadbDriver extends BaseDriver {
+
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
   }
+  
   public connect(this: MariadbDriver) {
     const options = this.options as MariadbConnectionOptions;
-    const mysql = this.import("mariadb");
+    const mariadb = this.import("mariadb");
 
-    this.pool = mysql.createPool({
-    
-      host: options.host,
-      port: options.port,
-      database: options.database,
-      user: options.user || options.username,
-      password: options.password,
+    this.pool = mariadb.createPool({
 
-      bigIntAsNumber: true,
-      insertIdAsNumber: true,
-      connectionLimit: options.connectionLimit,
-      connectTimeout: options.connectTimeout,
+      host             : options.host,
+      port             : options.port,
+      database         : options.database,
+      user             : options.user || options.username,
+      password         : options.password,
+
+      connectionLimit  : options.connectionLimit ?? 20,
+      connectTimeout   : options.connectTimeout ?? 1000 * 60,
+
+      minimumIdle      : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      acquireTimeout   : 1000 * 20,
+      idleTimeout      : 1000 * 60,
+      queryTimeout     : 1000 * 60,
+
+      pipelining       : true,
+      bigIntAsNumber   : true,
+      insertIdAsNumber : true,
+
     });
 
    
@@ -84,27 +90,39 @@ export class MariadbDriver extends BaseDriver {
 
     const query = async (sql: string) => {
       if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
+
       const start = Date.now();
+
       const results = await connection.query(sql);
+
       this._detectEventQuery({ start, sql });
+
       this.meta(results, sql);
+
       return this.returning(results);
     };
 
     const startTransaction = async () => {
+
       if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
+
       await connection.beginTransaction();
     };
 
     const commit = async () => {
+
       if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
+
       await connection.commit();
+
       await end();
     };
 
     const rollback = async () => {
       if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
+
       await connection.rollback();
+      
       await end();
     };
 
@@ -145,8 +163,10 @@ export class MariadbDriver extends BaseDriver {
   }
   
   protected meta (results : any, sql : string) : void {
-    if(Array.isArray(results)) return
-    if(results.$meta == null) results.$meta = {}
+
+    if (Array.isArray(results)) return;
+
+    if (results.$meta == null) results.$meta = {}
 
     const command = this._detectQueryType(sql)
 

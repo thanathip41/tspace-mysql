@@ -188,13 +188,18 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public getTables(database: string) {
     const sql = [
       `
-      SELECT 
-        TABLE_NAME AS "Tables"
-      FROM INFORMATION_SCHEMA.TABLES
-      WHERE 
-        TABLE_SCHEMA NOT IN ('PG_CATALOG','INFORMATION_SCHEMA')
-        AND TABLE_TYPE = 'BASE TABLE'
-        AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+        SELECT 
+          TABLE_NAME AS "Tables"
+        FROM 
+          INFORMATION_SCHEMA.TABLES
+        WHERE 
+          TABLE_TYPE = 'BASE TABLE'
+          AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+          AND UPPER(TABLE_SCHEMA) NOT IN (
+            'PG_CATALOG', 
+            'INFORMATION_SCHEMA', 
+            'PG_TOAST'
+          )
       `,
     ];
 
@@ -208,10 +213,14 @@ export class PostgresQueryBuilder extends QueryBuilder {
         TABLE_NAME AS "TABLES"
       FROM INFORMATION_SCHEMA.TABLES
       WHERE 
-        TABLE_SCHEMA NOT IN ('PG_CATALOG','INFORMATION_SCHEMA')
-        AND TABLE_TYPE = 'BASE TABLE'
+        TABLE_TYPE = 'BASE TABLE'
         AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
         AND TABLE_NAME LIKE '${table.replace(/\`/g, "")}'
+        AND UPPER(TABLE_SCHEMA) NOT IN (
+          'PG_CATALOG', 
+          'INFORMATION_SCHEMA', 
+          'PG_TOAST'
+        )
       `,
     ];
 
@@ -371,13 +380,51 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return [this.format(sql), this.format(sqlAttr)].join("; ");
   }
 
+  public getChildFKs({ database, table }: { database: string; table: string }) {
+    const sql = [
+      `
+        SELECT
+          con.CONNAME                   AS "Constraint",
+          conrel.RELNAME                AS "ChildTable",
+          STRING_AGG(att2.ATTNAME, ',') AS "ChildColumn",
+          confrel.RELNAME               AS "ParentTable",
+          STRING_AGG(att.ATTNAME, ',')  AS "ParentColumn"
+        FROM
+          PG_CONSTRAINT con
+        JOIN 
+          PG_CLASS conrel ON con.CONRELID = conrel.OID
+        JOIN 
+          PG_CLASS confrel ON con.CONFRELID = confrel.OID
+        JOIN 
+          UNNEST(con.CONFKEY) WITH ORDINALITY AS cols(CHILD_ATTNUM, ord) ON TRUE
+        JOIN 
+          PG_ATTRIBUTE att2 ON att2.ATTNUM = cols.CHILD_ATTNUM AND att2.ATTRELID = conrel.OID
+        JOIN 
+          UNNEST(con.CONFKEY) WITH ORDINALITY AS refcols(PARENT_ATTNUM, ORD2) ON cols.ORD = refcols.ORD2
+        JOIN 
+          PG_ATTRIBUTE att ON att.ATTNUM = refcols.PARENT_ATTNUM AND att.ATTRELID = confrel.OID
+        WHERE 
+          con.CONTYPE            = 'f'
+          AND confrel.RELNAME    = '${table.replace(/\`/g, "")}'
+          AND CURRENT_DATABASE() = '${database.replace(/\`/g, "")}'
+        GROUP 
+          BY con.CONNAME, conrel.RELNAME, confrel.RELNAME
+        ORDER 
+          BY conrel.RELNAME, con.CONNAME
+
+      `,
+    ];
+
+    return this.format(sql);
+  }
+
   public getFKs({ database, table }: { database: string; table: string }) {
     const sql = [
       `
         SELECT
-          ccu.TABLE_NAME AS "RefTable",
-          ccu.COLUMN_NAME AS "RefColumn",
-          kcu.COLUMN_NAME AS "Column",
+          ccu.TABLE_NAME     AS "RefTable",
+          ccu.COLUMN_NAME    AS "RefColumn",
+          kcu.COLUMN_NAME    AS "Column",
           tc.CONSTRAINT_NAME AS "Constraint"
         FROM 
           INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
@@ -391,9 +438,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
           AND ccu.TABLE_SCHEMA   = tc.TABLE_SCHEMA
         WHERE 
           tc.CONSTRAINT_TYPE     = 'FOREIGN KEY'
-          AND tc.TABLE_CATALOG   = '${database.replace(/\`/g, "")}'
+          AND CURRENT_DATABASE() = '${database.replace(/\`/g, "")}'
           AND tc.TABLE_NAME      = '${table.replace(/\`/g, "")}'
-        `,
+      `,
     ];
 
     return this.format(sql);
@@ -455,6 +502,23 @@ export class PostgresQueryBuilder extends QueryBuilder {
       }\`)`,
       `${this.$constants("ON_DELETE")} ${foreign.onDelete}`,
       `${this.$constants("ON_UPDATE")} ${foreign.onUpdate}`,
+    ].join(" ");
+
+    return this.format(sql);
+  }
+
+  public dropFK({
+    table,
+    constraint,
+  }: {
+    table: string;
+    constraint: string;
+  }) {
+    const sql = [
+      `${this.$constants("ALTER_TABLE")}`,
+      `\`${table}\``,
+      `DROP CONSTRAINT`,
+      `\`${constraint}\``,
     ].join(" ");
 
     return this.format(sql);
@@ -564,27 +628,40 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
     return this.format(sql);
   }
-  public dropDatabase(database: string): string {
-    const sql: string = `${this.$constants(
-      "DROP_DATABASE"
-    )} "${database.replace(/`/g, "")}"`;
+
+   public dropDatabase(database: string): string {
+    const sql: string = [
+      `${this.$constants("DROP_DATABASE")}`, 
+      `\`${database.replace(/`/g, "")}\``
+    ].join(" ")
 
     return this.format(sql);
   }
+
   public dropView(view: string): string {
-    const sql: string = `${this.$constants("DROP_VIEW")} "${view.replace(
-      /`/g,
-      ""
-    )}"`;
+    const sql: string = [
+      `${this.$constants("DROP_VIEW")}`, 
+      `\`${view.replace(/`/g,"")}\``
+    ].join(" ")
 
     return this.format(sql);
   }
-  public dropTable(table: string): string {
-    const sql: string = `${this.$constants("DROP_TABLE")} "${table.replace(
-      /`/g,
-      ""
-    )}"`;
 
+  public dropTable(table: string): string {
+    const sql: string = [
+      `${this.$constants("DROP_TABLE")}`,
+      `\`${table.replace(/`/g, "")}\``
+    ].join(" ")
+
+    return this.format(sql);
+  }
+
+  public truncate(table: string): string {
+    const sql: string = [
+      `${this.$constants("TRUNCATE_TABLE")}`,
+      `\`${table.replace(/`/g, "")}\``
+    ].join(" ")
+    
     return this.format(sql);
   }
 
@@ -601,9 +678,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
       .replace(/\s+/g, " ");
 
     const replaceBackticksWithDoubleQuotes = (sqlString: string) => {
-      const updateRegex = /^UPDATE\b/i;
-      const insertRegex = /^INSERT\b/i;
-      const deleteRegex = /^DELETE\b/i;
+      const updateRegex   = /^UPDATE\b/i;
+      const insertRegex   = /^INSERT\b/i;
+      const deleteRegex   = /^DELETE\b/i;
       const truncateRegex = /^TRUNCATE\b/i;
 
       if (

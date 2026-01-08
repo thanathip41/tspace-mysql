@@ -1,35 +1,58 @@
 import { BaseDriver } from "..";
 import { PostgresQueryBuilder } from "./PostgresQueryBuilder";
-import type { TConnection, TPoolEvent } from "../../../types";
+import type { 
+  TConnection, 
+  TPoolEvent 
+} from "../../../types";
+
+type PostgressConnectionOptions = {
+  host                    : string;
+  port                    : number;
+  database                : string;
+  user                    : string;
+  username                : string;
+  password                : string;
+  connectionLimit         ?: number;
+  connectTimeout          ?: number;
+}
 
 export class PostgresDriver extends BaseDriver {
+
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
   }
-  public connect(this: PostgresDriver) {
-    const pg = this.import("pg");
 
-    const BIGINT_OID = 20;
+  public connect(this: PostgresDriver) {
+    const options  = this.options as PostgressConnectionOptions;
+    const pg       = this.import("pg");
+
+    const BIGINT_OID  = 20;
     const NUMERIC_OID = 1700;
 
     pg.types.setTypeParser(BIGINT_OID, (val: string) => parseInt(val, 10));
-    pg.types.setTypeParser(NUMERIC_OID, (val: string | null) =>
-      val === null ? null : parseFloat(val)
-    );
+
+    pg.types.setTypeParser(NUMERIC_OID, (v: string | null) => {
+      return v === null ? null : parseFloat(v);
+    });
 
     this.pool = new pg.Pool({
-      host: this.options.host,
-      port: this.options.port,
-      database: this.options.database,
-      user: this.options.user || this.options.username,
-      password: this.options.password,
+      host                    : options.host,
+      port                    : options.port,
+      database                : options.database,
+      user                    : options.user || options.username,
+      password                : options.password,
       
-      max: this.options.connectionLimit,
-      connectionTimeoutMillis: this.options.connectTimeout,
-      idleTimeoutMillis: this.options.connectTimeout,
-      keepAlive: this.options.enableKeepAlive ?? true,
-      allowExitOnIdle: false,
+      max                     : options.connectionLimit ?? 20,
+      min                     : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+
+      connectionTimeoutMillis : options.connectTimeout ?? 1000 * 60,
+      keepAlive               : true,
+      allowExitOnIdle         : false,
+      
+      idleTimeoutMillis       : 1000 * 60,
+      statement_timeout       : 1000 * 60,
+      query_timeout           : 1000 * 60,
     });
 
     this.pool.connect((err: any) => {
@@ -174,13 +197,15 @@ export class PostgresDriver extends BaseDriver {
   }
 
   protected meta(results: any, sql: string): void {
+
     if (Array.isArray(results)) return;
+
     if (results.$meta == null) results.$meta = {};
 
     const command = this._detectQueryType(sql);
 
     results.$meta = {
-      command,
+      command
     };
 
     if (command === "INSERT") {

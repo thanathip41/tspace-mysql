@@ -144,7 +144,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
   public getSchema({ database, table }: { database: string; table: string }) {
     const sql = [
-      `SELECT 
+      `
+        SELECT 
           COLUMN_NAME AS "Field", 
           CASE 
             WHEN COLUMN_KEY = '' THEN NULL 
@@ -166,11 +167,13 @@ export class MysqlQueryBuilder extends QueryBuilder {
                 THEN SUBSTRING_INDEX(SUBSTRING_INDEX(COLUMN_TYPE, '(', -1), ')', 1) 
             ELSE NULL 
           END AS "TypeValue"
-        `,
-      `FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME    = '${table.replace(/\`/g, "")}'
+        FROM 
+          INFORMATION_SCHEMA.COLUMNS
+        WHERE 
+          TABLE_NAME    = '${table.replace(/\`/g, "")}'
           AND TABLE_SCHEMA  = '${database}'
-        ORDER BY ORDINAL_POSITION
+        ORDER BY 
+          ORDINAL_POSITION
         `,
     ];
 
@@ -179,10 +182,14 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
   public getTables(database: string) {
     const sql = [
-      `SELECT TABLE_NAME AS "Tables"
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}'
-        AND TABLE_TYPE = 'BASE TABLE'
+      `
+        SELECT 
+          TABLE_NAME AS "Tables"
+        FROM 
+          INFORMATION_SCHEMA.TABLES
+        WHERE 
+          TABLE_SCHEMA   = '${database.replace(/\`/g, "")}'
+          AND TABLE_TYPE = 'BASE TABLE'
       `,
     ];
 
@@ -191,10 +198,15 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
   public getTable({ database, table }: { database: string; table: string }) {
     const sql = [
-      `SELECT TABLE_NAME AS "Table"
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = '${database.replace(/\`/g, "")}' 
-          AND TABLE_NAME   = '${table.replace(/\`/g, "")}'
+      `
+        SELECT 
+          TABLE_NAME AS "Table"
+        FROM 
+          INFORMATION_SCHEMA.TABLES
+        WHERE 
+          TABLE_SCHEMA   = '${database.replace(/\`/g, "")}' 
+          AND TABLE_NAME = '${table.replace(/\`/g, "")}'
+          AND TABLE_TYPE = 'BASE TABLE'
       `,
     ];
 
@@ -311,14 +323,34 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public getChildFKs({ database, table }: { database: string; table: string }) {
+    const sql = [
+      `
+      SELECT 
+        CONSTRAINT_NAME        AS "Constraint",
+        TABLE_NAME             AS "ChildTable",
+        COLUMN_NAME            AS "ChildColumn",
+        REFERENCED_TABLE_NAME  AS "ParentTable",
+        REFERENCED_COLUMN_NAME AS "ParentColumn"
+      FROM 
+        INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+      WHERE 
+        REFERENCED_TABLE_NAME = '${table.replace(/`/g, "")}'
+        AND TABLE_SCHEMA = '${database.replace(/`/g, "")}'
+        `,
+    ];
+
+    return this.format(sql);
+  }
+
   public getFKs({ database, table }: { database: string; table: string }) {
     const sql = [
       `
         SELECT 
-          REFERENCED_TABLE_NAME AS "RefTable",
-          REFERENCED_COLUMN_NAME AS "RefColumn",
-          COLUMN_NAME AS "Column",
-          CONSTRAINT_NAME As  "Constraint"
+          REFERENCED_TABLE_NAME   AS "RefTable",
+          REFERENCED_COLUMN_NAME  AS "RefColumn",
+          COLUMN_NAME             AS "Column",
+          CONSTRAINT_NAME         As "Constraint"
         FROM 
           INFORMATION_SCHEMA.KEY_COLUMN_USAGE
         WHERE 
@@ -384,6 +416,23 @@ export class MysqlQueryBuilder extends QueryBuilder {
       }\`)`,
       `${this.$constants("ON_DELETE")} ${foreign.onDelete}`,
       `${this.$constants("ON_UPDATE")} ${foreign.onUpdate}`,
+    ].join(" ");
+
+    return this.format(sql);
+  }
+
+  public dropFK({
+    table,
+    constraint,
+  }: {
+    table: string;
+    constraint: string;
+  }) {
+    const sql = [
+      `${this.$constants("ALTER_TABLE")}`,
+      `\`${table}\``,
+      `DROP FOREIGN KEY`,
+      `\`${constraint}\``,
     ].join(" ");
 
     return this.format(sql);
@@ -478,27 +527,40 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
     return this.format(sql);
   }
+
   public dropDatabase(database: string): string {
-    const sql: string = `${this.$constants(
-      "DROP_DATABASE"
-    )} \`${database.replace(/`/g, "")}\``;
+    const sql: string = [
+      `${this.$constants("DROP_DATABASE")}`, 
+      `\`${database.replace(/`/g, "")}\``
+    ].join(" ")
 
     return this.format(sql);
   }
+
   public dropView(view: string): string {
-    const sql: string = `${this.$constants("DROP_VIEW")} \`${view.replace(
-      /`/g,
-      ""
-    )}\``;
+    const sql: string = [
+      `${this.$constants("DROP_VIEW")}`, 
+      `\`${view.replace(/`/g,"")}\``
+    ].join(" ")
 
     return this.format(sql);
   }
-  public dropTable(table: string): string {
-    const sql: string = `${this.$constants("DROP_TABLE")} \`${table.replace(
-      /`/g,
-      ""
-    )}\``;
 
+  public dropTable(table: string): string {
+    const sql: string = [
+      `${this.$constants("DROP_TABLE")}`,
+      `\`${table.replace(/`/g, "")}\``
+    ].join(" ")
+
+    return this.format(sql);
+  }
+
+  public truncate(table: string): string {
+    const sql: string = [
+      `${this.$constants("TRUNCATE_TABLE")}`,
+      `\`${table.replace(/`/g, "")}\``
+    ].join(" ")
+    
     return this.format(sql);
   }
 

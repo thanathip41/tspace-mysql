@@ -1,23 +1,21 @@
 import { BaseDriver } from "..";
 import { MysqlQueryBuilder } from "./MysqlQueryBuilder";
-import type { TConnection, TPoolEvent } from "../../../types";
+import type { 
+  TConnection, 
+  TPoolEvent 
+} from "../../../types";
 
 type MysqlConnectionOptions = {
-  connectionLimit: string;
-  dateStrings: boolean;
-  connectTimeout: number;
-  waitForConnections: boolean;
-  queueLimit: number;
-  charset: string;
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  username: string;
-  password: string;
-  multipleStatements?: boolean;
-  enableKeepAlive?: boolean;
-  keepAliveInitialDelay?: boolean;
+  host                    : string;
+  port                    : number;
+  database                : string;
+  user                    : string;
+  username                : string;
+  password                : string;
+
+  connectionLimit         : number;
+  dateStrings             : boolean;
+  connectTimeout          : number;
 };
 
 export class MysqlDriver extends BaseDriver {
@@ -26,25 +24,32 @@ export class MysqlDriver extends BaseDriver {
     this.options = options;
   }
   public connect(this: MysqlDriver) {
-    const options = this.options as MysqlConnectionOptions;
-    const mysql = this.import("mysql2");
+    const options  = this.options as MysqlConnectionOptions;
+    const mysql    = this.import("mysql2");
 
     this.pool = mysql.createPool({
-      host: options.host,
-      port: options.port,
-      database: options.database,
-      user: options.user || options.username,
-      password: options.password,
 
-      connectionLimit: options.connectionLimit,
-      dateStrings: options.dateStrings,
-      connectTimeout: options.connectTimeout,
-      waitForConnections: options.waitForConnections,
-      queueLimit: options.queueLimit,
-      charset: options.charset,
-      multipleStatements: options.multipleStatements,
-      enableKeepAlive: options.enableKeepAlive,
-      keepAliveInitialDelay: options.keepAliveInitialDelay,
+      host                  : options.host,
+      port                  : options.port,
+      database              : options.database,
+      user                  : options.user || options.username,
+      password              : options.password,
+
+      connectionLimit       : options.connectionLimit ?? 20,
+      connectTimeout        : options.connectTimeout ?? 1000 * 60,
+      dateStrings           : options.dateStrings ?? false,
+
+      waitForConnections    : true,
+      queueLimit            : 0,
+
+      enableKeepAlive       : true,
+      keepAliveInitialDelay : 1000 * 20,
+     
+      maxIdle               : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      idleTimeout           : 1000 * 60,
+  
+      charset               : 'utf8mb4',
+
     });
 
     this.pool.getConnection((err : any , connection:any) : void => {
@@ -98,25 +103,38 @@ export class MysqlDriver extends BaseDriver {
   }
 
   private _query(sql: string): Promise<any[]> {
+
     const start: number = Date.now();
+
     return new Promise<any[]>((resolve, reject) => {
+
       return this.pool.query(sql, (err: any, results: any[]) => {
+
         if (err) return reject(err);
+
         this._detectEventQuery({ start, sql });
+
         this.meta(results, sql);
+
         return resolve(this.returning(results));
       });
     });
   }
   private _connection(): Promise<TConnection> {
     let closeTransaction: boolean = false;
+
     return new Promise((resolve, reject) => {
+
       this.pool.getConnection((err: any, connection: any) => {
+
         if (err) return reject(err);
 
         const query = (sql: string) => {
+
           const start: number = Date.now();
+
           return new Promise<any[]>((ok, fail) => {
+
             if (closeTransaction) {
               return fail(new Error(this.MESSAGE_TRX_CLOSED));
             }
@@ -131,6 +149,7 @@ export class MysqlDriver extends BaseDriver {
               this._detectEventQuery({ start, sql });
 
               this.meta(results, sql);
+
               return ok(this.returning(results));
             });
           });
@@ -138,8 +157,10 @@ export class MysqlDriver extends BaseDriver {
 
         const startTransaction = async () => {
           if (closeTransaction) {
+
             throw new Error(this.MESSAGE_TRX_CLOSED);
           }
+
           await query("START TRANSACTION").catch((err) => reject(err));
 
           return;
@@ -212,13 +233,15 @@ export class MysqlDriver extends BaseDriver {
   }
 
   protected meta(results: any, sql: string): void {
+
     if (Array.isArray(results)) return;
+
     if (results.$meta == null) results.$meta = {};
 
     const command = this._detectQueryType(sql);
 
     results.$meta = {
-      command,
+      command
     };
 
     if (command === "INSERT") {
@@ -241,6 +264,7 @@ export class MysqlDriver extends BaseDriver {
       };
     }
   }
+  
   protected returning(results: any) {
     if (Array.isArray(results)) return results;
 

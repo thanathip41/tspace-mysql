@@ -3,7 +3,7 @@ import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
 import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
 import { MariadbDriver }    from './Driver/mariadb/MariadbDriver';
 import Config, { 
-  loadOptionsEnvironment 
+  loadOptionsEnv 
 } from "../config";
 import type { 
   TDriver, 
@@ -214,18 +214,11 @@ export class PoolConnection  {
       Object.entries({
         connectionLimit       : Number(Config.CONNECTION_LIMIT),
         dateStrings           : Boolean(Config.DATE_STRINGS),
-        connectTimeout        : Number(Config.TIMEOUT),
-        waitForConnections    : Boolean(Config.WAIT_FOR_CONNECTIONS),
-        queueLimit            : Number(Config.QUEUE_LIMIT),
-        charset               : String(Config.CHARSET),
         host                  : String(Config.HOST),
         port                  : Number(Config.PORT),
         database              : String(Config.DATABASE),
         user                  : String(Config.USERNAME),
         password              : String(Config.PASSWORD),
-        multipleStatements    : Boolean(Config.MULTIPLE_STATEMENTS),
-        enableKeepAlive       : Boolean(Config.ENABLE_KEEP_ALIVE),
-        keepAliveInitialDelay : Number(Config.KEEP_ALIVE_DELAY),
         // ------------------ custom ----------------------------
         driver                : String(Config.DRIVER ?? "mysql2"),
         cluster               : Boolean(Config.CLUSTER ?? false)
@@ -339,7 +332,7 @@ export class PoolConnection  {
  */
 const pool = new PoolConnection();
 
-export { loadOptionsEnvironment };
+export { loadOptionsEnv };
 export { pool as Pool };
 
 export default pool
