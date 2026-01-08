@@ -692,7 +692,7 @@ class DB extends AbstractDB {
    * @returns {Promise<void>}
    */
   async backup({ database, to }: TBackup): Promise<void> {
-    const tables = await this.showTables();
+    const tables = await this.getTables();
 
     const backup = await this._backup({ tables, database, to });
 
@@ -752,7 +752,7 @@ class DB extends AbstractDB {
     connection,
   }: TBackupToFile): Promise<void> {
     await this.$utils.wait(1000 * 5);
-    const tables = await this.showTables();
+    const tables = await this.getTables();
 
     const sqlFormatted = (sql: string) => {
       const statements = sql
@@ -908,7 +908,7 @@ class DB extends AbstractDB {
 
     await this.$utils.wait(1000 * 3);
 
-    const tables = await this.showTables();
+    const tables = await this.getTables();
 
     const backup = (await this._backupToString({ tables, database })).map(
       (b) => {

@@ -848,6 +848,12 @@ export const AfterRemove = (): Function => {
   }
 };
 
+/**
+ * Collection of decorators used for defining
+ * database models, columns, relations, hooks, and validation.
+ *
+ * @namespace D
+ */
 export const D  = {
   Table, TableSingular, TablePlural,
   UUID, SoftDelete, Timestamp,

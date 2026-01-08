@@ -9,7 +9,7 @@ import { Config }          from "../config";
 import { 
   Pool, 
   PoolConnection, 
-  loadOptionsEnvironment 
+  loadOptionsEnv 
 } from "./Pool";
 import {
   TPagination,
@@ -2777,8 +2777,10 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'getTableName' method is used to get table name
-   * @returns {string} return table name
+   * The `getTableName` method is used to retrieve the name of the table
+   * associated with the current context or model.
+   *
+   * @returns {string} The name of the table.
    */
   public getTableName(): string {
     const name = this.$state.get("TABLE_NAME");
@@ -2788,8 +2790,17 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'getColumns' method is used to get columns
-   * @returns {this} this this
+   * The `getColumns` method is used to retrieve detailed column information
+   * from the database, including the column name, type, nullability, and default value.
+   *
+   * @returns {Promise<Array<{
+   *   Field: string;
+   *   ColumnType: string;
+   *   Type: string;
+   *   Nullable: 'YES' | 'NO';
+   *   Default: string | null;
+   * }>>}
+   * 
    */
   public async getColumns(): Promise<{
     Field      : string;
@@ -2808,8 +2819,79 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'getSchema' method is used to get schema information
-   * @returns {this} this this
+   * The 'showSchema' method is used to show schema table.
+   *
+   * @param {string=} table [table= current table name]
+   * @returns {Promise<Array>}
+   */
+  public async showSchema(
+    table: string = String(this.$state.get("TABLE_NAME")),
+    options: { raw?: boolean } = {}
+  ): Promise<any[]> {
+    const sql = this._queryBuilder().getSchema({
+      database: this.$database,
+      table,
+    });
+
+    const raws: any[] = await this._queryStatement(sql);
+
+    if (options.raw) return raws;
+
+    const schema = raws.map((r: Record<string, any>) => {
+      const schema: string[] = [];
+
+      schema.push(`\`${r.Field}\``);
+
+      schema.push(`${r.Type}`);
+
+      if (r.Nullable === "YES") {
+        schema.push(`NULL`);
+      }
+
+      if (r.Nullable === "NO") {
+        schema.push(`NOT NULL`);
+      }
+
+      if (r.Key === "PRI") {
+        schema.push(`PRIMARY KEY`);
+      }
+
+      if (r.Key === "UNI") {
+        schema.push(`UNIQUE`);
+      }
+
+      if (r.Default) {
+        if (r.Default.includes("IS_CONST:")) {
+          schema.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
+        } else {
+          schema.push(`DEFAULT '${r.Default}'`);
+        }
+      }
+
+      if (r.Extra) {
+        schema.push(`${r.Extra.toUpperCase()}`);
+      }
+
+      return schema.join(" ");
+    });
+
+    return schema;
+  }
+
+  /**
+   * The `getSchema` method is used to retrieve the column schema for the database
+   * or a specific table, including details such as type, nullability, default values,
+   * and key information.
+   *
+   * @returns {Promise<Array<{
+   *   Field: string;
+   *   Key: 'PRI' | '';
+   *   Type: string;
+   *   Nullable: 'YES' | 'NO';
+   *   Default: string | null;
+   *   Extra: string | null;
+   * }>>}
+   * 
    */
   public async getSchema(): Promise<{
     Field    : string;
@@ -2828,6 +2910,19 @@ class Builder extends AbstractBuilder {
     return await this.showSchema(tableName, { raw: true });
   }
 
+  /**
+   * The 'getFKs' method is used to get foreign key constraints for the database or a specific table.
+   *
+   * @param {string} [table] - Optional table name to filter foreign keys. If omitted,
+   *                           foreign keys for all tables are returned.
+   * @returns {Promise<Array<{
+   *   Constraint: string;
+   *   RefTable: string;
+   *   RefColumn: string;
+   *   Column: string;
+   * }>>} 
+   * 
+   */
   public async getFKs(table?: string): Promise<{
     Constraint: string;
     RefTable  : string;
@@ -2841,6 +2936,16 @@ class Builder extends AbstractBuilder {
     return await this.rawQuery(sql);
   }
 
+  /**
+   * The `hasFK` method is used to determine whether a specific foreign key
+   * constraint exists in the database, optionally scoped to a given table.
+   *
+   * @param {{ constraint: string; table?: string }} params - Parameters object.
+   * @param {string} params.constraint - The name of the foreign key constraint to check.
+   * @param {string} [params.table] - Optional table name to limit the search.
+   * @returns {Promise<boolean>} 
+   * 
+   */
   public async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasFK({
       database: this.$database,
@@ -2852,6 +2957,76 @@ class Builder extends AbstractBuilder {
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
+  /**
+   * The `getChildFKs` method is used to retrieve foreign key constraints where the
+   * specified table acts as the parent (referenced) table. If no table name is
+   * provided, all child foreign key relationships in the database are returned.
+   *
+   * @param {string} [table] - Optional parent table name to filter child foreign keys.
+   * @returns {Promise<Array<{
+   *   Constraint: string;
+   *   ChildTable: string;
+   *   ChildColumn: string;
+   *   ParentTable: string;
+   *   ParentColumn: string;
+   * }>>}
+   * 
+   */
+  public async getChildFKs(table ?: string): Promise<{
+    Constraint   : string;
+    ChildTable   : string;
+    ChildColumn  : string;
+    ParentTable  : string;
+    ParentColumn : string;
+  }[]> {
+
+    const sql = this._queryBuilder().getChildFKs({
+      database: this.$database,
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+    });
+
+    return await this.rawQuery(sql);
+  }
+
+  /**
+   * The `dropFK` method is used to remove a foreign key constraint from the database.
+   * If a table name is provided, the constraint will be dropped from that table;
+   * otherwise, the constraint is dropped wherever it exists.
+   *
+   * @param {{ constraint: string; table?: string }} params - Parameters object.
+   * @param {string} params.constraint - The name of the foreign key constraint to drop.
+   * @param {string} [params.table] - Optional table name from which to drop the constraint.
+   * @returns {Promise<void>}
+   */
+  public async dropFK({ constraint, table } : { 
+    constraint: string; 
+    table?: string
+  }): Promise<void> {
+    const sql = this._queryBuilder().dropFK({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      constraint
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  /**
+   * The `getIndexes` method is used to retrieve index definitions from the database.
+   * When a table name is provided, only indexes for that table are returned;
+   * otherwise, indexes for all tables are included.
+   *
+   * @param {string} [table] - Optional table name to filter index results.
+   * @returns {Promise<Array<{
+   *   Column: string;
+   *   IndexName: string;
+   *   IndexType: string;
+   *   Nullable: 'YES' | 'NO';
+   *   Unique: 'YES' | 'NO';
+   * }>>}
+   * 
+   */
   public async getIndexes(table?: string): Promise<{
     Column    : string;
     IndexName : string;
@@ -2866,6 +3041,16 @@ class Builder extends AbstractBuilder {
     return await this.rawQuery(sql);
   }
 
+  /**
+   * The `hasIndex` method is used to determine whether a specific index exists
+   * in the database, optionally limited to a given table.
+   *
+   * @param {{ index: string; table?: string }} params - Parameters object.
+   * @param {string} params.index - The name of the index to check for.
+   * @param {string} [params.table] - Optional table name to scope the index lookup.
+   * @returns {Promise<boolean>}
+   * 
+   */
   public async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
     const sql = this._queryBuilder().hasIndex({
       database: this.$database,
@@ -2994,7 +3179,7 @@ class Builder extends AbstractBuilder {
 
   public loadOptionsEnv(env ?: string) {
     if(env == null || env === '') return null;
-    return loadOptionsEnvironment(env);
+    return loadOptionsEnv(env);
   }
 
   /**
@@ -3005,16 +3190,16 @@ class Builder extends AbstractBuilder {
   public loadEnv(env?: string): this {
     if (env === null) return this;
 
-    const options = loadOptionsEnvironment(env);
+    const options = loadOptionsEnv(env);
 
     const pool = new PoolConnection({
-      cluster: options.cluster,
-      driver: options.driver as TDriver,
-      host: String(options.host),
-      port: Number(options.port),
-      database: String(options.database),
-      user: String(options.username),
-      password: String(options.password),
+      cluster   : options.cluster,
+      driver    : options.driver as TDriver,
+      host      : String(options.host),
+      port      : Number(options.port),
+      database  : String(options.database),
+      user      : String(options.username),
+      password  : String(options.password),
     });
 
     const conn = pool.connect();
@@ -3891,11 +4076,14 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'showTables' method is used to show schema table.
+   * The `getTables` method is used to retrieve a list of all table names
+   * in the current database.
    *
-   * @returns {Promise<Array>}
+   * @returns {Promise<string[]>} A promise that resolves to an array of table names.
+   *
+   * @async
    */
-  public async showTables(): Promise<string[]> {
+  public async getTables(): Promise<string[]> {
     const results: any[] = await this._queryStatement(
       this._queryBuilder().getTables(this.database())
     );
@@ -3929,66 +4117,6 @@ class Builder extends AbstractBuilder {
     );
 
     return columns;
-  }
-
-  /**
-   * The 'showSchema' method is used to show schema table.
-   *
-   * @param {string=} table [table= current table name]
-   * @returns {Promise<Array>}
-   */
-  public async showSchema(
-    table: string = String(this.$state.get("TABLE_NAME")),
-    options: { raw?: boolean } = {}
-  ): Promise<any[]> {
-    const sql = this._queryBuilder().getSchema({
-      database: this.$database,
-      table,
-    });
-
-    const raws: any[] = await this._queryStatement(sql);
-
-    if (options.raw) return raws;
-
-    const schema = raws.map((r: Record<string, any>) => {
-      const schema: string[] = [];
-
-      schema.push(`\`${r.Field}\``);
-
-      schema.push(`${r.Type}`);
-
-      if (r.Nullable === "YES") {
-        schema.push(`NULL`);
-      }
-
-      if (r.Nullable === "NO") {
-        schema.push(`NOT NULL`);
-      }
-
-      if (r.Key === "PRI") {
-        schema.push(`PRIMARY KEY`);
-      }
-
-      if (r.Key === "UNI") {
-        schema.push(`UNIQUE`);
-      }
-
-      if (r.Default) {
-        if (r.Default.includes("IS_CONST:")) {
-          schema.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
-        } else {
-          schema.push(`DEFAULT '${r.Default}'`);
-        }
-      }
-
-      if (r.Extra) {
-        schema.push(`${r.Extra.toUpperCase()}`);
-      }
-
-      return schema.join(" ");
-    });
-
-    return schema;
   }
 
   /**
@@ -4121,29 +4249,60 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  public async truncate({
-    force = false
-  }: { force?: boolean } = {}): Promise<boolean> {
-    if (
-      this.$state.get("TABLE_NAME") == null ||
-      this.$state.get("TABLE_NAME") === ""
-    ) {
-      console.log(`Please set the your table name`);
+  public async truncate({ force = false, dropFK = false }: { 
+      force?: boolean; 
+      dropFK ?: boolean 
+    } = {}
+  ): Promise<boolean> {
+    
+    const table = this.getTableName();
+
+    if (table == null ||table === "") {
+      console.log([
+        `\x1b[31m`,
+        `ERROR: Please set the your table name`,
+        `\x1b[0m`
+      ].join('\n'));
+      
       return false;
     }
 
     const sql: string = [
       `${this.$constants("TRUNCATE_TABLE")}`,
-      `${this.$state.get("TABLE_NAME")}`,
+      `${table}`,
     ].join(" ");
 
     if (!force) {
-      console.log(
-        `Truncating will delete all data from the table '${this.$state.get(
-          "TABLE_NAME"
-        )}'. Are you sure you want to proceed?. Please confirm if you want to force the operation.`
-      );
+      console.log([
+        `\x1b[33m`,
+        `WARNING: Truncating will delete all data from the table '${table}'.`,
+        `Are you sure you want to proceed?.`,
+        `Please confirm if you want to force the operation.`,
+        `\x1b[0m`
+      ].join('\n'));
       return false;
+    }
+
+    const childFKs = await this.getChildFKs();
+
+    if(childFKs.length && !dropFK) {
+      console.log([
+        `\x1b[33m`,
+        `WARNING: The table '${table}' has foreign key(s).`,
+        `Please confirm if you want to drop them to continue truncating the table.`,
+        `\x1b[0m`
+      ].join('\n'));
+
+      return false;
+    }
+
+    if(childFKs.length && dropFK) {
+      for(const { Constraint, ChildTable } of childFKs) {
+        await this.dropFK({
+          constraint : Constraint,
+          table : ChildTable
+        })
+      }
     }
 
     await this._queryStatement(sql);
@@ -4159,35 +4318,43 @@ class Builder extends AbstractBuilder {
    * @property {boolean} option.force
    * @returns {promise<boolean>}
    */
-  public async drop({
-    force = false,
-    view = false,
-    db = false,
-  }: { force?: boolean; view?: boolean; db?: boolean } = {}): Promise<boolean> {
-    if (
-      this.$state.get("TABLE_NAME") == null ||
-      this.$state.get("TABLE_NAME") === ""
-    ) {
-      console.log(`Please set the your table name`);
+  public async drop({ force = false, view = false, db = false }: { 
+      force?: boolean; 
+      view?: boolean; 
+      db?: boolean 
+    } = {}
+  ): Promise<boolean> {
+
+    const table = this.getTableName();
+
+    if (table == null || table === "") {
+
+      console.log([
+        `\x1b[31m`,
+        `ERROR: Please set the your table name`,
+        `\x1b[0m`
+      ].join('\n'));
+
       return false;
     }
 
-    const tableName = String(this.$state.get("TABLE_NAME"))
-
     const sql: string = [
       db
-        ? this._queryBuilder().dropDatabase(tableName)
+        ? this._queryBuilder().dropDatabase(table)
         : view
-        ? this._queryBuilder().dropView(tableName)
-        : this._queryBuilder().dropTable(tableName),
+        ? this._queryBuilder().dropView(table)
+        : this._queryBuilder().dropTable(table),
     ].join(" ");
 
     if (!force) {
-      console.log(
-        `Droping will drop the table '${this.$state.get(
-          "TABLE_NAME"
-        )}'. Are you sure you want to proceed?. Please confirm if you want to force the operation.`
-      );
+      console.log([
+        `\x1b[33m`,
+        `WARNING: Droping will drop the table '${table}'.`, 
+        `Are you sure you want to proceed?.`, 
+        `Please confirm if you want to force the operation.`,
+        `\x1b[0m`
+      ].join('\n'));
+
       return false;
     }
 
@@ -4253,7 +4420,7 @@ class Builder extends AbstractBuilder {
     );
   }
 
-  protected copyBuilder(
+  public copyBuilder(
     instance: Builder,
     options?: {
       update?: boolean;
@@ -4352,7 +4519,6 @@ class Builder extends AbstractBuilder {
         this.$utils.consoleDebug(sql);
         this.$utils.consoleExec(startTime, endTime);
       }
-      
       return result;
 
     } catch(err) {
@@ -4385,8 +4551,10 @@ class Builder extends AbstractBuilder {
   }
 
   private async _insertNotExists() {
-    if (!this.$state.get("WHERE").length)
+
+    if (!this.$state.get("WHERE").length) {
       throw new Error("Can't insert not exists without where condition");
+    }
 
     const check = await new Builder()
       .copyBuilder(this, {
@@ -4592,7 +4760,7 @@ class Builder extends AbstractBuilder {
       throw new Error("can't update without where condition");
 
     const result = await this._actionStatement(this._queryBuilder().update());
-
+   
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
 

@@ -6041,22 +6041,38 @@ class Model<
 
     const chunkedData = this.$utils.chunkArray([...fakers], 1000);
 
-    const promises: Function[] = [];
-
     const table = this.getTableName();
 
-    for (const data of chunkedData) {
-      promises.push(() => {
-        return new DB()
-          .from(table)
-          .debug(this.$state.get("DEBUG"))
-          .createMultiple([...data])
-          .void()
-          .save();
-      });
-    }
+    const debug = this.$state.get("DEBUG");
 
-    await Promise.all(promises.map((v) => v()));
+    const queue = [...chunkedData];
+
+    const runNext = async () => {
+
+      const batch = Array
+      .from({ length: 3 }, () => queue.shift())
+      .filter(Boolean) as typeof queue;
+
+      if (!batch.length) return;
+
+      await Promise.all(
+        batch.map((data) => {
+          return new DB()
+          .from(table)
+          .debug(debug)
+          .createMultiple(data)
+          .void()
+          .save()
+          }
+        )
+      );
+
+      await runNext();
+    };
+
+    const promises : Function[] = Array.from({ length: 5 }, () => () => runNext());
+
+    await Promise.all(promises.map(v => v()));
 
     return;
   }
@@ -6305,7 +6321,7 @@ class Model<
       .debug(this.$state.get("DEBUG"))
       .when(c != null, (q) => q.bind(c as TPoolConnected))
       .when(c == null, (q) => q.bind(this.$pool.get()))
-      .showTables();
+      .getTables();
 
     const rawRegistryRelations = await Promise.all(
       tables.map(async (table) => ({
@@ -7785,7 +7801,7 @@ class Model<
     await this._validateSchema(this.$state.get("DATA"), "update");
 
     const result = await this._actionStatement(this._queryBuilder().update());
-
+    
     if (this.$state.get("VOID") || !result || result == null) {
       return this._resultHandler(undefined);
     }
