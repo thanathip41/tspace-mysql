@@ -1,5 +1,5 @@
 import { Model } from "./Model";
-import type { T } from "./UtilityTypes";
+import { type T } from "./UtilityTypes";
 
 class RepositoryFactory<
   TS extends Record<string, any> = Record<string, any>,
@@ -475,17 +475,17 @@ class RepositoryFactory<
    * @property {?number} options.page
    * @return {promise<any[]>}
    */
-  async toArray(
-    column: keyof Partial<TS> | `${string}.${string}`,
+  async toArray<K extends T.ColumnKeys<M> | `${string}.${string}`>(
+    column: K,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
-  ): Promise<T.Result<M>[]> {
+  ): Promise<(K extends keyof T.Result<M> ? T.Result<M>[K] : unknown)[]> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
-    return await instance.toArray(column as string);
+    return await instance.toArray(column);
   }
 
   /**
@@ -513,7 +513,7 @@ class RepositoryFactory<
    * @return {promise<any[]>}
    */
   async count(
-    column: keyof Partial<TS> | `${string}.${string}`,
+    column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -549,7 +549,7 @@ class RepositoryFactory<
    * @return {promise<any[]>}
    */
   async avg(
-    column: keyof Partial<TS> | `${string}.${string}`,
+    column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -585,7 +585,7 @@ class RepositoryFactory<
    * @return {promise<any[]>}
    */
   async sum(
-    column: keyof Partial<TS> | `${string}.${string}`,
+    column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -622,7 +622,7 @@ class RepositoryFactory<
    * @return {promise<any[]>}
    */
   async max(
-    column: keyof Partial<TS> | `${string}.${string}`,
+    column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -659,7 +659,7 @@ class RepositoryFactory<
    * @return {promise<any[]>}
    */
   async min(
-    column: keyof Partial<TS> | `${string}.${string}`,
+    column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -679,12 +679,13 @@ class RepositoryFactory<
    * @property {object} options.data
    * @property {?boolean} options.debug
    * @property {?transaction} options.transaction
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async create({
     data,
     debug,
     transaction,
+    noReturn,
   }: T.RepositoryCreate<M>): Promise<T.Result<M>> {
     if (!Object.keys(data).length) throw new Error("The data must be required");
 
@@ -692,6 +693,10 @@ class RepositoryFactory<
 
     if (debug != null && debug) {
       instance.debug();
+    }
+
+    if(noReturn != null && noReturn) {
+      instance.void()
     }
 
     if (transaction != null) {
@@ -711,12 +716,14 @@ class RepositoryFactory<
    * @property {object} options.data
    * @property {?boolean} options.debug
    * @property {?transaction} options.transaction
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
-  async insert({ data, debug }: T.RepositoryCreate<M>): Promise<T.Result<M>> {
+  async insert({ data, debug , transaction , noReturn }: T.RepositoryCreate<M>): Promise<T.Result<M>> {
     return await this.create({
       data,
       debug,
+      transaction,
+      noReturn
     });
   }
 
@@ -737,11 +744,21 @@ class RepositoryFactory<
     data,
     where,
     debug,
+    noReturn,
+    transaction
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M> | null> {
     let instance = new this._model() as Model;
 
     if (debug != null && debug) {
       instance.debug();
+    }
+
+    if(noReturn != null && noReturn) {
+      instance.void()
+    }
+
+    if (transaction != null) {
+      instance.bind(transaction);
     }
 
     if (where == null || !Object.keys(where).length)
@@ -773,11 +790,15 @@ class RepositoryFactory<
     data,
     where,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M> | null> {
     return await this.createNotExists({
       data,
       where,
       debug,
+      transaction,
+      noReturn
     });
   }
 
@@ -795,6 +816,7 @@ class RepositoryFactory<
     data,
     debug,
     transaction,
+    noReturn
   }: T.RepositoryCreateMultiple<M>): Promise<T.Result<M>[]> {
     if (!Object.keys(data).length) throw new Error("The data must be required");
 
@@ -806,6 +828,10 @@ class RepositoryFactory<
 
     if (transaction != null) {
       instance.bind(transaction);
+    }
+
+    if(noReturn != null && noReturn) {
+      instance.void()
     }
 
     return (await instance.createMultiple(data as any[]).save()) as Promise<
@@ -826,10 +852,14 @@ class RepositoryFactory<
   async insertMultiple({
     data,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateMultiple<M>): Promise<T.Result<M>[]> {
     return await this.createMultiple({
       data,
       debug,
+      transaction,
+      noReturn
     });
   }
 
@@ -843,12 +873,14 @@ class RepositoryFactory<
    * @property {object} options.data
    * @property {object} options.where
    * @property {?boolean} options.debug
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async createOrUpdate({
     data,
     where,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
     if (where == null || !Object.keys(where).length)
       throw new Error(
@@ -859,6 +891,14 @@ class RepositoryFactory<
 
     if (debug != null && debug) {
       instance.debug();
+    }
+
+    if (transaction != null) {
+      instance.bind(transaction);
+    }
+
+    if(noReturn != null && noReturn) {
+      instance.void()
     }
 
     instance.where(where);
@@ -878,17 +918,21 @@ class RepositoryFactory<
    * @property {object} options.data
    * @property {object} options.where
    * @property {?boolean} options.debug
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async insertOrUpdate({
     data,
     where,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
     return await this.createOrUpdate({
       data,
       where,
       debug,
+      transaction,
+      noReturn
     });
   }
 
@@ -902,12 +946,14 @@ class RepositoryFactory<
    * @property {object} options.data
    * @property {object} options.where
    * @property {?boolean} options.debug
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async createOrSelect({
     data,
     where,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
     if (where == null || !Object.keys(where).length) {
       throw new Error(
@@ -919,6 +965,14 @@ class RepositoryFactory<
 
     if (debug != null && debug) {
       instance.debug();
+    }
+
+    if (transaction != null) {
+      instance.bind(transaction);
+    }
+
+    if (noReturn != null && noReturn) {
+      instance.void();
     }
 
     instance.where(where);
@@ -939,17 +993,21 @@ class RepositoryFactory<
    * @property {object} options.where
    * @property {?boolean} options.debug
    * @property {?transaction} options.transaction
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async insertOrSelect({
     data,
     where,
     debug,
+    transaction,
+    noReturn
   }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
     return await this.createOrSelect({
       data,
       where,
       debug,
+      transaction,
+      noReturn
     });
   }
 
@@ -964,13 +1022,14 @@ class RepositoryFactory<
    * @property {object} options.where
    * @property {?boolean} options.debug
    * @property {?transaction} options.transaction
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>>}
    */
   async update({
     data,
     where,
     debug,
     transaction,
+    noReturn
   }: T.RepositoryUpdate<M>): Promise<T.Result<M>> {
     if (where == null || !Object.keys(where).length) {
       throw new Error("The method update can't use without where condition");
@@ -984,6 +1043,10 @@ class RepositoryFactory<
 
     if (transaction != null) {
       instance.bind(transaction);
+    }
+
+    if (noReturn != null && noReturn) {
+      instance.void();
     }
 
     instance.where(where);
@@ -1004,13 +1067,14 @@ class RepositoryFactory<
    * @property {object} options.where
    * @property {?boolean} options.debug
    * @property {?transaction} options.transaction
-   * @return {promise<TS>}
+   * @return {promise<T.Result<M>[]>}
    */
   async updateMany({
     data,
     where,
     debug,
     transaction,
+    noReturn
   }: T.RepositoryUpdate<M>): Promise<T.Result<M>[]> {
     if (where == null || !Object.keys(where).length) {
       throw new Error(
@@ -1026,6 +1090,10 @@ class RepositoryFactory<
 
     if (transaction != null) {
       instance.bind(transaction);
+    }
+
+    if (noReturn != null && noReturn) {
+      instance.void();
     }
 
     instance.where(where);
@@ -1077,6 +1145,7 @@ class RepositoryFactory<
     cases,
     debug,
     transaction,
+    noReturn
   }: T.RepositoryUpdateMultiple<M>): Promise<T.Result<M>[]> {
     if (!cases.length) {
       throw new Error(
@@ -1094,8 +1163,11 @@ class RepositoryFactory<
       instance.bind(transaction);
     }
 
-    //@ts-ignore
-    return (await instance.updateCases(cases).save()) as Promise<T.Result<M>[]>;
+    if (noReturn != null && noReturn) {
+      instance.void();
+    }
+
+    return await instance.updateCases(cases as any[]).save() as Promise<T.Result<M>[]>;
   }
 
   /**
@@ -1505,9 +1577,6 @@ class RepositoryFactory<
  *
  * It provides methods for querying, inserting, updating, and deleting records in the database associated with the model.
  *
- *
- *
- * The 'bind' method is used to bind the model to the repository
  * @param {Model} model A class constructor for a model
  * @returns {RepositoryFactory<T,R>}
  *
@@ -1524,7 +1593,11 @@ class RepositoryFactory<
 export const Repository = <M extends Model<any, any>>(
   model: new () => M
 ): RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M> => {
-  return new RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M>(model);
+  return new RepositoryFactory<
+    T.SchemaModel<M>, 
+    T.RelationModel<M>, 
+    M
+  >(model);
 };
 
 export default Repository;

@@ -303,6 +303,9 @@ export type TRepositoryRequest<
           : never
       }
     : "*" | TRepositorySelect<T, R, M>;
+  selectRaw?: S extends Record<string, TRawStringQuery>
+  ? S & Partial<{ [K in keyof S]: true }>
+  : never;
   except?: E extends {}
     ? E & {
         [K in keyof E]: K extends keyof TRepositoryExcept<T,M>
@@ -359,23 +362,59 @@ export type TRepositoryRequestAggregate<
   M extends Model<any, any> = Model<any, any>
 > = Partial<Omit<TRepositoryRequest<T, R, M>, "relations" | "relationQuery">>;
 
-
-export type TRepositoryCreate<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.ColumnOptions<M>>;
+export type TRepositoryCreate<
+    M extends Model<any, any> = Model<any, any>, 
+    K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
+    C extends T.ColumnOptions<M> = T.ColumnOptions<M> 
+  > = {
+    data: {
+      [P in Exclude<K & keyof C, "id"> as null extends C[P]
+        ? any
+        : undefined extends C[P]
+            ? never
+            : P
+      ]: Extract<C[P], Date> extends never ? C[P] : any;
+    }
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
+    noReturn?: boolean;
 };
 
-export type TRepositoryCreateMultiple<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.ColumnOptions<M>>[];
+export type TRepositoryCreateMultiple<
+    M extends Model<any, any> = Model<any, any>,
+    K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
+    C extends T.ColumnOptions<M> = T.ColumnOptions<M> 
+  > = {
+    data: {
+      [P in Exclude<K & keyof C, "id"> as null extends C[P]
+        ? any
+        : undefined extends C[P]
+            ? never
+            : P
+      ]: Extract<C[P], Date> extends never ? C[P] : any;
+    }[]
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
+    noReturn?: boolean;
 };
 
-export type TRepositoryCreateOrThings<M extends Model<any, any> = Model<any, any>> = {
-    data: Partial<T.ColumnOptions<M>>;
+export type TRepositoryCreateOrThings<
+    M extends Model<any, any> = Model<any, any>,
+    K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
+    C extends T.ColumnOptions<M> = T.ColumnOptions<M> 
+  > = {
+    data: {
+      [P in Exclude<K & keyof C, "id"> as null extends C[P]
+        ? any
+        : undefined extends C[P]
+            ? never
+            : P
+      ]: Extract<C[P], Date> extends never ? C[P] : any;
+    },
     where: T.WhereOptions<M>
     debug?: boolean;
+    transaction?: TConnection | TConnectionTransaction;
+    noReturn?: boolean;
 };
 
 export type TRepositoryUpdate<M extends Model<any, any> = Model<any, any>> = {
@@ -383,6 +422,7 @@ export type TRepositoryUpdate<M extends Model<any, any> = Model<any, any>> = {
     where: T.WhereOptions<M>
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
+    noReturn?: boolean;
 };
 
 export type TRepositoryUpdateMultiple<M extends Model<any, any> = Model<any, any>> = {
@@ -392,6 +432,7 @@ export type TRepositoryUpdateMultiple<M extends Model<any, any> = Model<any, any
     }[];
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
+    noReturn?: boolean;
 };
 
 export type TRepositoryDelete<M extends Model<any, any> = Model<any, any>> = {
