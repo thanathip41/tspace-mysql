@@ -205,8 +205,9 @@ class Builder extends AbstractBuilder {
     let select: string[] = columns.map((column: string) => {
       if (column === "*") return column;
       if (column.includes("`*`")) return column.replace("`*`", "*");
-      if (column.includes(this.$constants("RAW")))
-        return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
+      if (column.includes(this.$constants("RAW"))) {
+        return column?.replace(this.$constants("RAW"), "");
+      }
       return column;
     });
 

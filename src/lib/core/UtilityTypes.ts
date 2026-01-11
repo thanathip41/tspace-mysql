@@ -225,20 +225,29 @@ export declare namespace T {
         K  = {}, 
         S  = undefined,  // selected by columns
         SR = undefined,  // selected by relations
-        E  = undefined   // omited by except columns
+        E  = undefined,  // omited by except columns
+        SRS = undefined  // selected by raw select
     > = (
         [S, SR] extends [undefined, undefined]
         
-        ? T.Columns<M>
+        ?  SRS extends undefined 
+            ? T.Columns<M> & K
+            : K & { [ K in keyof SRS ]: any }
         : TResultFilterResolved<
-            T.Result<M, K>, 
+            SRS extends undefined 
+            ? T.Result<M>
+            : T.Result<M> & { [ K in keyof SRS ]: any }, 
             TSelectionMerger<    
-            S extends undefined 
-                ? { [ K in keyof T.Columns<M> ]: true } // default values from all colums
-                : S,
-            SR>
+                S extends undefined
+                ? SRS extends undefined 
+                    ? { [ K in keyof T.Columns<M> ]: true } // default values from all colums
+                    : { [ K in keyof T.Columns<M> ]: true } & { [ K in keyof SRS ]: true }
+                : SRS extends undefined 
+                    ? S & { uuid: true }
+                    : S & { [ K in keyof SRS ]: true },
+                SR
+            > & K
         >
-
     ) extends infer $Resolved
         ? S extends undefined
             ? E extends undefined
@@ -259,8 +268,9 @@ export declare namespace T {
         K = {}, 
         S = undefined, 
         SR = undefined,
-        E = undefined
-    > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E>>>
+        E = undefined,
+        SRS = undefined
+    > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
     type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M, K>>>
     
@@ -368,13 +378,14 @@ export declare namespace T {
         M
     >;
 
-    type RepositoryOptions<M extends Model, S = undefined, SR = undefined, E = undefined> = TRepositoryRequest<
+    type RepositoryOptions<M extends Model, S = undefined, SR = undefined, E = undefined, SRR = undefined> = TRepositoryRequest<
         TSchemaModel<M>, 
         TRelationModel<M>, 
         M,
         S,
         SR,
-        E
+        E,
+        SRR
     >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>

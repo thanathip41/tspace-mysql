@@ -1,3 +1,4 @@
+import { TRawStringQuery } from "../types";
 import { Model } from "./Model";
 import { type T } from "./UtilityTypes";
 
@@ -53,10 +54,11 @@ class RepositoryFactory<
     K  = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR, E> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E> | null> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null> {
 
     const instance = this._handlerRequest(options);
 
@@ -64,7 +66,7 @@ class RepositoryFactory<
       throw new Error("The instance is not initialized");
     }
 
-    return await instance.first() as Promise<T.ResultFiltered<M, K, S, SR, E> | null>
+    return await instance.first() as unknown as Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null>
   }
 
   /**
@@ -112,10 +114,11 @@ class RepositoryFactory<
     K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR, E> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E> | null> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null> {
     return await this.first(options);
   }
 
@@ -164,16 +167,17 @@ class RepositoryFactory<
     K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR, E> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E>[]> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS>[]> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
     return (await instance.get()) as unknown as Promise<
-      T.ResultFiltered<M, K, S, SR, E>[]
+      T.ResultFiltered<M, K, S, SR, E, SRS>[]
     >;
   }
 
@@ -222,10 +226,11 @@ class RepositoryFactory<
     K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: T.RepositoryOptions<M, S, SR, E> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR , E>[]> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
+  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS>[]> {
     return await this.get(options);
   }
 
@@ -276,10 +281,11 @@ class RepositoryFactory<
     K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR, E>> & { page?: number } = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E>> {
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number } = {}
+  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -287,7 +293,7 @@ class RepositoryFactory<
     return (await instance.pagination({
       limit: options.limit,
       page: options.page,
-    })) as unknown as Promise<T.PaginateResultFiltered<M, K, S, SR, E>>;
+    })) as unknown as Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>>;
   }
 
   /**
@@ -337,10 +343,11 @@ class RepositoryFactory<
     K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR, E>> & { page?: number } = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E>> {
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number } = {}
+  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
     return await this.pagination(options);
   }
 
@@ -1295,6 +1302,7 @@ class RepositoryFactory<
     let {
       cache,
       select,
+      selectRaw,
       except,
       join,
       leftJoin,
@@ -1394,6 +1402,13 @@ class RepositoryFactory<
 
           if (value === true) instance.select(column);
         }
+      }
+    }
+
+    if( selectRaw != null) {
+      for (const column in selectRaw) {
+        const value = selectRaw[column];
+        instance.selectRaw(`${value.replace(/\s+AS\s+[\w$]+$/i, '')} AS ${column}`);
       }
     }
 

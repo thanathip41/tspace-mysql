@@ -294,7 +294,8 @@ export type TRepositoryRequest<
   M  extends Model<any, any> = Model<any, any>,
   S  = undefined,
   SR = undefined,
-  E  = undefined
+  E  = undefined,
+  SRS = undefined
 > = {
   select?: S extends {}
     ? S & {
@@ -303,9 +304,12 @@ export type TRepositoryRequest<
           : never
       }
     : "*" | TRepositorySelect<T, R, M>;
-  selectRaw?: S extends Record<string, TRawStringQuery>
-  ? S & Partial<{ [K in keyof S]: true }>
-  : never;
+  selectRaw?: SRS extends {}
+  ? SRS & {
+      [K in keyof SRS]:
+        SRS[K] extends TRawStringQuery ? SRS[K] : never
+    }
+  : Record<string, TRawStringQuery>;
   except?: E extends {}
     ? E & {
         [K in keyof E]: K extends keyof TRepositoryExcept<T,M>
