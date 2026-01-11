@@ -1457,7 +1457,6 @@ class RepositoryFactory<
           if (isRelation) {
             if (value === true) instance.whereHas(column, (q) => q);
             if (value === false) {
-              console.log("where not Has");
               instance.whereNotHas(column, (q) => q);
             }
             delete where[column];
