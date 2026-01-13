@@ -1,12 +1,12 @@
-import { StateManager } from '../StateManager'
-import { TUtils }       from '../../utils'
-import { Join }         from '../Join'
-import Config           from "../../config";
+import { StateManager } from "../StateManager"
+import { TUtils }       from "../../utils"
+import { Join }         from "../Join"
+import { Config }       from "../../config";
 import type { 
     TPagination, 
     TConstant, 
     TDriver
-}  from '../../types'
+}  from "../../types"
 abstract class AbstractBuilder {
 
     protected $utils !: TUtils 
@@ -25,7 +25,10 @@ abstract class AbstractBuilder {
 
     protected $cluster : boolean = Boolean(Config.CLUSTER ?? false);
     
-    protected $constants !: (name ?: keyof TConstant) => any
+    protected $constants!: {
+        (): TConstant;
+        <K extends keyof TConstant>(name ?: K): TConstant[K];
+    };  
 
     protected $state !: StateManager
 

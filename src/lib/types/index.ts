@@ -20,7 +20,7 @@ export type TRelationOptions<K = any> = {
     pivot?: string;
     query?: any;
     queryPivot?: any;
-    relation?: Object;
+    relation?: string;
     exists?: boolean;
     notExists?: boolean;
     all?: boolean;
@@ -64,10 +64,12 @@ export type TPagination<K = any> = {
         last_page: number;
         next_page: number;
         prev_page: number;
-        currentPage: number;
-        lastPage: number;
-        nextPage: number;
-        prevPage: number;
+        page  : {
+            prev    : number;
+            next    : number;
+            current : number;
+            last    : number;
+        }
     };
     data: K[];
 };
@@ -402,65 +404,60 @@ export type TResultResolved<M extends Model, K = {}> = (
         : TResult<K & M>
 );
 
-export type TFilter<T, S> = {
-  [K in keyof T & keyof S]:
-    S[K] extends true
-      ? NonNullable<T[K]>
-      : S[K] extends object
-        ? NonNullable<T[K]> extends (infer U)[]
-          ? TDeepExpand<TFilter<U, S[K]>>[]
-          : NonNullable<T[K]> extends object
-            ? TDeepExpand<TFilter<NonNullable<T[K]>, S[K]>>
-            : never
-        : never
-}
+type Normalize<T> = T extends object ? (
+  (T extends { select: infer S } ? S : {}) &
+  (T extends { relations: infer R } ? R : {}) &
+  (T extends { except: infer E } ? { _except: E } : {}) & 
+  Omit<T, 'select' | 'relations' | 'except'>
+) : {};
 
-export type TResultFilterResolved<T, S> =
-  S extends undefined
-    ? T
-    : TDeepExpand<TFilter<T, S>>
+type IsStrict<T> = 
+  T extends true ? false : 
+  T extends object ? (
+    T extends { select: any } ? true : 
+    T extends { except: any } ? false :
+    (keyof Omit<T, 'relations' | 'except'> extends never ? false : true)
+  ) : false;
 
-export type TSelectionMerger<T1, T2> = {
-    [
-        K in 
-        | keyof T1 
-        | Exclude<keyof T2, keyof T1>
-            // | (
-            // keyof T2 extends infer K2
-            //     ? K2 extends keyof T1
-            //         ? never
-            //         : K2
-            //     : never
-            // )
-    ]:
-    K extends keyof T1
-      ? K extends keyof T2
-        ? T1[K] extends true
-          ? true
-          : T1[K] extends object
-            ? T2[K] extends object
-              ? TSelectionMerger<
-                  T1[K],
-                  (
-                    (T2[K] extends { select: infer S } ? S : {}) &
-                    (T2[K] extends { relations: infer R } ? R : {}) &
-                    Omit<T2[K], 'select' | 'relations'>
-                  )
-                >
-              : T1[K]
-            : T1[K]
-        : T1[K]
-      : K extends keyof T2
-        ? T2[K] extends object
-          ? TSelectionMerger<
-              {},
-              (
-                (T2[K] extends { select: infer S } ? S : {}) &
-                (T2[K] extends { relations: infer R } ? R : {}) &
-                Omit<T2[K], 'select' | 'relations'>
-              )
-            >
-          : T2[K]
-        : never;
-};
 
+type RemoveUndefined<T> = T extends undefined ? never : T;
+
+type NonObjectKeys<T> = {
+    [K in keyof T]: RemoveUndefined<T[K]> extends Date 
+        ? K 
+        : RemoveUndefined<T[K]> extends object 
+        ? never 
+        : K
+    }[keyof T];
+
+type GetExceptKeys<T> = T extends { _except: infer E } ? keyof E : never;
+
+export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Date | Function 
+    ? IncomingResult 
+    : IncomingResult extends (infer U)[] 
+        ? TSelectionMerger<U, S1, S2>[] 
+        : IncomingResult extends object 
+        ? (
+            Normalize<S1> extends infer F1 ?
+            Normalize<S2> extends infer F2 ?
+            (F1 & F2) extends infer Merged ?
+                
+                { 
+                    [K in keyof Omit<Merged, '_except'> & keyof IncomingResult]-?: 
+                    TSelectionMerger<
+                        RemoveUndefined<IncomingResult[K]>,
+                        K extends keyof F1 ? F1[K] : unknown, 
+                        K extends keyof F2 ? F2[K] : unknown
+                    > 
+                } & 
+                (
+                    (IsStrict<S1> extends true ? true : IsStrict<S2> extends true ? true : false) extends true
+                    ? {} 
+                    : {
+                        [K in Exclude<NonObjectKeys<IncomingResult>, GetExceptKeys<F1> | GetExceptKeys<F2>>]-?: IncomingResult[K] 
+                    }
+                )
+
+            : never : never : never
+        ) 
+        : IncomingResult;

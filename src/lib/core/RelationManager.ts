@@ -215,7 +215,7 @@ class RelationManager  {
 
     getSqlExists (name : string,cb : Function) : string | null {
 
-        const relation : TRelationOptions = this.$model['$state'].get('RELATION')?.find((data: { name: string }) => data.name === name)
+        const relation = this.$model['$state'].get('APPLY_RELATIONS')?.find((data: { name: string }) => data.name === name)
 
         if(relation == null) {
             throw this._assertError(
@@ -223,7 +223,7 @@ class RelationManager  {
             )
         }
 
-        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation?.relation ?? '')
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -267,7 +267,7 @@ class RelationManager  {
 
         const relations =  nameRelations.map((name: string) => {
 
-            const relation : TRelationOptions = this.$model['$state'].get('RELATION')?.find((data: { name: string }) => data.name === name)
+            const relation = this.$model['$state'].get('APPLY_RELATIONS')?.find((data: { name: string }) => data.name === name)
 
             if(relation == null) {
                 throw this._assertError(
@@ -275,7 +275,7 @@ class RelationManager  {
                 )
             }
 
-            const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
+            const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation?.relation ?? '')
 
             if(!relationHasExists) {
                 throw  this._assertError(
@@ -298,7 +298,7 @@ class RelationManager  {
         }
        
         return this.$model['$state'].get('RELATIONS').length 
-        ? [...relations.map((w: { name : string }) => {
+        ? [...relations.map((w) => {
             const exists = this.$model['$state'].get('RELATIONS').find((r : { name : string}) =>  r.name === w.name)
                 if(exists) return null
                 return w
@@ -309,15 +309,15 @@ class RelationManager  {
 
     callback (nameRelation: string , cb : Function) {
         
-        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) {
             throw this._assertError(
                 `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}.'`
             )
         }
-
-        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
+        
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation?.relation ?? '')
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -336,15 +336,15 @@ class RelationManager  {
 
     callbackPivot (nameRelation: string , cb : Function) {
         
-        const relation : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const relation = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) {
             throw this._assertError(
                 `This name relation '${nameRelation}' not be register in Model '${this.$model.constructor?.name}'`
             )
         }
-    
-        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
+        
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation?.relation ?? '')
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -369,11 +369,11 @@ class RelationManager  {
 
     returnCallback (nameRelation: string) {
         
-        const relation : TRelationOptions = this.$model['$state'].get('RELATION').find((data: { name: string }) => data.name === nameRelation)
+        const relation = this.$model['$state'].get('APPLY_RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
         if(relation == null) return null
     
-        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation.relation)
+        const relationHasExists = Object.values(this.$model["$constants"]('RELATIONSHIP'))?.includes(relation?.relation ?? '')
 
         if(!relationHasExists) {
             throw  this._assertError(
@@ -395,7 +395,7 @@ class RelationManager  {
             freezeTable,
             query : null
         }
-        return  this.$model['$state'].set('RELATION', [...this.$model['$state'].get('RELATION') , relation])
+        return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
     hasMany ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
@@ -409,7 +409,7 @@ class RelationManager  {
             freezeTable,
             query : null
         }
-        return  this.$model['$state'].set('RELATION', [...this.$model['$state'].get('RELATION') , relation])
+        return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
     belongsTo ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
@@ -425,8 +425,8 @@ class RelationManager  {
         }
 
         return  this.$model['$state']
-        .set('RELATION', [
-            ...this.$model['$state'].get('RELATION') , 
+        .set('APPLY_RELATIONS', [
+            ...this.$model['$state'].get('APPLY_RELATIONS') , 
             relation
         ])
     }
@@ -448,8 +448,8 @@ class RelationManager  {
         }
 
         return this.$model['$state']
-        .set('RELATION', [
-            ...this.$model['$state'].get('RELATION'),
+        .set('APPLY_RELATIONS', [
+            ...this.$model['$state'].get('APPLY_RELATIONS'),
             relation
         ])
     }
@@ -471,8 +471,8 @@ class RelationManager  {
         }
 
         return this.$model['$state']
-        .set('RELATION', [
-            ...this.$model['$state'].get('RELATION'),
+        .set('APPLY_RELATIONS', [
+            ...this.$model['$state'].get('APPLY_RELATIONS'),
             relation
         ])
     }
@@ -798,14 +798,16 @@ class RelationManager  {
 
     private _relationBuilder (nameRelation:string , relation : TRelationOptions) : TRelationOptions {
 
-        this.$model['$state'].set('RELATION' , [...this.$model['$state'].get('RELATION') , relation])
+        this.$model['$state'].set('APPLY_RELATIONS' , [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
 
         this.$model['with'](nameRelation)
 
-        const r : TRelationOptions = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
+        const r = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
-        this._assertError(relation == null , `The relation '${nameRelation}' is not registered in the model '${this.$model.constructor?.name}'.`)
-
+        if(r == null) {
+            throw this._assertError(`The relation '${nameRelation}' is not registered in the model '${this.$model.constructor?.name}'.`)
+        }
+        
         return r
     }
 
@@ -1188,7 +1190,7 @@ class RelationManager  {
         switch (this.$model['$state'].get('PATTERN')) {
 
             case this.$model["$constants"]('PATTERN').default:
-            case this.$model["$constants"]('PATTERN').snakeCase : {
+            case this.$model["$constants"]('PATTERN').snake_case : {
 
                 if(schema == null) {
                     return snakeCase(value)

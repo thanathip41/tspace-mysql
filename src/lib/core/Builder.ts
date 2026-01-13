@@ -18,6 +18,7 @@ import {
   TConnectionTransaction,
   TPoolCusterConnected,
   TDriver,
+  TConstant,
 } from "../types";
 class Builder extends AbstractBuilder {
   constructor() {
@@ -4963,12 +4964,11 @@ class Builder extends AbstractBuilder {
 
         return {
           query: async (sql: string) => {
-            const first = sql.trim().split(/\s+/)[0].toUpperCase();
-            const isReaded =
-              [
+            const first = sql.trim().split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+            const isReaded = [
                 this.$constants("SELECT"),
                 this.$constants("SHOW"),
-                this.$constants("DESCRIBE"),
+                this.$constants("DESCRIBE")
               ].includes(first) &&
               (!sql
                 .toUpperCase()
@@ -5034,15 +5034,19 @@ class Builder extends AbstractBuilder {
 
     this.$state = new StateManager("default");
 
-    this.$constants = (name) => {
+    this.$constants = ((name?: keyof TConstant) => {
       if (name == null) return CONSTANTS;
 
-      if (!CONSTANTS.hasOwnProperty(name))
-        throw new Error(`Not found that constant : '${name}'`);
+      if (!Object.prototype.hasOwnProperty.call(CONSTANTS, name)) {
+        throw new Error(`Not found that constant : '${String(name)}'`);
+      }
 
       return CONSTANTS[name];
+    }) as {
+      (): Readonly<TConstant>;
+      <K extends keyof TConstant>(name: K): Readonly<TConstant>[K];
     };
-
+    
   }
 }
 

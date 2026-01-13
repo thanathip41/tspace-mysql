@@ -33,6 +33,7 @@ const rawEnv =  {
     DATABASE                : ENV.DB_DATABASE, 
     CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 20,
 
+    // for mysql2 only
     DATE_STRINGS            : ENV.DB_DATE_STRINGS ?? false,
   
     CLUSTER                 : ENV.DB_CLUSTER ?? false,
@@ -51,14 +52,18 @@ const parseEnv = <T extends object>(env: T): T  => {
         if (value == null) continue
 
         if(value === '') {
-            parsed[key] = value
+            parsed[key] = value;
             continue
         }
 
-        if (!isNaN(Number(value))) {
-            (parsed)[key] = Number(value)
+        if (/^-?\d+$/.test(value)) {
+            if (Number.isSafeInteger(Number(value))) {
+                parsed[key] = Number(value);
+                continue
+            }
+            parsed[key] = value;
             continue
-        } 
+        }
         
         if (typeof value === 'string' && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
             (parsed)[key] = value.toLowerCase() === 'true'

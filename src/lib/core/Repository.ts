@@ -284,8 +284,9 @@ class RepositoryFactory<
     E  extends T.ExceptOptions<M>   | undefined = undefined,
     SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number } = {}
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number },'offset'> = {}
   ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -346,8 +347,9 @@ class RepositoryFactory<
     E  extends T.ExceptOptions<M>   | undefined = undefined,
     SRS extends Record<string, TRawStringQuery> | undefined = undefined
   >(
-    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number } = {}
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number },'offset'> = {}
   ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
+    //@ts-ignore
     return await this.pagination(options);
   }
 
@@ -378,6 +380,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     >
   ): Promise<boolean> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -413,6 +416,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): string {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -450,6 +454,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<string> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -488,6 +493,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<(K extends keyof T.Result<M> ? T.Result<M>[K] : unknown)[]> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -525,6 +531,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -561,6 +568,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -597,6 +605,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -634,6 +643,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
@@ -671,6 +681,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
+    //@ts-ignore
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");

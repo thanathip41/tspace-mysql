@@ -2,6 +2,7 @@
 import { Blueprint } from "./Blueprint";
 import type { 
     TPattern,
+    TRelationOptions,
     TSave, 
     TValidateSchema 
 } from "../types";
@@ -56,8 +57,8 @@ const STATE_MODEL = {
     SOFT_DELETE_RELATIONS: false as boolean,
     REGISTRY: {} as Record<string, string>,
     PATTERN: 'default' as TPattern,
-    RELATION: [] as any[],
-    RELATIONS: [] as any[],
+    APPLY_RELATIONS: [] as TRelationOptions[],
+    RELATIONS: [] as TRelationOptions[],
     RELATIONS_TRASHED: false as boolean,
     RELATIONS_EXISTS: false as boolean,
     TIMESTAMP: false as boolean,

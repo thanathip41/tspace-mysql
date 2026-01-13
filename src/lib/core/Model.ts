@@ -508,14 +508,14 @@ class Model<
    */
   protected usePattern(pattern: TPattern): this {
     const allowPattern = [
-      this.$constants("PATTERN").snakeCase,
+      this.$constants("PATTERN").snake_case,
       this.$constants("PATTERN").camelCase,
     ];
 
     if (!allowPattern.includes(pattern)) {
       throw this._assertError(
         `The 'tspace-mysql' support only pattern '${
-          this.$constants("PATTERN").snakeCase
+          this.$constants("PATTERN").snake_case
         }', 
                 '${this.$constants("PATTERN").camelCase}'`
       );
@@ -539,7 +539,7 @@ class Model<
    * }
    */
   protected useCamelCase(): this {
-    this.$state.set("PATTERN", this.$constants("PATTERN").camelCase);
+    this.$state.set("PATTERN", this.$constants("PATTERN").camelCase as TPattern);
     this._makeTableName();
     return this;
   }
@@ -555,7 +555,7 @@ class Model<
    * }
    */
   protected useSnakeCase(): this {
-    this.$state.set("PATTERN", this.$constants("PATTERN").snakeCase);
+    this.$state.set("PATTERN", this.$constants("PATTERN").snake_case as TPattern);
     this._makeTableName();
     return this;
   }
@@ -1025,9 +1025,9 @@ class Model<
   ): this {
     this.relations(name);
 
-    const relation: TRelationOptions<K> = this.$state
+    const relation = this.$state
       .get("RELATIONS")
-      .find((v: { name: string }) => v.name === name);
+      .find((v) => v.name === name);
 
     if (relation == null) {
       throw this._assertError(
@@ -1039,7 +1039,7 @@ class Model<
 
     const relationHasExists = Object.values(
       this.$constants("RELATIONSHIP")
-    )?.includes(relation.relation);
+    )?.includes(relation.relation ?? '');
 
     if (!relationHasExists) {
       throw this._assertError(
@@ -5049,6 +5049,8 @@ class Model<
 
     this.limit(1);
 
+    this._ensureRelationOwnerKeysSelected();
+
     let sql = this._queryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
@@ -5093,6 +5095,8 @@ class Model<
 
     this.limit(1);
 
+    this._ensureRelationOwnerKeysSelected();
+
     let sql = this._queryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
@@ -5128,6 +5132,8 @@ class Model<
     if (this.$state.get("VOID")) return [];
 
     await this._prepareQueryPipeline();
+
+    this._ensureRelationOwnerKeysSelected();
 
     let sql = this._queryBuilder().select();
 
@@ -5188,6 +5194,8 @@ class Model<
     this.limit(limit);
 
     this.offset(offset);
+
+    this._ensureRelationOwnerKeysSelected();
 
     let sql = this._queryBuilder().select();
 
@@ -6586,7 +6594,7 @@ class Model<
         return column;
       }
 
-      case this.$constants("PATTERN").snakeCase: {
+      case this.$constants("PATTERN").snake_case: {
         return column.replace(/([A-Z])/g, (str) => `_${str.toLowerCase()}`);
       }
 
@@ -6658,6 +6666,26 @@ class Model<
     return;
   }
 
+  private _ensureRelationOwnerKeysSelected(): void {
+    const relations = this.$state.get("RELATIONS");
+    const relationship = this.$constants("RELATIONSHIP");
+
+    const ownerKeyRelations = relations.filter(r => {
+      return  r.relation === relationship.hasMany ||
+        r.relation === relationship.hasOne
+    });
+
+    if (!ownerKeyRelations.length) return;
+
+    const ownerKeys = new Set(
+      ownerKeyRelations.map(r => {
+        return r.localKey ?? this.$state.get("PRIMARY_KEY")
+      })
+    );
+
+    this.addSelect(...ownerKeys);
+  }
+
   private _handleGlobalScope() {
     if (!this.$state.get("GLOBAL_SCOPE")) return this;
 
@@ -6714,7 +6742,7 @@ class Model<
 
         if (sql == null) continue;
 
-        if (sql.toLowerCase().includes(" as ")) {
+        if (sql.toLowerCase().includes(` ${this.$constants("AS")} `)) {
           columns.push(sql);
           continue;
         }
@@ -7067,11 +7095,17 @@ class Model<
       last_page: lastPage,
       next_page: nextPage,
       prev_page: prevPage,
+      page : {
+        prev    : prevPage,
+        next    : nextPage,
+        current : currentPage,
+        last    : lastPage, 
+      }
     };
 
     const pattern = this.$state.get("PATTERN");
 
-    if(pattern === 'snake_case') {
+    if(pattern === this.$constants('PATTERN').snake_case) {
       return this.$utils.snakeCase(
         this._resultHandler({
           meta,
@@ -7080,7 +7114,7 @@ class Model<
       );
     }
 
-    if(pattern === 'camelCase') {
+    if(pattern === this.$constants('PATTERN').camelCase) {
       return this.$utils.camelCase(
         this._resultHandler({
           meta,
@@ -7142,6 +7176,12 @@ class Model<
             last_page: 0,
             next_page: 0,
             prev_page: 0,
+            page : {
+              prev    : 0,
+              next    : 0,
+              current : Number(this.$state.get("PAGE")),
+              last    : 0, 
+            }
           },
           data: [],
         };
@@ -7152,15 +7192,15 @@ class Model<
         throw this._assertError("Missing method first get or pagination");
     }
 
-    if (this.$state.get('PATTERN') === 'snake_case') {
+    if (this.$state.get('PATTERN') === this.$constants('PATTERN').snake_case) {
       const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
       await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
       await this._observer(empty, "selected");
       return empty;
     }
 
-    if (this.$state.get('PATTERN') === 'camelCase') {
-      const empty = this.$utils.snakeCase(this._resultHandler(emptyData));
+    if (this.$state.get('PATTERN') === this.$constants('PATTERN').camelCase) {
+      const empty = this.$utils.camelCase(this._resultHandler(emptyData));
       await this.$utils.hookHandle(this.$state.get("HOOKS"), empty);
       await this._observer(empty, "selected");
       return empty;
@@ -7982,7 +8022,7 @@ class Model<
 
     for (const v of hasOnes) {
       this.hasOne({
-        ...v,
+        ...v as any,
         name: v.name as K,
         model: v.model(),
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,
@@ -7996,7 +8036,7 @@ class Model<
 
     for (const v of hasManys) {
       this.hasMany({
-        ...v,
+        ...v as any,
         name: v.name as K,
         model: v.model(),
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,
@@ -8010,7 +8050,7 @@ class Model<
 
     for (const v of belongsTos) {
       this.belongsTo({
-        ...v,
+        ...v as any,
         name: v.name as K,
         model: v.model(),
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,
@@ -8024,7 +8064,7 @@ class Model<
 
     for (const v of belongsToManys) {
       this.belongsToMany({
-        ...v,
+        ...v as any,
         name: v.name as K,
         model: v.model(),
         modelPivot: v.modelPivot ? v.modelPivot() : undefined,

@@ -3,16 +3,15 @@ import { Model }        from "./Model";
 import { Repository }   from "./Repository";
 import type { 
     TDeepExpand,
-    TResultFilterResolved,
     TResultResolved,
-    TSelectionMerger,
     TFreezeStringQuery, 
     TIsEnum, 
     TOperatorQuery, 
     TPagination, 
     TRawStringQuery, 
     TRelationKeys, 
-    TRelationResults 
+    TRelationResults, 
+    TSelectionMerger
 } from "../types";
 
 import type { 
@@ -218,14 +217,12 @@ export declare namespace T {
 
     type Repository<M extends Model> = ReturnType<typeof Repository<M>>;
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
-
     type ResultFiltered<
         M  extends Model, 
         K  = {}, 
         S  = undefined,  // selected by columns
         SR = undefined,  // selected by relations
-        E  = undefined,  // omited by except columns
+        E  = undefined,  // excepted by omit columns
         SRS = undefined  // selected by raw select
     > = (
         [S, SR] extends [undefined, undefined]
@@ -233,21 +230,21 @@ export declare namespace T {
         ?  SRS extends undefined 
             ? T.Columns<M> & K
             : K & { [ K in keyof SRS ]: any }
-        : TResultFilterResolved<
-            SRS extends undefined 
-            ? T.Result<M>
-            : T.Result<M> & { [ K in keyof SRS ]: any }, 
-            TSelectionMerger<    
+        : TDeepExpand<
+            TSelectionMerger<
+                SRS extends undefined 
+                    ? T.Result<M>
+                    : T.Result<M> & { [ K in keyof SRS ]: any }, 
                 S extends undefined
-                ? SRS extends undefined 
-                    ? { [ K in keyof T.Columns<M> ]: true } // default values from all colums
-                    : { [ K in keyof T.Columns<M> ]: true } & { [ K in keyof SRS ]: true }
-                : SRS extends undefined 
-                    ? S & { uuid: true }
-                    : S & { [ K in keyof SRS ]: true },
+                    ? SRS extends undefined 
+                        ? { [ K in keyof T.Columns<M> ]: true } // default columns
+                        : { [ K in keyof T.Columns<M> ]: true } & { [ K in keyof SRS ]: true }
+                    : SRS extends undefined 
+                        ? S
+                        : S & { [ K in keyof SRS ]: true },
                 SR
-            > & K
-        >
+            >
+        > & K
     ) extends infer $Resolved
         ? S extends undefined
             ? E extends undefined
@@ -262,6 +259,8 @@ export declare namespace T {
                 >
             : $Resolved
         : never;
+
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
 
     type PaginateResultFiltered<
         M extends Model,
@@ -365,7 +364,7 @@ export declare namespace T {
         TRepositorySelect<TSchemaModel<M>, TRelationModel<M>, M>;
 
     type ExceptOptions<M extends Model> =
-        TRepositoryExcept<TSchemaModel<M>, M>;
+        TRepositoryExcept<TSchemaModel<M>,TRelationModel<M>, M>;
 
     type OrderByOptions<M extends Model> =
         TRepositoryOrderBy<TSchemaModel<M>, TRelationModel<M>, M>;
@@ -373,20 +372,27 @@ export declare namespace T {
     type GroupByOptions<M extends Model> =
         TRepositoryGroupBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
-    type RelationOptions<M extends Model> = TRepositoryRelation<
-        TRelationModel<M>, 
-        M
-    >;
+    type RelationOptions<M extends Model> = 
+        TRepositoryRelation<
+            TRelationModel<M>, 
+            M
+        >;
 
-    type RepositoryOptions<M extends Model, S = undefined, SR = undefined, E = undefined, SRR = undefined> = TRepositoryRequest<
-        TSchemaModel<M>, 
-        TRelationModel<M>, 
-        M,
-        S,
-        SR,
-        E,
-        SRR
-    >;
+    type RepositoryOptions<
+        M extends Model, 
+        S = undefined, 
+        SR = undefined, 
+        E = undefined, 
+        SRS = undefined
+        > = TRepositoryRequest<
+            TSchemaModel<M>, 
+            TRelationModel<M>, 
+            M,
+            S,
+            SR,
+            E,
+            SRS
+        >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>
     type RepositoryCreateMultiple<M extends Model> = TRepositoryCreateMultiple<M>;

@@ -109,7 +109,7 @@ const CONSTANTS = Object.freeze({
     },
     PATTERN : {
         default : 'default',
-        snakeCase : 'snake_case',
+        snake_case : 'snake_case',
         camelCase : 'camelCase'
     },
     ROW_LEVEL_LOCK : {

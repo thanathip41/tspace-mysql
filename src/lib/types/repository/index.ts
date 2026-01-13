@@ -67,24 +67,52 @@ export type TRepositorySelect<
 
 export type TRepositoryExcept<
   T = unknown,
+  R = unknown,
   M extends Model = Model
 > =
-  [unknown] extends [T]
+  [unknown, unknown] extends [T, R]
     ? keyof TColumnsDecorator<M> extends never
       ? TNestedBoolean
       : Partial<{
-          [K in keyof TColumnsDecorator<M>]:
+          [K in keyof TColumnsDecorator<M> | keyof TRelationsDecorator<M>]:
             K extends `${string}.${string}` | TRawStringQuery
               ? boolean
-              :  K extends keyof TColumnsDecorator<M>
+              : K extends keyof TRelationsDecorator<M>
+                ? M[K] extends (infer U)[]
+                  ? U extends Model
+                    ? TRepositoryExcept<any, unknown, U>
+                    : boolean
+                  : M[K] extends Model
+                    ? TRepositoryExcept<any, unknown, M[K]>
+                    : boolean
+                : K extends keyof TColumnsDecorator<M>
                   ? boolean
-                  : never;
+                  : boolean;
         }>
     : Partial<{
-        [K in TSchemaKeys<T>]:
-          K extends keyof T
-          ? boolean
-          : never;
+        [K in TSchemaKeys<T> | TRelationKeys<R>]:
+          K extends TRelationKeys<R>
+            ? K extends TRawStringQuery | `${string}.${string}`
+              ? boolean
+              : K extends `$${string & K}`
+                ? R extends Record<string, any>
+                  ? boolean
+                  : never
+                : R extends Record<string, any>
+                  ? R[`$${string & K}`] extends (infer U)[]
+                    ? U extends Model
+                      ? TRepositoryExcept<T.SchemaModel<U>, T.RelationModel<U>>
+                      : never
+                    : R[`$${K & string}`] extends Model
+                      ? TRepositoryExcept<
+                          T.SchemaModel<R[`$${K & string}`]>,
+                          T.RelationModel<R[`$${K & string}`]>
+                        >
+                      : never
+                  : never
+            : K extends keyof T
+              ? boolean
+              : never;
       }>;
 
 export type TRepositoryWhere<
@@ -257,8 +285,8 @@ export type TRepositoryRelation<
                   ? boolean | (TRepositoryRequest<any, unknown, U> & TRepositoryRelation<unknown, U>)
                   : never
                 : TRelationsDecorator<M>[K] extends Model
-                  ? boolean | (TRepositoryRequest<any, unknown, TRelationsDecorator<M>[K]> &
-                      TRepositoryRelation<unknown, TRelationsDecorator<M>[K]>)
+                  ? boolean | (TRepositoryRequest<any, unknown, TRelationsDecorator<M>[K]> 
+                    & TRepositoryRelation<unknown, TRelationsDecorator<M>[K]>)
                   : never
               : never;
         }>
@@ -288,15 +316,15 @@ export type TRepositoryRelation<
             : never;
       }>;
 
-export type TRepositoryRequest<
-  T  = unknown,
-  R  = unknown,
-  M  extends Model<any, any> = Model<any, any>,
-  S  = undefined,
-  SR = undefined,
-  E  = undefined,
-  SRS = undefined
-> = {
+type Without<T, U> = {
+  [P in Exclude<keyof T, keyof U>]?: never;
+};
+
+type XOR<T, U> =
+  | (T & Without<U, T>)
+  | (U & Without<T, U>);
+
+type SelectBlock<T, R,  M extends Model<any, any>, S> = {
   select?: S extends {}
     ? S & {
         [K in keyof S]: K extends keyof TRepositorySelect<T, R, M>
@@ -304,49 +332,87 @@ export type TRepositoryRequest<
           : never
       }
     : "*" | TRepositorySelect<T, R, M>;
-  selectRaw?: SRS extends {}
-  ? SRS & {
-      [K in keyof SRS]:
-        SRS[K] extends TRawStringQuery ? SRS[K] : never
-    }
-  : Record<string, TRawStringQuery>;
+};
+
+type ExceptBlock<T,R, M extends Model<any, any>, E> = {
   except?: E extends {}
     ? E & {
-        [K in keyof E]: K extends keyof TRepositoryExcept<T,M>
+        [K in keyof E]: K extends keyof TRepositoryExcept<T,R , M>
           ? E[K]
           : never
       }
-    : TRepositoryExcept<T,M>;
-  join?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
-  leftJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
-  rightJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
-  where?: TRepositoryWhere<T, R, M>;
-  whereRaw?: string[];
-  whereQuery?: TRepositoryWhere<T, R, M>;
-  groupBy?: TRepositoryGroupBy<T, R, M>;
-  having?: string;
-  orderBy?: TRepositoryOrderBy<T, R, M>;
-  limit?: number;
-  offset?: number;
-
-  debug?: boolean;
-  cache?: {
-    key: string;
-    expires: number;
-  };
-  when?: {
-    condition: boolean;
-    query: () => TRepositoryRequest<T, R, M, S, SR>;
-  };
-  relations?: SR extends {} ? SR : TRepositoryRelation<R, M>;
-  relationsExists?: SR extends {} ?  SR : TRepositoryRelation<R, M>;
-  using?: (model: M) => M;
-  hooks?: Function[];
-  audit?: {
-    userId: number;
-    metadata?: Record<string, any>;
-  };
+    : TRepositoryExcept<T,R, M>;
 };
+
+export type TRepositoryRequest<
+  T = unknown,
+  R = unknown,
+  M extends Model<any, any> = Model<any, any>,
+  S = undefined,
+  SR = undefined,
+  E = undefined,
+  SRS = undefined
+> =
+  XOR<
+    SelectBlock<T, R, M, S>, // select?:
+    ExceptBlock<T, R, M, E>  // except ?:
+  > & {
+    selectRaw?: SRS extends {}
+      ? SRS & {
+          [K in keyof SRS]:
+            SRS[K] extends TRawStringQuery ? SRS[K] : never
+        }
+      : Record<string, TRawStringQuery>;
+
+    join?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
+    leftJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
+    rightJoin?: { localKey: `${string}.${string}`; referenceKey: `${string}.${string}` }[];
+
+    where?: TRepositoryWhere<T, R, M>;
+    whereRaw?: string[];
+    whereQuery?: TRepositoryWhere<T, R, M>;
+    groupBy?: TRepositoryGroupBy<T, R, M>;
+    having?: string;
+    orderBy?: TRepositoryOrderBy<T, R, M>;
+    limit?: number;
+    offset?: number;
+
+    debug?: boolean;
+    cache?: {
+      key: string;
+      expires: number;
+    };
+
+    when?: {
+      condition: boolean;
+      query: () => TRepositoryRequest<T, R, M, S, SR>;
+    };
+
+    using?: (model: M) => M;
+    hooks?: Function[];
+
+    audit?: {
+      userId: number;
+      metadata?: Record<string, any>;
+    };
+
+    relations?: SR extends {} 
+      ? SR & {
+          [K in keyof SR]: K extends keyof TRepositoryRelation<R, M>
+            ? SR[K]
+            : never
+        }
+      : TRepositoryRelation<R, M>;
+
+    relationsExists?: SR extends {} 
+      ? SR & {
+          [K in keyof SR]: K extends keyof TRepositoryRelation<R, M>
+            ? SR[K]
+            : never
+        }
+      : TRepositoryRelation<R, M>;
+  };
+
 
 export type TRepositoryRequestHandler<
   T extends Record<string, any> = any,
