@@ -381,6 +381,22 @@ export type TLifecycle =
 | "beforeRemove"
 | "afterRemove";
 
+export type TDeepOmit<T, Filter> = T extends infer ObjectType
+    ? {
+        [K in keyof ObjectType as K extends keyof Filter
+            ? Filter[K] extends true 
+                ? never
+                : K  
+            : NonNullable<ObjectType[K]> extends object 
+                ? (NonNullable<ObjectType[K]> extends Date ? K : never) 
+                : K 
+        ]: K extends keyof Filter
+            ? Filter[K] extends object
+                ? TDeepOmit<NonNullable<ObjectType[K]>, Filter[K]>
+                : ObjectType[K]
+            : ObjectType[K]
+    }
+    : never;
 
 export type TDeepExpand<T> = T extends Date
     ? T

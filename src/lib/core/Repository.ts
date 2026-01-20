@@ -51,7 +51,7 @@ class RepositoryFactory<
    *  const user = await userRepository.findOne()
    */
   async first<
-    K  = {},
+    K  extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
@@ -111,7 +111,7 @@ class RepositoryFactory<
    *  const user = await userRepository.findOne()
    */
   async findOne<
-    K = {},
+    K  extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,

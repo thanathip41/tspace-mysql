@@ -11,7 +11,8 @@ import type {
     TRawStringQuery, 
     TRelationKeys, 
     TRelationResults, 
-    TSelectionMerger
+    TSelectionMerger,
+    TDeepOmit
 } from "../types";
 
 import type { 
@@ -219,7 +220,7 @@ export declare namespace T {
 
     type ResultFiltered<
         M  extends Model, 
-        K  = {}, 
+        K  = {},         // add key from user
         S  = undefined,  // selected by columns
         SR = undefined,  // selected by relations
         E  = undefined,  // excepted by omit columns
@@ -228,8 +229,12 @@ export declare namespace T {
         [S, SR] extends [undefined, undefined]
         
         ?  SRS extends undefined 
-            ? T.Columns<M> & K
-            : K & { [ K in keyof SRS ]: any }
+            ? E extends undefined 
+                ? T.Columns<M> & K  
+                : T.Result<M> & K
+            : E extends undefined 
+                ? T.Columns<M> & K & { [ K in keyof SRS ]: any }
+                : T.Result<M> & K & { [ K in keyof SRS ]: any }
         : TDeepExpand<
             TSelectionMerger<
                 SRS extends undefined 
@@ -248,16 +253,9 @@ export declare namespace T {
     ) extends infer $Resolved
         ? S extends undefined
             ? E extends undefined
-                ? $Resolved
-                : TDeepExpand<
-                    Omit<
-                    $Resolved,
-                    E extends object
-                        ? { [K in keyof E]: E[K] extends true ? K : never }[keyof E]
-                        : never
-                    >
-                >
-            : $Resolved
+                ? TDeepExpand<$Resolved>
+                : TDeepExpand<TDeepOmit<$Resolved,E>>
+            : TDeepExpand<$Resolved>
         : never;
 
     type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
@@ -400,4 +398,29 @@ export declare namespace T {
     type RepositoryUpdateMultiple<M extends Model> = TRepositoryUpdateMultiple<M>;
     type RepositoryCreateOrThings<M extends Model> = TRepositoryCreateOrThings<M>;
     type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
+
+    type RepositoryGenericTypeOptions =
+    | NumberConstructor
+    | StringConstructor
+    | BooleanConstructor
+    | DateConstructor
+    | readonly (
+        | NumberConstructor
+        | StringConstructor
+        | BooleanConstructor
+        | DateConstructor
+        )[]
+    | Record<
+        string,
+        | NumberConstructor
+        | StringConstructor
+        | BooleanConstructor
+        | DateConstructor
+        | readonly (
+            | NumberConstructor
+            | StringConstructor
+            | BooleanConstructor
+            | DateConstructor
+            )[]
+        >;
 };

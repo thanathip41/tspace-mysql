@@ -354,7 +354,7 @@ export type TRepositoryRequest<
   SRS = undefined
 > =
   XOR<
-    SelectBlock<T, R, M, S>, // select?:
+    SelectBlock<T, R, M, S>, // select ?:
     ExceptBlock<T, R, M, E>  // except ?:
   > & {
     selectRaw?: SRS extends {}
