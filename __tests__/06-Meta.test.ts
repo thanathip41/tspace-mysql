@@ -20,8 +20,9 @@ describe("Testing Meta", function () {
     const hasColumn = metaUserWithSchema.hasColumn("id");
     const primaryKey = metaUserWithSchema.primaryKey();
     const indexes = metaUserWithSchema.indexes();
-    const nullable = metaUserWithSchema.nullable();
+    const nullables = metaUserWithSchema.nullables();
     const defaults = metaUserWithSchema.defaults();
+    //@ts-expect-error
     const enums = metaUserWithSchema.enums('role');
    
     expect(table).to.be.equal("users");
@@ -45,7 +46,7 @@ describe("Testing Meta", function () {
     expect(hasColumn).to.be.equal(true);
     expect(primaryKey).to.be.equal("id");
     expect(indexes).to.deep.equal(["users.email@index"]);
-    expect(nullable).to.deep.equal([
+    expect(nullables).to.deep.equal([
       "uuid",
       "email",
       "name",

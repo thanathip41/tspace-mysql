@@ -1,4 +1,9 @@
 import { type T, Model } from '..';
+
+type NullableKeys<T> = (
+  { [K in keyof T]: null extends T[K] ? K : never }[keyof T]
+) & {};
+
 class ModelMeta<M extends Model> {
     constructor(private model: M) {}
 
@@ -18,7 +23,7 @@ class ModelMeta<M extends Model> {
      * @returns {T.ColumnKeys<M>} The validated column key.
      */
     column(column: T.ColumnKeys<M>): T.ColumnKeys<M> {
-        return column;
+        return String(column).replace(/`/g,'');
     }
 
     /**
@@ -28,12 +33,27 @@ class ModelMeta<M extends Model> {
      * @param {{ alias?: string | null }} [options] - Optional alias for the table.
      * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    columnReference(
-        column: T.ColumnKeys<M>,
-        { alias = null }: { alias?: string | null; } = {}
+    columnReference(column: T.ColumnKeys<M>,
+        {  
+            alias = null, 
+            raw   = null 
+        }: { 
+            alias ?: string | null;
+            raw   ?: boolean | null; 
+        } = {}
     ): `${string}.${T.ColumnKeys<M>}` {
-        if (alias) return `\`${alias}\`.\`${String(column)}\``;
-        return `\`${this.table()}\`.\`${String(column)}\``;
+
+        let base = `\`${this.table()}\`.\`${String(column)}\``;
+
+        if (alias) {
+            base = `\`${alias}\`.\`${String(column)}\``;
+        }
+
+        if(raw) {
+            base = base.replace(/`/g,'');
+        }
+
+        return base as `${string}.${T.ColumnKeys<M>}`;
     }
 
     /**
@@ -45,9 +65,12 @@ class ModelMeta<M extends Model> {
      */
     columnRef(
         column: T.ColumnKeys<M>,
-        { alias = null }: { alias?: string | null; } = {}
+        {  alias = null, raw   = null }: { 
+            alias ?: string | null;
+            raw   ?: boolean | null; 
+        } = {}
     ): `${string}.${T.ColumnKeys<M>}` {
-        return this.columnReference(column, { alias });
+        return this.columnReference(column, { alias, raw });
     }
 
     /**
@@ -120,23 +143,26 @@ class ModelMeta<M extends Model> {
     }
 
     /**
-     * Get all nullable columns in the model schema.
+     * Get all nullables columns in the model schema.
      *
-     * @returns {string[]} An array of nullable column keys.
+     * @returns {string[]} An array of nullables column keys.
      */
-    nullable(): string[] {
+    nullables(): NullableKeys<T.Columns<M>>[] {
+
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return [];
 
-        return Object.entries(schemaModel)
-            .map(([key, blueprint]: any) => {
-                const attr = blueprint['_attributes'];
-                return Array.from(attr).includes(this.model['$constants']('NULL'))
-                    ? key
-                    : undefined;
-            })
-            .filter(v => v != null) as string[];
+        const nullables = Object.entries(schemaModel)
+        .map(([key, blueprint]: any) => {
+        const attr = blueprint['_attributes'];
+        return Array.from(attr).includes(this.model['$constants']('NULL'))
+            ? key
+            : undefined;
+        })
+        .filter((v) => v != null);
+
+        return nullables;
     }
 
     /**
@@ -247,8 +273,8 @@ class ModelMeta<M extends Model> {
         if (!entry) return [];
 
         const blueprint = entry[1];
-        //@ts-ignore
-        return blueprint['_enum'] as T.Result<M>[C][];
+      
+        return blueprint['_enum']
     }
 }
 
@@ -258,6 +284,7 @@ class ModelMeta<M extends Model> {
  * 
  * @example
  *  import { Meta, Model , Blueprint , type T } from 'tspace-mysql';
+ *  import { Column } from './Decorator';
  *
  *  const schema = {
  *   id        : Blueprint.int().notNull().primary().autoIncrement(),
@@ -284,15 +311,15 @@ class ModelMeta<M extends Model> {
  *  const meta          = Meta(User)
  *  // --- get metadata of User ---
  *  const table         = meta.table() // 'users'
- *  const column        = meta.ColumnKeys('id') // id
- *  const columnRef     = meta.ColumnKeysReference('id') // `users`.`id`
- *  const columnTypeOf  = meta.ColumnKeysTypeOf('id') // number
- *  const columnType    = meta.ColumnKeysType('id') // Int
- *  const columns       = meta.ColumnKeyss() // ['id','uuid',...'updatedAt']
+ *  const column        = meta.column('id') // id
+ *  const columnRef     = meta.columnRef('id') // `users`.`id`
+ *  const columnTypeOf  = meta.columnTypeOf('id') // number
+ *  const columnType    = meta.columnType('id') // Int
+ *  const columns       = meta.columns() // ['id','uuid',...'updatedAt']
  *  const hasColumn     = meta.hasColumn('id') // false
  *  const primaryKey    = meta.primaryKey() // 'id'
  *  const indexes       = meta.indexes() // ['users.email@index']
- *  const nullable      = meta.nullable() // ['uuid','name','createdAt','updatedAt']
+ *  const nullables     = meta.nullables() // ['uuid','name','createdAt','updatedAt']
  *  const defaults      = meta.defaults() // { id : null, ..., status : 0, role: 'user', ..updatedAt : null  }
  *  const enums         = meta.enums('role') // [ 'admin', 'user' ]
  *  const enumsObj      = meta.enum('role', { asObject: true }) // { admin: 'admin', user: 'user' }
