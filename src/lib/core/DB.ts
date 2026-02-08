@@ -398,8 +398,23 @@ class DB extends AbstractDB {
 
   /**
    * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
-   * @param {string} sql
-   * @returns {string} string
+   * Creates a raw SQL query with optional parameter bindings.
+   *
+   * @param sql - The raw SQL string. Use `?` placeholders for parameters.
+   * @param parameters - Values to bind to the placeholders.
+   * @returns A raw SQL query object.
+   *
+   * @example
+   * // Select a computed column using CONCAT
+   * const users = await DB
+   *   .from('users') 
+   *   .select(
+   *     'id',
+   *     DB.raw(
+   *       `CONCAT(firstName, ' - ', lastName) AS fullName`
+   *     )
+   *   )
+   *   .findOne();
    */
   raw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): TRawStringQuery {
     if (!parameters.length) {
@@ -433,9 +448,25 @@ class DB extends AbstractDB {
 
   /**
    * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
+   * Creates a raw SQL query with optional parameter bindings.
+   * 
    * @static
-   * @param {string} sql
-   * @returns {string} string
+   * @param sql - The raw SQL string. Use `?` placeholders for parameters.
+   * @param parameters - Values to bind to the placeholders.
+   * @returns A raw SQL query object.
+   *
+   * @example
+   * // Select a computed column using CONCAT
+   * const users = await DB
+   *   .from('users') 
+   *   .select(
+   *     'id',
+   *     DB.raw(
+   *       `CONCAT(firstName, ' - ', lastName) AS fullName`
+   *       // `CONCAT(?, ' - ', ?) AS fullName,['firstName', 'lastName']`
+   *     )
+   *   )
+   *   .findOne();
    */
   static raw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): TRawStringQuery {
     return `${new this().raw(sql,parameters)}` as TRawStringQuery;
