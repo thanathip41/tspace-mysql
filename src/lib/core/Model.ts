@@ -5318,10 +5318,9 @@ class Model<
     C extends T.ColumnOptions<this>
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
-    ? any
-    : undefined extends C[P]
-        ? never
-        : P]
+      ? any
+      : P
+    ]
     : Extract<C[P], Date> extends never ? C[P] : any;
   }): this {
     if (!Object.keys(data).length) {
@@ -5350,9 +5349,7 @@ class Model<
   >(data: {
     [P in Exclude<K & keyof C, "id"> as null extends C[P]
       ? any
-      : undefined extends C[P]
-          ? never
-          : P
+      : P
     ]: Extract<C[P], Date> extends never ? C[P] : any;
   }): this {
     //@ts-ignore

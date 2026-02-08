@@ -440,9 +440,7 @@ export type TRepositoryCreate<
     data: {
       [P in Exclude<K & keyof C, "id"> as null extends C[P]
         ? any
-        : undefined extends C[P]
-            ? never
-            : P
+        : P
       ]: Extract<C[P], Date> extends never ? C[P] : any;
     }
     debug?: boolean;
