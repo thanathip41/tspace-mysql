@@ -33,29 +33,39 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 Install with [npm](https://www.npmjs.com/):
 
 ```sh
-# Install tspace-mysql locally for your project
+## Install tspace-mysql locally for your project
 npm install tspace-mysql --save
 
-# Install tspace-mysql globally (optional)
+## Install tspace-mysql globally (optional)
 npm install -g tspace-mysql
-
-# Install database drivers if needed:
-# For MariaDB
-npm install mariadb --save
-
-# For PostgreSQL
-npm install pg --save
-
-# MySQL2 driver is installed by default with tspace-mysql
 ```
 
 ## Documentation
 
 See the [`docs`](https://thanathip41.github.io/tspace-mysql) directory for full documentation.
 
+## TypeScript
+
+The TypeScript version is specified only for **development and build-time** purposes and does **not** restrict how consumers use the library.
+
+This library is built using **TypeScript 5.9.3**.  
+The minimum supported **TypeScript version is >= 5.6.2**.
+
+If you are contributing to this library or building it locally, install the pinned TypeScript version:
+
+```sh
+
+npm install -D typescript@5.9.3
+
+```
+
 ## Basic Usage
 
 - [Configuration](#configuration)
+  - [MySQL Database](#mysql-database)
+  - [Mariadb Database](#mariadb-database)
+  - [Postgres Database](#postgres-database)
+  - [Cluster Database](#cluster-database)
 - [SQL Like](#sql-Like)
 - [Query Builder](#query-builder)
   - [Table Name & Alias Name](#table-name--alias-name)
@@ -170,41 +180,102 @@ See the [`docs`](https://thanathip41.github.io/tspace-mysql) directory for full 
 To establish a connection, the recommended method for creating your environment variables is by using a '.env' file. using the following:
 
 ```js
-DB_DRIVER = mysql 
-// DB_DRIVER = mariadb
-// DB_DRIVER = postgres
-DB_HOST = localhost;
-DB_PORT = 3306;
-DB_USERNAME = root;
-DB_PASSWORD = password;
-DB_DATABASE = database;
-
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
 /**
  * @default
- *  DB_CONNECTION_LIMIT = 10
+ *  DB_CONNECTION_LIMIT = 20
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = false
  */
 ```
 
-You can also create a file named 'db.tspace' to configure the connection. using the following:
+### MySQL Database
+
+To connect the application to a MySQL database, using the following:
+```sh
+npm install mysql2 --save
+```
 
 ```js
-source db {
-    host               = localhost
-    port               = 3306
-    database           = npm
-    user               = root
-    password           = database
-    connectionLimit    = 10
-    dateStrings        = true
-    connectTimeout     = 60000
-    waitForConnections = true
-    queueLimit         = 0
-    charset            = utf8mb4
-}
+DB_DRIVER = mysql
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
 
+### Mariadb Database
+
+To connect the application to a Mariadb database, using the following:
+
+```sh
+npm install mariadb --save
+```
+
+```js
+DB_DRIVER = mariadb
+DB_HOST = localhost
+DB_PORT = 3306
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+
+### Postgres Database
+
+To connect the application to a Postgres database, using the following:
+
+```sh
+npm install pg --save
+```
+
+```js
+DB_DRIVER = postgres
+DB_HOST = localhost
+DB_PORT = 5432
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+
+### Cluster Database
+If you need strict race condition control, it is required to use multiple nodes for write and read. <br>
+Avoid using a node load balancer in this case, as it may bypass proper write/read distribution and compromise consistency.<br>
+To connect your application to a Cluster database, use the following configuration:
+
+```js
+// ----------------------------------------------------
+// example MariaDB Galera Cluster
+
+DB_DRIVER = mariadb
+DB_HOST = host-load-balncer ❌
+DB_PORT = 3306
+DB_USERNAME = root1
+DB_PASSWORD = password1
+DB_DATABASE = database
+```
+
+```js
+// ----------------------------------------------------
+// MariaDB Galera Cluster
+// host1 -> Master node
+// host2, host3 -> slave nodes
+DB_CLUSTER = true
+DB_DRIVER = mariadb
+DB_HOST = host1,host2,host3 ✅ // host1 still master by default
+// if you want to specific master or slave
+// master can be more than 1
+// DB_HOST = master@host1,slave@host2,slave@host3 
+DB_PORT = 3306,3307,3308
+DB_USERNAME = root1,root2,root3
+DB_PASSWORD = password1,password2,password3
+DB_DATABASE = database
 ```
 
 ## SQL Like
