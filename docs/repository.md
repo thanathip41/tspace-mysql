@@ -12,45 +12,112 @@ It provides methods for querying, inserting, updating, and deleting records in t
 import { Repository, OP , type T } from 'tspace-mysql'
 import { User } from '../Models/User'
 
+// Create repository instance for User entity
 const userRepository = Repository(User)
-const needPhone = true
+// Fetch a single user with flexible query options
 const user = await userRepository.findOne({
-  select : {
-    id : true,
-    name : true,
-    username : true,
-    phone : {
-      id : true,
-      name : true,
-      user_id : true,
+
+  /**
+   * 🎯 SELECT
+   * Specify which columns should be returned.
+   * Supports nested selection for relations.
+   */
+  select: {
+    id: true,
+    name: true,
+    username: true,
+
+    // Nested relation field selection
+    phone: {
+      id: true,
+      name: true,
+      user_id: true,
     }
   },
-  where : {
+
+  /**
+   * 🚫 EXCEPT
+   * Exclude specific columns from the result.
+   * Useful for hiding audit fields or sensitive data.
+   */
+  // except: {
+  //   deleted_at: true,
+  //   created_at: true,
+  //   updated_at: true,
+  // },
+
+  /**
+   * 🧮 SELECT RAW
+   * Add computed/raw SQL fields to the result.
+   * Automatically extends the return type.
+   */
+  // selectRaw: {
+  //   fullName: DB.raw('CONCAT(?,"@",?)', ['name', 'id'])
+  // },
+
+  /**
+   * 🧩 EXTEND
+   * Manually extend the result type with additional fields.
+   * Supports nested objects and arrays.
+   */
+  // extend: {
+  //   myNumber: Number,
+  //   myProfile: {
+  //     id: Number,
+  //     name: String
+  //   },
+  //   myOtherData: [
+  //     {
+  //       id: Number,
+  //       name: String
+  //     }
+  //   ]
+  // },
+
+  /**
+   * 🔎 WHERE
+   * Define filtering conditions.
+   */
+  where: {
     id: 1
   },
-  when : {
-    condition : needPhone,
+
+  /**
+   * ⚡ WHEN
+   * Conditionally modify the query.
+   * Only applied if `condition` is true.
+   */
+  when: {
+    condition: true,
     query: () => ({
-      relations : {
-        phone : true
-        /** 
-         You can also specify the phone with any methods of the repository
-        phone : {
-          where : {
-            id : 41
-          },
-          select : {
-            id : true,
-            user_id : true
-          }
-        }
-        */
+      relations: {
+        phone: true
+
+        /**
+         * You can also customize relation query:
+         *
+         * phone: {
+         *   where: { id: 41 },
+         *   select: {
+         *     id: true,
+         *     user_id: true
+         *   }
+         * }
+         */
       }
     })
   },
-  using : (query) => {
-    return query // returning self model you can using any method in your model.
-    // query.where('id',1)
+
+  /**
+   * 🛠 USING
+   * Direct access to the underlying query builder.
+   * Allows advanced customization using model methods.
+   */
+  using: (query) => {
+    return query
+
+    // Examples:
+    // query.where('id', 1)
     // query.customMethodWhereUser(1)
   }
 })
