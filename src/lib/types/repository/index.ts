@@ -351,7 +351,8 @@ export type TRepositoryRequest<
   S = undefined,
   SR = undefined,
   E = undefined,
-  SRS = undefined
+  SRS = undefined,
+  G = undefined
 > =
   XOR<
     SelectBlock<T, R, M, S>, // select ?:
@@ -377,6 +378,11 @@ export type TRepositoryRequest<
     limit?: number;
     offset?: number;
 
+    extend ?: G extends {}
+      ? G & {
+          [K in keyof G]:G[K] 
+      }
+      : Record<string, T.RepositoryGenericTypeOptions>,
     debug?: boolean;
     cache?: {
       key: string;
@@ -508,3 +514,22 @@ export type TRepositoryDelete<M extends Model<any, any> = Model<any, any>> = {
     debug?: boolean;
     transaction?: TConnection | TConnectionTransaction;
 };
+
+export type TRepositoryPrimitiveExtendType<T> =
+  T extends NumberConstructor ? number :
+  T extends StringConstructor ? string :
+  T extends BooleanConstructor ? boolean :
+  T extends DateConstructor ? Date :
+  T extends readonly (infer U)[] ? TRepositoryPrimitiveExtendType<U>[] :
+  T extends Record<string, any> ? {
+    [K in keyof T]: TRepositoryPrimitiveExtendType<T[K]>
+  } :
+  T;
+
+export type TRepositoryExtendType =
+  | NumberConstructor
+  | StringConstructor
+  | BooleanConstructor
+  | DateConstructor
+  | readonly TRepositoryExtendType[]
+  | { [ _: string]: TRepositoryExtendType }

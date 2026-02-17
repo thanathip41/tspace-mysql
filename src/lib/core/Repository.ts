@@ -51,14 +51,14 @@ class RepositoryFactory<
    *  const user = await userRepository.findOne()
    */
   async first<
-    K  extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
 
     const instance = this._handlerRequest(options);
 
@@ -66,7 +66,7 @@ class RepositoryFactory<
       throw new Error("The instance is not initialized");
     }
 
-    return await instance.first() as unknown as Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null>
+    return await instance.first() as unknown as Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null>
   }
 
   /**
@@ -111,14 +111,14 @@ class RepositoryFactory<
    *  const user = await userRepository.findOne()
    */
   async findOne<
-    K  extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS> | null> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
     return await this.first(options);
   }
 
@@ -164,20 +164,20 @@ class RepositoryFactory<
    *  const users = await userRepository.get()
    */
   async get<
-    K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS>[]> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G>[]> {
     const instance = this._handlerRequest(options);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
     return (await instance.get()) as unknown as Promise<
-      T.ResultFiltered<M, K, S, SR, E, SRS>[]
+      T.ResultFiltered<M, S, SR, E, SRS, G>[]
     >;
   }
 
@@ -223,14 +223,14 @@ class RepositoryFactory<
    *  const users = await userRepository.findMany()
    */
   async findMany<
-    K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS> = {}
-  ): Promise<T.ResultFiltered<M, K, S, SR, E, SRS>[]> {
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G>[]> {
     return await this.get(options);
   }
 
@@ -278,23 +278,23 @@ class RepositoryFactory<
    *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
    */
   async pagination<
-    K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number },'offset'> = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
+
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
     return (await instance.pagination({
       limit: options.limit,
       page: options.page,
-    })) as unknown as Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>>;
+    })) as unknown as Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>>;
   }
 
   /**
@@ -341,15 +341,14 @@ class RepositoryFactory<
    *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
    */
   async paginate<
-    K = {},
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
-    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS>> & { page?: number },'offset'> = {}
-  ): Promise<T.PaginateResultFiltered<M, K, S, SR, E, SRS>> {
-    //@ts-ignore
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
     return await this.pagination(options);
   }
 
@@ -380,8 +379,7 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     >
   ): Promise<boolean> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -416,8 +414,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): string {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+ 
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -454,8 +452,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<string> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+    
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
     return await instance.toJSON();
@@ -493,8 +491,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<(K extends keyof T.Result<M> ? T.Result<M>[K] : unknown)[]> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+    
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -531,8 +529,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+   
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
     return await instance.count(column as string);
@@ -568,8 +566,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+ 
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
     return await instance.avg(column as string);
@@ -605,8 +603,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+    
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -643,8 +641,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+   
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -681,8 +679,8 @@ class RepositoryFactory<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
   ): Promise<number> {
-    //@ts-ignore
-    const instance = this._handlerRequest(options);
+   
+    const instance = this._handlerRequest(options as any);
 
     if (instance == null) throw new Error("The instance is not initialized");
 
@@ -1496,8 +1494,7 @@ class RepositoryFactory<
 
     if (whereQuery != null) {
       instance.whereQuery((query: Model) => {
-        //@ts-ignore
-        return query.whereObject(whereQuery);
+        return query.whereObject(whereQuery as Record<string,any>);
       });
     }
 

@@ -26,8 +26,10 @@ import type {
     TRepositoryCreateOrThings, 
     TRepositoryDelete, 
     TRepositoryExcept, 
+    TRepositoryExtendType, 
     TRepositoryGroupBy, 
     TRepositoryOrderBy, 
+    TRepositoryPrimitiveExtendType, 
     TRepositoryRelation, 
     TRepositoryRequest, 
     TRepositorySelect, 
@@ -219,22 +221,22 @@ export declare namespace T {
     type Repository<M extends Model> = ReturnType<typeof Repository<M>>;
 
     type ResultFiltered<
-        M  extends Model, 
-        K  = {},         // add key from user
+        M  extends Model,
         S  = undefined,  // selected by columns
         SR = undefined,  // selected by relations
         E  = undefined,  // excepted by omit columns
-        SRS = undefined  // selected by raw select
+        SRS = undefined,  // selected by raw select
+        G = {}
     > = (
         [S, SR] extends [undefined, undefined]
         
         ?  SRS extends undefined 
             ? E extends undefined 
-                ? T.Columns<M> & K  
-                : T.Result<M> & K
+                ? T.Columns<M> & TRepositoryPrimitiveExtendType<G>  
+                : T.Result<M> & TRepositoryPrimitiveExtendType<G> 
             : E extends undefined 
-                ? T.Columns<M> & K & { [ K in keyof SRS ]: any }
-                : T.Result<M> & K & { [ K in keyof SRS ]: any }
+                ? T.Columns<M> & { [ K in keyof SRS ]: any } & TRepositoryPrimitiveExtendType<G>
+                : T.Result<M> & { [ K in keyof SRS ]: any } & TRepositoryPrimitiveExtendType<G>
         : TDeepExpand<
             TSelectionMerger<
                 SRS extends undefined 
@@ -249,7 +251,7 @@ export declare namespace T {
                         : S & { [ K in keyof SRS ]: true },
                 SR
             >
-        > & K
+        > & TRepositoryPrimitiveExtendType<G>
     ) extends infer $Resolved
         ? S extends undefined
             ? E extends undefined
@@ -269,17 +271,17 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M, K>>>
+    type PaginateResult<M extends Model> = TDeepExpand<TPagination<Result<M>>>
     
-    type InsertResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
+    type InsertResult<M extends Model> = TDeepExpand<TResultResolved<M>>;
 
-    type InsertManyResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>[];
+    type InsertManyResult<M extends Model> = TDeepExpand<TResultResolved<M>>[];
 
-    type InsertNotExistsResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> | null
+    type InsertNotExistsResult<M extends Model> = TDeepExpand<TResultResolved<M>> | null
 
-    type UpdateResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> | null
+    type UpdateResult<M extends Model> = TDeepExpand<TResultResolved<M>> | null
 
-    type UpdateManyResult<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>[]
+    type UpdateManyResult<M extends Model> = TDeepExpand<TResultResolved<M>>[]
 
     type DeleteResult = boolean
 
@@ -381,7 +383,8 @@ export declare namespace T {
         S = undefined, 
         SR = undefined, 
         E = undefined, 
-        SRS = undefined
+        SRS = undefined,
+        G = undefined
         > = TRepositoryRequest<
             TSchemaModel<M>, 
             TRelationModel<M>, 
@@ -389,7 +392,8 @@ export declare namespace T {
             S,
             SR,
             E,
-            SRS
+            SRS,
+            G
         >;
 
     type RepositoryCreate<M extends Model> = TRepositoryCreate<M>
@@ -399,28 +403,5 @@ export declare namespace T {
     type RepositoryCreateOrThings<M extends Model> = TRepositoryCreateOrThings<M>;
     type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
 
-    type RepositoryGenericTypeOptions =
-    | NumberConstructor
-    | StringConstructor
-    | BooleanConstructor
-    | DateConstructor
-    | readonly (
-        | NumberConstructor
-        | StringConstructor
-        | BooleanConstructor
-        | DateConstructor
-        )[]
-    | Record<
-        string,
-        | NumberConstructor
-        | StringConstructor
-        | BooleanConstructor
-        | DateConstructor
-        | readonly (
-            | NumberConstructor
-            | StringConstructor
-            | BooleanConstructor
-            | DateConstructor
-            )[]
-        >;
+    type RepositoryGenericTypeOptions = TRepositoryExtendType
 };
