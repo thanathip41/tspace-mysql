@@ -260,8 +260,6 @@ export declare namespace T {
             : TDeepExpand<$Resolved>
         : never;
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
-
     type PaginateResultFiltered<
         M extends Model,
         K = {}, 
@@ -271,7 +269,9 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type PaginateResult<M extends Model> = TDeepExpand<TPagination<Result<M>>>
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
+
+    type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
     
     type InsertResult<M extends Model> = TDeepExpand<TResultResolved<M>>;
 
