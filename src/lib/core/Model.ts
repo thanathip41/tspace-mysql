@@ -4769,6 +4769,175 @@ class Model<
   }
 
   /**
+   *
+   * @override
+   * @param {string=} column [column=id]
+   * @returns {promise<number>}
+   */
+  public async count(column: string = "id"): Promise<number> {
+
+    await this._prepareQueryPipeline();
+
+    const distinct = this.$state.get("DISTINCT");
+
+    column =
+      column === "*"
+        ? "*"
+        : distinct
+        ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
+        : `${this.bindColumn(column)}`;
+
+    this.selectRaw([
+      `${this.$constants("COUNT")}(${column})`,
+      `${this.$constants("AS")}`,
+      "\`aggregate\`"
+     ].join(' ')
+    );
+
+    const sql: string = this._queryBuilder().select();
+
+    const result: any[] = await this._queryStatement(sql);
+
+    return Number(
+      this._resultHandler(
+        result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) || 0
+      )
+    );
+  }
+
+  /**
+   * 
+   * @override
+   * @param {string=} column [column=id]
+   * @returns {promise<number>}
+   */
+  public async avg(column: string = "id"): Promise<number> {
+
+    await this._prepareQueryPipeline();
+
+    const distinct = this.$state.get("DISTINCT");
+
+    column = distinct
+      ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
+      : `${this.bindColumn(column)}`;
+
+    this.selectRaw(
+      `${this.$constants("AVG")}(${column}) ${this.$constants(
+        "AS"
+      )} \`aggregate\``
+    );
+
+    const sql: string = this._queryBuilder().select();
+
+    const result: any[] = await this._queryStatement(sql);
+
+    return Number(
+      this._resultHandler(
+        (result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) ||
+          0) / result.length
+      )
+    );
+  }
+
+  /**
+   * 
+   * @override
+   * @param {string=} column [column=id]
+   * @returns {promise<number>}
+   */
+  public async sum(column: string = "id"): Promise<number> {
+
+    await this._prepareQueryPipeline();
+
+    const distinct = this.$state.get("DISTINCT");
+
+    column = distinct
+      ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
+      : `${this.bindColumn(column)}`;
+
+    this.selectRaw(
+      `${this.$constants("SUM")}(${column}) ${this.$constants(
+        "AS"
+      )} \`aggregate\``
+    );
+
+    const sql: string = this._queryBuilder().select();
+
+    const result: any[] = await this._queryStatement(sql);
+
+    return Number(
+      this._resultHandler(
+        result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) || 0
+      )
+    );
+  }
+
+  /**
+   * 
+   * @override
+   * @param {string=} column [column=id]
+   * @returns {promise<number>}
+   */
+  public async max(column: string = "id"): Promise<number> {
+
+    await this._prepareQueryPipeline();
+
+    const distinct = this.$state.get("DISTINCT");
+
+    column = distinct
+      ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
+      : `${this.bindColumn(column)}`;
+
+    this.selectRaw(
+      `${this.$constants("MAX")}(${column}) ${this.$constants(
+        "AS"
+      )} \`aggregate\``
+    );
+
+    const sql: string = this._queryBuilder().select();
+
+    const result: any[] = await this._queryStatement(sql);
+
+    return Number(
+      this._resultHandler(
+        result.sort((a, b) => b?.aggregate - a?.aggregate)[0]?.aggregate || 0
+      )
+    );
+  }
+
+  /**
+   * @override
+   * @param {string=} column [column=id]
+   * @returns {promise<number>}
+   */
+  public async min(column: string = "id"): Promise<number> {
+
+    await this._prepareQueryPipeline();
+    
+    const distinct = this.$state.get("DISTINCT");
+
+    column = distinct
+      ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
+      : `${this.bindColumn(column)}`;
+
+    this.selectRaw(
+      `${this.$constants("MIN")}(${column}) ${this.$constants(
+        "AS"
+      )} \`aggregate\``
+    );
+
+    const sql: string = this._queryBuilder().select();
+
+    const result: any[] = await this._queryStatement(sql);
+
+    return Number(
+      this._resultHandler(
+        result.sort((a, b) => a?.aggregate - b?.aggregate)[0]?.aggregate || 0
+      )
+    );
+  }
+
+  /**
    * @override
    * @returns {promise<boolean>} promise boolean
    */
