@@ -26,6 +26,7 @@ class Blueprint<T = any> {
   private _column: string | null = null;
   private _isVirtual: boolean = false;
   private _isEnum : boolean = false;
+  private _isNull : boolean = true;
   private _sql: {
     select?: string;
     where?: string;
@@ -697,6 +698,7 @@ class Blueprint<T = any> {
    */
   notNull(): Blueprint<T> {
     this._addAssignAttribute(`NOT NULL`);
+    this._isNull = false;
     return this as Blueprint<T>;
   }
 
@@ -706,6 +708,7 @@ class Blueprint<T = any> {
    */
   notnull(): Blueprint<T> {
     this._addAssignAttribute(`NOT NULL`);
+    this._isNull = false;
     return this;
   }
 
@@ -870,6 +873,10 @@ class Blueprint<T = any> {
 
   get isEnum() {
     return this._isEnum
+  }
+
+   get isNull() {
+    return this._isNull
   }
 
   private _addAssignType(type: string) {

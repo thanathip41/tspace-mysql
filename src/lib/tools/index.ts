@@ -55,8 +55,37 @@ class Tool {
 
         } catch (err) {
             
-            throw new Error(`The package 'dotenv' is either not supported or not found. Please ensure you are running in a Node.js environment or try installing it with : npm install dotenv --save`)
+            throw new Error(Tool._errorMessage('dotenv'));
         }
+    }
+
+    static get zod() {
+        try {
+            //@ts-ignore
+            return this.import("zod") as typeof import("zod");
+
+        } catch (err) {
+
+            throw new Error(Tool._errorMessage('zod'))
+        }
+    }
+
+    static get typebox() {
+        try {
+            //@ts-ignore
+            return this.import("@sinclair/typebox") as typeof import("@sinclair/typebox");
+
+        } catch (err) {
+
+            throw new Error(Tool._errorMessage('@sinclair/typebox'))
+        }
+    }
+
+    private static _errorMessage(lib : string) {
+        return [
+            `The package '${lib}' is either not supported or not found.`, 
+            `Please ensure installing it with : npm install ${lib} --save`
+        ].join(' ')
     }
 }
 
