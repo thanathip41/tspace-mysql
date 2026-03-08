@@ -1,5 +1,7 @@
+import { utils } from "../../utils";
+
 class MemoryCache {
-    private cache: Map<string, { value: any, expiredAt: number }>;
+    private cache: Map<number, { value: any, expiredAt: number }>;
 
     constructor() {
         this.cache = new Map()
@@ -9,7 +11,7 @@ class MemoryCache {
         return 'memory'
     }
 
-    async all  () : Promise<any[]> {
+    async all () : Promise<any[]> {
         return new Promise((resolve) => {
             const values : any[] = []
 
@@ -23,21 +25,23 @@ class MemoryCache {
 
     exists(key: string): Promise<boolean> {
         return new Promise((resolve) => {
-            const cached = this.cache.get(key)
+            const hash = utils.hash32(key);
+            const cached = this.cache.get(hash)
             return resolve(cached != null)
         });
     }
 
     async get(key: string): Promise<any> {
         return await new Promise((resolve) => {
-            const cached = this.cache.get(key);
-    
+            const hash = utils.hash32(key);
+            const cached = this.cache.get(hash);
+
             if (!cached) {
                 return resolve(null);
             }
     
             if (Date.now() > cached.expiredAt) {
-                this.cache.delete(key);
+                this.cache.delete(hash);
                 return resolve(null);
             }
     
@@ -45,26 +49,28 @@ class MemoryCache {
         });
     }
     
-    set(key: string, value: any, ms: number): Promise<void> {
+    async set(key: string, value: any, ms: number): Promise<void> {
         return new Promise((resolve) => {
+            const hash = utils.hash32(key);
             const expiredAt = Date.now() + ms;
     
-            this.cache.set(key, { value, expiredAt });
+            this.cache.set(hash, { value, expiredAt });
     
             return resolve()
         });
     }
     
-    clear(): Promise<void> {
+    async clear(): Promise<void> {
         return new Promise((resolve) => {
             this.cache.clear();
             return resolve()
         });
     }
     
-    delete(key: string): Promise<void> {
+    async delete(key: string): Promise<void> {
         return new Promise((resolve) => {
-            this.cache.delete(key);
+            const hash = utils.hash32(key);
+            this.cache.delete(hash);
             return resolve()
         })
     }    

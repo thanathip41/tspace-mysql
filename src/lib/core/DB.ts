@@ -1,11 +1,9 @@
-import { format }       from "sql-formatter";
-import { AbstractDB }   from "./Abstracts/AbstractDB";
+import { format } from "sql-formatter";
+import { AbstractDB } from "./Abstracts/AbstractDB";
 import { StateManager } from "./StateManager";
-import { Tool }         from "../tools";
+import { Tool } from "../tool";
 
-import Pool, { 
-  PoolConnection 
-} from "./Pool";
+import Pool, { PoolConnection } from "./Pool";
 
 import type {
   TConstant,
@@ -98,7 +96,7 @@ class DB extends AbstractDB {
    */
   static async event(
     event: TPoolEvent,
-    callback: (data: any) => any
+    callback: (data: any) => any,
   ): Promise<void> {
     return new this().event(event, callback);
   }
@@ -134,7 +132,7 @@ class DB extends AbstractDB {
         `:${key}`,
         Array.isArray(parameter)
           ? `(${parameter.map((p) => `'${this.escape(p)}'`).join(",")})`
-          : `'${this.escape(parameter)}'`
+          : `'${this.escape(parameter)}'`,
       );
     }
 
@@ -150,7 +148,7 @@ class DB extends AbstractDB {
    */
   static async query(
     sql: string,
-    parameters: Record<string, any> = {}
+    parameters: Record<string, any> = {},
   ): Promise<any[]> {
     return await new this().query(sql, parameters);
   }
@@ -193,7 +191,7 @@ class DB extends AbstractDB {
   jsonObject(object: Record<string, string>, alias: string): string {
     if (!Object.keys(object).length)
       throw new Error(
-        "The method 'jsonObject' is not supported for empty object"
+        "The method 'jsonObject' is not supported for empty object",
       );
 
     let maping: string[] = [];
@@ -211,7 +209,7 @@ class DB extends AbstractDB {
     }
 
     return `${this.$constants("JSON_OBJECT")}(${maping.join(
-      " , "
+      " , ",
     )}) ${this.$constants("AS")} \`${alias}\``;
   }
 
@@ -274,7 +272,7 @@ class DB extends AbstractDB {
    */
   caseUpdate(
     cases: { when: string; then: string }[],
-    final?: string
+    final?: string,
   ): string | [] {
     if (!cases.length) return [];
 
@@ -310,7 +308,7 @@ class DB extends AbstractDB {
    */
   static caseUpdate(
     cases: { when: string; then: string }[],
-    final?: string
+    final?: string,
   ): string | [] {
     return new this().caseUpdate(cases, final);
   }
@@ -407,7 +405,7 @@ class DB extends AbstractDB {
    * @example
    * // Select a computed column using CONCAT
    * const users = await DB
-   *   .from('users') 
+   *   .from('users')
    *   .select(
    *     'id',
    *     DB.raw(
@@ -416,15 +414,17 @@ class DB extends AbstractDB {
    *   )
    *   .findOne();
    */
-  raw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): TRawStringQuery {
+  raw(
+    sql: string,
+    parameters: (boolean | number | string | any[] | null)[] = [],
+  ): TRawStringQuery {
     if (!parameters.length) {
       return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
     }
-  
+
     let bindSql = sql;
 
     for (const parameter of parameters) {
-     
       if (parameter === null) {
         bindSql = bindSql.replace("?", this.$constants("NULL"));
         continue;
@@ -439,7 +439,7 @@ class DB extends AbstractDB {
         "?",
         Array.isArray(parameter)
           ? `(${parameter.map((p) => p).join(",")})`
-          : `${parameter}`
+          : `${parameter}`,
       );
     }
 
@@ -449,7 +449,7 @@ class DB extends AbstractDB {
   /**
    * The 'raw' methid is used to allow for raw sql queries to some method in 'DB' or 'Model'.
    * Creates a raw SQL query with optional parameter bindings.
-   * 
+   *
    * @static
    * @param sql - The raw SQL string. Use `?` placeholders for parameters.
    * @param parameters - Values to bind to the placeholders.
@@ -458,7 +458,7 @@ class DB extends AbstractDB {
    * @example
    * // Select a computed column using CONCAT
    * const users = await DB
-   *   .from('users') 
+   *   .from('users')
    *   .select(
    *     'id',
    *     DB.raw(
@@ -468,8 +468,11 @@ class DB extends AbstractDB {
    *   )
    *   .findOne();
    */
-  static raw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): TRawStringQuery {
-    return `${new this().raw(sql,parameters)}` as TRawStringQuery;
+  static raw(
+    sql: string,
+    parameters: (boolean | number | string | any[] | null)[] = [],
+  ): TRawStringQuery {
+    return `${new this().raw(sql, parameters)}` as TRawStringQuery;
   }
 
   /**
@@ -545,7 +548,7 @@ class DB extends AbstractDB {
    * @returns {Connection}
    */
   static async getConnection(
-    options: TConnectionOptions
+    options: TConnectionOptions,
   ): Promise<TPoolConnected> {
     return new this().getConnection(options);
   }
@@ -572,7 +575,6 @@ class DB extends AbstractDB {
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
     if (this.$cluster) {
-
       const cluster = new PoolConnection().clusterConnect();
 
       const masters = cluster.masters;
@@ -588,13 +590,11 @@ class DB extends AbstractDB {
       if (options?.nodeId != null) {
         if (options.nodeId > length) {
           throw new Error(
-            `Invalid nodeId ${options.nodeId}. Cluster has only ${length} master node(s).`
+            `Invalid nodeId ${options.nodeId}. Cluster has only ${length} master node(s).`,
           );
         }
         selectedIndex = options.nodeId - 1;
-      } 
-      
-      else if (options?.primaryId != null) {
+      } else if (options?.primaryId != null) {
         selectedIndex = Math.round(options.primaryId % length);
       }
 
@@ -646,7 +646,7 @@ class DB extends AbstractDB {
    */
   removeProperties(
     data: any[] | Record<string, any>,
-    propertiesToRemoves: string[]
+    propertiesToRemoves: string[],
   ): Array<any> | Record<string, any> {
     const setNestedProperty = (obj: any, path: string, value: any) => {
       const segments = path.split(".");
@@ -668,7 +668,7 @@ class DB extends AbstractDB {
 
     const remove = (
       obj: Record<string, any>,
-      propertiesToRemoves: string[]
+      propertiesToRemoves: string[],
     ) => {
       const temp = JSON.parse(JSON.stringify(obj));
 
@@ -702,7 +702,7 @@ class DB extends AbstractDB {
           setNestedProperty(
             temp,
             props.join("."),
-            this.removeProperties(current, [afterProp, lastProp])
+            this.removeProperties(current, [afterProp, lastProp]),
           );
           continue;
         }
@@ -731,7 +731,7 @@ class DB extends AbstractDB {
    */
   static removeProperties(
     data: any[] | Record<string, any>,
-    propertiesToRemoves: string[]
+    propertiesToRemoves: string[],
   ): Array<any> | Record<string, any> {
     return new this().removeProperties(data, propertiesToRemoves);
   }
@@ -767,7 +767,7 @@ class DB extends AbstractDB {
     };
 
     await Promise.all(
-      backup.map((b) => creating({ table: b.table, values: b.values }))
+      backup.map((b) => creating({ table: b.table, values: b.values })),
     );
 
     return;
@@ -813,16 +813,15 @@ class DB extends AbstractDB {
 
     const sqlFormatted = (sql: string) => {
       const statements = sql
-        .split(';')
-        .map(s => s.trim())
+        .split(";")
+        .map((s) => s.trim())
         .filter(Boolean);
 
-      const formattedStatements = statements.map(stmt => {
-        if (stmt.includes('(')) {
-       
-          const firstParen = stmt.indexOf('(');
-          const lastParen = stmt.lastIndexOf(')');
-          if (firstParen === -1 || lastParen === -1) return stmt + ';';
+      const formattedStatements = statements.map((stmt) => {
+        if (stmt.includes("(")) {
+          const firstParen = stmt.indexOf("(");
+          const lastParen = stmt.lastIndexOf(")");
+          if (firstParen === -1 || lastParen === -1) return stmt + ";";
 
           const prefix = stmt.slice(0, firstParen).trim();
           let columnsPart = stmt.slice(firstParen + 1, lastParen).trim();
@@ -833,9 +832,9 @@ class DB extends AbstractDB {
 
           for (let i = 0; i < columnsPart.length; i++) {
             const char = columnsPart[i];
-            if (char === '(') parenCount++;
-            if (char === ')') parenCount--;
-            if (char === ',' && parenCount === 0) {
+            if (char === "(") parenCount++;
+            if (char === ")") parenCount--;
+            if (char === "," && parenCount === 0) {
               colArray.push(columnsPart.slice(start, i).trim());
               start = i + 1;
             }
@@ -843,7 +842,7 @@ class DB extends AbstractDB {
           colArray.push(columnsPart.slice(start).trim());
 
           const seen = new Set<string>();
-          const uniqueColumns = colArray.filter(col => {
+          const uniqueColumns = colArray.filter((col) => {
             const colNameMatch = col.match(/"([\w]+)"/) || col.match(/([\w]+)/);
             const colName = colNameMatch ? colNameMatch[1] : col;
             if (seen.has(colName)) return false;
@@ -851,7 +850,9 @@ class DB extends AbstractDB {
             return true;
           });
 
-          const formattedColumns = uniqueColumns.map(c => '    ' + c).join(',\n');
+          const formattedColumns = uniqueColumns
+            .map((c) => "    " + c)
+            .join(",\n");
 
           return `${prefix} (\n${formattedColumns}\n)`;
         } else {
@@ -859,9 +860,8 @@ class DB extends AbstractDB {
         }
       });
 
-      return formattedStatements.join(';\n\n');
+      return formattedStatements.join(";\n\n");
     };
-
 
     const backup = (await this._backupToString({ tables, database })).map(
       (b) => {
@@ -879,11 +879,14 @@ class DB extends AbstractDB {
                 `\n--`,
                 `-- Dumping data for table '${b.name}'`,
                 `--\n`,
-                `${b.values().map(v => `${v}`).join(",\n")}`,
+                `${b
+                  .values()
+                  .map((v) => `${v}`)
+                  .join(",\n")}`,
               ].join("\n")
             : "",
         };
-      }
+      },
     );
 
     if (connection != null && Object.keys(connection)?.length)
@@ -977,7 +980,7 @@ class DB extends AbstractDB {
               linesBetweenQueries: 1,
             }) + "\n",
         };
-      }
+      },
     );
 
     let sql: string[] = [
@@ -1146,7 +1149,7 @@ class DB extends AbstractDB {
         language: "spark",
         tabWidth: 2,
         linesBetweenQueries: 1,
-      })
+      }),
     );
 
     return;
@@ -1227,7 +1230,7 @@ class DB extends AbstractDB {
             .debug(this.$state.get("DEBUG"))
             .bind(connWithDatabase)
             .query(
-              this._queryBuilder().createTable({ database, table, schema })
+              this._queryBuilder().createTable({ database, table, schema }),
             );
 
           return;
@@ -1285,13 +1288,16 @@ class DB extends AbstractDB {
         values: () => {
           if (!values.length) return [];
 
-          const chunked = this.$utils.chunkArray([...values], values.length > 500 ? 500 : 10 );
+          const chunked = this.$utils.chunkArray(
+            [...values],
+            values.length > 500 ? 500 : 10,
+          );
           const str: string[] = [];
 
           for (const data of chunked) {
             const sql = this.table(table)
-            .createMultiple([...data])
-            .toString();
+              .createMultiple([...data])
+              .toString();
 
             str.push(sql);
           }

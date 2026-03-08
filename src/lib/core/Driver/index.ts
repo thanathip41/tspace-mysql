@@ -1,13 +1,10 @@
 import { EventEmitter } from "events";
 import { StateManager } from "../StateManager";
-import { Tool }         from "../../tools";
-import { CONSTANTS }    from "../../constants";
-import { Blueprint }    from "../Blueprint";
+import { Tool } from "../../tool";
+import { CONSTANTS } from "../../constants";
+import { Blueprint } from "../Blueprint";
 
-import type { 
-  TConstant, 
-  TPoolConnected 
-} from "../../types";
+import type { TConstant, TPoolConnected } from "../../types";
 export abstract class BaseDriver extends EventEmitter {
   private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
   private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
@@ -15,7 +12,7 @@ export abstract class BaseDriver extends EventEmitter {
   protected options!: Record<string, any>;
   protected MESSAGE_TRX_CLOSED = "The transaction has either been closed";
   protected abstract connect(): TPoolConnected;
-  protected abstract disconnect(pool:any): void;
+  protected abstract disconnect(pool: any): void;
   protected abstract meta(results: any, sql: string): void;
   protected abstract returning(results: any): any;
 
@@ -85,8 +82,8 @@ export abstract class BaseDriver extends EventEmitter {
               message(
                 err.message == null || err.message === ""
                   ? err.code
-                  : err.message
-              )
+                  : err.message,
+              ),
             );
             if (this.options.CONNECTION_ERROR) return process.exit();
           });
@@ -110,7 +107,7 @@ export abstract class BaseDriver extends EventEmitter {
                 .join(" - ");
 
               console.log(this._messageConnected.bind(this)(`${message}`));
-            }
+            },
           );
         }
       });
@@ -155,7 +152,7 @@ export abstract class QueryBuilder {
     if (!CONSTANTS.hasOwnProperty(name))
       throw new Error(`Not found that constant : '${name}'`);
 
-    return CONSTANTS[name]
+    return CONSTANTS[name];
   };
   protected $state!: StateManager;
 
@@ -188,7 +185,7 @@ export abstract class QueryBuilder {
 
   public abstract getTables(database: string): string;
 
-  public abstract getTable({
+  public abstract hasTable({
     database,
     table,
   }: {
@@ -238,7 +235,7 @@ export abstract class QueryBuilder {
   }: {
     database: string;
     table: string;
-  }) : string;
+  }): string;
 
   public abstract getFKs({
     database,
@@ -286,10 +283,10 @@ export abstract class QueryBuilder {
 
   public abstract getIndexes({
     database,
-    table
+    table,
   }: {
-    database : string;
-    table    : string;
+    database: string;
+    table: string;
   }): string;
 
   public abstract hasIndex({
@@ -309,15 +306,51 @@ export abstract class QueryBuilder {
   }: {
     table: string;
     index: string;
-    key: string;
+    key: string | string[];
   }): string;
+
+  public abstract hasUnique({
+    database,
+    table,
+    unique,
+  }: {
+    database: string;
+    table: string;
+    unique: string;
+  }): string;
+
+  // public abstract createUnique({
+  //   table,
+  //   unique,
+  //   key,
+  // }: {
+  //   table: string;
+  //   unique: string;
+  //   key: string | string[];
+  // }): string;
+
+  // public abstract hasPrimaryKey({
+  //   database,
+  //   table,
+  // }: {
+  //   database: string;
+  //   table: string;
+  // }): string;
+
+  // public abstract createPrimaryKey({
+  //   table,
+  //   key,
+  // }: {
+  //   table: string;
+  //   key: string | string[];
+  // }): string;
 
   public abstract getDatabase(database: string): string;
   public abstract dropDatabase(database: string): string;
   public abstract dropView(view: string): string;
   public abstract dropTable(table: string): string;
   public abstract truncate(table: string): string;
-  public abstract sleep(second : number) : string;
+  public abstract sleep(second: number): string;
 
   public abstract format(sql: (string | null)[] | string): string;
 
@@ -327,7 +360,7 @@ export abstract class QueryBuilder {
   protected abstract bindGroupBy(values: string[]): string | null;
   protected abstract bindSelect(
     values: string[],
-    opts?: { distinct?: string }
+    opts?: { distinct?: string },
   ): string;
   protected abstract bindFrom(args: {
     from: string[];

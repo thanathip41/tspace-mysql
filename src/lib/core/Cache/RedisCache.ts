@@ -1,105 +1,95 @@
-import { Tool } from '../../tools'
+import { Tool } from "../../tool";
 
 class RedisCache {
-    private _redis : { createClient : Function }  = Tool.import('redis')
-    private client : { 
-        on : Function 
-        quit : Function 
-        connect : Function 
-        keys : Function 
-        get : (v : string) => Promise<any>
-        set : (key : string, value : string, { PX } : { PX : number } ) => Promise<void>
-        del : (v : string) => Promise<void>
-        flushAll : () => Promise<void>
+  private _redis: { createClient: Function } = Tool.import("redis");
+  private client: {
+    on: Function;
+    quit: Function;
+    connect: Function;
+    keys: Function;
+    get: (v: string) => Promise<any>;
+    set: (key: string, value: string, { PX }: { PX: number }) => Promise<void>;
+    del: (v: string) => Promise<void>;
+    flushAll: () => Promise<void>;
+  };
+
+  constructor(url: string) {
+    this.client = this._redis.createClient({
+      url,
+    });
+
+    this.client.on("error", (err: any) => {
+      if (err) {
+        console.log(err);
+        this.client.quit();
+      }
+    });
+
+    this.client.connect();
+  }
+
+  provider() {
+    return "redis";
+  }
+
+  async all() {
+    const cacheds = await this.client.keys("*");
+
+    const values: any[] = [];
+
+    for (const cached in cacheds) {
+      values.push(cached == null ? null : this._safetyJsonParse(cached));
     }
 
-    constructor(url : string) {
-        
-        this.client = this._redis.createClient({
-            url
-        })
-  
-        this.client.on("error", (err : any) => {
-            if(err) {
-                console.log(err)
-                this.client.quit()
-            }
-        })
+    return values;
+  }
 
-        this.client.connect()
+  async exists(key: string) {
+    const cached = await this.client.get(key);
 
+    return cached != null;
+  }
+
+  async get(key: string) {
+    const cached = await this.client.get(key);
+
+    if (cached == null) return null;
+
+    return this._safetyJsonParse(cached);
+  }
+
+  async set(key: string, value: any, ms: number) {
+    await this.client.set(key, JSON.stringify(value), { PX: ms });
+
+    return;
+  }
+
+  async clear() {
+    await this.client.flushAll();
+
+    return;
+  }
+
+  async delete(key: string) {
+    await this.client.del(key);
+
+    return;
+  }
+
+  private _safetyJsonParse(value: unknown) {
+    if (typeof value !== 'string') return value;
+
+    const v = value.trim();
+
+    if (!v || (v[0] !== '{' && v[0] !== '[')) return value;
+
+    try {
+        return JSON.parse(v);
+    } catch {
+        return value;
     }
-
-    provider () {
-        return 'redis'
-    }
-
-    async all () {
-
-        const cacheds = await this.client.keys('*')
-
-        const values : any[] = []
-
-        for(const cached in cacheds) {
-
-            values.push(cached == null 
-                ? null 
-                : this._safetyJsonParse(cached)
-            )
-        }
-
-        return values
-    }
-
-    async exists (key: string) {
-
-        const cached = await this.client.get(key)
-
-        return cached != null
-    }
-
-    async get(key: string) {
-       
-        const cached = await this.client.get(key)
-
-        if (cached == null) return null
-        
-        return this._safetyJsonParse(cached)
-    }
-
-    async set(key: string, value: any, ms: number) {
-
-        await this.client.set(key, JSON.stringify(value),  { PX: ms })
-
-        return
-    }
-
-    
-    async clear() {
-
-        await this.client.flushAll()
-
-        return
-    }
-
-    async delete(key: string) {
-
-        await this.client.del(key)
-
-        return
-    }
-
-    private _safetyJsonParse (value : any) {
-        try {
-
-            return JSON.parse(value)
-            
-        } catch (e) {
-
-            return value
-        }
-    }
+  }
 }
 
-export { RedisCache }
-export default RedisCache
+export { RedisCache };
+export default RedisCache;

@@ -22,7 +22,7 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 ## Schema
 Setup schema
 <!-- tabs:start -->
-### **Tspace-mysql**
+### **schema:`Tspace-mysql`**
 ```js
 // User.ts
 import {
@@ -49,6 +49,9 @@ class User extends Model {
   @Column(() => Blueprint.varchar(50).null())
   public name !: string | null
 
+  @Column(() => Blueprint.boolean().null())
+  public actived !: boolean | null
+
   @Column(() => Blueprint.timestamp())
   public created_at!: Date
 
@@ -63,7 +66,7 @@ class User extends Model {
 }
 ```
 
-### **Typeorm**
+### **schema:`Typeorm`**
 
 ```js
 // User.entity.ts
@@ -91,6 +94,9 @@ class User {
   @Column({ type: 'varchar', length: 50, nullable: true })
   name!: string | null
 
+  @Column({ type: 'boolean', nullable: true })
+  public actived !: boolean | null
+
   @CreateDateColumn()
   created_at!: Date
 
@@ -105,101 +111,76 @@ class User {
 }
 ```
 
-### **Prisma**
+### **schema:`Prisma`**
 
 ```js
 // schema.prisma
-
 model User {
-    id         Int      @id @default(autoincrement())
-    uuid       String?  @unique @default(uuid())
-    email      String   @unique @db.VarChar(50)
-    name       String?  @db.VarChar(50)
-    created_at DateTime @default(now())
-    updated_at DateTime @updatedAt
-    deleted_at DateTime?
-    posts      Post[]
-    @@map("users")
+  id         Int      @id @default(autoincrement())
+  uuid       String?  @unique @default(uuid())
+  email      String   @unique @db.VarChar(50)
+  name       String?  @db.VarChar(50)
+  actived     Boolean  @db.Boolean()
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  deleted_at DateTime?
+  posts      Post[]
+  @@map("users")
 }
 
 ```
 <!-- tabs:end -->
 
 
-## Selecting fields
+## Partial select typing
 This section explains the differences in type safety when selecting a subset of a model's fields in a query.
 
-### Tspace-mysql
-TypeORM provides a select option for its find methods (e.g. find, findByIds, findOne, ...), for example:
 <!-- tabs:start -->
-
-#### **`find` with `select`**
+#### **`select:`Tspace-mysql**
 
 ```js
-const postRepository = Repository(Post)
-const publishedPosts = await postRepository.findMany({
-  where: { published: true },
+const userRepository = Repository(User)
+const activedUsers = await userRepository.findMany({
+  where: { actived: true },
   select: { id : true , title : true }
 })
 
 ```
-
-#### **Model**
-
-```js
-export class Post {
-  @Column(() => Blueprint.int().notNull().primary().autoIncrement())
-  id: number
-
-  @Column(() => Blueprint.varchar().null())
-  title: string
-
-  @Column(() => Blueprint.varchar().null())
-  content: string | null
-
-  @Column(() => Blueprint.boolean().default(false))
-  published: boolean
-
-  @BelongsTo(() => Post)
-  author: User
-}
-```
-<!-- tabs:end -->
-
-### TypeORM
-TypeORM provides a select option for its find methods (e.g. find, findByIds, findOne, ...), for example:
-<!-- tabs:start -->
-
-#### **`find` with `select`**
+#### **`select:`TypeORM**
 
 ```js
-const postRepository = getManager().getRepository(Post)
-const publishedPosts = await postRepository.find({
-  where: { published: true },
-  select: ['id', 'title']
+const userRepository = getManager().getRepository(Post)
+const activedUsers = await userRepository.find({
+  where: { actived: true },
+  select: { id : true , title : true }
 })
 
 ```
-
-#### **`Model`**
+#### **`select:`Prisma**
 
 ```js
-@Entity()
-export class Post {
-  @PrimaryGeneratedColumn()
-  id: number
+const userRepository = prima.user
+const activedUsers = await userRepository.findMany({
+  where: { actived: true },
+  select: { id : true , title : true }
+})
 
-  @Column()
-  title: string
-
-  @Column({ nullable: true })
-  content: string
-
-  @Column({ default: false })
-  published: boolean
-
-  @ManyToOne((type) => User, (user) => user.posts)
-  author: User
-}
 ```
 <!-- tabs:end -->
+<div class="page-nav-cards">
+  <a href="#" class="prev-card">
+    <div class="nav-label"> 
+        <span class="page-nav-arrow">←</span> 
+        Previous
+    </div>
+    <div class="nav-title"> Getting Started</div>
+  </a>
+
+  <a href="#/integrations" class="next-card">
+    <div class="nav-label">
+        Next
+        <span class="page-nav-arrow">→</span>
+    </div>
+    <div class="nav-title"> Integrations </div>
+  </a>
+</div>

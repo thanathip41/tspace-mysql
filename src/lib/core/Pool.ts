@@ -1,23 +1,21 @@
-import { Tool }             from '../tools'
-import { MysqlDriver }      from './Driver/mysql/MysqlDriver';
-import { PostgresDriver }   from './Driver/postgres/PostgresDriver';
-import { MariadbDriver }    from './Driver/mariadb/MariadbDriver';
-import Config, { 
-  loadOptionsEnv 
-} from "../config";
-import type { 
-  TDriver, 
-  TOptions, 
-  TPoolConnected, 
+import { Tool } from "../tool";
+import { MysqlDriver } from "./Driver/mysql/MysqlDriver";
+import { PostgresDriver } from "./Driver/postgres/PostgresDriver";
+import { MariadbDriver } from "./Driver/mariadb/MariadbDriver";
+import Config, { loadOptionsEnv } from "../config";
+import type {
+  TDriver,
+  TOptions,
+  TPoolConnected,
   TPoolCusterConnected,
 } from "../types";
 
-export class PoolConnection  {
-  private OPTIONS : Map<string, any>    = this._loadOptions();
-  private POOL    : TPoolConnected | null = null
-  private CLUSTER : TPoolCusterConnected | null  = null;
+export class PoolConnection {
+  private OPTIONS: Map<string, any> = this._loadOptions();
+  private POOL: TPoolConnected | null = null;
+  private CLUSTER: TPoolCusterConnected | null = null;
 
-  get instance () {
+  get instance() {
     return this.POOL;
   }
 
@@ -31,14 +29,13 @@ export class PoolConnection  {
         Object.entries({
           ...Object.fromEntries(this.OPTIONS),
           ...JSON.parse(JSON.stringify(options)),
-        })
+        }),
       );
     }
   }
 
-  public connect(configs ?: Record<string,any>): TPoolConnected {
-
-    if(this.POOL != null) {
+  public connect(configs?: Record<string, any>): TPoolConnected {
+    if (this.POOL != null) {
       return this.POOL;
     }
 
@@ -48,25 +45,25 @@ export class PoolConnection  {
       case "mysql":
       case "mysql2": {
         this.POOL = new MysqlDriver(options).connect();
-        break
+        break;
       }
 
       case "pg":
       case "postgres": {
         this.POOL = new PostgresDriver(options).connect();
-        break
+        break;
       }
 
-      case 'mariadb': {
-          this.POOL = new MariadbDriver(options).connect();
-          break
+      case "mariadb": {
+        this.POOL = new MariadbDriver(options).connect();
+        break;
       }
 
       default:
         throw new Error("No default driver specified");
     }
 
-    return this.POOL
+    return this.POOL;
   }
 
   public disconnect(): void {
@@ -78,13 +75,13 @@ export class PoolConnection  {
         return new MysqlDriver(options).disconnect(this.POOL);
       }
 
-      case 'pg':
-      case 'postgres': {
-        return new PostgresDriver(options).disconnect(this.POOL)
+      case "pg":
+      case "postgres": {
+        return new PostgresDriver(options).disconnect(this.POOL);
       }
 
-      case 'mariadb': {
-        return new MariadbDriver(options).disconnect(this.POOL)
+      case "mariadb": {
+        return new MariadbDriver(options).disconnect(this.POOL);
       }
 
       default:
@@ -93,28 +90,31 @@ export class PoolConnection  {
   }
 
   public clusterConnect() {
-
     if (this.CLUSTER != null) {
       return this.CLUSTER;
     }
 
     const options = Object.fromEntries(this.OPTIONS);
 
-    const parseList = (value: string) => String(value).split(',').map(v => v.trim());
-    const getValue = (arr: any[], index: number) => arr[index] != null ? arr[index] : arr[arr.length - 1];
+    const parseList = (value: string) =>
+      String(value)
+        .split(",")
+        .map((v) => v.trim());
+    const getValue = (arr: any[], index: number) =>
+      arr[index] != null ? arr[index] : arr[arr.length - 1];
 
     const hostList = parseList(options.host);
     const hosts: string[] = [];
-    const types: ('master' | 'slave')[] = [];
+    const types: ("master" | "slave")[] = [];
 
     hostList.forEach((h, i) => {
-      let type : 'master' | 'slave' = i === 0 ? 'master' : 'slave';
+      let type: "master" | "slave" = i === 0 ? "master" : "slave";
       let host = h;
 
-      if (h.includes('@')) {
-        const [_t, _h] = h.split('@');
-        type = _t === 'master' ? 'master' : 'slave'
-        host = _h
+      if (h.includes("@")) {
+        const [_t, _h] = h.split("@");
+        type = _t === "master" ? "master" : "slave";
+        host = _h;
       }
 
       hosts.push(host);
@@ -123,7 +123,7 @@ export class PoolConnection  {
 
     const usernames = parseList(options.user);
     const passwords = parseList(options.password);
-    const ports : number[] = parseList(options.port).map(v => +v);
+    const ports: number[] = parseList(options.port).map((v) => +v);
 
     type TOptions = {
       host: string;
@@ -139,72 +139,76 @@ export class PoolConnection  {
       password: string;
     }[] = hosts
       .map((host, i) => {
-        if (types[i] !== 'master') return null;
+        if (types[i] !== "master") return null;
         return {
           host,
           port: getValue(ports, i),
           username: getValue(usernames, i),
-          password: getValue(passwords, i)
+          password: getValue(passwords, i),
         };
       })
       .filter(Boolean) as TOptions[];
 
-    const writers = writerOptions.map((opt,i) => {
+    const writers = writerOptions.map((opt, i) => {
       return {
-        pool : {
-          type: 'master',
-          node: +i+1,
+        pool: {
+          type: "master",
+          node: +i + 1,
           host: opt.host,
           port: opt.port,
-          username: opt.username
+          username: opt.username,
         },
         ...new PoolConnection().connect({
           ...options,
-          ...opt
-        })
-      }
+          ...opt,
+        }),
+      };
     });
 
     const readerOptions = hosts
       .map((host, i) => {
-        if (types[i] !== 'slave') return null;
+        if (types[i] !== "slave") return null;
         return {
           host,
           port: getValue(ports, i),
           username: getValue(usernames, i),
-          password: getValue(passwords, i)
+          password: getValue(passwords, i),
         };
       })
       .filter(Boolean) as TOptions[];
 
-    const readers = readerOptions.map((opt,i) => {
+    const readers = readerOptions.map((opt, i) => {
       return {
-         pool : {
-          type: 'slave',
-          node: +i+1,
+        pool: {
+          type: "slave",
+          node: +i + 1,
           host: opt.host,
           port: opt.port,
-          username: opt.username
+          username: opt.username,
         },
         ...new PoolConnection().connect({
           ...options,
-          ...opt
-        })
-      }
+          ...opt,
+        }),
+      };
     });
 
     if (!writers.length) {
-      throw new Error('No master nodes found. Please verify your cluster config.');
+      throw new Error(
+        "No master nodes found. Please verify your cluster config.",
+      );
     }
-    
+
     if (!readers.length) {
-      throw new Error('No slave nodes found. Please verify your cluster config.');
+      throw new Error(
+        "No slave nodes found. Please verify your cluster config.",
+      );
     }
 
     this.CLUSTER = {
       masters: writers,
-      slaves: readers
-    }
+      slaves: readers,
+    };
 
     return this.CLUSTER;
   }
@@ -212,17 +216,17 @@ export class PoolConnection  {
   private _defaultOptions() {
     return new Map<string, number | boolean | string>(
       Object.entries({
-        connectionLimit       : Number(Config.CONNECTION_LIMIT),
-        dateStrings           : Boolean(Config.DATE_STRINGS),
-        host                  : String(Config.HOST),
-        port                  : Number(Config.PORT),
-        database              : String(Config.DATABASE),
-        user                  : String(Config.USERNAME),
-        password              : String(Config.PASSWORD),
+        connectionLimit: Number(Config.CONNECTION_LIMIT),
+        dateStrings: Boolean(Config.DATE_STRINGS),
+        host: String(Config.HOST),
+        port: Number(Config.PORT),
+        database: String(Config.DATABASE),
+        user: String(Config.USERNAME),
+        password: String(Config.PASSWORD),
         // ------------------ custom ----------------------------
-        driver                : String(Config.DRIVER ?? "mysql2"),
-        cluster               : Boolean(Config.CLUSTER ?? false)
-      })
+        driver: String(Config.DRIVER ?? "mysql2"),
+        cluster: Boolean(Config.CLUSTER ?? false),
+      }),
     );
   }
 
@@ -256,7 +260,7 @@ export class PoolConnection  {
       if (options == null) return this._defaultOptions();
 
       return new Map<string, number | boolean | string>(
-        Object.entries(options)
+        Object.entries(options),
       );
     } catch (e) {
       return this._defaultOptions();
@@ -265,7 +269,7 @@ export class PoolConnection  {
 
   private _convertStringToObject(
     str: string,
-    target = "db"
+    target = "db",
   ): Record<string, any> | null {
     if (str.toLocaleLowerCase().includes("#ignore")) return null;
     str = str.trim();
@@ -302,7 +306,7 @@ export class PoolConnection  {
   }
 
   private _covertKeyTypeToCorrectType(
-    data: Record<string, any>
+    data: Record<string, any>,
   ): Record<string, any> {
     for (const [key, value] of Object.entries(data)) {
       if (value == null) continue;
@@ -335,4 +339,4 @@ const pool = new PoolConnection();
 export { loadOptionsEnv };
 export { pool as Pool };
 
-export default pool
+export default pool;

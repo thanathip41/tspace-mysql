@@ -1,106 +1,106 @@
-import { Tool } from '../tools'
-import dotenv from 'dotenv'
+import { Tool } from "../tool";
+import dotenv from "dotenv";
 
-const resolveEnvPath = (customEnv ?: string) : string => {
-    const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
-    const env = Tool.path.join(Tool.path.resolve(), '.env');
+const resolveEnvPath = (customEnv?: string): string => {
+  const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
+  const env = Tool.path.join(Tool.path.resolve(), ".env");
 
-    if(NODE_ENV == null) {
-        return env;
-    }
-
-    const envWithNodeEnv = Tool.path.join(
-        Tool.path.resolve(), 
-        `.env.${NODE_ENV}`
-    );
-
-    if (Tool.fs.existsSync(envWithNodeEnv)) {
-        return envWithNodeEnv;
-    }
-
+  if (NODE_ENV == null) {
     return env;
-}
+  }
 
-dotenv.config({ path : resolveEnvPath() })
+  const envWithNodeEnv = Tool.path.join(
+    Tool.path.resolve(),
+    `.env.${NODE_ENV}`,
+  );
 
-const ENV = process.env
+  if (Tool.fs.existsSync(envWithNodeEnv)) {
+    return envWithNodeEnv;
+  }
 
-const rawEnv =  {
-    HOST                    : ENV.DB_HOST ?? 'localhost',
-    PORT                    : ENV.DB_PORT ?? 3306,
-    USERNAME                : ENV.DB_USERNAME ?? ENV.DB_USER,
-    PASSWORD                : ENV.DB_PASSWORD ?? '', 
-    DATABASE                : ENV.DB_DATABASE, 
-    CONNECTION_LIMIT        : ENV.DB_CONNECTION_LIMIT ?? 20,
+  return env;
+};
 
-    // for mysql2 only
-    DATE_STRINGS            : ENV.DB_DATE_STRINGS ?? false,
-  
-    CLUSTER                 : ENV.DB_CLUSTER ?? false,
-    DRIVER                  : ENV.DB_DRIVER ?? 'mysql2',
-    CACHE                   : ENV.DB_CACHE ?? 'memory' as 'memory' | 'db' | 'redis',
-    CONNECTION_ERROR        : ENV.DB_CONNECTION_ERROR ?? false,
-    CONNECTION_SUCCESS      : ENV.DB_CONNECTION_SUCCESS ?? false,
-} as const 
+dotenv.config({ path: resolveEnvPath() });
 
-const parseEnv = <T extends object>(env: T): T  => {
-    
-    const parsed: Record<string,unknown> = {}
+const ENV = process.env;
 
-    for (const [key, value] of Object.entries(env)) {
+const rawEnv = {
+  HOST: ENV.DB_HOST ?? "localhost",
+  PORT: ENV.DB_PORT ?? 3306,
+  USERNAME: ENV.DB_USERNAME ?? ENV.DB_USER,
+  PASSWORD: ENV.DB_PASSWORD ?? "",
+  DATABASE: ENV.DB_DATABASE,
+  CONNECTION_LIMIT: ENV.DB_CONNECTION_LIMIT ?? 20,
 
-        if (value == null) continue
+  // for mysql2 only
+  DATE_STRINGS: ENV.DB_DATE_STRINGS ?? false,
 
-        if(value === '') {
-            parsed[key] = value;
-            continue
-        }
+  CLUSTER: ENV.DB_CLUSTER ?? false,
+  DRIVER: ENV.DB_DRIVER ?? "mysql2",
+  CACHE: ENV.DB_CACHE ?? ("memory" as "memory" | "db" | "redis"),
+  CONNECTION_ERROR: ENV.DB_CONNECTION_ERROR ?? false,
+  CONNECTION_SUCCESS: ENV.DB_CONNECTION_SUCCESS ?? false,
+} as const;
 
-        if (/^-?\d+$/.test(value)) {
-            if (Number.isSafeInteger(Number(value))) {
-                parsed[key] = Number(value);
-                continue
-            }
-            parsed[key] = value;
-            continue
-        }
-        
-        if (typeof value === 'string' && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
-            (parsed)[key] = value.toLowerCase() === 'true'
+const parseEnv = <T extends object>(env: T): T => {
+  const parsed: Record<string, unknown> = {};
 
-            continue
-        } 
+  for (const [key, value] of Object.entries(env)) {
+    if (value == null) continue;
 
-        parsed[key] = value
+    if (value === "") {
+      parsed[key] = value;
+      continue;
     }
 
-    return parsed as T
-}
+    if (/^-?\d+$/.test(value)) {
+      if (Number.isSafeInteger(Number(value))) {
+        parsed[key] = Number(value);
+        continue;
+      }
+      parsed[key] = value;
+      continue;
+    }
 
-const env = parseEnv<typeof rawEnv>(rawEnv)
+    if (
+      typeof value === "string" &&
+      (value.toLowerCase() === "true" || value.toLowerCase() === "false")
+    ) {
+      parsed[key] = value.toLowerCase() === "true";
+
+      continue;
+    }
+
+    parsed[key] = value;
+  }
+
+  return parsed as T;
+};
+
+const env = parseEnv<typeof rawEnv>(rawEnv);
 
 export const loadOptionsEnv = (customEnv?: string) => {
-    
-    const pathEnv = resolveEnvPath(customEnv);
+  const pathEnv = resolveEnvPath(customEnv);
 
-    dotenv.config({ path : pathEnv, override: true });
+  dotenv.config({ path: pathEnv, override: true });
 
-    const ENV = process.env;
- 
-    const rawEnv =  {
-        cluster              : ENV.DB_CLUSTER ?? false,
-        driver               : ENV.DB_DRIVER ?? 'mysql2',
-        host                 : ENV.DB_HOST,
-        port                 : ENV.DB_PORT || 3306,
-        username             : ENV.DB_USERNAME,
-        password             : ENV.DB_PASSWORD || '', 
-        database             : ENV.DB_DATABASE, 
-    } as const
+  const ENV = process.env;
 
-    const env = parseEnv<typeof rawEnv>(rawEnv);
-    
-    return Object.freeze(env) as typeof rawEnv;
-}
+  const rawEnv = {
+    cluster: ENV.DB_CLUSTER ?? false,
+    driver: ENV.DB_DRIVER ?? "mysql2",
+    host: ENV.DB_HOST,
+    port: ENV.DB_PORT || 3306,
+    username: ENV.DB_USERNAME,
+    password: ENV.DB_PASSWORD || "",
+    database: ENV.DB_DATABASE,
+  } as const;
+
+  const env = parseEnv<typeof rawEnv>(rawEnv);
+
+  return Object.freeze(env) as typeof rawEnv;
+};
 
 const Config = Object.freeze(env);
 

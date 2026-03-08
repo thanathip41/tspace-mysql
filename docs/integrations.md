@@ -312,20 +312,32 @@ bun add tspace-mysql
 
 ```js
 import { Elysia } from 'elysia'
-import { DB, sql, Model, Repository } from 'tspace-mysql';
+import { DB, sql, Model, Repository, Blueprint, Column } from 'tspace-mysql';
 
-class User extends Model {}
+class User extends Model {
+  @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+  public id!: number;
+
+  @Column(() => Blueprint.varchar(50).null())
+  public uuid!: string | null;
+
+  @Column(() => Blueprint.varchar(50).null())
+  public username !: string;
+
+  @Column(() => Blueprint.varchar(50).null())
+  public password !: string;
+}
 
 const app = new Elysia()
 
-app.get('/', async () => {
+app
+.get('/', async () => {
   try {
 
     const usersWithSqlLike = await sql().from('users');
     const usersWithDB = await new DB('users').findMany();
     const usersWithModel = await new User().findMany();
     const usersWithRepository = await Repository(User).findMany();
-
 
     return {
       usersWithRepository
@@ -338,6 +350,26 @@ app.get('/', async () => {
       error: err.message
     }
   }
+})
+.post('/', ({ body }) => {
+  return { body }
+}, {
+    body: Schema
+    .validator(User)
+    .create({  
+      omit: ["id"],
+      optional: ["uuid"]
+    })
+})
+.put('/', ({ body }) => {
+  return { body }
+}, {
+    body: Schema
+    .validator(User)
+    .update({  
+      required: ["id","email"],
+      omit: ["uuid"]
+    })
 })
 
 app.listen(5000)

@@ -162,11 +162,11 @@ DB_DATABASE = database
     <div class="nav-title"> Getting Started</div>
   </a>
 
-  <a href="#/sql-like" class="next-card">
+  <a href="#/comparisons" class="next-card">
     <div class="nav-label">
         Next
         <span class="page-nav-arrow">→</span>
     </div>
-    <div class="nav-title"> SQL Like </div>
+    <div class="nav-title"> Comparisons </div>
   </a>
 </div>

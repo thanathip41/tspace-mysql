@@ -227,6 +227,27 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public hasTable({ database, table }: { database: string; table: string }) {
+    
+    const sql = [
+      `SELECT EXISTS( 
+        SELECT 1
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE 
+          TABLE_TYPE = 'BASE TABLE'
+          AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+          AND TABLE_NAME LIKE '${table.replace(/\`/g, "")}'
+          AND UPPER(TABLE_SCHEMA) NOT IN (
+            'PG_CATALOG', 
+            'INFORMATION_SCHEMA', 
+            'PG_TOAST'
+          )
+       ) AS "IS_EXISTS"`,
+    ];
+
+    return this.format(sql);
+  }
+
   public createTable({
     database,
     table,
@@ -606,13 +627,16 @@ export class PostgresQueryBuilder extends QueryBuilder {
   }: {
     table: string;
     index: string;
-    key: string;
+    key: string | string[];
   }) {
+
+    key = Array.isArray(key) ? key : [key];
+
     const sql = [
       `${this.$constants("CREATE_INDEX")}`,
       `\`${index.replace(/`/g, "")}\``,
       `${this.$constants("ON")}`,
-      `${table}(\`${key.replace(/`/g, "")}\`)`,
+      `${table}(${key.map(k => `\`${k.replace(/`/g, "")}\``).join(', ')})`,
     ];
 
     return this.format(sql);

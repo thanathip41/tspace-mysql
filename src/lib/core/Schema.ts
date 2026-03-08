@@ -1,10 +1,10 @@
 import { Builder }      from "./Builder";
 import { Model }        from "./Model";
-import { Tool }         from "../tools";
+import { Tool }         from "../tool";
 import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
-import { T } from "./UtilityTypes";
-
+import { T }            from "./UtilityTypes";
+import { z }            from "zod";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -271,13 +271,10 @@ class Schema {
   }
 
   /**
-   * The 'createValidator' method is used Create runtime validator schema from Model definition.
+   * The 'validator' method is used Create runtime validator schema from Model definition.
    * 
    * Generates request validation schema compatible with supported adapters.
    *
-   * Supported adapters:
-   * - "zod"
-   * - "typebox"
    *
    * @param {Model} model Model class used to generate validator schema.
    * @type  {object}  options
@@ -296,152 +293,214 @@ class Schema {
    *     return { body }
    * }, {
    *     body: Schema.createValidator(User, {
-   *         adapter: "zod", // "typebox"
    *         omit: ["id", "created_at", "updated_at", "deleted_at"],
    *         optional: ["uuid"]
    *     })
    * })
    * .listen(8000)
    */
-  public createValidator<M extends Model>(
+  public validator<M extends Model>(model: new () => M) {
+    return {
+    /**
+     * The 'create' method is used Create runtime validator schema from Model definition.
+     * 
+     * Generates request validation schema compatible with supported adapters.
+     *
+     * @type  {object}  options
+     * @param {string[]} options.omit
+     * @param {string[]} options.optional
+     *
+     *
+     * @example
+     *
+     * import { Schema } from 'tspace-mysql'
+     * import { User } from './User'
+     * import { Elysia } from 'elysia'
+     *
+     * new Elysia()
+     * .post('/', ({ body }) => {
+     *     return { body }
+     * }, {
+     *     body: Schema.createValidator(User, {
+     *         omit: ["id", "created_at", "updated_at", "deleted_at"],
+     *         optional: ["uuid"]
+     *     })
+     * })
+     * .listen(8000)
+     */
+      create: <
+       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
+       Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+      >(options?: {
+        omit?: O;
+        optional?: Opt;
+      } & T.NoConflict<O, Opt>) => {
+        return this._createValidator(model,options)
+      },
+      /**
+       * The 'update' method is used Create runtime validator schema from Model definition.
+       * 
+       * Generates request validation schema compatible with supported adapters.
+       *
+       * @type  {object}  options
+       * @param {string[]} options.required
+       * @param {string[]} options.omit
+       * @example
+       *
+       * import { Schema } from 'tspace-mysql'
+       * import { User } from './User'
+       * import { Elysia } from 'elysia'
+       *
+       * new Elysia()
+       * .post('/', ({ body }) => {
+       *     return { body }
+       * }, {
+       *     body: Schema
+       *     .validator(User)
+       *     .update({  
+       *         required: ["id","email"],
+       *         omit: ["uuid"]
+       *     })
+       * })
+       * .listen(8000)
+       */
+      update: <
+       R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
+       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+      >(options?: {  required?: R, omit?: O; } & T.NoConflict<R, O>) => {
+        return this._updateValidator(model, options)
+      }
+    }
+  }
+
+  /**
+   * The 'validator' method is used Create runtime validator schema from Model definition.
+   * 
+   * Generates request validation schema compatible with supported adapters.
+   *
+   *
+   * @param {Model} model Model class used to generate validator schema.
+   * @type  {object}  options
+   * @param {string[]} options.omit
+   * @param {string[]} options.optional
+   *
+   *
+   * @example
+   *
+   * import { Schema } from 'tspace-mysql'
+   * import { User } from './User'
+   * import { Elysia } from 'elysia'
+   *
+   * new Elysia()
+   * .post('/', ({ body }) => {
+   *     return { body }
+   * }, {
+   *     body: Schema.createValidator(User, {
+   *         omit: ["id", "created_at", "updated_at", "deleted_at"],
+   *         optional: ["uuid"]
+   *     })
+   * })
+   * .listen(8000)
+   */
+  public static validator<M extends Model>(model: new () => M) {
+    return new this().validator(model)
+  }
+
+  public alterTable<M extends Model>(model: new () => M) {
+    return {
+      primary:<
+       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+      >(columns : C) => {
+        return this
+      },
+      dropPrimary:() => {
+        return this
+      },
+      unique:<
+       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+      >(columns : C, uniqueName : string = "") => {
+        return this
+      },
+      dropUnique:(name: string) => {
+        return this
+      },
+      index:<
+       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+      >(columns : C, indexName : string = "") => {
+        return this
+      },
+      dropIndex:(name: string) => {
+        return this
+      },
+    }
+  }
+
+  private _createValidator<
+    M extends Model,
+    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
+    Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+  >(
     model: new () => M,
     options?: {
-      adapter: "zod" | "typebox",
-      omit?: T.ColumnKeys<M>[];
-      optional?: T.ColumnKeys<M>[];
+      omit?: O;
+      optional?: Opt;
     }
   ) {
 
-    const adapter = this._adapter(options?.adapter ?? "zod");
-
-    const schema = new model().getSchemaModel();
+    const schema = new model().getSchemaModel() as T.ColumnBlueprints<M>;
 
     if(schema == null) {
       throw new Error(`The '${new model().constructor.name}' is missing schema definition.`)
     }
 
-    const shape: Record<string, any> = {};
+    const shape = {} as Partial<T.ZodShapeCreate<M,O,Opt>>;
 
-    const definition = this._definitionSchema(schema);
+    const definition = this._definitionSchema(schema)
 
     for (const key in definition) {
-
-      if (options?.omit?.includes(key)) {
-        continue;
-      }
+     
+      if (options?.omit?.includes(key)) continue;
 
       const value = definition[key];
 
-      let schemaValidator : any = null;
+      let schemaValidator: z.ZodTypeAny
 
       if (Array.isArray(value)) {
-        schemaValidator = adapter.enum(value);
+        schemaValidator = z.enum(value);
       }
 
       else if (typeof value === "string" && value.includes("|null")) {
-        const base = value.replace("|null", "");
+        const base = value.replace("|null", "") as keyof typeof z;
         //@ts-ignore
-        schemaValidator = adapter.nullable(adapter[base]());
+        schemaValidator = z.nullable(z[base]());
       }
 
       else {
         //@ts-ignore
-        schemaValidator = adapter[value]();
+        schemaValidator = z[value]();
       }
 
-      //@ts-ignore
       if (options?.optional?.includes(key)) {
-        schemaValidator = adapter.optional(schemaValidator);
+        schemaValidator = z.optional(schemaValidator);
       }
-
+      // @ts-ignore
       shape[key] = schemaValidator;
-    } 
-
-    return adapter.object(shape);
-
+    }
+   
+    return z.object(shape) as unknown as z.ZodObject<T.ZodShapeCreate<M,O,Opt>>;
   }
 
-  /**
-   * The 'createValidator' method is used Create runtime validator schema from Model definition.
-   * 
-   * Generates request validation schema compatible with supported adapters.
-   *
-   * Supported adapters:
-   * - "zod"
-   * - "typebox"
-   *
-  *  @param {Model} model Model class used to generate validator schema.
-   * @type  {object}  options
-   * @param {string[]} options.omit
-   * @param {string[]} options.optional
-   *
-   * @example
-   *
-   * import { Schema } from 'tspace-mysql'
-   * import { User } from './User'
-   * import { Elysia } from 'elysia'
-   *
-   * new Elysia()
-   * .post('/', ({ body }) => {
-   *     return { body }
-   * }, {
-   *     body: Schema.createValidator(User, {
-   *         adapter: "zod", // "typebox"
-   *         omit: ["id", "created_at", "updated_at", "deleted_at"],
-   *         optional: ["uuid"]
-   *     })
-   * })
-   * .listen(8000)
-   */
-  public static createValidator<M extends Model>(
+  private _updateValidator<
+    M extends Model,
+    R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
+    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+  >(
     model: new () => M,
     options?: {
-      adapter: "zod" | "typebox",
-      omit?: T.ColumnKeys<M>[];
-      optional?: T.ColumnKeys<M>[];
+      required?: R;
+      omit?: O;
     }
   ) {
-    return new this().createValidator(model,options)
-  }
-
-  /**
-   * The 'updateValidator' method is used Create runtime validator schema from Model definition.
-   * 
-   * Generates request validation schema compatible with supported adapters.
-   *
-   * Supported adapters:
-   * - "zod"
-   * - "typebox"
-   *
-   * @param {Model} model Model class used to generate validator schema.
-   * @type  {object}  options
-   * @param {string[]} options.require
-   * @example
-   *
-   * import { Schema } from 'tspace-mysql'
-   * import { User } from './User'
-   * import { Elysia } from 'elysia'
-   *
-   * new Elysia()
-   * .post('/', ({ body }) => {
-   *     return { body }
-   * }, {
-   *     body: Schema.updateValidator(User, {
-   *         adapter: "zod", // "typebox"
-   *         require: ["first_name","last_name"]
-   *     })
-   * })
-   * .listen(8000)
-   */
-  public updateValidator<M extends Model>(
-    model: new () => M,
-    options?: {
-      adapter: "zod" | "typebox",
-      require?: T.ColumnKeys<M>[];
-    }
-  ) {
-
-    const adapter = this._adapter(options?.adapter ?? "zod");
 
     const schema = new model().getSchemaModel();
 
@@ -449,7 +508,7 @@ class Schema {
       throw new Error(`The '${new model().constructor.name}' is missing schema definition.`)
     }
 
-    const shape: Record<string, any> = {};
+    const shape = {} as Partial<T.ZodShapeUpdate<M,R,O>>;
 
     const definition = this._definitionSchema(schema);
 
@@ -457,88 +516,50 @@ class Schema {
 
       const value = definition[key];
       
-      let schemaValidator = null;
+      let schemaValidator: z.ZodTypeAny;
 
-      if (!options?.require?.includes(key)) {
+      if (!options?.required?.includes(key)) {
 
         const v = Array.isArray(value) ? "enum" : value?.replace("|null", "");
         //@ts-ignore
-        schemaValidator = Array.isArray(value) ? adapter.enum(value) : adapter[v]();
+        schemaValidator = Array.isArray(value) ? z.enum(value) : z[v]();
 
-        schemaValidator = adapter.nullable(schemaValidator);
+        schemaValidator = z.nullable(schemaValidator);
 
-        schemaValidator = adapter.optional(schemaValidator);
+        schemaValidator = z.optional(schemaValidator);
         
+        // @ts-ignore
         shape[key] = schemaValidator;
 
         continue;
       }
       
       if (Array.isArray(value)) {
-        schemaValidator = adapter.enum(value);
+        schemaValidator = z.enum(value);
       }
 
       else if (typeof value === "string" && value.includes("|null")) {
         const base = value.replace("|null", "");
         //@ts-ignore
-        schemaValidator = adapter.nullable(adapter[base]());
+        schemaValidator = z.nullable(z[base]());
       }
 
       else {
         //@ts-ignore
-        schemaValidator = adapter[value]();
+        schemaValidator = z[value]();
       }
 
+      // @ts-ignore
       shape[key] = schemaValidator;
     } 
 
-    return adapter.object(shape);
+    return z.object(shape) as unknown as z.ZodObject<T.ZodShapeUpdate<M,R,O>>;
 
-  }
-
-  /**
-   * The 'updateValidator' method is used Create runtime validator schema from Model definition.
-   * 
-   * Generates request validation schema compatible with supported adapters.
-   *
-   * Supported adapters:
-   * - "zod"
-   * - "typebox"
-   *
-   * @param {Model} model Model class used to generate validator schema.
-   * @type  {object}  options
-   * @param {string[]} options.require
-   * 
-   * @example
-   *
-   * import { Schema } from 'tspace-mysql'
-   * import { User } from './User'
-   * import { Elysia } from 'elysia'
-   *
-   * new Elysia()
-   * .post('/', ({ body }) => {
-   *     return { body }
-   * }, {
-   *     body: Schema.updateValidator(User, {
-   *         adapter: "zod", // "typebox"
-   *         require: ["first_name","last_name"]
-   *     })
-   * })
-   * .listen(8000)
-   */
-  public static updateValidator<M extends Model>(
-    model: new () => M,
-    options?: {
-      adapter: "zod" | "typebox",
-      require?: T.ColumnKeys<M>[];
-    }
-  ) {
-    return new this().updateValidator(model,options)
   }
 
   private _definitionSchema (schema: Record<string, Blueprint<any>>) {
 
-     const typeMap = new Map<any, string>([
+    const typeMap = new Map<any, string>([
       [Number, "number"],
       [String, "string"],
       [Boolean, "boolean"],
@@ -565,56 +586,7 @@ class Schema {
       }
     }
 
-    return definition
-  }
-
-  private _adapter(adapter : "zod" | "typebox") {
-
-    if(adapter === "zod") {
-      
-      const { z } = Tool.zod;
-
-      return {
-        string: () => z.string(),
-        number: () => z.number(),
-        boolean: () => z.boolean(),
-        date: () => z.date(),
-
-        enum: (values: readonly string[]) => {
-          return z.enum(values as any)
-        },
-        nullable: (schema: any) => schema.nullable(),
-        object: (shape: any) => z.object(shape),
-        optional:(values:any) => z.optional(values)
-      }
-    }
-
-    else if(adapter === "typebox") {
-      const { Type } = Tool.typebox;
-
-      return {
-        string: () => Type.String(),
-        number: () => Type.Number(),
-        boolean: () => Type.Boolean(),
-        date: () => Type.String({ format: "date-time" }),
-
-        enum: (values: readonly string[]) => {
-          return Type.Union(values.map(v => Type.Literal(v)))
-        },
-
-        nullable: (schema: any) => {
-          return Type.Union([schema, Type.Null()])
-        },
-
-        object: (shape: any) => Type.Object(shape),
-        optional:(values:any) => Type.Optional(values)
-      }
-    }
-
-    else {
-      throw new Error('The adapter not found')
-    }
-    
+    return definition;
   }
 
   private async _import(pathModel: string) {
@@ -624,9 +596,10 @@ class Schema {
       const model: Model = new loadModel.default();
 
       return model;
-    } catch (err: any) {
+    } catch (err) {
+      
       console.log(
-        `Check your 'Model' from path : '${pathModel}' is not instance of Model`
+        `Check your 'Model' from path : '${pathModel}' is not instance of Model, Please export default class with extends Model.`
       );
 
       return null;
@@ -661,7 +634,7 @@ class Schema {
 
     for (const model of models) {
       
-      if (model == null || !force) continue;
+      if (model == null) continue;
 
       let rawSchemaModel = model.getSchemaModel();
 
@@ -678,16 +651,15 @@ class Schema {
         {} as Record<string, Blueprint>
       );
 
+      await this._syncTable({
+        schemaModel,
+        model,
+        log,
+        tables
+      })
+
 
       if(force) {
-
-        await this._syncTable({
-          schemaModel,
-          model,
-          log,
-          tables
-        })
-
         await this._syncMissingColumn({
           schemaModel,
           model,
@@ -873,6 +845,7 @@ class Schema {
     model: Model;
     log: boolean;
   }) {
+  
     for (const key in schemaModel) {
       const name = schemaModel[key]?.indexKey;
 
@@ -929,6 +902,75 @@ class Schema {
           .catch((err) => {
             console.log(
               `\x1b[31mERROR: Failed to craete index key '${index}' with name ${key} caused by '${err.message}'\x1b[0m`
+            );
+          });
+      }
+    }
+
+    for (const key in schemaModel) {
+      const compositeIndex = schemaModel[key]?.compositeIndexKey;
+
+      if (compositeIndex == null) continue;
+
+      const table = model.getTableName();
+
+      const comebindKey = [key,...compositeIndex.columns]
+
+      const index = compositeIndex.name == "" ? `idx_${table}(${comebindKey})` : compositeIndex.name;
+
+      const query = model["_queryBuilder"]() as QueryBuilder;
+
+      try {
+        const INDEX = await this.$db.debug(log)
+        .hasIndex({
+          table: table,
+          index: index,
+        });
+
+        if (INDEX) continue;
+
+        await this.$db.debug(log).rawQuery(
+          query.createIndex({
+            table: table,
+            index: index,
+            key: comebindKey,
+          })
+        );
+      } catch (err: any) {
+        
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.createTable({
+              database: this.$db.database(),
+              table   : table,
+              schema  : schemaModel
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to create the table '${table}' caused by '${err.message}'\x1b[0m`
+            );
+          });
+
+        const compositeIndex = schemaModel[key]?.compositeIndexKey;
+
+        if (compositeIndex == null) continue;
+
+        const comebindKey = [key,...compositeIndex.columns]
+
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.createIndex({
+              table: model.getTableName(),
+              index: index,
+              key: comebindKey,
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to craete index key '${index}' with name ${comebindKey} caused by '${err.message}'\x1b[0m`
             );
           });
       }

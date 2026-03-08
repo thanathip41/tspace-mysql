@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "declaration": true,
     "target": "esnext",
     "module": "commonjs",
     "lib": ["esnext"],
@@ -14,8 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "downlevelIteration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "declaration": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist/**/*.js"]

@@ -1,54 +1,61 @@
 import { Model }      from '../Model'
 import { DB }         from '../DB';
 import { Blueprint }  from '../Blueprint';
-import { Schema }     from '../Schema';
 import { utils }      from '../../utils';
-import { CONSTANTS }  from '../../constants';
-
 class DBCache {
 
-    private _cacheTable   = '$cache'
-    private _v0x          = 'v0x'
-    private _maxAddress   = 10
-    private _maxLength    = 100
-    private _db           = () => new DB(this._cacheTable)
+    private _cacheTable   = '$cache';
+    private _maxLength    = 64 * 1024;
+    private _db           = () => new DB(this._cacheTable);
 
     provider () {
         return 'db'
     }
 
-    async all () {
-        
-        const cacheds = await this._db().get()
+    async all() {
+        const rows = await this._db()
+        .select('*')
+        .orderBy('hash')
+        .orderBy('chunk')
+        .get()
 
-        const values : any[] = []
+        const grouped = new Map<number, any[]>()
 
-        for(const cached of cacheds) {
+        for (const row of rows) {
 
-            for(let i = 0 ; i < this._maxAddress; i++) {
-                const find = cached[this._addressNumber(i)]
-                if(find == null || find === '') break
+            if (
+                Number.isNaN(+row.expiredAt) ||
+                Date.now() > +row.expiredAt
+            ) {
 
-                if (
-                    Number.isNaN(+cached.expiredAt) || 
-                    new Date() > new Date(+cached.expiredAt)
-                ) {
-
-                    await this._db()
-                    .where('key',cached.key)
+                await this._db()
+                    .where('hash', row.hash)
                     .delete()
-        
-                    continue
-                }
 
-                const maybeArray = this._safetyJsonParse(find)
-    
-                if(Array.isArray(maybeArray)) {
-                    values.push(...this._safetyJsonParse(find))
-                    continue
-                }
-    
-                values.push(this._safetyJsonParse(find))
+                continue
+            }
+
+            if (!grouped.has(row.hash))
+                grouped.set(row.hash, [])
+
+            grouped.get(row.hash)!.push(row)
+        }
+
+        const values:any[] = []
+
+        for (const chunks of grouped.values()) {
+
+            const json = chunks
+                .sort((a,b)=>a.chunk-b.chunk)
+                .map(c => c.value)
+                .join('')
+
+            const parsed = this._safetyJsonParse(json)
+
+            if (Array.isArray(parsed)) {
+                values.push(...parsed)
+            } else {
+                values.push(parsed)
             }
         }
 
@@ -56,109 +63,117 @@ class DBCache {
     }
 
     async exists (key : string) {
-        
-        const cached = await this._db().where('key',key).exists()
+        const hash = utils.hash32(key);
+        const cached = await this._db().where('hash',hash).exists()
         
         return cached
     }
-    async get(key: string) : Promise<any> {
+
+    async get(key: string, options: { attempt?: number } = {}): Promise<any> {
+
+        const attempt = options.attempt ?? 0;
 
         try {
 
-            const addresses = Array.from({ length: this._maxAddress }, (_, i) => this._addressNumber(i));
+            const hash = utils.hash32(key);
 
-            const cached = await this._db().select('expiredAt',...addresses).where('key',key).findOne()
+            const rows = await this._db()
+                .select('chunk', 'value', 'expiredAt')
+                .where('hash', hash)
+                .orderBy('chunk')
+                .get()
 
-            if (!cached) return null
+            if (!rows || rows.length === 0) {
+                return null
+            }
 
-            const now = Date.now();
-            const expiredAt = +cached.expiredAt;
+            const now = Date.now()
+            const expiredAt = +rows[0].expiredAt
 
             if (Number.isNaN(expiredAt) || now > expiredAt) {
 
                 await this._db()
-                .where('key',key)
-                .deleteMany()
+                    .where('hash', hash)
+                    .deleteMany()
 
                 return null
             }
 
-            const value = this._safetyJsonParse(cached[this._addressNumber(0)])
+            const buffers: string[] = []
 
-            if(!Array.isArray(value)) return value
-
-            const values : any[] = []
-
-            for(let i = 0 ; i < this._maxAddress; i++) {
-                const find = cached[this._addressNumber(i)]
-
-                if(find == null || find === '') break
-
-                const parsed = this._safetyJsonParse(find)
-
-                if(Array.isArray(parsed)) {
-                    values.push(...parsed)
-                    continue
-                }
-
-                values.push(parsed)
+            for (const row of rows) {
+                if (!row.value) continue
+                buffers.push(row.value)
             }
 
-            return values.length === 1 ? values[0] : values;
+            const json = buffers.join('')
 
-        } catch (err : any) {
+            const parsed = this._safetyJsonParse(json)
+
+            return parsed
+
+        } catch (err: any) {
 
             const message = String(err?.message ?? '')
 
-            if(message.toLocaleLowerCase().includes("doesn't exist")) {
+            if (
+                message.toLowerCase().includes("doesn't exist") &&
+                attempt < 3
+            ) {
                 await this._checkTableCacheExists()
-                return await this.get(key)
+
+                return this.get(key, {
+                    ...options,
+                    attempt: attempt + 1
+                })
             }
 
             throw err
-
         }
     }
-    async set(key: string, value: any, ms: number) : Promise<void> {
 
-        const expiredAt = +new Date() + ms
+    async set(key: string, value: any, ms: number): Promise<void> {
 
-        if(!Array.isArray(value)) {
-            await this._db()
-            .create({
-                key,
-                [this._addressNumber(0)] : JSON.stringify(value),
-                expiredAt,
-                createdAt : utils.timestamp(),
-                updatedAt : utils.timestamp()
-            })
-            .void()
-            .save()
-    
-            return
+        const expiredAt = Date.now() + ms;
+
+        const hash = utils.hash32(key);
+
+        const now = utils.timestamp();
+
+        const json = JSON.stringify(value);
+
+        const CHUNK_SIZE = this._maxLength;
+
+        const chunks: string[] = []
+
+        for (let i = 0; i < json.length; i += CHUNK_SIZE) {
+            chunks.push(json.slice(i, i + CHUNK_SIZE))
         }
 
-        const avg = value.length / this._maxAddress
-        const chunked = utils.chunkArray(value, avg > this._maxLength ? avg : this._maxLength)
-        const caches : Record<string,any> = {}
-
-        for(const [index , value] of chunked.entries()) {
-            caches[this._addressNumber(index)] = JSON.stringify(value)
-        }
+        const rows = chunks.map((value, i) => ({
+            key,
+            hash,
+            chunk: i,
+            value,
+            expiredAt,
+            createdAt: now,
+            updatedAt: now
+        }))
 
         await this._db()
-        .create({
-            key,
-            ...caches,
-            expiredAt,
-            createdAt : utils.timestamp(),
-            updatedAt : utils.timestamp()
-        })
+        .where('hash', hash)
+        .void()
+        .deleteMany()
+
+        await this._db()
+        .insertMany(rows)
         .void()
         .save()
+        .catch(err => console.log(err))
 
-        return
+        return;
     }
+
     async clear() : Promise<void> {
 
         await this._db().truncate({ force : true})
@@ -167,37 +182,27 @@ class DBCache {
     }
     async delete(key: string) : Promise<void> {
 
-        await this._db().where('key',key).delete()
+        const hash = utils.hash32(key);
+
+        await this._db().where('hash',hash).deleteMany()
 
         return
     }
 
-    private _addressNumber (number : number) {
-
-        const index = `0${number}`.slice(-2)
-        return `${this._v0x}${index}`
-    }
-
     private async _checkTableCacheExists () {
 
-        const table = this._cacheTable
+        const table = this._cacheTable;
 
-        const checkTables = await DB.rawQuery(`${CONSTANTS.SHOW_TABLES} ${CONSTANTS.LIKE} '${table}'`)
+        const hasCacheTable = await new DB().hasTable(table);
         
-        const existsTables = checkTables.map((c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0])[0]
-
-        if(existsTables != null) return
-
-        let addresses : Record<string,any> = {}
-
-        for(let i = 0; i < this._maxAddress; i++) {
-            addresses[this._addressNumber(i)] = new Blueprint().json().null()
-        }
+        if(hasCacheTable) return;
 
         const schema = {
             id                  : new Blueprint().int().notNull().primary().autoIncrement(),
-            key                 : new Blueprint().varchar(255).notNull().index(),
-            ...addresses,
+            key                 : new Blueprint().varchar(255).notNull(),
+            hash                : new Blueprint().bigInt().unsigned().notNull().index(),
+            chunk               : new Blueprint().int().default(0).notNull().index(),
+            value               : new Blueprint().mediumText().null(),
             expiredAt           : new Blueprint().bigInt().notNull(),
             createdAt           : new Blueprint().timestamp().notNull(),
             updatedAt           : new Blueprint().timestamp().notNull()
@@ -210,7 +215,7 @@ class DBCache {
             }
         }
 
-        await new Cache().sync({ index:true })
+        await new Cache().sync({  force : true , index:true })
 
         return
     }

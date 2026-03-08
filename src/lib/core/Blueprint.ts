@@ -7,8 +7,8 @@ import { Model } from "./Model";
  *   import sql from '../../../build/lib/core/SqlLike';
  *   await new Schema().table('users',{ 
  *      id          : Blueprint.int().notNull().primary().autoIncrement(),
- *      name        : Blueprint.varchar(255).default('my name'),
- *      email       : Blueprint.varchar(255).unique(),
+ *      name        : Blueprint.varchar(255).default('my name').index(),
+ *      email       : Blueprint.varchar(255).unique().compositeIndex(['verify']), // composite index email,verify
  *      json        : Blueprint.json().null(),
  *      verify      : Blueprint.tinyInt(1).notNull(),
  *      created_at  : Blueprint.timestamp().null(),
@@ -23,6 +23,7 @@ class Blueprint<T = any> {
   private _attributes: string[] = [];
   private _foreignKey: Record<string, any> | null = null;
   private _index: string | null = null;
+  private _compositeIndex : { columns : string[] , name ?: string } | null = null;
   private _column: string | null = null;
   private _isVirtual: boolean = false;
   private _isEnum : boolean = false;
@@ -832,6 +833,19 @@ class Blueprint<T = any> {
     return this;
   }
 
+  /**
+   * Assign attributes 'index' in table
+   * @param {string} name of index
+   * @return {Blueprint<T>} Blueprint
+   */
+  compositeIndex(columns: string[], name: string = ""): Blueprint<T> {
+    this._compositeIndex = {
+      columns,
+      name
+    }
+    return this;
+  }
+
   get sql() {
     return this._sql;
   }
@@ -855,6 +869,11 @@ class Blueprint<T = any> {
   get indexKey() {
     return this._index;
   }
+
+  get compositeIndexKey() {
+    return this._compositeIndex;
+  }
+
   get valueType() {
     return this._valueType;
   }

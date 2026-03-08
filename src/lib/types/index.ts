@@ -420,6 +420,11 @@ export type TResultResolved<M extends Model, K = {}> = (
         : TResult<K & M>
 );
 
+export type TConflictKeys<
+        R extends readonly PropertyKey[],
+        O extends readonly PropertyKey[]
+    > = Extract<R[number], O[number]>;
+
 type Normalize<T> = T extends object ? (
   (T extends { select: infer S } ? S : {}) &
   (T extends { relations: infer R } ? R : {}) &

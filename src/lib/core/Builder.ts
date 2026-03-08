@@ -4094,6 +4094,24 @@ class Builder extends AbstractBuilder {
       .map((table) => String(Object.values(table)[0]))
       .filter((d) => d != null || d !== "");
   }
+
+  /**
+   * The `getTable` method is used to retrieve a list of all table names
+   * in the current database.
+   *
+   * @returns {Promise<string[]>} A promise that resolves to an array of table names.
+   *
+   * @async
+   */
+  public async hasTable(table: string): Promise<boolean> {
+
+    const result = await this._queryStatement(
+      this._queryBuilder().hasTable({ database : this.database() , table})
+    );
+
+    return Boolean(result[0]?.IS_EXISTS ?? false);
+  }
+
   /**
    *
    * The 'showColumns' method is used to show columns table.

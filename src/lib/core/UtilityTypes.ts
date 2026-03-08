@@ -12,7 +12,8 @@ import type {
     TRelationKeys, 
     TRelationResults, 
     TSelectionMerger,
-    TDeepOmit
+    TDeepOmit,
+    TConflictKeys
 } from "../types";
 
 import type { 
@@ -37,6 +38,7 @@ import type {
     TRepositoryUpdateMultiple, 
     TRepositoryWhere 
 } from "../types/repository";
+import { z } from "zod";
 
 /**
  * The 'TSchemaStrict' type is used to specify the type of the schema.
@@ -285,6 +287,64 @@ export declare namespace T {
 
     type DeleteResult = boolean
 
+    type NoConflict<
+        R extends readonly PropertyKey[],
+        O extends readonly PropertyKey[]
+    > = TConflictKeys<R, O> extends never
+    ? {}
+    : {
+        ERROR_DUPLICATE_KEYS: TConflictKeys<R, O>
+    };
+
+    type ZodShapeCreate<
+        M extends Model,
+        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
+        Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    > = {
+    [K in Extract<
+        T.ColumnKeys<M, { OnlyColumn: true }>,
+        keyof Columns<M>
+    > as
+        K extends O[number]
+        ? K extends Opt[number]
+            ? K
+            : never
+        : K
+    ]:
+        K extends Opt[number]
+        ? z.ZodOptional<BlueprintToZod<Columns<M>[K]>>
+        : BlueprintToZod<Columns<M>[K]>;
+    };
+
+    type ZodShapeUpdate<
+        M extends Model,
+        R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
+        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    > = {
+    [K in Extract<
+        T.ColumnKeys<M, { OnlyColumn: true }>,
+        keyof Columns<M>
+    > as
+        K extends O[number]
+        ? never
+        : K
+    ]:
+        K extends R[number]
+        ? BlueprintToZod<Columns<M>[K]>
+        : z.ZodOptional<BlueprintToZod<Columns<M>[K]>>;
+    };
+
+    type BlueprintToZod<T> =
+        T extends number ? z.ZodNumber :
+        T extends string ? z.ZodString :
+        T extends Date ? z.ZodDate :
+        T extends null ? z.ZodNull :
+        z.ZodTypeAny;
+
+    type ColumnBlueprints<M extends Model> = {
+        [K in keyof Columns<M, { InputQuery : true }>]: Blueprint<Columns<M, { InputQuery : true }>[K]>;
+    };
+
     type Columns<
         M extends Model,
         Options extends { InputQuery?: boolean } = {}
@@ -299,13 +359,19 @@ export declare namespace T {
             : TColumnsDecorator<M,Options>
     >
 
-    type ColumnKeys<M extends Model> =
-        (keyof TColumnsDecorator<M> extends never
+    type ColumnKeys<
+        M extends Model,
+        Options extends { OnlyColumn?: boolean } = {}
+    > = (
+        keyof TColumnsDecorator<M> extends never
             ? TSchemaKeyOf<M>
-            : keyof TColumnsDecorator<M>)
-        | `${string}.${string}`
-        | TRawStringQuery
-        | TFreezeStringQuery;
+            : keyof TColumnsDecorator<M>
+        )
+    | (
+        Options["OnlyColumn"] extends true
+            ? never
+            : `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+        );
 
     // ColumnEnumMap does not work with T.Schema,
     // but it works with decorators and T.SchemaStrict.

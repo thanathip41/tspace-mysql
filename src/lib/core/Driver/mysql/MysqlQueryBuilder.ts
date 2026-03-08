@@ -196,18 +196,18 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public getTable({ database, table }: { database: string; table: string }) {
+  public hasTable({ database, table }: { database: string; table: string }) {
+    
     const sql = [
-      `
-        SELECT 
-          TABLE_NAME AS "Table"
+      `SELECT EXISTS( 
+        SELECT 1
         FROM 
           INFORMATION_SCHEMA.TABLES
         WHERE 
           TABLE_SCHEMA   = '${database.replace(/\`/g, "")}' 
           AND TABLE_NAME = '${table.replace(/\`/g, "")}'
           AND TABLE_TYPE = 'BASE TABLE'
-      `,
+       ) AS "IS_EXISTS"`,
     ];
 
     return this.format(sql);
@@ -506,13 +506,16 @@ export class MysqlQueryBuilder extends QueryBuilder {
   }: {
     table: string;
     index: string;
-    key: string;
+    key: string | string[];
   }) {
+    
+    key = Array.isArray(key) ? key : [key];
+
     const sql = [
       `${this.$constants("CREATE_INDEX")}`,
       `\`${index}\``,
       `${this.$constants("ON")}`,
-      `${table}(\`${key}\`)`,
+      `${table}(${key.map(k => `\`${k}\``).join(', ')})`,
     ];
 
     return this.format(sql);
