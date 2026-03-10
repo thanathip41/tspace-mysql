@@ -3053,15 +3053,140 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<boolean>}
    * 
    */
-  public async hasIndex({ index, table } : { index: string; table?: string}): Promise<boolean> {
+  public async hasIndex({ name, table } : { 
+    name  : string; 
+    table ?: string
+  }): Promise<boolean> {
     const sql = this._queryBuilder().hasIndex({
       database: this.$database,
       table: table ?? String(this.$state.get("TABLE_NAME")),
-      index
+      name
     });
     const result = await this.rawQuery(sql);
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
+  }
+
+  public async addIndex({ name, table, columns } : { 
+    name   : string; 
+    table   ?: string;
+    columns : string[];
+  }): Promise<void> {
+
+    const sql = this._queryBuilder().addIndex({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      name,
+      columns
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  public async dropIndex({ name, table } : { 
+    name   : string; 
+    table   ?: string;
+  }): Promise<void> {
+
+    const sql = this._queryBuilder().dropIndex({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      name,
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  public async hasUnique({ name, table } : { 
+    name   : string; 
+    table  ?: string
+  }): Promise<boolean> {
+    
+    const sql = this._queryBuilder().hasUnique({
+      database: this.$database,
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      name
+    });
+
+    const result = await this.rawQuery(sql);
+
+    return Boolean(result[0]?.IS_EXISTS ?? false);
+  }
+
+  public async addUnique({ name, table, columns } : { 
+    name   : string; 
+    table   ?: string;
+    columns : string[];
+  }): Promise<void> {
+
+    const sql = this._queryBuilder().addUnique({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      name,
+      columns
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  public async dropUnique({ name, table } : { 
+    name   : string; 
+    table   ?: string;
+  }): Promise<void> {
+
+    const sql = this._queryBuilder().dropUnique({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      name,
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  public async hasPrimaryKey({  table } : { 
+    table  ?: string
+  } = {}): Promise<boolean> {
+    
+    const sql = this._queryBuilder().hasPrimaryKey({
+      database: this.$database,
+      table: table ?? String(this.$state.get("TABLE_NAME"))
+    });
+
+    const result = await this.rawQuery(sql);
+
+    return Boolean(result[0]?.IS_EXISTS ?? false);
+  }
+
+  public async addPrimaryKey({ table, columns } : { 
+    table   ?: string;
+    columns : string[];
+  }): Promise<void> {
+
+    const sql = this._queryBuilder().addPrimaryKey({
+      table: table ?? String(this.$state.get("TABLE_NAME")),
+      columns
+    });
+
+    await this.rawQuery(sql);
+
+    return;
+  }
+
+  public async dropPrimaryKey({ table } : { 
+    table ?: string;
+  } = {}): Promise<void> {
+
+    const sql = this._queryBuilder().dropPrimaryKey({
+      table: table ?? String(this.$state.get("TABLE_NAME"))
+    });
+
+    await this.rawQuery(sql);
+
+    return;
   }
 
   /**

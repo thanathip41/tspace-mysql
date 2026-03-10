@@ -388,7 +388,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public createFK({
+  public addFK({
     table,
     tableRef,
     key,
@@ -468,11 +468,11 @@ export class MysqlQueryBuilder extends QueryBuilder {
   public hasIndex({
     database,
     table,
-    index,
+    name,
   }: {
     database: string;
     table: string;
-    index: string;
+    name: string;
   }) {
     const sql = [
       `
@@ -491,7 +491,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
             k.REFERENCED_TABLE_NAME IS NULL
             AND s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
             AND s.TABLE_NAME   = '${table.replace(/`/g, "")}'
-            AND s.INDEX_NAME   = '${index}'
+            AND s.INDEX_NAME   = '${name}'
         ) AS "IS_EXISTS"
       `,
     ];
@@ -499,23 +499,173 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public createIndex({
+  public addIndex({
     table,
-    index,
-    key,
+    name,
+    columns,
   }: {
-    table: string;
-    index: string;
-    key: string | string[];
+    table   : string;
+    name   : string;
+    columns : string[];
   }) {
     
-    key = Array.isArray(key) ? key : [key];
+    const cols = columns
+    .map(col => `\`${col}\``)
+    .join(", ");
 
     const sql = [
-      `${this.$constants("CREATE_INDEX")}`,
-      `\`${index}\``,
-      `${this.$constants("ON")}`,
-      `${table}(${key.map(k => `\`${k}\``).join(', ')})`,
+      this.$constants("ALTER_TABLE"),
+      `\`${table}\``,
+      this.$constants("ADD_INDEX"),
+      `\`${name}\``,
+      `(${cols})`
+    ];
+
+    return this.format(sql);
+  }
+
+  public dropIndex({
+    table,
+    name,
+  }: {
+    table   : string;
+    name   : string;
+  }) {
+    
+    const sql = [
+      this.$constants("ALTER_TABLE"),
+      `\`${table}\``,
+      this.$constants("DROP"),
+      this.$constants("INDEX"),
+      `\`${name}\``
+    ];
+
+    return this.format(sql);
+  }
+
+  public hasUnique({
+    database,
+    table,
+    name,
+  }: {
+    database: string;
+    table: string;
+    name: string;
+  }) {
+    const sql = [
+      `
+        SELECT EXISTS(
+          SELECT 
+            1
+          FROM 
+            INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+          WHERE 
+            TABLE_SCHEMA         = '${database.replace(/`/g, "")}'
+            AND TABLE_NAME       = '${table.replace(/`/g, "")}'
+            AND CONSTRAINT_TYPE  = '${name}'
+        ) AS "IS_EXISTS"
+      `,
+    ];
+
+    return this.format(sql);
+  }
+
+  public addUnique({
+    table,
+    name,
+    columns
+  }: {
+    table   : string;
+    name  : string;
+    columns : string[];
+  }) {
+
+    const cols = columns
+    .map(col => `\`${col}\``)
+    .join(", ");
+
+    const sql = [
+      this.$constants("ALTER_TABLE"),
+      `\`${table}\``,
+      this.$constants("ADD_CONSTRAINT"),
+      `\`${name}\``,
+      this.$constants("UNIQUE"),
+      `(${cols})`
+    ];
+
+    return this.format(sql);
+  }
+
+  public dropUnique({
+    table,
+    name,
+  }: {
+    table   : string;
+    name   : string;
+  }) {
+    
+    const sql = [
+      this.$constants("ALTER_TABLE"),
+      `\`${table}\``,
+      this.$constants("DROP"),
+      this.$constants("INDEX"),
+      `\`${name}\``
+    ];
+
+    return this.format(sql);
+  }
+
+  public hasPrimaryKey({
+    database,
+    table,
+  }: {
+    database: string;
+    table: string;
+  }): string {
+
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1
+        FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+        WHERE 
+          TABLE_SCHEMA        = '${database.replace(/['"`]/g, "")}'
+          AND TABLE_NAME      = '${table.replace(/['"`]/g, "")}'
+          AND CONSTRAINT_TYPE = '${this.$constants('PRIMARY_KEY')}'
+      ) AS IS_EXISTS
+    `;
+
+    return this.format(sql);
+  }
+
+  public addPrimaryKey({
+    table,
+    columns,
+  }: {
+    table   : string;
+    columns : string[];
+  }): string {
+
+    const cols = columns
+    .map(col => `\`${col}\``)
+    .join(", ");
+
+    const sql = `
+      ${this.$constants('ALTER_TABLE')} \`${table}\`
+      ${this.$constants('ADD')} ${this.$constants('PRIMARY_KEY')} (${cols})
+    `;
+
+    return this.format(sql);
+  }
+
+  public dropPrimaryKey({ table }: {
+    table : string
+  }) {
+    
+    const sql = [
+      this.$constants("ALTER_TABLE"),
+      `\`${table}\``,
+      this.$constants("DROP"),
+      this.$constants("PRIMARY_KEY")
     ];
 
     return this.format(sql);

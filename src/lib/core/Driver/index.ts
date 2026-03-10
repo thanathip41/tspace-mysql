@@ -263,7 +263,7 @@ export abstract class QueryBuilder {
     constraint: string;
   }): string;
 
-  public abstract createFK({
+  public abstract addFK({
     table,
     tableRef,
     key,
@@ -292,58 +292,78 @@ export abstract class QueryBuilder {
   public abstract hasIndex({
     database,
     table,
-    index,
+    name,
   }: {
-    database: string;
-    table: string;
-    index: string;
+    database : string;
+    table    : string;
+    name    : string;
   }): string;
 
-  public abstract createIndex({
+  public abstract addIndex({
     table,
-    index,
-    key,
+    name,
+    columns,
   }: {
-    table: string;
-    index: string;
-    key: string | string[];
+    table   : string;
+    name   : string;
+    columns : string[];
+  }): string;
+
+  public abstract dropIndex({
+    table,
+    name
+  }: {
+    table   : string;
+    name   : string;
   }): string;
 
   public abstract hasUnique({
     database,
     table,
-    unique,
+    name,
+  }: {
+    database  : string;
+    table     : string;
+    name    : string;
+  }): string;
+
+  public abstract addUnique({
+    table,
+    name,
+    columns,
+  }: {
+    table   : string;
+    name  : string;
+    columns : string[];
+  }): string;
+
+  public abstract dropUnique({
+    table,
+    name
+  }: {
+    table   : string;
+    name  : string;
+  }): string;
+
+  public abstract hasPrimaryKey({
+    database,
+    table,
   }: {
     database: string;
     table: string;
-    unique: string;
   }): string;
 
-  // public abstract createUnique({
-  //   table,
-  //   unique,
-  //   key,
-  // }: {
-  //   table: string;
-  //   unique: string;
-  //   key: string | string[];
-  // }): string;
+  public abstract addPrimaryKey({
+    table,
+    columns,
+  }: {
+    table: string;
+    columns: string[];
+  }): string;
 
-  // public abstract hasPrimaryKey({
-  //   database,
-  //   table,
-  // }: {
-  //   database: string;
-  //   table: string;
-  // }): string;
-
-  // public abstract createPrimaryKey({
-  //   table,
-  //   key,
-  // }: {
-  //   table: string;
-  //   key: string | string[];
-  // }): string;
+  public abstract dropPrimaryKey({ table }: {
+    table : string;
+  }): string;
 
   public abstract getDatabase(database: string): string;
   public abstract dropDatabase(database: string): string;

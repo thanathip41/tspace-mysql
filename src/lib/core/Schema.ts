@@ -1,10 +1,11 @@
+import { z }            from "zod";
 import { Builder }      from "./Builder";
 import { Model }        from "./Model";
 import { Tool }         from "../tool";
 import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
 import { T }            from "./UtilityTypes";
-import { z }            from "zod";
+import { AlterTable }   from "./Contracts/AlterTable";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -407,32 +408,11 @@ class Schema {
   }
 
   public alterTable<M extends Model>(model: new () => M) {
-    return {
-      primary:<
-       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
-      >(columns : C) => {
-        return this
-      },
-      dropPrimary:() => {
-        return this
-      },
-      unique:<
-       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
-      >(columns : C, uniqueName : string = "") => {
-        return this
-      },
-      dropUnique:(name: string) => {
-        return this
-      },
-      index:<
-       C extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
-      >(columns : C, indexName : string = "") => {
-        return this
-      },
-      dropIndex:(name: string) => {
-        return this
-      },
-    }
+    return new AlterTable(model);
+  }
+
+  public static alterTable<M extends Model>(model: new () => M) {
+    return new this().alterTable(model);
   }
 
   private _createValidator<
@@ -784,7 +764,7 @@ class Schema {
         if (FK) continue;
 
         await this.$db.debug(log).rawQuery(
-          query.createFK({
+          query.addFK({
             table: model.getTableName(),
             tableRef: table,
             key,
@@ -815,7 +795,7 @@ class Schema {
         await this.$db
           .debug(log)
           .rawQuery(
-            query.createFK({
+            query.addFK({
               table: model.getTableName(),
               tableRef: table,
               key,
@@ -861,16 +841,16 @@ class Schema {
         const INDEX = await this.$db.debug(log)
         .hasIndex({
           table: table,
-          index: index,
+          name: index,
         });
 
         if (INDEX) continue;
 
         await this.$db.debug(log).rawQuery(
-          query.createIndex({
+          query.addIndex({
             table: table,
-            index: index,
-            key: key,
+            name: index,
+            columns: [key],
           })
         );
       } catch (err: any) {
@@ -893,10 +873,10 @@ class Schema {
         await this.$db
           .debug(log)
           .rawQuery(
-            query.createIndex({
+            query.addIndex({
               table: model.getTableName(),
-              index: index,
-              key: key,
+              name: index,
+              columns: [key],
             })
           )
           .catch((err) => {
@@ -924,16 +904,16 @@ class Schema {
         const INDEX = await this.$db.debug(log)
         .hasIndex({
           table: table,
-          index: index,
+          name: index,
         });
 
         if (INDEX) continue;
 
         await this.$db.debug(log).rawQuery(
-          query.createIndex({
+          query.addIndex({
             table: table,
-            index: index,
-            key: comebindKey,
+            name: index,
+            columns: comebindKey,
           })
         );
       } catch (err: any) {
@@ -962,10 +942,10 @@ class Schema {
         await this.$db
           .debug(log)
           .rawQuery(
-            query.createIndex({
+            query.addIndex({
               table: model.getTableName(),
-              index: index,
-              key: comebindKey,
+              name: index,
+              columns: comebindKey,
             })
           )
           .catch((err) => {
