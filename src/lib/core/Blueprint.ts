@@ -5,6 +5,7 @@ import { Model } from "./Model";
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
  *   import sql from '../../../build/lib/core/SqlLike';
+import { default } from '../../../app/$audit';
  *   await new Schema().table('users',{ 
  *      id          : Blueprint.int().notNull().primary().autoIncrement(),
  *      name        : Blueprint.varchar(255).default('my name').index(),
@@ -17,7 +18,7 @@ import { Model } from "./Model";
  *   })
  */
 class Blueprint<T = any> {
-  private _default: unknown = null;
+  private _default: string | number | null = null;
   private _enum :string[] = [];
   private _type: string = "INT";
   private _attributes: string[] = [];
@@ -578,7 +579,7 @@ class Blueprint<T = any> {
     enumValues = enumValues.map(e => e.replace(/'/g, ''));
 
     instance._addAssignType(
-      `ENUM(${enumValues.map(e => `'${e}'`).join(', ')})`
+      `ENUM(${enumValues.map(e => `'${e}'`).join(',')})`
     );
     instance._valueType = String;
     instance._enum = enumValues as any;
@@ -746,15 +747,6 @@ class Blueprint<T = any> {
   }
 
   /**
-   * Assign attributes 'defaultValue' in table
-   * @param {string | number} value  default value
-   * @return {Blueprint<T>} Blueprint
-   */
-  defaultValue(value: string | number | boolean): Blueprint<T> {
-    return this.default(value)
-  }
-
-  /**
    * Assign attributes 'default currentTimestamp' in table
    * @return {Blueprint<T>} Blueprint
    */
@@ -874,16 +866,16 @@ class Blueprint<T = any> {
     return this._compositeIndex;
   }
 
+  get defaultValue () {
+    return this._default
+  }
+
   get valueType() {
     return this._valueType;
   }
 
   get enums() {
     return this._enum
-  }
-
-  get valueDefault() {
-    return this._default
   }
 
   get isVirtual() {

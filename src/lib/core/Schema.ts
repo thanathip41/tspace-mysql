@@ -962,7 +962,7 @@ class Schema {
     model,
     log,
   }: {
-    schemaModel: Record<string, any>;
+    schemaModel: Record<string, Blueprint>;
     model: Model;
     log: boolean;
   }) {
@@ -971,7 +971,7 @@ class Schema {
 
     const query = model["_queryBuilder"]() as QueryBuilder;
 
-    const isTypeMatch = ({
+    const isChangeType = ({
       typeTable,
       typeSchema,
     }: {
@@ -987,14 +987,14 @@ class Schema {
         text: ["text", /^longtext$/i],
         "timestamp without time zone": ["timestamp", "datetime"],
       };
-
+  
       // Enum in postgres too hard for maping
       // if have value add in Blueprint.enum, The sync column is not supported
       if (
         /^character varying(\(\d+\))?$/i.test(typeTable) &&
         /^enum\(.+\)$/i.test(typeSchema)
       ) {
-        return true;
+        return false;
       }
 
       if (typeTable.startsWith("character varying")) {
@@ -1002,30 +1002,61 @@ class Schema {
           "character varying",
           "varchar"
         );
-        if (typeTableFormated === typeSchema) return true;
-        return false;
+        if (typeTableFormated === typeSchema) return false;
+        return true;
       }
 
       if (typeTable in mappings) {
+        
         return mappings[typeTable].some((pattern) => {
           if (typeof pattern === "string") {
-            return typeSchema.toLowerCase() === pattern.toLowerCase();
+            return typeSchema.toLowerCase() !== pattern.toLowerCase();
           }
+
           if (pattern instanceof RegExp) {
-            return pattern.test(typeSchema.toLowerCase());
+            return !pattern.test(typeSchema.toLowerCase());
           }
-          return false;
+
+          return true;
         });
       }
 
       if (typeTable === typeSchema) {
-        return true;
+        return false;
       }
 
-      return false;
+      return true;
     };
 
-    const wasChangedColumns =  Object.entries(schemaModel)
+    const isChangeNullable = ({ nullable , isNull }: { 
+      nullable : 'YES' | 'NO'; 
+      isNull : boolean 
+    }) => {
+
+      if(nullable === 'YES' && isNull) {
+        return false;
+      }
+
+      if(nullable === 'NO' && !isNull) {
+        return false;
+      }
+
+      return true;
+    }
+
+    const isChangeDefault = ({defaultTable, defaultSchema} : {
+      defaultTable  : string | null;
+      defaultSchema : string | number | null;
+    }) => {
+
+      if(defaultTable == defaultSchema) {
+        return false;
+      }
+
+      return true;
+    }
+
+    const wasChangedColumns = Object.entries(schemaModel)
     .map(([key, value]) => {
       const find = schemaTable.find((t) => t.Field === key);
 
@@ -1035,36 +1066,51 @@ class Schema {
 
       const typeSchema = String(value.type).toLowerCase();
 
-      const sameType = isTypeMatch({ typeTable, typeSchema });
+      const isChangedType = isChangeType({ typeTable, typeSchema });
 
-      return sameType ? null : key;
+      const isChangedNullable = isChangeNullable({ 
+        nullable : find.Nullable,
+        isNull : value.isNull
+      })
+
+      const isChangedDefault = isChangeDefault({
+        defaultTable : find.Default,
+        defaultSchema : value.defaultValue
+      })
+
+      return [
+        isChangedType,
+        isChangedNullable,
+        isChangedDefault
+      ].some(v => v) ? key : null
     })
     .filter((d) => d != null)
 
-    if (wasChangedColumns.length) {
-      for (const column of wasChangedColumns) {
-        if (column == null) continue;
+    if(!wasChangedColumns.length) return;
 
-        const { type, attributes } = this.detectSchema(schemaModel[column]);
+    for (const column of wasChangedColumns) {
 
-        if (type == null || attributes == null) continue;
+      if (column == null) continue;
 
-        await this.$db
-          .debug(log)
-          .rawQuery(
-            query.changeColumn({
-              table: model.getTableName(),
-              type,
-              column,
-              attributes,
-            })
-          )
-          .catch((err) => {
-            console.log(
-              `\x1b[31mERROR: Failed to change the column '${column}' caused by '${err.message}'\x1b[0m`
-            );
-          });
-      }
+      const { type, attributes } = this.detectSchema(schemaModel[column]);
+
+      if (type == null || attributes == null) continue;
+
+      await this.$db
+      .debug(log)
+      .rawQuery(
+        query.changeColumn({
+          table: model.getTableName(),
+          type,
+          column,
+          attributes,
+        })
+      )
+      .catch((err) => {
+        console.log(
+          `\x1b[31mERROR: Failed to change the column '${column}' caused by '${err.message}'\x1b[0m`
+        );
+      });
     }
   }
 

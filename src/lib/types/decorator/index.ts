@@ -27,7 +27,8 @@ export type TColumnsDecorator<
   T,
   Options extends { InputQuery?: boolean } = {}
 > = {
-  [K in keyof T as T[K] extends string | number | null | boolean | Date ? K : never]:
+  [K in keyof T as T[K] extends string | number | null | boolean | Date | Record<string, unknown>
+  ? K : never]:
     Options['InputQuery'] extends true
       ? T[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
       : T[K]
