@@ -7,9 +7,9 @@ export class PostgresQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {
     super(state);
   }
-  public select = () => {
+  public select = (selectColumns ?: string[]) => {
     const combindSQL = [
-      this.bindSelect(this.$state.get("SELECT")),
+      this.bindSelect(selectColumns ?? this.$state.get("SELECT")),
       this.bindFrom({
         from: !this.$state.get("FROM").length
           ? [this.$state.get("TABLE_NAME")].map(String)
@@ -79,17 +79,27 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return '';
     }
 
+    const primaryKey = `${this.$state.get("TABLE_NAME")}.\`${this.$state.get("PRIMARY_KEY")}\``
+
     const sql = this.format([
       `${this.$constants("UPDATE")}`,
       `${this.$state.get("TABLE_NAME")}`,
       `${this.$constants("SET")}`,
       `${query}`,
-      this.bindWhere(this.$state.get("WHERE")),
+      // this.bindWhere(this.$state.get("WHERE")),
+      this.bindWhere([
+        ...this.$state.get("WHERE"),
+        `${this.$constants('AND')}`,
+        `${primaryKey}`,
+        `${this.$constants('IN')}`,
+        `(${this.select([primaryKey])})`
+      ]),
       this.bindOrderBy(this.$state.get("ORDER_BY")),
-      /* this.bindLimit(this.$state.get("LIMIT")) postgres does't support limit when update */
+      // postgres does't support limit when update
+      // this.bindLimit(this.$state.get("LIMIT"))
       "RETURNING *",
     ]);
-    
+
     return sql;
   }
 
