@@ -8087,6 +8087,11 @@ class Model<
     return;
   }
 
+  public disabledRetry () {
+    this.$state.set("RETRY",3)
+    return this
+  }
+
   private async _checkSchemaOrNextError(
     e: unknown,
     retry = 1,

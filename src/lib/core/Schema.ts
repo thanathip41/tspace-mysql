@@ -988,15 +988,6 @@ class Schema {
         "timestamp without time zone": ["timestamp", "datetime"],
       };
   
-      // Enum in postgres too hard for maping
-      // if have value add in Blueprint.enum, The sync column is not supported
-      if (
-        /^character varying(\(\d+\))?$/i.test(typeTable) &&
-        /^enum\(.+\)$/i.test(typeSchema)
-      ) {
-        return false;
-      }
-
       if (typeTable.startsWith("character varying")) {
         const typeTableFormated = typeTable.replace(
           "character varying",
@@ -1008,16 +999,17 @@ class Schema {
 
       if (typeTable in mappings) {
         
-        return mappings[typeTable].some((pattern) => {
+        return !mappings[typeTable].some((pattern) => {
+          
           if (typeof pattern === "string") {
-            return typeSchema.toLowerCase() !== pattern.toLowerCase();
+            return typeSchema.toLowerCase() === pattern.toLowerCase();
           }
-
+         
           if (pattern instanceof RegExp) {
-            return !pattern.test(typeSchema.toLowerCase());
+            return pattern.test(typeSchema.toLowerCase());
           }
 
-          return true;
+          return false;
         });
       }
 

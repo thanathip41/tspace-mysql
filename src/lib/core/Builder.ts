@@ -2931,11 +2931,14 @@ class Builder extends AbstractBuilder {
     RefColumn : string;
     Column    : string;
   }[]> {
-    const sql = this._queryBuilder().getFKs({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-    });
-    return await this.rawQuery(sql);
+  
+    const fks = await this.rawQuery(
+      this._queryBuilder().getFKs({
+        database: this.$database,
+        table: table ?? String(this.$state.get("TABLE_NAME")),
+      })
+    );
+    return fks
   }
 
   /**
@@ -2948,13 +2951,18 @@ class Builder extends AbstractBuilder {
    * @returns {Promise<boolean>} 
    * 
    */
-  public async hasFK({ constraint, table } : { constraint: string; table?: string}): Promise<boolean> {
-    const sql = this._queryBuilder().hasFK({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      constraint
-    });
-    const result = await this.rawQuery(sql);
+  public async hasFK({ constraint, table } : { 
+    constraint : string; 
+    table      ?: string
+  }): Promise<boolean> {
+    
+    const result = await this.rawQuery(
+      this._queryBuilder().hasFK({
+        database: this.$database,
+        table: table ?? String(this.$state.get("TABLE_NAME")),
+        constraint
+      })
+    );
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
@@ -2982,12 +2990,69 @@ class Builder extends AbstractBuilder {
     ParentColumn : string;
   }[]> {
 
-    const sql = this._queryBuilder().getChildFKs({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-    });
+    const childFks = await this.rawQuery(
+      this._queryBuilder().getChildFKs({
+        database: this.$database,
+        table: table ?? String(this.$state.get("TABLE_NAME")),
+      })
+    );
 
-    return await this.rawQuery(sql);
+    return childFks;
+  }
+
+  /**
+   * Adds a foreign key constraint to a table.
+   *
+   * This method checks whether the specified foreign key constraint already exists
+   * on the table before attempting to create it. If the constraint exists, an error
+   * will be thrown to prevent duplication.
+   *
+   * @async
+   * @method addFK
+   * @param {Object} params - Parameters for creating the foreign key.
+   * @param {string} params.table - The name of the table where the foreign key will be added.
+   * @param {string} params.tableRef - The referenced table name.
+   * @param {string} params.key - The column in the current table that will act as the foreign key.
+   * @param {string} params.constraint - The name of the foreign key constraint.
+   * @param {Object} params.foreign - Foreign key configuration.
+   * @param {string} params.foreign.references - The referenced column in the referenced table.
+   * @param {string} params.foreign.onDelete - Action when a referenced row is deleted (e.g. CASCADE, SET NULL).
+   * @param {string} params.foreign.onUpdate - Action when a referenced row is updated (e.g. CASCADE, RESTRICT).
+   *
+   * @throws {Error} If the specified foreign key constraint already exists.
+   *
+   * @returns {Promise<void>} Resolves when the foreign key constraint is successfully created.
+   */
+  public async addFK({ table, tableRef, key, constraint, foreign } : { 
+    table      : string;
+    tableRef   : string;
+    key        : string;
+    constraint : string;
+    foreign: {
+      references : string;
+      onDelete   : string;
+      onUpdate   : string;
+    };
+  }): Promise<void> {
+
+    const exists = await this.hasFK({ constraint , table })
+
+    if(exists) {
+      throw new Error('The specified foreign key constraint already exists.')
+    }
+    
+    await this.rawQuery(
+      this._queryBuilder()
+      .addFK({
+        table: table ?? this.getTableName(),
+        tableRef,
+        key,
+        constraint,
+        foreign 
+      })
+    );
+
+    return;
   }
 
   /**
@@ -3004,12 +3069,20 @@ class Builder extends AbstractBuilder {
     constraint: string; 
     table?: string
   }): Promise<void> {
-    const sql = this._queryBuilder().dropFK({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      constraint
-    });
 
-    await this.rawQuery(sql);
+    const exists = await this.hasFK({ constraint , table })
+
+    if(!exists) {
+      throw new Error('The specified foreign key constraint was not found.')
+    }
+    
+    await this.rawQuery(
+      this._queryBuilder()
+      .dropFK({
+        table: table ?? this.getTableName(),
+        constraint
+      })
+    );
 
     return;
   }
@@ -3036,11 +3109,15 @@ class Builder extends AbstractBuilder {
     Nullable  : 'YES' | 'NO';
     Unique    : 'YES' | 'NO';
   }[]> {
-    const sql = this._queryBuilder().getIndexes({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-    });
-    return await this.rawQuery(sql);
+
+    const indexes = await this.rawQuery(
+      this._queryBuilder().getIndexes({
+        database: this.$database,
+        table: table ?? this.getTableName()
+      })
+    );
+
+    return indexes;
   }
 
   /**
@@ -3057,134 +3134,302 @@ class Builder extends AbstractBuilder {
     name  : string; 
     table ?: string
   }): Promise<boolean> {
-    const sql = this._queryBuilder().hasIndex({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name
-    });
-    const result = await this.rawQuery(sql);
+  
+    const result = await this.rawQuery(
+      this._queryBuilder().hasIndex({
+        database: this.$database,
+        table: table ?? this.getTableName(),
+        name
+      })
+    );
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
+  /**
+   * Adds an index to a table.
+   *
+   * This method checks whether the specified index already exists on the table
+   * before attempting to create it. If the index exists, an error will be thrown
+   * to prevent duplication.
+   *
+   * @async
+   * @method addIndex
+   * @param {Object} params - Parameters for creating the index.
+   * @param {string} params.name - The name of the index.
+   * @param {string} [params.table] - The table where the index will be created. Defaults to the current model table.
+   * @param {string[]} params.columns - The columns included in the index.
+   *
+   * @throws {Error} If the specified index already exists.
+   *
+   * @returns {Promise<void>} Resolves when the index has been successfully created.
+   */
   public async addIndex({ name, table, columns } : { 
     name   : string; 
     table   ?: string;
     columns : string[];
   }): Promise<void> {
 
-    const sql = this._queryBuilder().addIndex({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name,
-      columns
-    });
+    const exists = await this.hasIndex({ name , table })
 
-    await this.rawQuery(sql);
+    if(exists) {
+      throw new Error('The specified index already exists.')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().addIndex({
+        table: table ?? this.getTableName(),
+        name,
+        columns
+      })
+    );
 
     return;
   }
 
+  /**
+   * Drops an index from a table.
+   *
+   * This method checks whether the specified index exists on the table
+   * before attempting to drop it. If the index does not exist, an error
+   * will be thrown.
+   *
+   * @async
+   * @method dropIndex
+   * @param {Object} params - Parameters for dropping the index.
+   * @param {string} params.name - The name of the index to drop.
+   * @param {string} [params.table] - The table from which the index will be removed. Defaults to the current model table.
+   *
+   * @throws {Error} If the specified index was not found.
+   *
+   * @returns {Promise<void>} Resolves when the index has been successfully dropped.
+   */
   public async dropIndex({ name, table } : { 
     name   : string; 
     table   ?: string;
   }): Promise<void> {
 
-    const sql = this._queryBuilder().dropIndex({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name,
-    });
+    const exists = await this.hasIndex({ name , table })
 
-    await this.rawQuery(sql);
+    if(!exists) {
+      throw new Error('The specified index was not found')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().dropIndex({
+        table: table ?? this.getTableName(),
+        name,
+      })
+    );
 
     return;
   }
 
+  /**
+   * Checks whether a unique constraint exists on a table.
+   *
+   * This method queries the database metadata to determine if the specified
+   * unique constraint exists on the given table.
+   *
+   * @async
+   * @method hasUnique
+   * @param {Object} params - Parameters for checking the unique constraint.
+   * @param {string} params.name - The name of the unique constraint.
+   * @param {string} [params.table] - The table to check. Defaults to the current model table.
+   *
+   * @returns {Promise<boolean>} Returns `true` if the unique constraint exists, otherwise `false`.
+   */
   public async hasUnique({ name, table } : { 
     name   : string; 
     table  ?: string
   }): Promise<boolean> {
     
-    const sql = this._queryBuilder().hasUnique({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name
-    });
-
-    const result = await this.rawQuery(sql);
+    const result = await this.rawQuery(
+      this._queryBuilder().hasUnique({
+        database: this.$database,
+        table: table ?? this.getTableName(),
+        name
+      })
+    );
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
+  /**
+   * Adds a unique constraint to a table.
+   *
+   * This method checks whether the specified unique constraint already exists
+   * on the table before attempting to create it. If the constraint already exists,
+   * an error will be thrown to prevent duplication.
+   *
+   * @async
+   * @method addUnique
+   * @param {Object} params - Parameters for creating the unique constraint.
+   * @param {string} params.name - The name of the unique constraint.
+   * @param {string} [params.table] - The table where the unique constraint will be added. Defaults to the current model table.
+   * @param {string[]} params.columns - The columns that will be included in the unique constraint.
+   *
+   * @throws {Error} If the specified unique constraint already exists.
+   *
+   * @returns {Promise<void>} Resolves when the unique constraint has been successfully created.
+   */
   public async addUnique({ name, table, columns } : { 
-    name   : string; 
+    name    : string; 
     table   ?: string;
     columns : string[];
   }): Promise<void> {
 
-    const sql = this._queryBuilder().addUnique({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name,
-      columns
-    });
+    const exists = await this.hasUnique({ name , table });
 
-    await this.rawQuery(sql);
+    if(exists) {
+      throw new Error('The specified unique constraint already exists.')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().addUnique({
+        table: table ?? this.getTableName(),
+        name,
+        columns
+      })
+    );
 
     return;
   }
 
+  /**
+   * Drops a unique constraint from a table.
+   *
+   * This method checks whether the specified unique constraint exists
+   * on the table before attempting to remove it. If the constraint does
+   * not exist, an error will be thrown.
+   *
+   * @async
+   * @method dropUnique
+   * @param {Object} params - Parameters for dropping the unique constraint.
+   * @param {string} params.name - The name of the unique constraint to drop.
+   * @param {string} [params.table] - The table from which the unique constraint will be removed. Defaults to the current model table.
+   *
+   * @throws {Error} If the specified unique constraint was not found.
+   *
+   * @returns {Promise<void>} Resolves when the unique constraint has been successfully dropped.
+   */
   public async dropUnique({ name, table } : { 
     name   : string; 
     table   ?: string;
   }): Promise<void> {
 
-    const sql = this._queryBuilder().dropUnique({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      name,
-    });
+    const exists = await this.hasUnique({ name, table });
 
-    await this.rawQuery(sql);
+    if(!exists) {
+      throw new Error('The specified unique constraint was not found.')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().dropUnique({
+        table: table ?? this.getTableName(),
+        name,
+      })
+    );
 
     return;
   }
 
-  public async hasPrimaryKey({  table } : { 
+  /**
+   * Checks whether a primary key constraint exists on a table.
+   *
+   * This method queries the database metadata to determine if the specified
+   * table contains a primary key constraint.
+   *
+   * @async
+   * @method hasPrimaryKey
+   * @param {Object} [params={}] - Parameters for checking the primary key.
+   * @param {string} [params.table] - The table to check. Defaults to the current model table.
+   *
+   * @returns {Promise<boolean>} Returns `true` if the table has a primary key constraint,
+   * otherwise `false`.
+   */
+  public async hasPrimaryKey({ table } : { 
     table  ?: string
   } = {}): Promise<boolean> {
     
-    const sql = this._queryBuilder().hasPrimaryKey({
-      database: this.$database,
-      table: table ?? String(this.$state.get("TABLE_NAME"))
-    });
-
-    const result = await this.rawQuery(sql);
+    const result = await this.rawQuery(
+      this._queryBuilder().hasPrimaryKey({
+        database: this.$database,
+        table: table ?? this.getTableName()
+      })
+    );
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
   }
 
+  /**
+   * Adds a primary key constraint to a table.
+   *
+   * This method checks whether the table already has a primary key
+   * before attempting to create one. If a primary key already exists,
+   * an error will be thrown.
+   *
+   * @async
+   * @method addPrimaryKey
+   * @param {Object} params - Parameters for creating the primary key.
+   * @param {string} [params.table] - The table where the primary key will be added. Defaults to the current model table.
+   * @param {string[]} params.columns - The column(s) that will form the primary key.
+   *
+   * @throws {Error} If the table already has a primary key constraint.
+   *
+   * @returns {Promise<void>} Resolves when the primary key has been successfully created.
+   */
   public async addPrimaryKey({ table, columns } : { 
     table   ?: string;
     columns : string[];
   }): Promise<void> {
 
-    const sql = this._queryBuilder().addPrimaryKey({
-      table: table ?? String(this.$state.get("TABLE_NAME")),
-      columns
-    });
+    const exists = await this.hasPrimaryKey({ table });
 
-    await this.rawQuery(sql);
+    if(exists) {
+      throw new Error('The specified primary constraint already exists.')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().addPrimaryKey({
+        table: table ?? String(this.getTableName()),
+        columns
+      })
+    );
 
     return;
   }
 
+  /**
+   * Drops the primary key constraint from a table.
+   *
+   * This method checks whether the table has a primary key before
+   * attempting to remove it. If no primary key exists, an error will be thrown.
+   *
+   * @async
+   * @method dropPrimaryKey
+   * @param {Object} [params={}] - Parameters for dropping the primary key.
+   * @param {string} [params.table] - The table from which the primary key will be removed. Defaults to the current model table.
+   *
+   * @throws {Error} If the specified primary key constraint was not found.
+   *
+   * @returns {Promise<void>} Resolves when the primary key constraint has been successfully removed.
+   */
   public async dropPrimaryKey({ table } : { 
     table ?: string;
   } = {}): Promise<void> {
 
-    const sql = this._queryBuilder().dropPrimaryKey({
-      table: table ?? String(this.$state.get("TABLE_NAME"))
-    });
+    const exists = await this.hasPrimaryKey({ table });
 
-    await this.rawQuery(sql);
+    if(!exists) {
+      throw new Error('The specified primary constraint was not found.')
+    }
+
+    await this.rawQuery(
+      this._queryBuilder().dropPrimaryKey({
+        table: table ?? String(this.getTableName())
+      })
+    );
 
     return;
   }

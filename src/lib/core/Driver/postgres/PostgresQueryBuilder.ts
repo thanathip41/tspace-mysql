@@ -1,3 +1,4 @@
+import { singular } from "pluralize";
 import { QueryBuilder } from "..";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
@@ -157,12 +158,24 @@ export class PostgresQueryBuilder extends QueryBuilder {
             WHEN column_default LIKE 'nextval(%' THEN 'PRI'
             ELSE NULL
         END AS "Key",
+
         CASE
+          WHEN DATA_TYPE = 'USER-DEFINED' THEN
+          'enum(' ||
+          (
+            SELECT string_agg(quote_literal(e.enumlabel), ',')
+            FROM PG_TYPE t
+            JOIN PG_ENUM e ON t.oid = e.enumtypid
+            WHERE t.typname = udt_name
+          )
+          || ')'
+
           WHEN 
             DATA_TYPE = 'character varying' AND CHARACTER_MAXIMUM_LENGTH IS NOT NULL
             THEN DATA_TYPE || '(' || CHARACTER_MAXIMUM_LENGTH || ')'
           ELSE DATA_TYPE
         END AS "Type",
+
         IS_NULLABLE as "Nullable",
 
         CASE
@@ -335,7 +348,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       this.$constants("ALTER_TABLE"),
       `\`${table}\``,
       this.$constants("ADD"),
-      "COLUMN",
+      this.$constants("COLUMN"),
       `\`${column}\` ${formatedType} ${
         formatedAttributes != null && formatedAttributes.length
           ? `${formatedAttributes.join(" ")}`
@@ -358,19 +371,25 @@ export class PostgresQueryBuilder extends QueryBuilder {
     type: string;
     attributes: string[];
   }) {
-    const { formatedAttributes, formatedType } =
+    const { formatedAttributes, formatedType, raws } =
       this._formatedTypeAndAttributes({
+        table,
         type,
         attributes,
         key: column,
+        changed: true
       });
+
+    if(raws) {
+      return this.format(raws);
+    }
 
     const sql = [
       this.$constants("ALTER_TABLE"),
       `\`${table}\``,
       this.$constants("ALTER_COLUMN"),
       `\`${column}\``,
-      `TYPE ${formatedType}`,
+      `${this.$constants("TYPE")} ${formatedType}`,
     ];
 
     const sqlAttr = [];
@@ -389,7 +408,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
           `\`${table}\``,
           this.$constants("ALTER_COLUMN"),
           `\`${column}\``,
-          `SET ${formatedAttribute}`,
+          `${this.$constants("SET")} ${formatedAttribute}`,
         ].join(" ")
       );
     }
@@ -432,7 +451,6 @@ export class PostgresQueryBuilder extends QueryBuilder {
           BY con.CONNAME, conrel.RELNAME, confrel.RELNAME
         ORDER 
           BY conrel.RELNAME, con.CONNAME
-
       `,
     ];
 
@@ -635,10 +653,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
     .join(", ");
 
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
-      this.$constants("ADD_INDEX"),
+      this.$constants("CREATE_INDEX"),
       `\`${name}\``,
+      this.$constants("ON"),
+      `\`${table}\``,
       `(${cols})`
     ];
 
@@ -986,19 +1004,27 @@ export class PostgresQueryBuilder extends QueryBuilder {
   }
 
   private _formatedTypeAndAttributes({
+    table,
     type,
     attributes,
     key,
+    changed
   }: {
+    changed?: boolean;
+    table?: string;
     type: string;
     attributes: string[];
     key: string;
   }) {
     let formatedType = type;
     let formatedAttributes = attributes;
+    let raws : string | null = null;
 
     if (type.startsWith("INT") && attributes.some((v) => v === "PRIMARY KEY")) {
       formatedType = "SERIAL";
+      if(changed) {
+        formatedType = `INT USING "${key}"::INTEGER`;
+      }
       formatedAttributes = attributes.filter((attr) => {
         return !attr.startsWith("AUTO_INCREMENT");
       });
@@ -1024,6 +1050,61 @@ export class PostgresQueryBuilder extends QueryBuilder {
       formatedType = `VARCHAR(${totalLength}) CHECK (${key} IN ${enums})`;
     }
 
+    if (changed && type.startsWith("ENUM")) {
+      const enums = type.replace("ENUM", "");
+
+      const totalLength = enums
+        .slice(1, -1)
+        .split(",")
+        .map((s) => s.replace(/'/g, ""))
+        .reduce((sum, item) => sum + item.length, 0);
+
+        const enumType = `${[singular(String(table?? '')),key].join('_')}`;
+
+        raws =  `
+          DO $$
+            DECLARE tname text;
+            BEGIN
+
+              SELECT t.TYPNAME
+              INTO tname
+              FROM PG_ATTRIBUTE a
+              JOIN PG_CLASS c ON c.OID = a.ATTRELID
+              JOIN PG_TYPE t ON t.OID = a.ATTTYPID
+              WHERE c.RELNAME = '${table}'
+                AND a.ATTNAME = '${key}'
+                AND a.ATTNUM > 0
+                AND t.TYPTYPE = 'e'
+              LIMIT 1;
+
+              IF tname IS NOT NULL THEN
+
+                ALTER TABLE ${table} 
+                ALTER COLUMN ${key} DROP DEFAULT;
+
+                ALTER TABLE ${table} 
+                ALTER COLUMN ${key} TYPE varchar(${totalLength});
+
+                EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(tname);
+
+              END IF;
+
+              DROP TYPE IF EXISTS ${enumType};
+              
+              CREATE TYPE ${enumType} AS ENUM ${enums};
+
+              ALTER TABLE ${table}
+              ALTER COLUMN ${key} DROP DEFAULT;
+
+              ALTER TABLE ${table}
+              ALTER COLUMN ${key} TYPE ${enumType}
+              USING ${key}::${enumType};
+
+            END
+          $$
+        `
+    }
+
     if (type.startsWith("BOOLEAN")) {
       formatedAttributes = attributes.map((attr) => {
         if (attr.startsWith("DEFAULT")) {
@@ -1037,6 +1118,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return {
       formatedType,
       formatedAttributes,
+      raws
     };
   }
 }

@@ -105,6 +105,8 @@ const CONSTANTS = Object.freeze({
     NULLIF: 'NULLIF',
     INFORMATION_SCHEMA: 'INFORMATION_SCHEMA',
     STATISTICS: 'STATISTICS',
+    TYPE : 'TYPE',
+    COLUMN: 'COLUMN',
     RELATIONSHIP : {
         hasOne : 'hasOne',
         hasMany : 'hasMany',
