@@ -1,15 +1,19 @@
-import { Tool } from "../tool";
-import { MysqlDriver } from "./Driver/mysql/MysqlDriver";
+import { Tool }           from "../tool";
+import { MysqlDriver }    from "./Driver/mysql/MysqlDriver";
 import { PostgresDriver } from "./Driver/postgres/PostgresDriver";
-import { MariadbDriver } from "./Driver/mariadb/MariadbDriver";
-import Config, { loadOptionsEnv } from "../config";
+import { MariadbDriver }  from "./Driver/mariadb/MariadbDriver";
+import { MongodblDriver } from "./Driver/mongodb/MongodbDriver";
+
+import Config, { 
+  loadOptionsEnv 
+} from "../config";
+
 import type {
   TDriver,
   TOptions,
   TPoolConnected,
   TPoolCusterConnected,
 } from "../types";
-
 export class PoolConnection {
   private OPTIONS: Map<string, any> = this._loadOptions();
   private POOL: TPoolConnected | null = null;
@@ -56,6 +60,11 @@ export class PoolConnection {
 
       case "mariadb": {
         this.POOL = new MariadbDriver(options).connect();
+        break;
+      }
+
+      case "mongodb": {
+        this.POOL = new MongodblDriver(options).connect();
         break;
       }
 
