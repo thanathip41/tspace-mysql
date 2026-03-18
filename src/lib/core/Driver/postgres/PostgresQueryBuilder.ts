@@ -1,9 +1,11 @@
-import { singular } from "pluralize";
+import { singular }     from "pluralize";
 import { QueryBuilder } from "..";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
 
 export class PostgresQueryBuilder extends QueryBuilder {
+  private _returnStart = 'RETURNING *';
+
   constructor(state: StateManager) {
     super(state);
   }
@@ -67,15 +69,15 @@ export class PostgresQueryBuilder extends QueryBuilder {
       columns,
       this.$constants("VALUES"),
       values,
-      "RETURNING *"
+      this._returnStart
     ]);
 
     return sql;
   }
  
   public update() {
-    const query = this.$state.get("UPDATE")
-    if(query == null) {
+   
+    if(this.$state.get("UPDATE") == null) {
       return '';
     }
 
@@ -85,19 +87,13 @@ export class PostgresQueryBuilder extends QueryBuilder {
       `${this.$constants("UPDATE")}`,
       `${this.$state.get("TABLE_NAME")}`,
       `${this.$constants("SET")}`,
-      `${query}`,
-      // this.bindWhere(this.$state.get("WHERE")),
+      `${this.$state.get("UPDATE")}`,
       this.bindWhere([
-        ...this.$state.get("WHERE"),
-        `${this.$constants('AND')}`,
         `${primaryKey}`,
         `${this.$constants('IN')}`,
         `(${this.select([primaryKey])})`
       ]),
-      this.bindOrderBy(this.$state.get("ORDER_BY")),
-      // postgres does't support limit when update
-      // this.bindLimit(this.$state.get("LIMIT"))
-      "RETURNING *",
+      this._returnStart
     ]);
 
     return sql;
@@ -110,13 +106,19 @@ export class PostgresQueryBuilder extends QueryBuilder {
       throw new Error("Bad query builder: DELETE state not found. Please check your query configuration.") 
     }
 
+    const primaryKey = `${this.$state.get("TABLE_NAME")}.\`${this.$state.get("PRIMARY_KEY")}\``
+
+
     let sql = this.format([
       this.$constants("DELETE"),
       this.$constants("FROM"),
       this.$state.get("TABLE_NAME"),
-      this.bindWhere(this.$state.get("WHERE")),
-      this.bindOrderBy(this.$state.get("ORDER_BY")),
-       "RETURNING *",
+      this.bindWhere([
+        `${primaryKey}`,
+        `${this.$constants('IN')}`,
+        `(${this.select([primaryKey])})`
+      ]),
+      this._returnStart
     ]);
 
     if (this.$state.get("CTE").length) {
@@ -884,9 +886,18 @@ export class PostgresQueryBuilder extends QueryBuilder {
       const deleteRegex   = /^DELETE\b/i;
       const truncateRegex = /^TRUNCATE\b/i;
 
+       if (updateRegex.test(sqlString)) {
+        sqlString = sqlString.replace(
+          /(SET\s+)(.*?)(\s+WHERE)/is,
+          (_, start, setPart, end) => {
+            const cleaned = setPart.replace(/`[\w_]+`\./g, '');
+            return start + cleaned + end;
+          }
+        );
+      }
+
       if (
         insertRegex.test(sqlString) ||
-        updateRegex.test(sqlString) ||
         deleteRegex.test(sqlString) ||
         truncateRegex.test(sqlString)
       ) {
@@ -897,6 +908,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
       return sqlString.replace(/`([^`]+)`/g, '"$1"');
     };
+    
     return replaceBackticksWithDoubleQuotes(formated);
   }
 

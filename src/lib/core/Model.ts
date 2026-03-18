@@ -1,15 +1,15 @@
 import "reflect-metadata";
-import pluralize from "pluralize";
-import { DB } from "./DB";
-import { Schema } from "./Schema";
-import { AbstractModel } from "./Abstracts/AbstractModel";
-import { RelationManager } from "./RelationManager";
-import { Blueprint } from "./Blueprint";
-import { StateManager } from "./StateManager";
-import { Cache } from "./Cache";
-import { JoinModel } from "./JoinModel";
-import { CONSTANTS } from "../constants";
-import type { T } from "./UtilityTypes";
+import pluralize            from "pluralize";
+import { DB }               from "./DB";
+import { Schema }           from "./Schema";
+import { AbstractModel }    from "./Abstracts/AbstractModel";
+import { RelationManager }  from "./RelationManager";
+import { Blueprint }        from "./Blueprint";
+import { StateManager }     from "./StateManager";
+import { Cache }            from "./Cache";
+import { JoinModel }        from "./JoinModel";
+import { CONSTANTS }        from "../constants";
+import type { T }           from "./UtilityTypes";
 import type {
   TCache,
   TExecute,
@@ -22,7 +22,7 @@ import type {
   TRelationKeys,
   TDriver,
   TPoolConnected,
-  TLifecycle,
+  TLifecycle
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
@@ -4994,26 +4994,6 @@ class Model<
       return Boolean(this._resultHandler(result));
     }
 
-    const PK = this.$state.get("PRIMARY_KEY");
-
-    const TEMP = "TEMP";
-
-    const from = new Model()
-      .copyModel(this, { where: true, limit: true, orderBy: true })
-      .selectRaw(PK);
-
-    this.unset({ where: true, limit: true })
-      .select(PK)
-      .whereSubQuery(
-        PK,
-        new Model()
-          .from(
-            DB.raw(`
-        (${from}) ${this.$constants("AS")} ${TEMP}`),
-          )
-          .selectRaw(PK),
-      );
-
     this.$state.set("DELETE", true);
 
     await this._runBefore("remove");
@@ -5059,26 +5039,6 @@ class Model<
 
       return Boolean(this._resultHandler(result));
     }
-
-    const PK = this.$state.get("PRIMARY_KEY");
-
-    const TEMP = "TEMP";
-
-    const from = new Model()
-      .copyModel(this, { where: true, limit: true, orderBy: true })
-      .selectRaw(PK);
-
-    this.unset({ where: true, limit: true })
-      .select(PK)
-      .whereSubQuery(
-        PK,
-        new Model()
-          .from(
-            DB.raw(`
-        (${from}) ${this.$constants("AS")} ${TEMP}`),
-          )
-          .selectRaw(PK),
-      );
 
     this.$state.set("DELETE", true);
 
