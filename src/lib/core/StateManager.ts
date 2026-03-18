@@ -7,6 +7,14 @@ import type {
     TValidateSchema 
 } from "../types";
 
+type Condition = {
+  column    : string;                
+  operator  : string;            
+  value     ?: any;                  
+  condition ?: 'AND' | 'OR';      
+  nested    ?: Condition[];
+};
+
 const STATE_DEFAULT = {
   PRIMARY_KEY: 'id' as string,
   VOID: false as boolean,
@@ -22,6 +30,7 @@ const STATE_DEFAULT = {
   FROM: [] as string[],
   JOIN: [] as string[],
   WHERE: [] as string[],
+  WHERE_TEST: [] as Condition[],
   GROUP_BY: [] as string[],
   ORDER_BY: [] as string[],
   LIMIT: null as number | null,
@@ -31,7 +40,7 @@ const STATE_DEFAULT = {
   HIDDEN: [] as string[],
   DEBUG: false as boolean,
   CTE: [] as string[],
-  PAGE: 1 as number,
+  PAGE: null as number | null,
   AFTER_SAVE: 100 as number,
   HOOKS: [] as Function[],
   ALIAS: null as string | null,

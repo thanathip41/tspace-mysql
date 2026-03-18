@@ -333,7 +333,7 @@ export type TLiteralStringKeys<T> = {
     [K in keyof T]: T[K] extends string ? (string extends T[K] ? never : K) : never;
 }[keyof T];
 export type TLiteralEnumKeys<T> = TLiteralStringKeys<TRemoveIndexSignature<T>>;
-export type TDriver = 'pg' | 'postgres' | 'mysql' | 'mysql2' | 'mariadb' | 'mssql' | 'sqlite3';
+export type TDriver = 'pg' | 'postgres' | 'mysql' | 'mysql2' | 'mariadb' | 'mssql' | 'sqlite3' | 'mongodb';
 export type TPoolCusterOptions = {
     writer: {
         host: string;

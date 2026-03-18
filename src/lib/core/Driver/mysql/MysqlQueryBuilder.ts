@@ -739,9 +739,47 @@ export class MysqlQueryBuilder extends QueryBuilder {
   protected bindWhere(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
-    return `${this.$constants("WHERE")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(" ")}`;
+  
+    const wheres = `${this.$constants("WHERE")} ${values
+    .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
+    .join(" ")}`;
+
+    const whereArrayToSQL = (whereArray: any[]): string => {
+      const conditionToSQL = (cond: any, isFirst: boolean = false): string => {
+        
+        if (cond.nested && cond.nested.length > 0) {
+          const nestedSQL = cond.nested
+            .map((c: any, i: number) => conditionToSQL(c, i === 0))
+            .join(' ');
+          return `${!isFirst && cond.condition ? cond.condition + ' ' : ''}(${nestedSQL})`;
+        }
+
+        let valueStr = '';
+        if (cond.operator?.toUpperCase() === 'IN' && Array.isArray(cond.value)) {
+          valueStr = `(${cond.value.map((v: any) => v).join(', ')})`;
+        } else if (
+          cond.operator?.toUpperCase() === 'IS NULL' ||
+          cond.operator?.toUpperCase() === 'IS NOT NULL'
+        ) {
+          valueStr = '';
+        } else {
+          valueStr = `${cond.value}`;
+        }
+
+    return `${!isFirst && cond.condition ? cond.condition + ' ' : ''}${cond.column} ${cond.operator} ${valueStr}`.trim();
+      };
+
+      return whereArray.map((cond, i) => conditionToSQL(cond, i === 0)).join(' ');
+    };
+
+    const whereArray = `${this.$constants("WHERE")} ${whereArrayToSQL(this.$state.get('WHERE_TEST'))}`
+
+    console.log({
+      wheres,
+      wherea : whereArray 
+    })
+   
+    return wheres
   }
 
   protected bindOrderBy(values: string[]) {

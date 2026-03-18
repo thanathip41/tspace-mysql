@@ -3049,6 +3049,16 @@ class Model<
         .replace(/^\s+/, ""),
     ]);
 
+    this.$state.set("WHERE_TEST", [
+      ...this.$state.get("WHERE_TEST"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : operator,         
+        value : this.$utils.transfromValueHasRaw(value), 
+        condition : this.$state.get("WHERE_TEST").length ? 'AND' : undefined,
+      }
+    ]);
+
     return this;
   }
 
@@ -3450,6 +3460,18 @@ class Model<
       ]
         .join(" ")
         .replace(/^\s+/, ""),
+    ]);
+
+     this.$state.set("WHERE_TEST", [
+      ...this.$state.get("WHERE_TEST"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("IN")}`,
+        value: array
+        .map((value: string) => {
+          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+        })
+      }
     ]);
 
     return this;
@@ -3917,6 +3939,14 @@ class Model<
         .replace(/^\s+/, ""),
     ]);
 
+    this.$state.set("WHERE_TEST", [
+      ...this.$state.get("WHERE_TEST"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("IS_NULL")}`,
+      }
+    ]);
+
     return this;
   }
 
@@ -4212,6 +4242,47 @@ class Model<
     this.$state.set("WHERE", [
       ...wheres,
       [wheres.length ? `${this.$constants("AND")}` : "", `(${query})`]
+        .join(" ")
+        .replace(/^\s+/, ""),
+    ]);
+
+    return this;
+  }
+
+  /**
+   * @override
+   * @param {Function} callback callback query
+   * @returns {this}
+   */
+  public orWhereQuery<
+    T extends Model | unknown,
+    M = T extends this ? this : T extends Model ? T : this,
+  >(callback: (query: M) => M): this {
+    const copy = new Model().copyModel(this) as M;
+
+    const repository = callback(copy);
+
+    if (repository instanceof Promise) {
+      throw this._assertError(
+        'The "orWhereQuery" method is not supported a Promise',
+      );
+    }
+
+    if (!(repository instanceof Model)) {
+      throw this._assertError(`Unknown callback query: '${repository}'`);
+    }
+
+    const where: string[] = repository?.$state.get("WHERE") || [];
+
+    if (!where.length) return this;
+
+    const query: string = where.join(" ");
+
+    const wheres = this.$state.get("WHERE");
+
+    this.$state.set("WHERE", [
+      ...wheres,
+      [wheres.length ? `${this.$constants("OR")}` : "", `(${query})`]
         .join(" ")
         .replace(/^\s+/, ""),
     ]);
@@ -4827,7 +4898,7 @@ class Model<
     return Number(
       this._resultHandler(
         result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) ||
-          0,
+        result.length,
       ),
     );
   }
@@ -7235,9 +7306,9 @@ class Model<
   }
 
   private async _pagination(data: any[]): Promise<any> {
-    const currentPage: number = +this.$state.get("PAGE");
+    const currentPage: number = this.$state.get("PAGE") ?? 0;
 
-    const limit: number = Number(this.$state.get("LIMIT"));
+    const limit: number = Number(this.$state.get("LIMIT") ?? 0);
 
     if (limit < 1) {
       throw this._assertError(
@@ -7258,7 +7329,8 @@ class Model<
     const nextPage: number = currentPage + 1;
     const prevPage: number = currentPage - 1 === 0 ? 1 : currentPage - 1;
     const count: number = data?.length ?? 0;
-
+    
+    console.log('total : ', total)
     const meta = {
       total,
       limit,
