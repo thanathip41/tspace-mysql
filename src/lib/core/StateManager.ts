@@ -4,16 +4,9 @@ import type {
     TPattern,
     TRelationOptions,
     TSave, 
+    TStateWhereCondition, 
     TValidateSchema 
 } from "../types";
-
-type Condition = {
-  column    : string;                
-  operator  : string;            
-  value     ?: any;                  
-  condition ?: 'AND' | 'OR';      
-  nested    ?: Condition[];
-};
 
 const STATE_DEFAULT = {
   PRIMARY_KEY: 'id' as string,
@@ -29,8 +22,8 @@ const STATE_DEFAULT = {
   EXCEPTS: [] as string[],
   FROM: [] as string[],
   JOIN: [] as string[],
-  WHERE: [] as string[],
-  WHERE_TEST: [] as Condition[],
+  WHERE: [] as TStateWhereCondition[],
+//   WHERE_TEST: [] as TStateWhereCondition[],
   GROUP_BY: [] as string[],
   ORDER_BY: [] as string[],
   LIMIT: null as number | null,

@@ -482,3 +482,11 @@ export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Da
             : never : never : never
         ) 
         : IncomingResult;
+
+export type TStateWhereCondition = {
+  column    ?: string;                
+  operator  ?: string;            
+  value     ?: any;                  
+  condition ?: 'AND' | 'OR';      
+  nested    ?: TStateWhereCondition[];
+};

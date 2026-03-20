@@ -221,13 +221,13 @@ class Model<
       throw new Error(`Unknown callback query: '${repository}'`);
 
     this.$state.set("GLOBAL_SCOPE_QUERY", () => {
-      const select: string[] = repository?.$state.get("SELECT") || [];
-      const except: string[] = repository?.$state.get("EXCEPTS") || [];
-      const where: string[] = repository?.$state.get("WHERE") || [];
-      const groupBy: string[] = repository?.$state.get("GROUP_BY") || [];
-      const orderBy: string[] = repository?.$state.get("ORDER_BY") || [];
-      const limit: number | null = repository?.$state.get("LIMIT") || null;
-      const offset: number | null = repository?.$state.get("OFFSET") || null;
+      const select  = repository?.$state.get("SELECT") || [];
+      const except  = repository?.$state.get("EXCEPTS") || [];
+      const where   = repository?.$state.get("WHERE") || [];
+      const groupBy = repository?.$state.get("GROUP_BY") || [];
+      const orderBy = repository?.$state.get("ORDER_BY") || [];
+      const limit   = repository?.$state.get("LIMIT") || null;
+      const offset  = repository?.$state.get("OFFSET") || null;
 
       if (select.length) {
         this.$state.set("SELECT", [...this.$state.get("SELECT"), ...select]);
@@ -240,10 +240,7 @@ class Model<
       if (where.length) {
         this.$state.set("WHERE", [
           ...this.$state.get("WHERE"),
-          [
-            this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-            ...where,
-          ].join(" "),
+          ...where
         ]);
       }
 
@@ -3035,27 +3032,26 @@ class Model<
       return this.whereIn(column, value);
     }
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${operator}`,
+    //     `${this.$utils.transfromValueHasRaw(value)}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${operator}`,
-        `${this.$utils.transfromValueHasRaw(value)}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
-    ]);
-
-    this.$state.set("WHERE_TEST", [
-      ...this.$state.get("WHERE_TEST"),
+      ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value), 
-        condition : this.$state.get("WHERE_TEST").length ? 'AND' : undefined,
+        value : this.$utils.transfromValueHasRaw(value),
       }
     ]);
 
@@ -3120,18 +3116,28 @@ class Model<
       return this.orWhereIn(column, value);
     }
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${operator}`,
+    //     `${this.$utils.transfromValueHasRaw(value)}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${operator}`,
-        `${this.$utils.transfromValueHasRaw(value)}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : operator,         
+        value : this.$utils.transfromValueHasRaw(value),
+        condition : 'OR'
+      }
     ]);
 
     return this;
@@ -3146,16 +3152,25 @@ class Model<
   public whereDay<K extends T.ColumnKeys<this>>(column: K, day: number): this {
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `DAY(${this.bindColumn(String(column))})`,
+    //     `=`,
+    //     `'${`00${this.$utils.escape(day)}`.slice(-2)}'`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `DAY(${this.bindColumn(String(column))})`,
-        `=`,
-        `'${`00${this.$utils.escape(day)}`.slice(-2)}'`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column   : `DAY(${this.bindColumn(String(column))})`,            
+        operator : '=',         
+        value    : `'${`00${this.$utils.escape(day)}`.slice(-2)}'`,
+      }
     ]);
 
     return this;
@@ -3173,16 +3188,25 @@ class Model<
   ): this {
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `MONTH(${this.bindColumn(String(column))})`,
+    //     `=`,
+    //     `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `MONTH(${this.bindColumn(String(column))})`,
-        `=`,
-        `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column   :  `MONTH(${this.bindColumn(String(column))})`,            
+        operator : '=',         
+        value    : `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
+      }
     ]);
 
     return this;
@@ -3198,18 +3222,27 @@ class Model<
     column: K,
     year: number,
   ): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `YEAR(${this.bindColumn(String(column))})`,
+    //     `=`,
+    //     `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `YEAR(${this.bindColumn(String(column))})`,
-        `=`,
-        `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column   : `YEAR(${this.bindColumn(String(column))})`,             
+        operator : '=',         
+        value    : `'${`0000${this.$utils.escape(year)}`.slice(-2)}'`,
+      }
     ]);
 
     return this;
@@ -3342,18 +3375,27 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}->>'$.${key}'`,
+    //     `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
+    //     `${this.$utils.transfromValueHasRaw(value)}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}->>'$.${key}'`,
-        `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-        `${this.$utils.transfromValueHasRaw(value)}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : `${this.bindColumn(String(column))}->>'$.${key}'`,             
+        operator : `${operator == null ? "=" : operator.toLocaleUpperCase()}`,         
+        value : `${this.$utils.transfromValueHasRaw(value)}`
+      }
     ]);
 
     return this;
@@ -3382,16 +3424,25 @@ class Model<
    * @returns {this}
    */
   public whereUser(userId: number, column: string = "user_id"): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : '=',         
+        value : `${this.$utils.escape(userId)}`,
+      }
     ]);
 
     return this;
@@ -3407,15 +3458,11 @@ class Model<
       sql.select1();
     }
 
-    const wheres = this.$state.get("WHERE");
-
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.$constants("EXISTS")}`,
-        `(${sql})`,
-      ].join(" "),
+      ...this.$state.get("WHERE"),
+      {
+        value: `${this.$constants("EXISTS")} (${sql})`
+      }
     ]);
 
     return this;
@@ -3448,22 +3495,22 @@ class Model<
       }
     }
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IN")}`,
+    //     `(${values})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IN")}`,
-        `(${values})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
-    ]);
-
-     this.$state.set("WHERE_TEST", [
-      ...this.$state.get("WHERE_TEST"),
+      ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("IN")}`,
@@ -3497,18 +3544,31 @@ class Model<
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IN")}`,
+    //     `(${values})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IN")}`,
-        `(${values})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),   
+        condition : 'OR',          
+        operator : `${this.$constants("IN")}`,
+        value: array
+        .map((value: string) => {
+          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+        })
+      }
     ]);
 
     return this;
@@ -3534,18 +3594,30 @@ class Model<
       )
       .join(",")}`;
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("NOT_IN")}`,
+    //     `(${values})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_IN")}`,
-        `(${values})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("NOT_IN")}`,
+        value: array
+        .map((value: string) => {
+          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+        })
+      }
     ]);
 
     return this;
@@ -3573,16 +3645,29 @@ class Model<
 
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("NOT_IN")}`,
+    //     `(${values})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_IN")}`,
-        `(${values})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("NOT_IN")}`,
+        condition : 'OR',
+        value: array
+        .map((value: string) => {
+          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+        })
+      }
     ]);
 
     return this;
@@ -3605,18 +3690,27 @@ class Model<
       subQuery.select("id");
     }
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     options.operator,
+    //     `(${subQuery})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        options.operator,
-        `(${subQuery})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : options.operator,
+        value: `(${subQuery})`
+      }
     ]);
 
     return this;
@@ -3641,16 +3735,25 @@ class Model<
 
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     options.operator,
+    //     `(${subQuery})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        options.operator,
-        `(${subQuery})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : options.operator,
+        value: `(${subQuery})`
+      }
     ]);
 
     return this;
@@ -3675,16 +3778,26 @@ class Model<
 
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     options.operator,
+    //     `(${subQuery})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        options.operator,
-        `(${subQuery})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : options.operator,
+        condition : 'OR',
+        value: `(${subQuery})`
+      }
     ]);
 
     return this;
@@ -3709,16 +3822,26 @@ class Model<
 
     const wheres = this.$state.get("WHERE");
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     options.operator,
+    //     `(${subQuery})`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        options.operator,
-        `(${subQuery})`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : options.operator,
+        condition : 'OR',
+        value: `(${subQuery})`
+      }
     ]);
 
     return this;
@@ -3734,40 +3857,38 @@ class Model<
     column: K,
     array: [any, any],
   ): this {
-    const wheres = this.$state.get("WHERE");
-
+    
     if (!array.length) {
-      this.$state.set("WHERE", [
-        ...wheres,
-        [
-          wheres.length ? `${this.$constants("AND")}` : "",
-          `${this.bindColumn(String(column))}`,
-          `${this.$constants("BETWEEN")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-          `${this.$constants("AND")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-        ]
-          .join(" ")
-          .replace(/^\s+/, ""),
-      ]);
-
-      return this;
+      return this.whereBetween(column, ['NULL','NULL'])
     }
 
     const [value1, value2] = array;
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("BETWEEN")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+    //     `${this.$constants("AND")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("BETWEEN")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-        `${this.$constants("AND")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("BETWEEN")}`,
+        value: [
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$constants("AND")}`,
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+        ].join(" ")
+      }
     ]);
 
     return this;
@@ -3786,37 +3907,38 @@ class Model<
     const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
-      this.$state.set("WHERE", [
-        ...wheres,
-        [
-          wheres.length ? `${this.$constants("OR")}` : "",
-          `${this.bindColumn(String(column))}`,
-          `${this.$constants("BETWEEN")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-          `${this.$constants("AND")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-        ]
-          .join(" ")
-          .replace(/^\s+/, ""),
-      ]);
-
-      return this;
+     
+      return this.orWhereBetween(column,['NULL','NULL'])
     }
 
     const [value1, value2] = array;
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("BETWEEN")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+    //     `${this.$constants("AND")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("BETWEEN")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-        `${this.$constants("AND")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("BETWEEN")}`,
+        condition : 'OR',
+        value: [
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$constants("AND")}`,
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+        ].join(" ")
+      }
     ]);
 
     return this;
@@ -3835,37 +3957,36 @@ class Model<
     const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
-      this.$state.set("WHERE", [
-        ...wheres,
-        [
-          wheres.length ? `${this.$constants("AND")}` : "",
-          `${this.bindColumn(String(column))}`,
-          `${this.$constants("NOT_BETWEEN")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-          `${this.$constants("AND")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-        ]
-          .join(" ")
-          .replace(/^\s+/, ""),
-      ]);
-
-      return this;
+      return this.whereNotBetween(column,['NULL','NULL'])
     }
 
     const [value1, value2] = array;
 
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("NOT_BETWEEN")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+    //     `${this.$constants("AND")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-        `${this.$constants("AND")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("NOT_BETWEEN")}`,
+        value: [
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$constants("AND")}`,
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+        ].join(" ")
+      }
     ]);
 
     return this;
@@ -3884,38 +4005,39 @@ class Model<
     const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
-      this.$state.set("WHERE", [
-        ...wheres,
-        [
-          wheres.length ? `${this.$constants("OR")}` : "",
-          `${this.bindColumn(String(column))}`,
-          `${this.$constants("NOT_BETWEEN")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-          `${this.$constants("AND")}`,
-          `${this.$constants(this.$constants("NULL"))}`,
-        ]
-          .join(" ")
-          .replace(/^\s+/, ""),
-      ]);
-
-      return this;
+       return this.orWhereNotBetween(column,['NULL','NULL'])
     }
 
     const [value1, value2] = array;
 
-    this.$state.set("WHERE", [
+    // this.$state.set("WHERE", [
+    //   ...this.$state.get("WHERE"),
+    //   [
+    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("NOT_BETWEEN")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+    //     `${this.$constants("AND")}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
+     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
-      [
-        this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("NOT_BETWEEN")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-        `${this.$constants("AND")}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("NOT_BETWEEN")}`,
+        condition : 'OR',
+        value: [
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$constants("AND")}`,
+          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+        ].join(" ")
+      }
     ]);
+
 
     return this;
   }
@@ -3926,21 +4048,21 @@ class Model<
    * @returns {this}
    */
   public whereNull<K extends T.ColumnKeys<this>>(column: K): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IS_NULL")}`,
+    //   ]
+    //   .join(" ")
+    //   .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IS_NULL")}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
-    ]);
-
-    this.$state.set("WHERE_TEST", [
-      ...this.$state.get("WHERE_TEST"),
+      ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("IS_NULL")}`,
@@ -3956,17 +4078,26 @@ class Model<
    * @returns {this}
    */
   public orWhereNull<K extends T.ColumnKeys<this>>(column: K): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IS_NULL")}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IS_NULL")}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("IS_NULL")}`,
+        condition : 'OR'
+      }
     ]);
 
     return this;
@@ -3978,17 +4109,25 @@ class Model<
    * @returns {this}
    */
   public whereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IS_NOT_NULL")}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IS_NOT_NULL")}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("IS_NOT_NULL")}`,
+      }
     ]);
 
     return this;
@@ -4000,17 +4139,26 @@ class Model<
    * @returns {this}
    */
   public orWhereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.bindColumn(String(column))}`,
+    //     `${this.$constants("IS_NOT_NULL")}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.bindColumn(String(column))}`,
-        `${this.$constants("IS_NOT_NULL")}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : this.bindColumn(String(column)),             
+        operator : `${this.$constants("IS_NOT_NULL")}`,
+        condition : 'OR'
+      }
     ]);
 
     return this;
@@ -4038,19 +4186,28 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.$constants("BINARY")}`,
+    //     `${this.bindColumn(String(column))}`,
+    //     `${operator}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.$constants("BINARY")}`,
-        `${this.bindColumn(String(column))}`,
-        `${operator}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
+        operator,
+        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+      }
     ]);
 
     return this;
@@ -4078,19 +4235,28 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("AND")}` : "",
+    //     `${this.$constants("BINARY")}`,
+    //     `${this.bindColumn(String(column))}`,
+    //     `${operator}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("AND")}` : "",
-        `${this.$constants("BINARY")}`,
-        `${this.bindColumn(String(column))}`,
-        `${operator}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      {
+        column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
+        operator,
+        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+      }
     ]);
 
     return this;
@@ -4120,17 +4286,27 @@ class Model<
 
     const wheres = this.$state.get("WHERE");
 
-    this.$state.set("WHERE", [
-      ...wheres,
-      [
-        wheres.length ? `${this.$constants("OR")}` : "",
-        `${this.$constants("BINARY")}`,
-        `${this.bindColumn(String(column))}`,
-        `${operator}`,
-        `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-      ]
-        .join(" ")
-        .replace(/^\s+/, ""),
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [
+    //     wheres.length ? `${this.$constants("OR")}` : "",
+    //     `${this.$constants("BINARY")}`,
+    //     `${this.bindColumn(String(column))}`,
+    //     `${operator}`,
+    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+    //   ]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
+     this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      {
+        column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
+        operator,
+        condition : 'OR',
+        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+      }
     ]);
 
     return this;
@@ -4231,19 +4407,24 @@ class Model<
       throw this._assertError(`Unknown callback query: '${repository}'`);
     }
 
-    const where: string[] = repository?.$state.get("WHERE") || [];
+    const where = repository?.$state.get("WHERE") || [];
 
     if (!where.length) return this;
 
-    const query: string = where.join(" ");
+    // const query: string = where.join(" ");
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
+
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [wheres.length ? `${this.$constants("AND")}` : "", `(${query})`]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
 
     this.$state.set("WHERE", [
-      ...wheres,
-      [wheres.length ? `${this.$constants("AND")}` : "", `(${query})`]
-        .join(" ")
-        .replace(/^\s+/, ""),
+      ...this.$state.get("WHERE"),
+      ...this.$utils.nestConditions(repository?.$state.get("WHERE"))
     ]);
 
     return this;
@@ -4272,19 +4453,31 @@ class Model<
       throw this._assertError(`Unknown callback query: '${repository}'`);
     }
 
-    const where: string[] = repository?.$state.get("WHERE") || [];
+    // const where: string[] = repository?.$state.get("WHERE") || [];
 
-    if (!where.length) return this;
+    // if (!where.length) return this;
 
-    const query: string = where.join(" ");
+    // const query: string = where.join(" ");
 
-    const wheres = this.$state.get("WHERE");
+    // const wheres = this.$state.get("WHERE");
 
-    this.$state.set("WHERE", [
-      ...wheres,
-      [wheres.length ? `${this.$constants("OR")}` : "", `(${query})`]
-        .join(" ")
-        .replace(/^\s+/, ""),
+    // this.$state.set("WHERE", [
+    //   ...wheres,
+    //   [wheres.length ? `${this.$constants("OR")}` : "", `(${query})`]
+    //     .join(" ")
+    //     .replace(/^\s+/, ""),
+    // ]);
+
+    // const nested = this.$utils.nestConditions(repository?.$state.get("WHERE_TEST"),'OR');
+    
+    // this.$state.set("WHERE_TEST", [
+    //   ...this.$state.get("WHERE_TEST"),
+    //   ...nested
+    // ]);
+
+     this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      ...this.$utils.nestConditions(repository?.$state.get("WHERE"),'OR')
     ]);
 
     return this;
@@ -5683,181 +5876,181 @@ class Model<
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
    */
-  public updateCases<
-    T extends T.ColumnOptions<this>,
-    K extends keyof T,
-    U extends Model | unknown,
-    M = U extends this ? this : U extends Model ? U : this,
-  >(
-    cases: {
-      condition: ((query: M) => M) | Partial<
-      { 
-        [P in K & keyof T]: 
-        Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-      }
-      >;
-      columns: Partial<
-      { 
-        [P in K & keyof T]: 
-        Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-      }
-      >;
-    }[],
-  ): this {
-    if (!cases.length) {
-      throw this._assertError("This method must require a non-empty array.");
-    }
+  // public updateCases<
+  //   T extends T.ColumnOptions<this>,
+  //   K extends keyof T,
+  //   U extends Model | unknown,
+  //   M = U extends this ? this : U extends Model ? U : this,
+  // >(
+  //   cases: {
+  //     condition: ((query: M) => M) | Partial<
+  //     { 
+  //       [P in K & keyof T]: 
+  //       Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
+  //     }
+  //     >;
+  //     columns: Partial<
+  //     { 
+  //       [P in K & keyof T]: 
+  //       Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
+  //     }
+  //     >;
+  //   }[],
+  // ): this {
+  //   if (!cases.length) {
+  //     throw this._assertError("This method must require a non-empty array.");
+  //   }
 
-    const updateColumns: Record<string, any> = cases.reduce(
-      (columns: Record<string, any[]>, item) => {
-        return (
-          item.columns &&
-            Object.keys(item.columns).forEach(
-              (key) =>
-                (columns[key] = [
-                  this.$constants("RAW"),
-                  this.$constants("CASE"),
-                  `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
-                  this.$constants("END"),
-                ]),
-            ),
-          columns
-        );
-      },
-      {},
-    );
+  //   const updateColumns: Record<string, any> = cases.reduce(
+  //     (columns: Record<string, any[]>, item) => {
+  //       return (
+  //         item.columns &&
+  //           Object.keys(item.columns).forEach(
+  //             (key) =>
+  //               (columns[key] = [
+  //                 this.$constants("RAW"),
+  //                 this.$constants("CASE"),
+  //                 `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
+  //                 this.$constants("END"),
+  //               ]),
+  //           ),
+  //         columns
+  //       );
+  //     },
+  //     {},
+  //   );
 
-    const columns: Record<string, any> = cases.reduce(
-      (columns: Record<string, string>, item) => {
-        return (
-          item.columns &&
-            Object.keys(item.columns).forEach((key) => (columns[key] = "")),
-          columns
-        );
-      },
-      {},
-    );
+  //   const columns: Record<string, any> = cases.reduce(
+  //     (columns: Record<string, string>, item) => {
+  //       return (
+  //         item.columns &&
+  //           Object.keys(item.columns).forEach((key) => (columns[key] = "")),
+  //         columns
+  //       );
+  //     },
+  //     {},
+  //   );
 
-    if (this.$state.get("TIMESTAMP")) {
-      const updatedAt: string = this._valuePattern(
-        this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
-      );
-      columns[updatedAt] = [];
-      updateColumns[updatedAt] = [
-        this.$constants("RAW"),
-        this.$constants("CASE"),
-        `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
-        this.$constants("END"),
-      ];
-    }
+  //   if (this.$state.get("TIMESTAMP")) {
+  //     const updatedAt: string = this._valuePattern(
+  //       this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
+  //     );
+  //     columns[updatedAt] = [];
+  //     updateColumns[updatedAt] = [
+  //       this.$constants("RAW"),
+  //       this.$constants("CASE"),
+  //       `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
+  //       this.$constants("END"),
+  //     ];
+  //   }
 
-    for (let i = cases.length - 1; i >= 0; i--) {
-      const c = cases[i] as unknown as {
-        condition: Function | Record<string, any>;
-        columns: Record<string, any>;
-      };
+  //   for (let i = cases.length - 1; i >= 0; i--) {
+  //     const c = cases[i] as unknown as {
+  //       condition: Function | Record<string, any>;
+  //       columns: Record<string, any>;
+  //     };
 
-      if (c.condition == null) {
-        throw this._assertError(
-          `This 'condition' property is missing some properties.`,
-        );
-      }
+  //     if (c.condition == null) {
+  //       throw this._assertError(
+  //         `This 'condition' property is missing some properties.`,
+  //       );
+  //     }
 
-      if (c.columns == null || !Object.keys(c.columns).length) {
-        throw this._assertError(
-          `This 'columns' property is missing some properties.`,
-        );
-      }
+  //     if (c.columns == null || !Object.keys(c.columns).length) {
+  //       throw this._assertError(
+  //         `This 'columns' property is missing some properties.`,
+  //       );
+  //     }
 
-      const transformWhen = (query: any): string[] => {
-        if (query instanceof Function || query instanceof Model) {
-          const copy = new Model().copyModel(this);
+  //     const transformWhen = (query: any): string[] => {
+  //       if (query instanceof Function || query instanceof Model) {
+  //         const copy = new Model().copyModel(this);
 
-          const model = query(copy);
+  //         const model = query(copy);
 
-          if (model instanceof Promise) {
-            throw this._assertError(
-              "This 'query' property is not supported a Promise",
-            );
-          }
+  //         if (model instanceof Promise) {
+  //           throw this._assertError(
+  //             "This 'query' property is not supported a Promise",
+  //           );
+  //         }
 
-          if (!(model instanceof Model)) {
-            throw this._assertError(`Unknown callback query: '${model}'`);
-          }
+  //         if (!(model instanceof Model)) {
+  //           throw this._assertError(`Unknown callback query: '${model}'`);
+  //         }
 
-          const wheres: string[] = model?.$state.get("WHERE") || [];
+  //         const wheres = model?.$state.get("WHERE") || [];
 
-          return wheres;
-        }
+  //         return wheres;
+  //       }
 
-        const model = new Model()
-          .copyModel(this)
-          .whereObject({ ...c.condition });
+  //       const model = new Model()
+  //         .copyModel(this)
+  //         .whereObject({ ...c.condition });
 
-        const wheres: string[] = model?.$state.get("WHERE") || [];
+  //       const wheres = model?.$state.get("WHERE") || [];
 
-        return wheres;
-      };
+  //       return wheres;
+  //     };
 
-      const when = transformWhen(c.condition);
+  //     const when = transformWhen(c.condition);
 
-      if (this.$state.get("TIMESTAMP")) {
-        const updatedAt: string = this._valuePattern(
-          this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
-        );
-        c.columns[updatedAt] =
-          c.columns[updatedAt] === undefined
-            ? this.$utils.timestamp()
-            : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
-      }
+  //     if (this.$state.get("TIMESTAMP")) {
+  //       const updatedAt: string = this._valuePattern(
+  //         this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
+  //       );
+  //       c.columns[updatedAt] =
+  //         c.columns[updatedAt] === undefined
+  //           ? this.$utils.timestamp()
+  //           : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
+  //     }
 
-      for (const [key, value] of Object.entries(c.columns)) {
-        if (updateColumns[key] == null) continue;
-        const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
-        const str = `${this.$constants("WHEN")} ${when.join(
-          ` ${this.$constants("AND")} `,
-        )} ${this.$constants("THEN")} '${value}'`;
+  //     for (const [key, value] of Object.entries(c.columns)) {
+  //       if (updateColumns[key] == null) continue;
+  //       const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
+  //       const str = `${this.$constants("WHEN")} ${when.join(
+  //         ` ${this.$constants("AND")} `,
+  //       )} ${this.$constants("THEN")} '${value}'`;
 
-        updateColumns[key].splice(startIndex + 1, 0, str);
-      }
-    }
+  //       updateColumns[key].splice(startIndex + 1, 0, str);
+  //     }
+  //   }
 
-    for (const key in columns) {
-      if (updateColumns[key] == null) continue;
-      columns[key] = `( ${updateColumns[key].join(" ")} )`;
-    }
+  //   for (const key in columns) {
+  //     if (updateColumns[key] == null) continue;
+  //     columns[key] = `( ${updateColumns[key].join(" ")} )`;
+  //   }
 
-    const keyValue = Object.entries(columns).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+  //   const keyValue = Object.entries(columns).map(([column, value]) => {
+  //     if (
+  //       typeof value === "string" &&
+  //       !value.includes(this.$constants("RAW"))
+  //     ) {
+  //       value = this.$utils.escapeActions(value);
+  //     }
 
-      return `${this.bindColumn(column)} = ${
-        value == null || value === this.$constants("NULL")
-          ? this.$constants("NULL")
-          : this.$utils.transfromValueHasRaw(value)
-      }`;
-    });
+  //     return `${this.bindColumn(column)} = ${
+  //       value == null || value === this.$constants("NULL")
+  //         ? this.$constants("NULL")
+  //         : this.$utils.transfromValueHasRaw(value)
+  //     }`;
+  //   });
 
-    this.$state.set("DATA", columns);
+  //   this.$state.set("DATA", columns);
 
-    this.$state.set("UPDATE", keyValue);
+  //   this.$state.set("UPDATE", keyValue);
 
-    this.whereRaw("1");
+  //   this.whereRaw("1");
 
-    this.void();
+  //   this.void();
 
-    this.disableTransform();
+  //   this.disableTransform();
 
-    this.disabledValidateSchema();
+  //   this.disabledValidateSchema();
 
-    this.$state.set("SAVE", "UPDATE");
+  //   this.$state.set("SAVE", "UPDATE");
 
-    return this;
-  }
+  //   return this;
+  // }
 
   /**
    * @override
@@ -6882,7 +7075,7 @@ class Model<
       this.$constants("IS_NULL"),
     ].join(" ");
 
-    if (!wheres.some((where: string) => where.includes(softDeleteIsNull))) {
+    if (!wheres.some((v) => v.column?.includes(softDeleteIsNull))) {
       this.whereNull(deletedAt);
       return this;
     }
@@ -7330,7 +7523,6 @@ class Model<
     const prevPage: number = currentPage - 1 === 0 ? 1 : currentPage - 1;
     const count: number = data?.length ?? 0;
     
-    console.log('total : ', total)
     const meta = {
       total,
       limit,
@@ -8352,7 +8544,7 @@ class Model<
   }
 
   private _guardWhereCondition() {
-    const wheres: string[] = this.$state.get("WHERE");
+    const wheres = this.$state.get("WHERE");
 
     if (!wheres.length) {
       throw this._assertError(
@@ -8370,7 +8562,7 @@ class Model<
         this.$constants("IS_NULL"),
       ].join(" ");
 
-      if (wheres.some((where: string) => where.includes(softDeleteIsNull))) {
+      if (wheres.some((v) => v.column?.includes(softDeleteIsNull))) {
         throw this._assertError(
           `The statement is not allowed to use the '${deletedAt}' column as a condition for any action`,
         );

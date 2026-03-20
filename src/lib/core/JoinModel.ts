@@ -51,7 +51,7 @@ class JoinModel {
                 this.model['$constants']('IS_NULL')
             ].join(' ')
 
-            if(!wheres.some((where: string) => where.includes(softDeleteIsNull ))) {
+            if(!wheres.some((v) => v.column?.includes(softDeleteIsNull ))) {
                 this.model.whereNull(whereClause)
             }
         }
@@ -64,7 +64,7 @@ class JoinModel {
                 this.model['$constants']('IS_NULL')
             ].join(' ')
 
-            if(!wheres.some((where: string) => where.includes(softDeleteIsNull ))) {
+            if(!wheres.some((v) => v.column?.includes(softDeleteIsNull ))) {
                 this.model.whereNull(whereClause)
             }
         }

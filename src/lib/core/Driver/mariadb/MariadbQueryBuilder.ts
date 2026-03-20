@@ -1,4 +1,5 @@
 import { QueryBuilder } from "..";
+import { TStateWhereCondition } from "../../../types";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
 
@@ -721,12 +722,49 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return values.join(" ");
   }
 
-  protected bindWhere(values: string[]) {
+  protected bindWhere(values: any[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
-    return `${this.$constants("WHERE")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(" ")}`;
+    const concatWhereCondition = (wheres: TStateWhereCondition[]): string => {
+      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
+    
+        const { column = '', operator = '' , condition , value , nested } = cond
+
+        if (nested && nested.length > 0) {
+          const nestedSQL = nested
+            .map((c) => conditionToSQL(c))
+            .join(' ');
+
+          if(!isFirst) {
+            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${value} ${nestedSQL})`;
+          }
+
+          return `(${column} ${operator} ${value} ${nestedSQL})`;
+        }
+
+        let valueStr = '';
+
+        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
+          valueStr = `(${value.map((v) => v).join(',')})`;
+        } else if (
+          operator?.toUpperCase() === this.$constants('IS_NULL') ||
+          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
+        ) {
+          valueStr = '';
+        } else {
+          valueStr = `${value}`;
+        }
+
+        if(!isFirst) {
+          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
+        } 
+        return `${column} ${operator} ${valueStr}`.trim();
+      };
+
+      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
+    };
+
+    return `${this.$constants("WHERE")} ${concatWhereCondition(values)}`
   }
 
   protected bindOrderBy(values: string[]) {

@@ -1,5 +1,6 @@
 import { Blueprint } from ".."
 import { CONSTANTS } from "../constants"
+import { TStateWhereCondition } from "../types"
 
 const typeOf = (data:any) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase() 
 
@@ -509,6 +510,19 @@ const hash32 = (str : string): number => {
     return hash >>> 0;
 }
 
+ const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | 'OR' = 'AND') => {
+      
+    if (!conditions || conditions.length === 0) return [];
+
+    const [first, ...rest] = conditions;
+
+    return [{
+        ...first,
+        condition,
+        nested: rest.length > 0 ? rest : undefined
+    }];
+}
+
 
 const utils = {
     typeOf,
@@ -541,7 +555,8 @@ const utils = {
     baseModelTemplate,
     decoratorModelTemplate,
     applyTransforms,
-    hash32
+    hash32,
+    nestConditions
 }
 
 export type TUtils = typeof utils

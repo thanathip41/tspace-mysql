@@ -71,16 +71,16 @@ export class MongodbQueryBuilder extends QueryBuilder {
         ]
     }
 
-    if(this.$state.get('WHERE')?.length) {
+    // if(this.$state.get('WHERE')?.length) {
       
-      console.log(this.$state.get('WHERE'))
-      console.log(parseConditions(this.$state.get('WHERE')))
-        PIPELINE = [
-            ...PIPELINE, {
-                $match : parseConditions(this.$state.get('WHERE'))
-            }
-        ]
-    }
+    //   console.log(this.$state.get('WHERE'))
+    //   console.log(parseConditions(this.$state.get('WHERE')))
+    //     PIPELINE = [
+    //         ...PIPELINE, {
+    //             $match : parseConditions(this.$state.get('WHERE'))
+    //         }
+    //     ]
+    // }
       
     if(this.$state.get('ORDER_BY').length) {
         PIPELINE = [
@@ -800,7 +800,7 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return values.join(" ");
   }
 
-  protected bindWhere(values: string[]) {
+  protected bindWhere(values: any[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
     return `${this.$constants("WHERE")} ${values

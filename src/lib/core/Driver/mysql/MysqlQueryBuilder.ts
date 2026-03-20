@@ -1,4 +1,5 @@
 import { QueryBuilder } from "..";
+import { TStateWhereCondition } from "../../../types";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
 
@@ -736,50 +737,49 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return values.join(" ");
   }
 
-  protected bindWhere(values: string[]) {
+  protected bindWhere(values: any[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
-  
-    const wheres = `${this.$constants("WHERE")} ${values
-    .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-    .join(" ")}`;
+    const concatWhereCondition = (wheres: TStateWhereCondition[]): string => {
+      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
+   
+        const { column = '', operator = '' , condition , value , nested } = cond
 
-    const whereArrayToSQL = (whereArray: any[]): string => {
-      const conditionToSQL = (cond: any, isFirst: boolean = false): string => {
-        
-        if (cond.nested && cond.nested.length > 0) {
-          const nestedSQL = cond.nested
-            .map((c: any, i: number) => conditionToSQL(c, i === 0))
+        if (nested && nested.length > 0) {
+          const nestedSQL = nested
+            .map((c) => conditionToSQL(c))
             .join(' ');
-          return `${!isFirst && cond.condition ? cond.condition + ' ' : ''}(${nestedSQL})`;
+
+          if(!isFirst) {
+            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${value} ${nestedSQL})`;
+          }
+
+          return `(${column} ${operator} ${value} ${nestedSQL})`;
         }
 
         let valueStr = '';
-        if (cond.operator?.toUpperCase() === 'IN' && Array.isArray(cond.value)) {
-          valueStr = `(${cond.value.map((v: any) => v).join(', ')})`;
+
+        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
+          valueStr = `(${value.map((v) => v).join(',')})`;
         } else if (
-          cond.operator?.toUpperCase() === 'IS NULL' ||
-          cond.operator?.toUpperCase() === 'IS NOT NULL'
+          operator?.toUpperCase() === this.$constants('IS_NULL') ||
+          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
         ) {
           valueStr = '';
         } else {
-          valueStr = `${cond.value}`;
+          valueStr = `${value}`;
         }
 
-    return `${!isFirst && cond.condition ? cond.condition + ' ' : ''}${cond.column} ${cond.operator} ${valueStr}`.trim();
+        if(!isFirst) {
+          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
+        } 
+        return `${column} ${operator} ${valueStr}`.trim();
       };
 
-      return whereArray.map((cond, i) => conditionToSQL(cond, i === 0)).join(' ');
+      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
     };
 
-    const whereArray = `${this.$constants("WHERE")} ${whereArrayToSQL(this.$state.get('WHERE_TEST'))}`
-
-    console.log({
-      wheres,
-      wherea : whereArray 
-    })
-   
-    return wheres
+    return `${this.$constants("WHERE")} ${concatWhereCondition(values)}`
   }
 
   protected bindOrderBy(values: string[]) {
