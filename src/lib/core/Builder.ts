@@ -5078,7 +5078,7 @@ class Builder extends AbstractBuilder {
 
         const data = await new Builder()
           .copyBuilder(this, { select: true })
-          .whereIn("id", result.$meta.insertIds)
+          .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
           .bind(this.$pool.get())
           .first();
 
@@ -5100,7 +5100,7 @@ class Builder extends AbstractBuilder {
 
     const results = await new Builder()
       .copyBuilder(this, { select: true })
-      .whereIn("id", result.$meta.insertIds)
+      .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
       .bind(this.$pool.get())
       .first();
 
@@ -5117,7 +5117,7 @@ class Builder extends AbstractBuilder {
 
     const resultData = await new Builder()
       .copyBuilder(this, { select: true, limit: true })
-      .whereIn("id", result.$meta.insertIds)
+      .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
       .bind(this.$pool.get())
       .get();
 
@@ -5152,7 +5152,7 @@ class Builder extends AbstractBuilder {
 
         const data = await new Builder()
           .copyBuilder(this, { select: true })
-          .whereIn("id", result.$meta.insertIds)
+          .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
           .bind(this.$pool.get())
           .first();
 
@@ -5212,7 +5212,7 @@ class Builder extends AbstractBuilder {
 
         const data = await new Builder()
           .copyBuilder(this, { select: true })
-          .whereIn("id", result.$meta.insertIds)
+          .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
           .bind(this.$pool.get())
           .first();
 

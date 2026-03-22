@@ -5733,7 +5733,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(data: {
-    [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
+    [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
       ? any
       : P]: Extract<C[P], Date> extends never 
         ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
@@ -6311,7 +6311,7 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: {
-      [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
+      [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
         ? any
         : undefined extends C[P]
           ? never
@@ -7953,7 +7953,7 @@ class Model<
 
     let resultData = await new Model()
       .copyModel(this, { select: true, relations: true })
-      .whereIn("id", result.$meta.insertIds)
+      .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
       .first();
@@ -7963,7 +7963,7 @@ class Model<
 
       resultData = await new Model()
         .copyModel(this, { select: true, relations: true })
-        .whereIn("id", result.$meta.insertIds)
+        .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
         .bind(this.$pool.get())
         .debug(this.$state.get("DEBUG"))
         .first();
@@ -7991,7 +7991,7 @@ class Model<
 
     let resultData = await new Model()
       .copyModel(this, { select: true, relations: true })
-      .whereIn("id", result.$meta.insertIds)
+      .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
       .first();
@@ -8001,7 +8001,7 @@ class Model<
 
       resultData = await new Model()
         .copyModel(this, { select: true, relations: true })
-        .whereIn("id", result.$meta.insertIds)
+        .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
         .bind(this.$pool.get())
         .debug(this.$state.get("DEBUG"))
         .first();
@@ -8092,7 +8092,7 @@ class Model<
         let data = await new Model()
           .copyModel(this, { select: true })
           .bind(this.$pool.get())
-          .whereIn("id", result.$meta.insertIds)
+          .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
           .debug(this.$state.get("DEBUG"))
           .first();
 
@@ -8102,7 +8102,7 @@ class Model<
           data = await new Model()
             .copyModel(this, { select: true })
             .bind(this.$pool.get())
-            .whereIn("id", result.$meta.insertIds)
+            .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
             .debug(this.$state.get("DEBUG"))
             .first();
         }
@@ -8194,7 +8194,7 @@ class Model<
         let data = await new Model()
           .copyModel(this, { select: true })
           .bind(this.$pool.get())
-          .whereIn("id", result.$meta.insertIds)
+          .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
           .debug(this.$state.get("DEBUG"))
           .first();
 
@@ -8204,7 +8204,7 @@ class Model<
           data = await new Model()
             .copyModel(this, { select: true })
             .bind(this.$pool.get())
-            .whereIn("id", result.$meta.insertIds)
+            .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
             .debug(this.$state.get("DEBUG"))
             .first();
         }

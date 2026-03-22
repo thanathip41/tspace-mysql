@@ -510,7 +510,7 @@ const hash32 = (str : string): number => {
     return hash >>> 0;
 }
 
- const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | 'OR' = 'AND') => {
+const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | 'OR' = 'AND') => {
       
     if (!conditions || conditions.length === 0) return [];
 
@@ -522,7 +522,6 @@ const hash32 = (str : string): number => {
         nested: rest.length > 0 ? rest : undefined
     }];
 }
-
 
 const utils = {
     typeOf,
@@ -556,7 +555,7 @@ const utils = {
     decoratorModelTemplate,
     applyTransforms,
     hash32,
-    nestConditions
+    nestConditions,
 }
 
 export type TUtils = typeof utils

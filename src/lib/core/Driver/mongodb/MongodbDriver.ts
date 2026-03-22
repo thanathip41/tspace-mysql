@@ -6,6 +6,30 @@ type MongodbCollection<T> = {
   aggregate: (pipeline: any[]) => {
     toArray: () => Promise<T[]>;
   };
+
+  insertMany: (docs: Partial<T>[]) => Promise<{
+    acknowledged: boolean;
+    insertedCount: number;
+    insertedIds: Record<number, any>;
+  }>;
+
+  updateMany: (
+    filter: Partial<T>,
+    update: any
+  ) => Promise<{
+    acknowledged: boolean;
+    matchedCount: number;
+    modifiedCount: number;
+    upsertedCount: number;
+    upsertedId: any | null;
+  }>;
+
+  deleteMany: (
+    filter: Partial<T>
+  ) => Promise<{
+    acknowledged: boolean;
+    deletedCount: number;
+  }>;
 };
 
 type MongodbConnectionOptions = {
@@ -78,44 +102,42 @@ export class MongodblDriver extends BaseDriver {
         });
     }
 
-   private async _query(sql: string): Promise<any[]> {
+    private async _query(sql: string): Promise<any> {
 
-        const parseInput = (input: string) => {
-            const match = input.match(
-                /db\.([a-zA-Z0-9_]+)\.aggregate\((\[.*\])\)\.toArray\(\)/
-            );
-
-            if (!match) return { collection : '', pipeline : [] };
-
-            const [_, collection, pipelineStr] = match;
-
-            try {
-                const pipeline = JSON.parse(pipelineStr);
-
-                return { collection, pipeline };
-
-            } catch {
-                return { collection, pipeline : [] };
-            }
-        }
-
-        if(this.db == null) {
+        if (this.db == null) {
             await this._connecting;
         }
 
-        const start = Date.now();
-
-        const { collection, pipeline } = parseInput(sql)
+        const { type, collection, args } = this._parseInput(sql);
 
         const col = this.db.collection(collection);
 
-        const results = await col.aggregate(pipeline).toArray();
+        let results: any;
 
-        this._detectEventQuery({ start, sql });
+        switch (type) {
+            case 'aggregate':
+                results = await col.aggregate(args).toArray();
+            break;
 
-        console.log( { results  })
-     
-        return results;
+            case 'insertMany':
+                results = await col.insertMany(args);
+            break;
+
+            case 'updateMany':
+                results = await col.updateMany(args.filter, args.update);
+            break;
+
+            case 'deleteMany':
+                results = await col.deleteMany(args);
+            break;
+
+            default:
+                throw new Error('Unsupported query type');
+        }
+
+        this.meta(results, sql);
+
+        return this.returning(results);
     }
     private _connection(): Promise<TConnection> {
         let closeTransaction: boolean = false;
@@ -229,30 +251,25 @@ export class MongodblDriver extends BaseDriver {
         const command = this._detectQueryType(sql);
 
         results.$meta = {
-        command,
+            command
         };
 
         if (command === "INSERT") {
-        const insertIds =
-            results.affectedRows <= 1
-            ? [results.insertId]
-            : [...Array(results.affectedRows)].map(
-                (_, i) => results.insertId + i,
-                );
+            const insertIds = Object.values(results.insertedIds)
 
-        results.$meta = {
-            ...results.$meta,
-            insertIds,
-            affected: true,
-        };
+            results.$meta = {
+                ...results.$meta,
+                insertIds,
+                affected: true,
+            };
         }
 
         if (command === "UPDATE" || command === "DELETE") {
-        results.$meta = {
-            ...results.$meta,
-            insertIds: [],
-            affected: Boolean(results.affectedRows),
-        };
+            results.$meta = {
+                ...results.$meta,
+                insertIds: [],
+                affected: Boolean(results.affectedRows),
+            };
         }
     }
 
@@ -260,5 +277,82 @@ export class MongodblDriver extends BaseDriver {
         if (Array.isArray(results)) return results;
 
         return results;
+    }
+
+    private _parseInput (input: string) {
+       
+        let match = input.match(
+            /db\.([a-zA-Z0-9_]+)\.aggregate\((\[.*\])\)\.toArray\(\)/
+        );
+
+        if (match) {
+            const [, collection, pipelineStr] = match;
+            return {
+                type: 'aggregate',
+                collection,
+                args: JSON.parse(pipelineStr)
+            };
+        }
+
+        match = input.match(
+            /db\.([a-zA-Z0-9_]+)\.insertMany\((\[.*\])\)/
+        );
+
+        if (match) {
+            const [, collection, docsStr] = match;
+            return {
+                type: 'insertMany',
+                collection,
+                args: JSON.parse(docsStr)
+            };
+        }
+
+        match = input.match(
+            /db\.([a-zA-Z0-9_]+)\.updateMany\((\{.*\}),\s*(\{.*\})\)/
+        );
+
+        if (match) {
+            const [, collection, filterStr, updateStr] = match;
+            return {
+                type: 'updateMany',
+                collection,
+                args: {
+                    filter: JSON.parse(filterStr),
+                    update: JSON.parse(updateStr)
+                }
+            };
+        }
+
+        match = input.match(
+            /db\.([a-zA-Z0-9_]+)\.deleteMany\((\{.*\})\)/
+        );
+
+        if (match) {
+            const [, collection, filterStr] = match;
+            return {
+                type: 'deleteMany',
+                collection,
+                args: JSON.parse(filterStr)
+            };
+        }
+
+            return { type: 'unknown', collection: '', args: null };
+    };
+
+    protected _detectQueryType(query: string) {
+
+        const { type } = this._parseInput(query);
+
+        const selectRegex = /^aggregate\b/i;
+        const updateRegex = /^updateMany\b/i;
+        const insertRegex = /^insertMany\b/i;
+        const deleteRegex = /^deleteMany\b/i;
+
+        if (selectRegex.test(type)) return "SELECT";
+        if (updateRegex.test(type)) return "UPDATE";
+        if (insertRegex.test(type)) return "INSERT";
+        if (deleteRegex.test(type)) return "DELETE";
+
+        return "";
     }
 }

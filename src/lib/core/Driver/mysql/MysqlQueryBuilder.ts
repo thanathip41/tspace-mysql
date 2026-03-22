@@ -740,22 +740,9 @@ export class MysqlQueryBuilder extends QueryBuilder {
   protected bindWhere(values: any[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
-    const concatWhereCondition = (wheres: TStateWhereCondition[]): string => {
-      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
-   
-        const { column = '', operator = '' , condition , value , nested } = cond
+    const serializeWhere = (wheres: TStateWhereCondition[]): string => {
 
-        if (nested && nested.length > 0) {
-          const nestedSQL = nested
-            .map((c) => conditionToSQL(c))
-            .join(' ');
-
-          if(!isFirst) {
-            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${value} ${nestedSQL})`;
-          }
-
-          return `(${column} ${operator} ${value} ${nestedSQL})`;
-        }
+      const resolveValue = ({ operator , value }: { operator : string | null , value : any}) => {
 
         let valueStr = '';
 
@@ -770,16 +757,40 @@ export class MysqlQueryBuilder extends QueryBuilder {
           valueStr = `${value}`;
         }
 
+        return valueStr
+      }
+
+      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
+   
+        const { column = '', operator = '' , condition , value , nested } = cond
+
+        if (nested && nested.length) {
+          const nestedSQL = nested
+          .map((c) => conditionToSQL(c))
+          .join(' ');
+
+          const valueStr = resolveValue({ operator, value });
+
+          if(!isFirst) {
+            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${valueStr} ${nestedSQL})`;
+          }
+
+          return `(${column} ${operator} ${valueStr} ${nestedSQL})`;
+        }
+
+        const valueStr = resolveValue({ operator, value });
+
         if(!isFirst) {
           return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
         } 
+
         return `${column} ${operator} ${valueStr}`.trim();
       };
 
       return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
     };
 
-    return `${this.$constants("WHERE")} ${concatWhereCondition(values)}`
+    return `${this.$constants("WHERE")} ${serializeWhere(values)}`
   }
 
   protected bindOrderBy(values: string[]) {

@@ -1,4 +1,5 @@
 import { QueryBuilder } from "..";
+import { TStateWhereCondition } from "../../../types";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
 
@@ -10,35 +11,162 @@ export class MongodbQueryBuilder extends QueryBuilder {
 
     let PIPELINE : any[] = []
 
-    const parseConditions = (arr: string[]): Record<string, string> => {
-      const result: Record<string, string> = {};
+    const parseWheres = (wheres: TStateWhereCondition[] = []) => {
 
-      for (const str of arr) {
-   
-        let match = str.match(/`[^`]+`\.`([^`]+)`\s*=\s*'([^']+)'/);
-        if (match) {
-          const [, key, value] = match;
-          result[key] = value;
-          continue;
+      const normalizeColumn = (column: string = '') => {
+        const clean = column.replace(/`/g, '');
+        return clean.split('.').pop() || '';
+      };
+        
+      const parseValue = (value: any): any => {
+        if (Array.isArray(value)) return value.map(parseValue);
+
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          const unquoted = trimmed.replace(/^'+|'+$/g, '');
+
+          if (!isNaN(Number(unquoted))) return Number(unquoted);
+          if (unquoted.toLowerCase() === 'true') return true;
+          if (unquoted.toLowerCase() === 'false') return false;
+
+          return unquoted;
         }
 
+        return value;
+      };
 
-        match = str.match(/`[^`]+`\.`([^`]+)`\s+IS\s+NULL/i);
-        if (match) {
-          const [, key] = match;
-          result[key] = "IS NULL";
-          continue;
+      const likeToRegex = (value: any): string => {
+        const v = parseValue(value);
+        return '^' + v.replace(/%/g, '.*').replace(/_/g, '.') + '$';
+      };
+
+      const buildCondition = (w: TStateWhereCondition): any => {
+        const field = normalizeColumn(w.column ?? '');
+        const op = (w.operator || '=').toUpperCase();
+        const val = w.value;
+
+        const baseCondition = (() => {
+          switch (op) {
+            case '=':
+              return { [field]: parseValue(val) };
+
+            case '!=':
+            case '<>':
+              return { [field]: { $ne: parseValue(val) } };
+
+            case '>':
+              return { [field]: { $gt: parseValue(val) } };
+
+            case '>=':
+              return { [field]: { $gte: parseValue(val) } };
+
+            case '<':
+              return { [field]: { $lt: parseValue(val) } };
+
+            case '<=':
+              return { [field]: { $lte: parseValue(val) } };
+
+            case 'IN':
+              return { [field]: { $in: (val || []).map(parseValue) } };
+
+            case 'NOT IN':
+              return { [field]: { $nin: (val || []).map(parseValue) } };
+
+            case 'IS NULL':
+              return { [field]: null };
+
+            case 'IS NOT NULL':
+              return { [field]: { $ne: null } };
+
+            case 'BETWEEN':
+              if (!Array.isArray(val)) return {};
+              return {
+                [field]: {
+                  $gte: parseValue(val[0]),
+                  $lte: parseValue(val[1])
+                }
+              };
+
+            case 'LIKE':
+              return {
+                [field]: {
+                  $regex: likeToRegex(val),
+                  $options: 'i'
+                }
+              };
+
+            case 'NOT LIKE':
+              return {
+                [field]: {
+                  $not: {
+                    $regex: likeToRegex(val),
+                    $options: 'i'
+                  }
+                }
+              };
+
+            case 'EXISTS':
+              return { [field]: { $exists: Boolean(val) } };
+
+            default:
+              throw new Error(`Unsupported operator: ${op}`);
+          }
+        })();
+
+        if (w.nested && Array.isArray(w.nested)) {
+          const nestedGroup = buildGroup(w.nested);
+
+          const conditionType = (w.condition || this.$constants('AND')).toUpperCase();
+
+          if (conditionType === this.$constants('OR')) {
+            return {
+              $or: [baseCondition, nestedGroup]
+            };
+          }
+
+          return {
+            $and: [baseCondition, nestedGroup]
+          };
         }
 
-        match = str.match(/`[^`]+`\.`([^`]+)`\s+IS\s+NOT\s+NULL/i);
-        if (match) {
-          const [, key] = match;
-          result[key] = "IS NOT NULL";
-          continue;
-        }
-      }
+        return baseCondition;
+      };
 
-      return result;
+      const buildGroup = (lists: TStateWhereCondition[] = []): any => {
+        if (!lists.length) return {};
+
+        const groups: any[] = [];
+
+        for (const w of lists) {
+          const cond = buildCondition(w);
+
+          if (!cond) continue;
+
+          const type = (w.condition || this.$constants('AND')).toUpperCase();
+
+          if (groups.length === 0) {
+            groups.push(cond);
+            continue;
+          }
+
+          if (type === this.$constants('OR')) {
+            const last = groups.pop();
+
+            groups.push({
+              $or: [last, cond]
+            });
+          } else {
+            const last = groups.pop();
+            groups.push({
+              $and: [last, cond]
+            });
+          }
+        }
+
+        return groups[0] || {};
+      };
+
+      return buildGroup(wheres);
     };
 
     const parseSelect = (arr: string[]) => {
@@ -71,16 +199,13 @@ export class MongodbQueryBuilder extends QueryBuilder {
         ]
     }
 
-    // if(this.$state.get('WHERE')?.length) {
-      
-    //   console.log(this.$state.get('WHERE'))
-    //   console.log(parseConditions(this.$state.get('WHERE')))
-    //     PIPELINE = [
-    //         ...PIPELINE, {
-    //             $match : parseConditions(this.$state.get('WHERE'))
-    //         }
-    //     ]
-    // }
+    if(this.$state.get('WHERE')?.length) {
+      PIPELINE = [
+          ...PIPELINE, {
+              $match : parseWheres(this.$state.get('WHERE'))
+          }
+      ]
+    }
       
     if(this.$state.get('ORDER_BY').length) {
         PIPELINE = [
@@ -107,8 +232,8 @@ export class MongodbQueryBuilder extends QueryBuilder {
         ]
     }
 
-
     const collection = this.$state.get('TABLE_NAME')?.replace(/\`/g, "");
+
     const pipeline = `db.${collection}.aggregate(${JSON.stringify(PIPELINE)}).toArray()`;
 
     return pipeline
@@ -117,22 +242,78 @@ export class MongodbQueryBuilder extends QueryBuilder {
 
   public insert() {
     const query = this.$state.get("INSERT");
+
     if (!query) return '';
 
-    const table = this.$state.get("TABLE_NAME");
-    const columns = `(${query.columns})`;
-    
-    const values = query.values.map(v => `(${v})`).join(', ');
+    const parseInsert = (input: {
+      columns: string[];
+      values: string[];
+    }) => {
 
-    const sql = this.format([
-      this.$constants("INSERT"),
-      table,
-      columns,
-      this.$constants("VALUES"),
-      values
-    ]);
+      const normalizeColumn = (col: string) =>
+        col.replace(/`/g, '').split('.').pop() || '';
 
-    return sql;
+      const splitValues = (str: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuote = false;
+
+        for (let i = 0; i < str.length; i++) {
+          const char = str[i];
+
+          if (char === "'") {
+            inQuote = !inQuote;
+            continue;
+          }
+
+          if (char === ',' && !inQuote) {
+            result.push(current.trim());
+            current = '';
+            continue;
+          }
+
+          current += char;
+        }
+
+        if (current) result.push(current.trim());
+
+        return result;
+      };
+
+      const parseValue = (val: string): any => {
+        const v = val.trim();
+
+        if (!isNaN(Number(v))) return Number(v);
+
+        if (v.toLowerCase() === 'true') return true;
+        if (v.toLowerCase() === 'false') return false;
+        if (v.toLowerCase() === 'null') return null;
+
+        return v;
+      };
+
+      const columns = input.columns.map(normalizeColumn);
+
+      return input.values.map(row => {
+        const values = splitValues(row).map(parseValue);
+
+        const obj: Record<string, any> = {
+          "_id" : this._objectId()
+        };
+
+        columns.forEach((col, i) => {
+          obj[col] = values[i];
+        })
+
+        return obj;
+      });
+    };
+
+    const collection = this.$state.get('TABLE_NAME')?.replace(/\`/g, "");
+
+    const insertMany = `db.${collection}.insertMany(${JSON.stringify(parseInsert(query))})`;
+
+    return insertMany;
   }
 
   public update() {
@@ -906,4 +1087,21 @@ export class MongodbQueryBuilder extends QueryBuilder {
 
     return modeLock;
   }
+
+  private _objectId () {
+  
+      const timestamp = Math.floor(Date.now() / 1000)
+      .toString(16)
+      .padStart(8, '0');
+  
+      const random = Array.from({ length: 10 }, () =>
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+  
+      const counter = Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, '0');
+  
+      return timestamp + random + counter;
+  };
 }
