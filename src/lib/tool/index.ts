@@ -59,6 +59,27 @@ class Tool {
         }
     }
 
+    static get redis () {
+        try {
+
+            const redis = require('redis')
+
+            return {
+                createClient: ({ url, socket } : { 
+                    url : string, 
+                    socket?: {
+                        reconnectStrategy: () => boolean
+                    }
+                }) => {
+                    return redis.createClient({ url, socket })
+                }
+            }
+
+        } catch (err:any) {
+            throw new Error(`The package 'redis' caused by '${err.message}'. Please try installing the package using : npm install redis@5.6.0 --save`)
+        }
+    }
+
     static get zod() {
         try {
             //@ts-ignore

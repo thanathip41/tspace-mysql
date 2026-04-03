@@ -419,7 +419,9 @@ class Builder extends AbstractBuilder {
   public sleep(second: number): this {
 
     this.CTEs('sleep',(query) => {
-      return query.selectRaw(this._queryBuilder().sleep(second)).from('')
+      return query
+      .selectRaw(`${this._queryBuilder().sleep(second)} ${this.$constants("AS")} delay`)
+      .from(null)
     })
 
     this.from(this.$state.get("TABLE_NAME"), { 
@@ -2107,11 +2109,6 @@ class Builder extends AbstractBuilder {
     this.$state.set("ORDER_BY", [
       ...this.$state.get("ORDER_BY"),
       `${orderBy} ${order.toUpperCase()}`,
-    ]);
-
-    this.$state.set("ORDER_BY", [
-      ...this.$state.get("ORDER_BY"),
-      `\`${column}\` ${order.toUpperCase()}`,
     ]);
 
     return this;

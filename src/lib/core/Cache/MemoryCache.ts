@@ -1,7 +1,7 @@
 import { utils } from "../../utils";
 
 class MemoryCache {
-    private cache: Map<number, { value: any, expiredAt: number }>;
+    private cache: Map<string, { value: any, expiredAt: number }>;
 
     constructor() {
         this.cache = new Map()
@@ -25,23 +25,21 @@ class MemoryCache {
 
     exists(key: string): Promise<boolean> {
         return new Promise((resolve) => {
-            const hash = utils.hash32(key);
-            const cached = this.cache.get(hash)
+            const cached = this.cache.get(key)
             return resolve(cached != null)
         });
     }
 
     async get(key: string): Promise<any> {
         return await new Promise((resolve) => {
-            const hash = utils.hash32(key);
-            const cached = this.cache.get(hash);
+            const cached = this.cache.get(key);
 
             if (!cached) {
                 return resolve(null);
             }
     
             if (Date.now() > cached.expiredAt) {
-                this.cache.delete(hash);
+                this.cache.delete(key);
                 return resolve(null);
             }
     
@@ -51,10 +49,8 @@ class MemoryCache {
     
     async set(key: string, value: any, ms: number): Promise<void> {
         return new Promise((resolve) => {
-            const hash = utils.hash32(key);
             const expiredAt = Date.now() + ms;
-    
-            this.cache.set(hash, { value, expiredAt });
+            this.cache.set(key, { value, expiredAt });
     
             return resolve()
         });
@@ -69,8 +65,7 @@ class MemoryCache {
     
     async delete(key: string): Promise<void> {
         return new Promise((resolve) => {
-            const hash = utils.hash32(key);
-            this.cache.delete(hash);
+            this.cache.delete(key);
             return resolve()
         })
     }    

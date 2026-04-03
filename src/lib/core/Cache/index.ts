@@ -23,7 +23,8 @@ class Cache {
    * @returns {this} this
    */
   driver(driver: "db" | "memory" | "redis"): this {
-    return this._chooseDriver(driver);
+    this._chooseDriver(driver);
+    return this;
   }
 
   /**
@@ -106,17 +107,17 @@ class Cache {
   private _chooseDriver(driver: "db" | "memory" | "redis") {
     if (driver === "db") {
       this._driver = new DBCache();
-      return this;
+      return;
     }
 
     if (driver != null && driver.includes("redis")) {
       this._driver = new RedisCache(String(options.CACHE));
-      return this;
+      return;
     }
 
     this._driver = new MemoryCache();
 
-    return this;
+    return;
   }
 }
 

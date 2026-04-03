@@ -15,8 +15,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
       this.bindSelect(selectColumns ?? this.$state.get("SELECT")),
       this.bindFrom({
         from: !this.$state.get("FROM").length
-          ? [this.$state.get("TABLE_NAME")].map(String)
-          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")].map(String),
+          ? [this.$state.get("TABLE_NAME")].filter(Boolean).map(String)
+          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")].filter(Boolean).map(String),
         alias: this.$state.get("ALIAS"),
         rawAlias: this.$state.get("RAW_ALIAS"),
       }),

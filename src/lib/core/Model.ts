@@ -22,7 +22,8 @@ import type {
   TRelationKeys,
   TDriver,
   TPoolConnected,
-  TLifecycle
+  TLifecycle,
+  TCacheModel
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
@@ -174,10 +175,40 @@ class Model<
 
   /**
    * The 'cache' method is used get the functions from the Cache
-   * @returns {TCache} cache
+   * @returns {TCacheModel} cache
    */
-  static get cache(): TCache {
-    return Cache;
+  static get cache(): TCacheModel {
+    const getCacheKey = (key: string) => {
+      const db = new this().database();
+      const table = new this().getTableName();
+      return `${db}:${table}:${key}`;
+    }
+    return {
+      provider : () => Cache.provider(),
+      driver : (driver: "db" | "memory" | "redis") => Cache.driver(driver),
+      all: async () => {
+        return await Cache.all()
+      },
+      clear : async () => {
+        return await Cache.clear()
+      },
+      get: async (key: string, options?: { namespace?: boolean }) => {
+        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+        return await Cache.get(cacheKey);
+      },
+      exists: async (key: string, options?: { namespace?: boolean }) => {
+        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+        return await Cache.exists(cacheKey);
+      },
+      set: async (key: string, value: unknown, ms: number,options?: { namespace?: boolean }) => {
+        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+        return await Cache.set(cacheKey, value, ms);
+      },
+      delete: async (key: string, options?: { namespace?: boolean }) => {
+        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+        return await Cache.delete(cacheKey);
+      },
+    }
   }
 
   /**
@@ -1096,10 +1127,23 @@ class Model<
    * @property {number} expires ms
    * @returns {this} this
    */
-  public cache({ key, expires }: { key: string; expires: number }): this {
+  public cache({ key, expires,namespace }: { 
+    key: string; 
+    expires: number;
+    namespace?: boolean;
+  }): this {
+
+    const getCacheKey = (key: string) => {
+      const db = this.database();
+      const table = this.getTableName();
+      return `${db}:${table}:${key}`;
+    }
+
+    const cacheKey = namespace ? getCacheKey(key) : key;
+    
     this.$state.set("CACHE", {
-      key,
-      expires,
+      key : cacheKey,
+      expires
     });
 
     return this;
@@ -7429,7 +7473,7 @@ class Model<
 
     const startTime = +new Date();
 
-    const findCache = await this.$cache.get(cache.key);
+    const findCache = await this.$cache.get(cache.key)
 
     if (findCache == null) return;
 

@@ -8,6 +8,17 @@ import { TResultDecorator } from "./decorator";
 
 export type TCache = Cache;
 
+export type TCacheModel = {
+    provider : () => string;
+    driver : (driver: "db" | "memory" | "redis") => any;
+    all: () => Promise<any[]>;
+    clear : () => Promise<void>;
+    get: (key: string, options?: { namespace?: boolean }) => Promise<any>;
+    exists: (key: string, options?: { namespace?: boolean }) => Promise<boolean>;
+    set: (key: string, value: unknown, ms: number, options?: { namespace?: boolean }) => Promise<void>;
+    delete: (key: string, options?: { namespace?: boolean }) => Promise<void>;
+}
+
 export type TConstant = typeof CONSTANTS;
 
 export type TRelationOptions<K = any> = {

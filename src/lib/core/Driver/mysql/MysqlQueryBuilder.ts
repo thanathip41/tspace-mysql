@@ -12,8 +12,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
       this.bindSelect(this.$state.get("SELECT")),
       this.bindFrom({
         from: !this.$state.get("FROM").length
-          ? [this.$state.get("TABLE_NAME")].map(String)
-          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")].map(String),
+          ? [this.$state.get("TABLE_NAME")].filter(Boolean).map(String)
+          : [this.$state.get("TABLE_NAME"), ...this.$state.get("FROM")].filter(Boolean).map(String),
         alias: this.$state.get("ALIAS"),
         rawAlias: this.$state.get("RAW_ALIAS"),
       }),
@@ -838,6 +838,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
     alias: string | null;
     rawAlias: string | null;
   }) {
+    
     if (!from.length || from.every((f) => f == null || f === "")) {
       return "";
     }

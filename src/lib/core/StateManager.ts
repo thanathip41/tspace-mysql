@@ -23,7 +23,6 @@ const STATE_DEFAULT = {
   FROM: [] as string[],
   JOIN: [] as string[],
   WHERE: [] as TStateWhereCondition[],
-//   WHERE_TEST: [] as TStateWhereCondition[],
   GROUP_BY: [] as string[],
   ORDER_BY: [] as string[],
   LIMIT: null as number | null,

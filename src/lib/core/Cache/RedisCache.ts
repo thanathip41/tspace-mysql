@@ -1,7 +1,7 @@
 import { Tool } from "../../tool";
 
 class RedisCache {
-  private _redis: { createClient: Function } = Tool.import("redis");
+  private _redis = Tool.redis;
   private client: {
     on: Function;
     quit: Function;
@@ -15,17 +15,25 @@ class RedisCache {
 
   constructor(url: string) {
     this.client = this._redis.createClient({
+      socket: {
+        reconnectStrategy: () => false
+      },
       url,
     });
 
-    this.client.on("error", (err: any) => {
-      if (err) {
-        console.log(err);
-        this.client.quit();
-      }
-    });
+    try {
 
-    this.client.connect();
+      this.client.on("error", (err: any) => {
+        console.log(`\n\x1b[31mERROR: Redis error failed caused by '${err.message}'\x1b[0m`);
+      });
+
+      this.client.connect().catch((err: any) => {
+        console.log(`\n\x1b[31mERROR: Redis connection failed caused by '${err.message}'\x1b[0m`);
+      });
+
+    } catch (err:any) {
+      console.log(`\n\x1b[31mERROR: Redis catch caused by '${err.message}'. Please try installing the package using : npm install redis@5.6.0 --save\x1b[0m`);
+    }
   }
 
   provider() {
@@ -51,6 +59,7 @@ class RedisCache {
   }
 
   async get(key: string) {
+   
     const cached = await this.client.get(key);
 
     if (cached == null) return null;

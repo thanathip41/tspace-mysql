@@ -76,11 +76,12 @@ class DBCache {
         try {
 
             const hash = utils.hash32(key);
-
+            
             const rows = await this._db()
                 .select('chunk', 'value', 'expiredAt')
                 .where('hash', hash)
                 .orderBy('chunk')
+                .dd()
                 .get()
 
             if (!rows || rows.length === 0) {
@@ -169,7 +170,7 @@ class DBCache {
         .insertMany(rows)
         .void()
         .save()
-        .catch(err => console.log(err))
+        .catch(() => null)
 
         return;
     }
@@ -200,8 +201,8 @@ class DBCache {
         const schema = {
             id                  : new Blueprint().int().notNull().primary().autoIncrement(),
             key                 : new Blueprint().varchar(255).notNull(),
-            hash                : new Blueprint().bigInt().unsigned().notNull().index(),
-            chunk               : new Blueprint().int().default(0).notNull().index(),
+            hash                : new Blueprint().bigInt().unsigned().notNull().compositeIndex(['chunk']),
+            chunk               : new Blueprint().int().default(0).notNull(),
             value               : new Blueprint().mediumText().null(),
             expiredAt           : new Blueprint().bigInt().notNull(),
             createdAt           : new Blueprint().timestamp().notNull(),
