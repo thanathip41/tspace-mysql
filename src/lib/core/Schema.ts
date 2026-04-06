@@ -1,7 +1,7 @@
 import { z }            from "zod";
 import { Builder }      from "./Builder";
 import { Model }        from "./Model";
-import { Tool }         from "../tool";
+import { Package }         from "./Package";;
 import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
 import { T }            from "./UtilityTypes";
@@ -158,13 +158,13 @@ class Schema {
       index = false,
     } = {}
   ): Promise<void> {
-    const directories = Tool.fs.readdirSync(pathFolders, {
+    const directories = Package.fs.readdirSync(pathFolders, {
       withFileTypes: true,
     });
 
     const files: any[] = await Promise.all(
       directories.map((directory) => {
-        const newDir = Tool.path.resolve(String(pathFolders), directory.name);
+        const newDir = Package.path.resolve(String(pathFolders), directory.name);
         if (
           directory.isDirectory() &&
           directory.name.toLocaleLowerCase().includes("migrations")

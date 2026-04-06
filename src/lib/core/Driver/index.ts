@@ -1,10 +1,13 @@
 import { EventEmitter } from "events";
 import { StateManager } from "../StateManager";
-import { Tool } from "../../tool";
-import { CONSTANTS } from "../../constants";
-import { Blueprint } from "../Blueprint";
+import { Package }      from "../Package";
+import { CONSTANTS }    from "../../constants";
+import { Blueprint }    from "../Blueprint";
 
-import type { TConstant, TPoolConnected } from "../../types";
+import type { 
+  TConstant, 
+  TPoolConnected 
+} from "../../types";
 export abstract class BaseDriver extends EventEmitter {
   private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
   private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
@@ -17,7 +20,7 @@ export abstract class BaseDriver extends EventEmitter {
   protected abstract returning(results: any): any;
 
   protected import(mod: string) {
-    return Tool.import(mod);
+    return Package.import(mod);
   }
   protected _detectEventQuery({ start, sql }: { start: number; sql: string }) {
     const duration = Date.now() - start;

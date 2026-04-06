@@ -1,4 +1,5 @@
-import { BaseDriver } from "..";
+import mysql2                from "mysql2";
+import { BaseDriver }        from "..";
 import { MysqlQueryBuilder } from "./MysqlQueryBuilder";
 import type { 
   TConnection, 
@@ -25,9 +26,8 @@ export class MysqlDriver extends BaseDriver {
   }
   public connect(this: MysqlDriver) {
     const options  = this.options as MysqlConnectionOptions;
-    const mysql    = this.import("mysql2");
-
-    this.pool = mysql.createPool({
+    
+    this.pool = mysql2.createPool({
 
       host                  : options.host,
       port                  : options.port,

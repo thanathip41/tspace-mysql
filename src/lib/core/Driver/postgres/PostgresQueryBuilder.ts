@@ -2,7 +2,9 @@ import { singular }     from "pluralize";
 import { QueryBuilder } from "..";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
-import { TStateWhereCondition } from "../../../types";
+import { 
+  type TStateWhereCondition 
+} from "../../../types";
 
 export class PostgresQueryBuilder extends QueryBuilder {
   private _returnStart = 'RETURNING *';

@@ -1,7 +1,7 @@
-import { Tool } from "../../tool";
+import { Package } from "../Package";
 
 class RedisCache {
-  private _redis = Tool.redis;
+  private _redis = Package.redis;
   private client: {
     on: Function;
     quit: Function;

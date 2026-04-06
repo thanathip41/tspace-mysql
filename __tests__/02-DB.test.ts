@@ -34,7 +34,7 @@ describe('Testing DB', function () {
     expect(createds).to.be.an('array')
     expect(createds).to.be.jsonSchema(userSchemaArray)
 
-    const updated = await new DB('users').where('id',5).dd().update({ name : 'was update'}).save() as Record<string,any>
+    const updated = await new DB('users').where('id',5).update({ name : 'was update'}).save() as Record<string,any>
     expect(updated).to.be.an('object')
     expect(updated).to.be.jsonSchema(userSchemaObject)
     expect(updated.name).to.be.equal('was update')

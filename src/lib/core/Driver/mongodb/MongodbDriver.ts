@@ -3,7 +3,7 @@ import { MongodbQueryBuilder } from "./MongodbQueryBuilder";
 import type { TConnection, TPoolEvent } from "../../../types";
 
 type MongodbCollection<T> = {
-  aggregate: (pipeline: any[]) => {
+  aggregate: (pipeline: any[], options?: any) => {
     toArray: () => Promise<T[]>;
   };
 
@@ -62,8 +62,8 @@ export class MongodblDriver extends BaseDriver {
         const url = `mongodb://${options.user}:${options.password}@${options.host}:${options.port}/${options.database}?authSource=admin`;
 
         this.pool = new MongoClient(url, {
-            maxPoolSize: options.connectionLimit ?? 20,
-            minPoolSize: Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+            maxPoolSize: options.connectionLimit ?? 10,
+            minPoolSize: Math.max(2, Math.floor((options.connectionLimit ?? 10) / 3)),
             maxIdleTimeMS: 1000 * 60,
         });
 
@@ -79,10 +79,8 @@ export class MongodblDriver extends BaseDriver {
         .catch((err: any) => {
             const message = this._messageError.bind(this);
 
-            process.nextTick(() => {
-                console.log(message(err?.message));
-                if (this.options.CONNECTION_ERROR) process.exit();
-            });
+            console.log(message(err?.message));
+            if (this.options.CONNECTION_ERROR) process.exit();
         });
 
         return {
@@ -102,13 +100,17 @@ export class MongodblDriver extends BaseDriver {
         });
     }
 
-    private async _query(sql: string): Promise<any> {
+    private async _query(pipeline: string): Promise<any> {
 
         if (this.db == null) {
             await this._connecting;
         }
 
-        const { type, collection, args } = this._parseInput(sql);
+        if(this.db?.collection == null) {
+            throw new Error("Failed to establish a connection to the collection.");
+        }
+
+        const { type, collection, args } = this._parseInput(pipeline);
 
         const col = this.db.collection(collection);
 
@@ -135,106 +137,112 @@ export class MongodblDriver extends BaseDriver {
                 throw new Error('Unsupported query type');
         }
 
-        this.meta(results, sql);
+        this.meta(results, pipeline);
 
         return this.returning(results);
     }
-    private _connection(): Promise<TConnection> {
-        let closeTransaction: boolean = false;
+    private async _connection(): Promise<TConnection> {
 
-        return new Promise((resolve, reject) => {
-        this.pool.getConnection((err: any, connection: any) => {
-            if (err) return reject(err);
+        if (this.db == null) {
+            await this._connecting;
+        }
 
-            const query = (sql: string) => {
-            const start: number = Date.now();
+        const client = this.pool;
+        const session = client.startSession();
 
-            return new Promise<any[]>((ok, fail) => {
-                if (closeTransaction) {
-                return fail(new Error(this.MESSAGE_TRX_CLOSED));
-                }
+        let closed = false;
+        let inTransaction = false;
 
-                connection.query(sql, (err: any, results: any[]) => {
-                connection.release();
+        const supportsTransaction =
+            (client as any)?.topology?.s?.description?.type !== "Single";
 
-                if (err) {
-                    return fail(err);
-                }
+        const ensureOpen = () => {
+            if (closed) throw new Error(this.MESSAGE_TRX_CLOSED);
+        };
 
-                this._detectEventQuery({ start, sql });
+        const query = async (collectionName: string): Promise<any[]> => {
+            ensureOpen();
 
-                this.meta(results, sql);
+            const start = Date.now();
 
-                return ok(this.returning(results));
-                });
+            const collection = this.db.collection(collectionName);
+
+            let data: any[];
+
+            if (supportsTransaction && inTransaction) {
+                data = await collection.aggregate([], { session }).toArray();
+            } else {
+                data = await collection.aggregate([]).toArray();
+            }
+
+            this._detectEventQuery({
+                start,
+                sql: collectionName,
             });
-            };
 
-            const startTransaction = async () => {
-            if (closeTransaction) {
-                throw new Error(this.MESSAGE_TRX_CLOSED);
+            this.meta(data, collectionName);
+
+            return this.returning(data);
+        };
+
+        const startTransaction = async () => {
+            ensureOpen();
+
+            if (!supportsTransaction) {
+                throw new Error(
+                    "MongoDB is running in standalone mode. Transactions are not supported."
+                );
             }
 
-            await query("START TRANSACTION").catch((err) => reject(err));
-
-            return;
-            };
-
-            const commit = async () => {
-            if (closeTransaction) {
-                throw new Error(this.MESSAGE_TRX_CLOSED);
+            if (inTransaction) {
+                throw new Error("Transaction already started");
             }
-            await query("COMMIT").catch((err) => reject(err));
 
+            session.startTransaction();
+            inTransaction = true;
+        };
+
+        const commit = async () => {
+            ensureOpen();
+
+            if (supportsTransaction && inTransaction) {
+                await session.commitTransaction();
+            }
+
+            inTransaction = false;
             await end();
+        };
 
-            return;
-            };
+        const rollback = async () => {
+            ensureOpen();
 
-            const rollback = async () => {
-            if (closeTransaction) {
-                throw new Error(this.MESSAGE_TRX_CLOSED);
+            if (supportsTransaction && inTransaction) {
+                await session.abortTransaction();
             }
 
-            await query("ROLLBACK").catch((err) => reject(err));
-
-            // when rollback will end of transction
+            inTransaction = false;
             await end();
+        };
 
-            return;
-            };
+        const end = async () => {
+            if (closed) return;
 
-            const end = async () => {
-            await new Promise<void>((resolve) =>
-                setTimeout(() => {
-                if (!closeTransaction) {
-                    closeTransaction = true;
+            closed = true;
+            await session.endSession();
+        };
 
-                    // After commit the transaction, you can't perform any actions with this transaction.
-                    connection.destroy();
-
-                    // After destroying the connection, it will be removed from the connection this.pool.
-                    this.pool.end();
-                }
-
-                return resolve();
-                }, 500),
-            );
-
-            return;
-            };
-
-            return resolve({
+        return {
             on: (event: TPoolEvent, data: any) => this.on(event, data),
-            query,
+
             queryBuilder: MongodbQueryBuilder,
+
+            query,
+
             startTransaction,
             commit,
             rollback,
             end,
-            });
-        });
-        });
+        };
     }
     private async _end(): Promise<void> {
         if (!this.pool) return; 
@@ -243,12 +251,12 @@ export class MongodblDriver extends BaseDriver {
         console.log("MongoDB connection closed");
     }
 
-    protected meta(results: any, sql: string): void {
+    protected meta(results: any, pipeline: string): void {
         if (Array.isArray(results)) return;
 
         if (results.$meta == null) results.$meta = {};
 
-        const command = this._detectQueryType(sql);
+        const command = this._detectQueryType(pipeline);
 
         results.$meta = {
             command
@@ -280,7 +288,7 @@ export class MongodblDriver extends BaseDriver {
     }
 
     private _parseInput (input: string) {
-       
+        
         let match = input.match(
             /db\.([a-zA-Z0-9_]+)\.aggregate\((\[.*\])\)\.toArray\(\)/
         );
@@ -336,8 +344,8 @@ export class MongodblDriver extends BaseDriver {
             };
         }
 
-            return { type: 'unknown', collection: '', args: null };
-    };
+        return { type: 'unknown', collection: '', args: null };
+    }
 
     protected _detectQueryType(query: string) {
 

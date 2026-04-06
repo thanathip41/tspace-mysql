@@ -1723,7 +1723,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any[]> {
     try {
-      sql = this._queryBuilder({ onFormat: true }).format([sql]);
+      sql = this._queryBuilder().format([sql]);
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
@@ -1788,7 +1788,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any> {
     try {
-      sql = this._queryBuilder({ onFormat: true }).format([sql]);
+      sql = this._queryBuilder().format([sql]);
 
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
@@ -5108,12 +5108,13 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  public async count(column: string = "id"): Promise<number> {
+  public async count<K extends T.ColumnKeys<this> | "id" | "_id">(c ?: K): Promise<number> {
     await this._prepareQueryPipeline();
 
     const distinct = this.$state.get("DISTINCT");
 
-    column =
+    let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
+
       column === "*"
         ? "*"
         : distinct
@@ -5134,8 +5135,7 @@ class Model<
 
     return Number(
       this._resultHandler(
-        result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) ||
-        result.length,
+        result.reduce((prev, cur) => prev + Number(cur?.aggregate ?? 0), 0) || 0
       ),
     );
   }
@@ -5146,10 +5146,12 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  public async avg(column: string = "id"): Promise<number> {
+  public async avg<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
     await this._prepareQueryPipeline();
 
     const distinct = this.$state.get("DISTINCT");
+
+    let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
 
     column = distinct
       ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
@@ -5179,8 +5181,10 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  public async sum(column: string = "id"): Promise<number> {
+  public async sum<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
     await this._prepareQueryPipeline();
+
+    let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
 
     const distinct = this.$state.get("DISTINCT");
 
@@ -5212,10 +5216,12 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  public async max(column: string = "id"): Promise<number> {
+  public async max<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
     await this._prepareQueryPipeline();
 
     const distinct = this.$state.get("DISTINCT");
+
+    let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
 
     column = distinct
       ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
@@ -5243,10 +5249,12 @@ class Model<
    * @param {string=} column [column=id]
    * @returns {promise<number>}
    */
-  public async min(column: string = "id"): Promise<number> {
+  public async min<K extends T.ColumnKeys<this> | "id" | "_id">(c: K): Promise<number> {
     await this._prepareQueryPipeline();
 
     const distinct = this.$state.get("DISTINCT");
+
+    let column = c == null ? "id" : String(c);
 
     column = distinct
       ? `${this.$constants("DISTINCT")} ${this.bindColumn(column)}`
@@ -5807,7 +5815,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(data: {
-    [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
+    [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
       ? any
       : P]: Extract<C[P], Date> extends never 
         ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
@@ -5920,181 +5928,181 @@ class Model<
    * @property {Record<string,string | number | boolean | null | undefined>}  cases.columns
    * @returns {this} this
    */
-  // public updateCases<
-  //   T extends T.ColumnOptions<this>,
-  //   K extends keyof T,
-  //   U extends Model | unknown,
-  //   M = U extends this ? this : U extends Model ? U : this,
-  // >(
-  //   cases: {
-  //     condition: ((query: M) => M) | Partial<
-  //     { 
-  //       [P in K & keyof T]: 
-  //       Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-  //     }
-  //     >;
-  //     columns: Partial<
-  //     { 
-  //       [P in K & keyof T]: 
-  //       Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-  //     }
-  //     >;
-  //   }[],
-  // ): this {
-  //   if (!cases.length) {
-  //     throw this._assertError("This method must require a non-empty array.");
-  //   }
+  public updateCases<
+    T extends T.ColumnOptions<this>,
+    K extends keyof T,
+    U extends Model | unknown,
+    M = U extends this ? this : U extends Model ? U : this,
+  >(
+    cases: {
+      condition: ((query: M) => M) | Partial<
+      { 
+        [P in K & keyof T]: 
+        Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
+      }
+      >;
+      columns: Partial<
+      { 
+        [P in K & keyof T]: 
+        Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
+      }
+      >;
+    }[],
+  ): this {
+    if (!cases.length) {
+      throw this._assertError("This method must require a non-empty array.");
+    }
 
-  //   const updateColumns: Record<string, any> = cases.reduce(
-  //     (columns: Record<string, any[]>, item) => {
-  //       return (
-  //         item.columns &&
-  //           Object.keys(item.columns).forEach(
-  //             (key) =>
-  //               (columns[key] = [
-  //                 this.$constants("RAW"),
-  //                 this.$constants("CASE"),
-  //                 `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
-  //                 this.$constants("END"),
-  //               ]),
-  //           ),
-  //         columns
-  //       );
-  //     },
-  //     {},
-  //   );
+    const updateColumns: Record<string, any> = cases.reduce(
+      (columns: Record<string, any[]>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach(
+              (key) =>
+                (columns[key] = [
+                  this.$constants("RAW"),
+                  this.$constants("CASE"),
+                  `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
+                  this.$constants("END"),
+                ]),
+            ),
+          columns
+        );
+      },
+      {},
+    );
 
-  //   const columns: Record<string, any> = cases.reduce(
-  //     (columns: Record<string, string>, item) => {
-  //       return (
-  //         item.columns &&
-  //           Object.keys(item.columns).forEach((key) => (columns[key] = "")),
-  //         columns
-  //       );
-  //     },
-  //     {},
-  //   );
+    const columns: Record<string, any> = cases.reduce(
+      (columns: Record<string, string>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach((key) => (columns[key] = "")),
+          columns
+        );
+      },
+      {},
+    );
 
-  //   if (this.$state.get("TIMESTAMP")) {
-  //     const updatedAt: string = this._valuePattern(
-  //       this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
-  //     );
-  //     columns[updatedAt] = [];
-  //     updateColumns[updatedAt] = [
-  //       this.$constants("RAW"),
-  //       this.$constants("CASE"),
-  //       `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
-  //       this.$constants("END"),
-  //     ];
-  //   }
+    if (this.$state.get("TIMESTAMP")) {
+      const updatedAt: string = this._valuePattern(
+        this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
+      );
+      columns[updatedAt] = [];
+      updateColumns[updatedAt] = [
+        this.$constants("RAW"),
+        this.$constants("CASE"),
+        `${this.$constants("ELSE")} ${this.bindColumn(updatedAt)}`,
+        this.$constants("END"),
+      ];
+    }
 
-  //   for (let i = cases.length - 1; i >= 0; i--) {
-  //     const c = cases[i] as unknown as {
-  //       condition: Function | Record<string, any>;
-  //       columns: Record<string, any>;
-  //     };
+    for (let i = cases.length - 1; i >= 0; i--) {
+      const c = cases[i] as unknown as {
+        condition: Function | Record<string, any>;
+        columns: Record<string, any>;
+      };
 
-  //     if (c.condition == null) {
-  //       throw this._assertError(
-  //         `This 'condition' property is missing some properties.`,
-  //       );
-  //     }
+      if (c.condition == null) {
+        throw this._assertError(
+          `This 'condition' property is missing some properties.`,
+        );
+      }
 
-  //     if (c.columns == null || !Object.keys(c.columns).length) {
-  //       throw this._assertError(
-  //         `This 'columns' property is missing some properties.`,
-  //       );
-  //     }
+      if (c.columns == null || !Object.keys(c.columns).length) {
+        throw this._assertError(
+          `This 'columns' property is missing some properties.`,
+        );
+      }
 
-  //     const transformWhen = (query: any): string[] => {
-  //       if (query instanceof Function || query instanceof Model) {
-  //         const copy = new Model().copyModel(this);
+      const transformWhen = (query: any)=> {
+        if (query instanceof Function || query instanceof Model) {
+          const copy = new Model().copyModel(this);
 
-  //         const model = query(copy);
+          const model = query(copy);
 
-  //         if (model instanceof Promise) {
-  //           throw this._assertError(
-  //             "This 'query' property is not supported a Promise",
-  //           );
-  //         }
+          if (model instanceof Promise) {
+            throw this._assertError(
+              "This 'query' property is not supported a Promise",
+            );
+          }
 
-  //         if (!(model instanceof Model)) {
-  //           throw this._assertError(`Unknown callback query: '${model}'`);
-  //         }
+          if (!(model instanceof Model)) {
+            throw this._assertError(`Unknown callback query: '${model}'`);
+          }
 
-  //         const wheres = model?.$state.get("WHERE") || [];
+          const wheres = model?.$state.get("WHERE") || [];
 
-  //         return wheres;
-  //       }
+          return wheres;
+        }
 
-  //       const model = new Model()
-  //         .copyModel(this)
-  //         .whereObject({ ...c.condition });
+        const model = new Model()
+          .copyModel(this)
+          .whereObject({ ...c.condition });
 
-  //       const wheres = model?.$state.get("WHERE") || [];
+        const wheres = model?.$state.get("WHERE") || [];
 
-  //       return wheres;
-  //     };
+        return wheres;
+      };
 
-  //     const when = transformWhen(c.condition);
+      const when = transformWhen(c.condition);
 
-  //     if (this.$state.get("TIMESTAMP")) {
-  //       const updatedAt: string = this._valuePattern(
-  //         this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
-  //       );
-  //       c.columns[updatedAt] =
-  //         c.columns[updatedAt] === undefined
-  //           ? this.$utils.timestamp()
-  //           : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
-  //     }
+      if (this.$state.get("TIMESTAMP")) {
+        const updatedAt: string = this._valuePattern(
+          this.$state.get("TIMESTAMP_FORMAT").UPDATED_AT,
+        );
+        c.columns[updatedAt] =
+          c.columns[updatedAt] === undefined
+            ? this.$utils.timestamp()
+            : this.$utils.transfromDateToDateString(c.columns[updatedAt]);
+      }
 
-  //     for (const [key, value] of Object.entries(c.columns)) {
-  //       if (updateColumns[key] == null) continue;
-  //       const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
-  //       const str = `${this.$constants("WHEN")} ${when.join(
-  //         ` ${this.$constants("AND")} `,
-  //       )} ${this.$constants("THEN")} '${value}'`;
+      for (const [key, value] of Object.entries(c.columns)) {
+        if (updateColumns[key] == null) continue;
+        const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
+        const str = `${this.$constants("WHEN")} ${when.join(
+          ` ${this.$constants("AND")} `,
+        )} ${this.$constants("THEN")} '${value}'`;
 
-  //       updateColumns[key].splice(startIndex + 1, 0, str);
-  //     }
-  //   }
+        updateColumns[key].splice(startIndex + 1, 0, str);
+      }
+    }
 
-  //   for (const key in columns) {
-  //     if (updateColumns[key] == null) continue;
-  //     columns[key] = `( ${updateColumns[key].join(" ")} )`;
-  //   }
+    for (const key in columns) {
+      if (updateColumns[key] == null) continue;
+      columns[key] = `( ${updateColumns[key].join(" ")} )`;
+    }
 
-  //   const keyValue = Object.entries(columns).map(([column, value]) => {
-  //     if (
-  //       typeof value === "string" &&
-  //       !value.includes(this.$constants("RAW"))
-  //     ) {
-  //       value = this.$utils.escapeActions(value);
-  //     }
+    const keyValue = Object.entries(columns).map(([column, value]) => {
+      if (
+        typeof value === "string" &&
+        !value.includes(this.$constants("RAW"))
+      ) {
+        value = this.$utils.escapeActions(value);
+      }
 
-  //     return `${this.bindColumn(column)} = ${
-  //       value == null || value === this.$constants("NULL")
-  //         ? this.$constants("NULL")
-  //         : this.$utils.transfromValueHasRaw(value)
-  //     }`;
-  //   });
+      return `${this.bindColumn(column)} = ${
+        value == null || value === this.$constants("NULL")
+          ? this.$constants("NULL")
+          : this.$utils.transfromValueHasRaw(value)
+      }`;
+    });
 
-  //   this.$state.set("DATA", columns);
+    this.$state.set("DATA", columns);
 
-  //   this.$state.set("UPDATE", keyValue);
+    this.$state.set("UPDATE", keyValue);
 
-  //   this.whereRaw("1");
+    this.whereRaw("1");
 
-  //   this.void();
+    this.void();
 
-  //   this.disableTransform();
+    this.disableTransform();
 
-  //   this.disabledValidateSchema();
+    this.disabledValidateSchema();
 
-  //   this.$state.set("SAVE", "UPDATE");
+    this.$state.set("SAVE", "UPDATE");
 
-  //   return this;
-  // }
+    return this;
+  }
 
   /**
    * @override
@@ -7255,8 +7263,7 @@ class Model<
    * generate sql statements
    * @override
    */
-  protected _queryBuilder({ onFormat = false } = {}) {
-    if (onFormat) return this._buildQueryStatement();
+  protected _queryBuilder() {
 
     this._handleSelect();
 

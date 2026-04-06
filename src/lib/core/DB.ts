@@ -1,9 +1,11 @@
-import { format } from "sql-formatter";
-import { AbstractDB } from "./Abstracts/AbstractDB";
+import { format }       from "sql-formatter";
+import { AbstractDB }   from "./Abstracts/AbstractDB";
 import { StateManager } from "./StateManager";
-import { Tool } from "../tool";
+import { Package }      from "../core/Package";
 
-import Pool, { PoolConnection } from "./Pool";
+import Pool, { 
+  PoolConnection 
+} from "./Pool";
 
 import type {
   TConstant,
@@ -916,7 +918,7 @@ class DB extends AbstractDB {
       }
     }
 
-    Tool.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
+    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
 
     return;
   }
@@ -993,7 +995,7 @@ class DB extends AbstractDB {
 
     for (const b of backup) sql = [...sql, b.table];
 
-    Tool.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
+    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
 
     return;
   }
@@ -1082,7 +1084,7 @@ class DB extends AbstractDB {
       valueSQL.join(" "),
     ];
 
-    Tool.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
+    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
 
     return;
   }
@@ -1143,7 +1145,7 @@ class DB extends AbstractDB {
 
     await this.$utils.wait(1000 * 5);
 
-    Tool.fs.writeFileSync(
+    Package.fs.writeFileSync(
       filePath,
       format(sql.join("\n"), {
         language: "spark",

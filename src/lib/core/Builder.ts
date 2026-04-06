@@ -2504,127 +2504,127 @@ class Builder extends AbstractBuilder {
       columns: Record<string, any> 
     }[]
   ): this {
-    // if (!cases.length)
-    //   throw new Error(`The method 'updateCases' must not be empty.`);
+    if (!cases.length)
+      throw new Error(`The method 'updateCases' must not be empty.`);
 
-    // this.limit(cases.length);
+    this.limit(cases.length);
 
-    // const updateColumns: Record<string, any> = cases.reduce(
-    //   (columns: Record<string, any[]>, item) => {
-    //     return (
-    //       item.columns &&
-    //         Object.keys(item.columns).forEach(
-    //           (key) =>
-    //             (columns[key] = [
-    //               this.$constants("RAW"),
-    //               this.$constants("CASE"),
-    //               `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
-    //               this.$constants("END"),
-    //             ])
-    //         ),
-    //       columns
-    //     );
-    //   },
-    //   {}
-    // );
+    const updateColumns: Record<string, any> = cases.reduce(
+      (columns: Record<string, any[]>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach(
+              (key) =>
+                (columns[key] = [
+                  this.$constants("RAW"),
+                  this.$constants("CASE"),
+                  `${this.$constants("ELSE")} ${this.bindColumn(key)}`,
+                  this.$constants("END"),
+                ])
+            ),
+          columns
+        );
+      },
+      {}
+    );
 
-    // const columns: Record<string, any> = cases.reduce(
-    //   (columns: Record<string, string>, item) => {
-    //     return (
-    //       item.columns &&
-    //         Object.keys(item.columns).forEach((key) => (columns[key] = "")),
-    //       columns
-    //     );
-    //   },
-    //   {}
-    // );
+    const columns: Record<string, any> = cases.reduce(
+      (columns: Record<string, string>, item) => {
+        return (
+          item.columns &&
+            Object.keys(item.columns).forEach((key) => (columns[key] = "")),
+          columns
+        );
+      },
+      {}
+    );
 
-    // for (let i = cases.length - 1; i >= 0; i--) {
-    //   const c = cases[i];
+    for (let i = cases.length - 1; i >= 0; i--) {
+      const c = cases[i];
 
-    //   if (c.condition == null) {
-    //     throw new Error(`This 'when' property is missing some properties`);
-    //   }
+      if (c.condition == null) {
+        throw new Error(`This 'when' property is missing some properties`);
+      }
         
-    //   if (c.columns == null || !Object.keys(c.columns).length) {
-    //     throw new Error(`This 'columns' property is missing some properties`);
-    //   }
+      if (c.columns == null || !Object.keys(c.columns).length) {
+        throw new Error(`This 'columns' property is missing some properties`);
+      }
         
-    //   const transformWhen = (when : any) : string[] => {
-    //     if(when instanceof Function || when instanceof Builder ) {
+      const transformWhen = (when : any) => {
+        if(when instanceof Function || when instanceof Builder ) {
 
-    //         const copy = new Builder().copyBuilder(this);
+            const copy = new Builder().copyBuilder(this);
 
-    //         const builder = when(copy);
+            const builder = when(copy);
 
-    //         if (builder instanceof Promise) {
-    //           throw new Error("This 'when' property is not supported a Promise")
-    //         }
+            if (builder instanceof Promise) {
+              throw new Error("This 'when' property is not supported a Promise")
+            }
       
-    //         if (!(builder instanceof Builder)) {
-    //           throw new Error(`Unknown callback query: '${builder}'`)
-    //         }
+            if (!(builder instanceof Builder)) {
+              throw new Error(`Unknown callback query: '${builder}'`)
+            }
       
-    //         const wheres = builder?.$state.get("WHERE") || [];
+            const wheres = builder?.$state.get("WHERE") || [];
 
-    //         return wheres
-    //     }
+            return wheres
+        }
 
-    //     const builder = new Builder()
-    //     .copyBuilder(this)
-    //     .whereObject({...c.condition });
+        const builder = new Builder()
+        .copyBuilder(this)
+        .whereObject({...c.condition });
 
-    //     const wheres = builder?.$state.get("WHERE") || [];
+        const wheres = builder?.$state.get("WHERE") || [];
 
-    //     return wheres
-    //   }
+        return wheres
+      }
 
-    //   const when = transformWhen(c.condition)
+      const when = transformWhen(c.condition)
 
-    //   for (const [key, value] of Object.entries(c.columns)) {
-    //     if (updateColumns[key] == null) continue;
-    //     const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
-    //     const str = `${this.$constants("WHEN")} ${when.join(
-    //       ` ${this.$constants("AND")} `
-    //     )} ${this.$constants("THEN")} '${value}'`;
-    //     updateColumns[key].splice(startIndex + 1, 0, str);
-    //   }
-    // }
+      for (const [key, value] of Object.entries(c.columns)) {
+        if (updateColumns[key] == null) continue;
+        const startIndex = updateColumns[key].indexOf(this.$constants("CASE"));
+        const str = `${this.$constants("WHEN")} ${when.join(
+          ` ${this.$constants("AND")} `
+        )} ${this.$constants("THEN")} '${value}'`;
+        updateColumns[key].splice(startIndex + 1, 0, str);
+      }
+    }
 
-    // for (const key in columns) {
-    //   if (updateColumns[key] == null) continue;
-    //   columns[key] = `( ${updateColumns[key].join(" ")} )`;
-    // }
+    for (const key in columns) {
+      if (updateColumns[key] == null) continue;
+      columns[key] = `( ${updateColumns[key].join(" ")} )`;
+    }
 
-    // const keyValue = Object.entries(columns).map(([column, value]) => {
-    //   if (
-    //     typeof value === "string" &&
-    //     !value.includes(this.$constants("RAW"))
-    //   ) {
-    //     value = this.$utils.escapeActions(value);
-    //   }
-    //   return `${this.bindColumn(column)} = ${
-    //     value == null || value === this.$constants("NULL")
-    //       ? this.$constants("NULL")
-    //       : typeof value === "string" && value.includes(this.$constants("RAW"))
-    //       ? `${this.$utils.transfromBooleanToNumber(value)}`.replace(
-    //           this.$constants("RAW"),
-    //           ""
-    //         )
-    //       : `'${this.$utils.transfromBooleanToNumber(value)}'`
-    //   }`;
-    // });
+    const keyValue = Object.entries(columns).map(([column, value]) => {
+      if (
+        typeof value === "string" &&
+        !value.includes(this.$constants("RAW"))
+      ) {
+        value = this.$utils.escapeActions(value);
+      }
+      return `${this.bindColumn(column)} = ${
+        value == null || value === this.$constants("NULL")
+          ? this.$constants("NULL")
+          : typeof value === "string" && value.includes(this.$constants("RAW"))
+          ? `${this.$utils.transfromBooleanToNumber(value)}`.replace(
+              this.$constants("RAW"),
+              ""
+            )
+          : `'${this.$utils.transfromBooleanToNumber(value)}'`
+      }`;
+    });
 
-    // this.$state.set(
-    //   "UPDATE",
-    //   keyValue
-    // );
+    this.$state.set(
+      "UPDATE",
+      keyValue
+    );
 
-    // this.whereRaw("1");
+    this.whereRaw("1");
 
-    // this.void();
+    this.void();
 
-    // this.$state.set("SAVE", "UPDATE");
+    this.$state.set("SAVE", "UPDATE");
 
     return this;
   }
@@ -4762,10 +4762,7 @@ class Builder extends AbstractBuilder {
       return false;
     }
 
-    const sql: string = [
-      `${this.$constants("TRUNCATE_TABLE")}`,
-      `${table}`,
-    ].join(" ");
+    const sql: string = this._queryBuilder().truncate(this.getTableName());
 
     if (!force) {
       console.log([
@@ -4778,7 +4775,7 @@ class Builder extends AbstractBuilder {
       return false;
     }
 
-    const childFKs = await this.getChildFKs();
+    const childFKs = await this.getChildFKs().catch(() => []);
 
     if(childFKs.length && !dropFK) {
       console.log([

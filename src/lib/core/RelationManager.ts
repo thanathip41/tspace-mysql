@@ -40,7 +40,7 @@ class RelationManager  {
                 )
             }
 
-            return +key
+            return key
         })
         .filter(d => d != null)
 
@@ -843,7 +843,7 @@ class RelationManager  {
         for (let i = 0, len = childs.length; i < len; i++) {
             const curr = childs[i]
 
-            const key = +curr[foreignKey]
+            const key = curr[foreignKey]
 
             if (Number.isNaN(key)) {
                 throw this._assertError([
@@ -859,7 +859,7 @@ class RelationManager  {
 
         for (let i = 0, len = parents.length; i < len; i++) {
             const parent = parents[i]
-            const key = +parent[localKey]
+            const key = parent[localKey]
             const match = children[key]
 
             if (isHasOneOrBelongsTo) parent[alias] = countMode ? 0 : null;
@@ -1025,7 +1025,7 @@ class RelationManager  {
         const children : Record<string , { values : Record<string,any>[] }> = [...pivotResults]
         .reduce((prev, curr) => {
 
-            const key = +curr[localKeyPivotTable]
+            const key = curr[localKeyPivotTable]
 
             if(Number.isNaN(key)) {
                 throw this._assertError([
@@ -1116,7 +1116,7 @@ class RelationManager  {
             : this._valuePattern([
                 `${pluralize.singular(this.$model['getTableName']())}`,
                 `${this.$model['$state'].get('PRIMARY_KEY')}`
-            ].join('_'))
+            ].join('_')).replace(/_+/g, "_")
 
         const checkRelationIsBelongsTo = [
             relationModel.localKey == null,
@@ -1129,7 +1129,7 @@ class RelationManager  {
             localKey =  this._valuePattern([
                 `${pluralize.singular(table ?? '')}`,
                 `${this.$model['$state'].get('PRIMARY_KEY')}`
-            ].join('_'))
+            ].join('_')).replace(/_+/g, "_")
         }
 
         const checkRelationIsBelongsToMany = [

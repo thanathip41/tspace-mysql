@@ -71,7 +71,6 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@sinclair/typebox": "0.34.48",
     "@types/autocannon": "7.12.5",
     "@types/chai": "4.3.11",
     "@types/chai-json-schema": "1.4.9",

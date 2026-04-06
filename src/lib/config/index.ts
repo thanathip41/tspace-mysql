@@ -1,20 +1,20 @@
-import { Tool } from "../tool";
+import { Package } from "../core/Package";
 import dotenv from "dotenv";
 
 const resolveEnvPath = (customEnv?: string): string => {
   const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
-  const env = Tool.path.join(Tool.path.resolve(), ".env");
+  const env = Package.path.join(Package.path.resolve(), ".env");
 
   if (NODE_ENV == null) {
     return env;
   }
 
-  const envWithNodeEnv = Tool.path.join(
-    Tool.path.resolve(),
+  const envWithNodeEnv = Package.path.join(
+    Package.path.resolve(),
     `.env.${NODE_ENV}`,
   );
 
-  if (Tool.fs.existsSync(envWithNodeEnv)) {
+  if (Package.fs.existsSync(envWithNodeEnv)) {
     return envWithNodeEnv;
   }
 
@@ -26,19 +26,21 @@ dotenv.config({ path: resolveEnvPath() });
 const ENV = process.env;
 
 const rawEnv = {
-  HOST: ENV.DB_HOST ?? "localhost",
-  PORT: ENV.DB_PORT ?? 3306,
-  USERNAME: ENV.DB_USERNAME ?? ENV.DB_USER,
-  PASSWORD: ENV.DB_PASSWORD ?? "",
-  DATABASE: ENV.DB_DATABASE,
-  CONNECTION_LIMIT: ENV.DB_CONNECTION_LIMIT ?? 20,
+  // general
+  HOST             : ENV.DB_HOST ?? "localhost",
+  PORT             : ENV.DB_PORT ?? 3306,
+  USERNAME         : ENV.DB_USERNAME ?? ENV.DB_USER,
+  PASSWORD         : ENV.DB_PASSWORD ?? "",
+  DATABASE         : ENV.DB_DATABASE,
+  CONNECTION_LIMIT : ENV.DB_CONNECTION_LIMIT ?? 10,
 
   // for mysql2 only
   DATE_STRINGS: ENV.DB_DATE_STRINGS ?? false,
 
+  // options
   CLUSTER: ENV.DB_CLUSTER ?? false,
   DRIVER: ENV.DB_DRIVER ?? "mysql2",
-  CACHE: ENV.DB_CACHE ?? ("memory" as "memory" | "db" | "redis"),
+  CACHE: ENV.DB_CACHE as "memory" | "db" | "redis",
   CONNECTION_ERROR: ENV.DB_CONNECTION_ERROR ?? false,
   CONNECTION_SUCCESS: ENV.DB_CONNECTION_SUCCESS ?? false,
 } as const;

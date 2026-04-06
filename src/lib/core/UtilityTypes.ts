@@ -41,35 +41,6 @@ import type {
 import { z } from "zod";
 
 /**
- * The 'TSchemaStrict' type is used to specify the type of the schema.
- *
- * @param {type} T typeof the schema
- * @param {type} S override type in the schema
- * @example
- * import { Blueprint, TSchema, Model, Schema } from 'tspace-mysql';
- * const schemaUser = {
- *    id :new Blueprint().int().notNull().primary().autoIncrement(),
- *    uuid :new Blueprint().varchar(50).null(),
- *    email :new Blueprint().varchar(50).null(),
- *    name :new Blueprint().varchar(255).null(),
- *    username : new Blueprint().varchar(255).null(),
- *    password : new Blueprint().varchar(255).null(),
- *    createdAt :new Blueprint().timestamp().null(),
- *    updatedAt :new Blueprint().timestamp().null()
- *   }
- *
- *   type TSchemaUser = TSchemaStrict<typeof schemaUser , {
- *      id : number,
- *      uuid : string,
- *      ........
- *   }>
- *
- *   class User<TSchemaUser> {}
- */
-export type TSchemaStrict<T, S = {}> = {
-    [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U : any;
-};
-/**
  * The 'TSchema' type is used to specify the type of the schema.
  *
  * allowed to additional any key and value.
@@ -99,9 +70,6 @@ export type TSchemaStrict<T, S = {}> = {
  */
 export type TSchema<T, S = {}> = {
     [K in keyof T]: K extends keyof S ? S[K] : T[K] extends Blueprint<infer U> ? U : any;
-} 
-& {
-    [key: string]: any;
 };
 /**
  * The 'TRelation' type is used to specify the type of the relation.
@@ -206,8 +174,7 @@ export declare namespace T {
     // This type is not support any decorator from Model;
     // for mark generic type and set to Model.
     // -----------------------------------------------------
-    type Schema<T, S = {}>  = TSchema<T, S>;
-    type SchemaStrict<T, S = {}> = TSchemaStrict<T, S>;
+    type Schema<T, S = {}>  = T extends Model ? TSchemaModel<T>  :TSchema<T, S>;
     type Relation<R> = TRelation<R>;
     // ------------------------------------------------------
 
@@ -271,7 +238,9 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>>;
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> & {
+        [customKey : string]: unknown;
+    };
 
     type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
     

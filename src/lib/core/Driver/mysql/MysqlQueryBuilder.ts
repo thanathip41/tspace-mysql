@@ -1,7 +1,9 @@
 import { QueryBuilder } from "..";
-import { TStateWhereCondition } from "../../../types";
 import { Blueprint }    from "../../Blueprint";
 import { StateManager } from "../../StateManager";
+import { 
+  type TStateWhereCondition 
+} from "../../../types";
 
 export class MysqlQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {

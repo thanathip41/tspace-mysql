@@ -1,10 +1,10 @@
-class Tool {
+class Package {
     static import(name : string) {
         try {
             return require(name)
         }
-        catch (err) {
-            throw new Error(`The package '${name}' does not exist. Please try installing the package using : npm install ${name} --save`)
+        catch (err:any) {
+            throw new Error(`The package '${name}' caused by '${err.message}'. Please try installing the package using : npm install ${name} --save`)
         }
     }
 
@@ -53,16 +53,16 @@ class Tool {
                 config  : (options : Record<string,any> = {}) => dotenv.config(options), 
             }
 
-        } catch (err) {
+        } catch (err:any) {
             
-            throw new Error(Tool._errorMessage('dotenv'));
+            throw new Error(`The package 'dotenv' caused by '${err.message}'. Please try installing the package using : npm install dotenv --save`)
         }
     }
 
     static get redis () {
         try {
 
-            const redis = require('redis')
+            const redis = require('redis') // redis@5.6.0+
 
             return {
                 createClient: ({ url, socket } : { 
@@ -79,36 +79,7 @@ class Tool {
             throw new Error(`The package 'redis' caused by '${err.message}'. Please try installing the package using : npm install redis@5.6.0 --save`)
         }
     }
-
-    static get zod() {
-        try {
-            //@ts-ignore
-            return this.import("zod") as typeof import("zod");
-
-        } catch (err) {
-
-            throw new Error(Tool._errorMessage('zod'))
-        }
-    }
-
-    static get typebox() {
-        try {
-            //@ts-ignore
-            return this.import("@sinclair/typebox") as typeof import("@sinclair/typebox");
-
-        } catch (err) {
-
-            throw new Error(Tool._errorMessage('@sinclair/typebox'))
-        }
-    }
-
-    private static _errorMessage(lib : string) {
-        return [
-            `The package '${lib}' is either not supported or not found.`, 
-            `Please ensure installing it with : npm install ${lib} --save`
-        ].join(' ')
-    }
 }
 
-export { Tool }
-export default Tool
+export { Package }
+export default Package

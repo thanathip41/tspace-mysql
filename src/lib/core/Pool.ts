@@ -1,4 +1,4 @@
-import { Tool }           from "../tool";
+import { Package }           from "../core/Package";
 import { MysqlDriver }    from "./Driver/mysql/MysqlDriver";
 import { PostgresDriver } from "./Driver/postgres/PostgresDriver";
 import { MariadbDriver }  from "./Driver/mariadb/MariadbDriver";
@@ -204,13 +204,13 @@ export class PoolConnection {
 
     if (!writers.length) {
       throw new Error(
-        "No master nodes found. Please verify your cluster config.",
+        "[DB_CLUSTER] Cluster mode requires at least one writer node. Please check your configuration."
       );
     }
 
     if (!readers.length) {
       throw new Error(
-        "No slave nodes found. Please verify your cluster config.",
+        "[DB_CLUSTER] Cluster mode requires at least one reader node. Please check your configuration."
       );
     }
 
@@ -257,12 +257,12 @@ export class PoolConnection {
        *       charset            =
        *   }
        */
-      const dbOptionsPath = Tool.path.join(Tool.path.resolve(), "db.tspace");
-      const dbOptionsExists = Tool.fs.existsSync(dbOptionsPath);
+      const dbOptionsPath = Package.path.join(Package.path.resolve(), "db.tspace");
+      const dbOptionsExists = Package.fs.existsSync(dbOptionsPath);
 
       if (!dbOptionsExists) return this._defaultOptions();
 
-      const dbOptions: string = Tool.fs.readFileSync(dbOptionsPath, "utf8");
+      const dbOptions: string = Package.fs.readFileSync(dbOptionsPath, "utf8");
 
       const options = this._convertStringToObject(dbOptions);
 
