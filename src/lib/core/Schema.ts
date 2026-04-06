@@ -293,9 +293,21 @@ class Schema {
    * .post('/', ({ body }) => {
    *     return { body }
    * }, {
-   *     body: Schema.createValidator(User, {
-   *         omit: ["id", "created_at", "updated_at", "deleted_at"],
-   *         optional: ["uuid"]
+   * body: Schema
+   *   .validator(User)
+   *   .create({
+   *     omit: ["id", "created_at", "updated_at", "deleted_at"],
+   *     optional: ["uuid"]
+   *   })
+   * })
+   * .put('/', ({ body }) => {
+   *     return { body }
+   * }, {
+   *     body: Schema
+   *     .validator(User)
+   *     .update({  
+   *       required: ["id","email"],
+   *       omit: ["uuid"]
    *     })
    * })
    * .listen(8000)
@@ -322,11 +334,12 @@ class Schema {
      * .post('/', ({ body }) => {
      *     return { body }
      * }, {
-     *     body: Schema.createValidator(User, {
-     *         omit: ["id", "created_at", "updated_at", "deleted_at"],
-     *         optional: ["uuid"]
-     *     })
-     * })
+     *   body: Schema
+     *   .validator(User)
+     *   .create({
+     *     omit: ["id", "created_at", "updated_at", "deleted_at"],
+     *     optional: ["uuid"]
+     *   })
      * .listen(8000)
      */
       create: <

@@ -1283,19 +1283,21 @@ Validate the schema of Model
 let's example a validator model:
 
 ```js
-import { Model, Blueprint } from "tspace-mysql";
-class User extends Model {
+import { Model, Blueprint, T } from "tspace-mysql";
+
+const schema = {
+  id: Blueprint.int().notNull().primary().autoIncrement(),
+  uuid: Blueprint.varchar(50).null(),
+  name: Blueprint.varchar(191).notNull(),
+  email: Blueprint.varchar(191).notNull(),
+  created_at: Blueprint.timestamp().null(),
+  updated_at: Blueprint.timestamp().null(),
+  deleted_at: Blueprint.timestamp().null(),
+}
+class User extends Model<T.Schema<typeof schema>> {
   constructor() {
     super();
-    this.useSchema({
-      id: Blueprint.int().notNull().primary().autoIncrement(),
-      uuid: Blueprint.varchar(50).null(),
-      name: Blueprint.varchar(191).notNull(),
-      email: Blueprint.varchar(191).notNull(),
-      created_at: Blueprint.timestamp().null(),
-      updated_at: Blueprint.timestamp().null(),
-      deleted_at: Blueprint.timestamp().null(),
-    });
+    this.useSchema(schema);
 
     // validate input when create or update reference to the schema in 'this.useSchema'
     this.useValidateSchema({
@@ -1325,6 +1327,35 @@ class User extends Model {
     });
   }
 }
+
+// Json schema validator
+import { Schema } from 'tspace-mysql'
+import { Elysia } from 'elysia'
+
+new Elysia()
+.post('/', ({ body }) => {
+  return { body }
+}, {
+    body: Schema
+    .validator(User)
+    .create({
+      omit: ["id", "created_at", "updated_at", "deleted_at"],
+      optional: ["uuid"]
+    })
+})
+.put('/', ({ body }) => {
+    return { body }
+}, {
+    body: Schema
+    .validator(User)
+    .update({  
+      required: ["id","email"],
+      omit: ["uuid"]
+    })
+})
+.listen(8000)
+
+
 ```
 
 ### Sync
