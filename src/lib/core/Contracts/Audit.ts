@@ -42,11 +42,15 @@ class Audit extends Model<TS> {
 
             const userId = Number.isNaN(Number(instance['$state'].get('AUDIT'))) 
             ? 0
-            : Number(instance['$state'].get('AUDIT'))
+            : Number(instance['$state'].get('AUDIT'));
 
-            const metadata  = instance['$state'].get('AUDIT_METADATA')
+            const metadata  = instance['$state'].get('AUDIT_METADATA');
 
-            const modelName = instance['$state'].get("MODEL_NAME")
+            const modelName = instance['$state'].get("MODEL_NAME");
+
+            instance['$state'].set("AUDIT",null);
+
+            instance['$state'].set("AUDIT_METADATA",null);
 
             const baseQuery = {
                 model: modelName,
@@ -70,7 +74,6 @@ class Audit extends Model<TS> {
                 .whereIn("id", result.$meta.insertIds)
                 .disableVoid()
                 .bind(instance['$pool'].get())
-                .debug(instance['$state'].get('DEBUG'))
                 .get();
 
                 await new this()
@@ -102,7 +105,6 @@ class Audit extends Model<TS> {
                 })
                 .disableVoid()
                 .bind(instance['$pool'].get())
-                .debug(instance['$state'].get('DEBUG'))
                 .get();
 
                 result = await fn();
@@ -116,7 +118,6 @@ class Audit extends Model<TS> {
                 .disableSoftDelete()
                 .disableVoid()
                 .bind(instance['$pool'].get())
-                .debug(instance['$state'].get('DEBUG'))
                 .get();
 
                  await new this()
@@ -149,7 +150,6 @@ class Audit extends Model<TS> {
                 })
                 .disableVoid()
                 .bind(instance['$pool'].get())
-                .debug(instance['$state'].get('DEBUG'))
                 .get();
 
                 result = await fn();
@@ -202,7 +202,6 @@ class Audit extends Model<TS> {
                     : null,
                 })
                 .bind(instance['$pool'].get())
-                .debug(instance['$state'].get('DEBUG'))
                 .void()
                 .save()
             }

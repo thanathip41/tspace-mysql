@@ -1663,8 +1663,6 @@ class Model<
     newInstance.$state.set("SAVE", null);
     newInstance.$state.set("DEBUG", false);
     newInstance.$state.set("LOGGER", false);
-    newInstance.$state.set("AUDIT", null);
-    newInstance.$state.set("AUDIT_METADATA", null);
     newInstance.$state.set("LIFECYCLE_BEFORE_INSERTS", []);
     newInstance.$state.set("LIFECYCLE_BEFORE_UPDATES", []);
     newInstance.$state.set("LIFECYCLE_BEFORE_REMOVES", []);
