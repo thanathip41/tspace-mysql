@@ -80,6 +80,7 @@ const STATE_MODEL = {
     } | null,
     TABLE_LOGGER: '$loggers' as string,
     TABLE_AUDIT : '$audits' as string,
+    TABLE_JOB : '$jobs' as string,
     VALIDATE_SCHEMA: false as boolean,
     VALIDATE_SCHEMA_DEFINED: null as TValidateSchema | null,
     FUNCTION_RELATION: false as boolean,

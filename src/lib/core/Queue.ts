@@ -19,33 +19,33 @@ type QueueAddOptions = {
 }
 
 const schema = {
-    id: Blueprint.bigint().unsigned().primary().autoIncrement(),
-    uuid: Blueprint.varchar(36).null(),
+    id    : Blueprint.bigint().unsigned().primary().autoIncrement(),
+    uuid  : Blueprint.varchar(36).null(),
 
-    name: Blueprint.varchar(255).notNull().compositeIndex([
+    name  : Blueprint.varchar(255).notNull().compositeIndex([
         "state", "available_at", "priority", "id"
     ]),
    
-    state: Blueprint.enum(
+    state : Blueprint.enum(
         'pending',
         'active',
         'completed',
         'failed'
     ).notNull().default('pending'),
 
-    priority: Blueprint.int().notNull().default(0),
+    priority : Blueprint.int().notNull().default(0),
 
-    payload: Blueprint.mediumtext().null(),
-    result: Blueprint.text().null(),
-    error: Blueprint.text().null(),
-    metadata: Blueprint.text().null(),
+    payload  : Blueprint.mediumtext().null(),
+    result   : Blueprint.text().null(),
+    error    : Blueprint.text().null(),
+    metadata : Blueprint.text().null(),
 
     locked_by: Blueprint.text().null(),
     locked_at: Blueprint.timestamp().null(),
     
-    available_at: Blueprint.timestamp().notNull(),
-    created_at: Blueprint.timestamp().null(),
-    updated_at: Blueprint.timestamp().null()
+    available_at : Blueprint.timestamp().notNull(),
+    created_at   : Blueprint.timestamp().null(),
+    updated_at   : Blueprint.timestamp().null()
 };
 
 type TS = T.Schema<typeof schema>
@@ -63,7 +63,7 @@ class Worker extends Model<TS> {
         this.useUUID();
         this.useSchema(schema);
         this.useTimestamp();
-        this.useTable('$jobs');
+        this.useTable(this.$state.get("TABLE_JOB"));
     }
 
     public async initialize () {
