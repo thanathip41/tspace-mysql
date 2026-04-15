@@ -51,20 +51,110 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'rowLock' method is used to row level locks
+   * The 'rowLock' method is used to row level locks (`FOR UPDATE` or `FOR SHARE`) to the query.
    *
    * @param {string} mode
    * @returns {this} this
    */
-  public rowLock(mode: "FOR_UPDATE" | "FOR_SHARE"): this {
+  public rowLock(
+    mode: "FOR_UPDATE" | "FOR_SHARE",
+     opts: {
+      skipLocked?: boolean
+      nowait?: boolean
+     } = {}
+  ): this {
+
     if (!["FOR_UPDATE", "FOR_SHARE"].includes(mode)) {
       throw new Error(`Invalid lock mode: ${mode}`);
     }
 
-    this.$state.set(
-      "ROW_LEVEL_LOCK",
-      mode
-    );
+    if (opts.skipLocked && opts.nowait) {
+      throw new Error("Cannot use skipLocked and nowait together")
+    }
+
+    this.$state.set("ROW_LEVEL_LOCK", {
+      mode,
+      skipLocked: !!opts.skipLocked,
+      nowait: !!opts.nowait
+    })
+
+    return this;
+  }
+
+  /**
+   * The 'forUpdate' method is used to applies a row-level exclusive lock (`FOR UPDATE`) to the query.
+   * 
+   * This lock prevents other transactions from modifying or acquiring
+   * conflicting locks on the selected rows until the current transaction
+   * is committed or rolled back.
+   *
+   * Commonly used in queue systems or critical sections to safely
+   * select and update rows without race conditions.
+   *
+   * @param {Object} [opts] - Locking options
+   * @param {boolean} [opts.skipLocked=false] - If true, skips rows that are already locked by other transactions.
+   *                                           Useful for building non-blocking workers (e.g., job queues).
+   * @param {boolean} [opts.nowait=false] - If true, throws an error immediately if the lock cannot be acquired.
+   *
+   * @throws {Error} If both `skipLocked` and `nowait` are enabled at the same time.
+   *
+   * @returns {this} Returns the query builder instance for chaining.
+   */
+  public forUpdate(
+     opts: {
+      skipLocked?: boolean
+      nowait?: boolean
+     } = {}
+  ): this {
+
+    if (opts.skipLocked && opts.nowait) {
+      throw new Error("Cannot use skipLocked and nowait together")
+    }
+
+    this.$state.set("ROW_LEVEL_LOCK", {
+      mode : 'FOR_UPDATE',
+      skipLocked: !!opts.skipLocked,
+      nowait: !!opts.nowait
+    })
+
+    return this;
+  }
+
+  /**
+   * The 'forShare' method is used to applies a row-level exclusive lock (`FOR SHARE`) to the query.
+   * 
+   * This lock prevents other transactions from modifying or acquiring
+   * conflicting locks on the selected rows until the current transaction
+   * is committed or rolled back.
+   *
+   * Commonly used in queue systems or critical sections to safely
+   * select and update rows without race conditions.
+   *
+   * @param {Object} [opts] - Locking options
+   * @param {boolean} [opts.skipLocked=false] - If true, skips rows that are already locked by other transactions.
+   *                                           Useful for building non-blocking workers (e.g., job queues).
+   * @param {boolean} [opts.nowait=false] - If true, throws an error immediately if the lock cannot be acquired.
+   *
+   * @throws {Error} If both `skipLocked` and `nowait` are enabled at the same time.
+   *
+   * @returns {this} Returns the query builder instance for chaining.
+   */
+  public forShare(
+     opts: {
+      skipLocked?: boolean
+      nowait?: boolean
+     } = {}
+  ): this {
+
+    if (opts.skipLocked && opts.nowait) {
+      throw new Error("Cannot use skipLocked and nowait together")
+    }
+
+    this.$state.set("ROW_LEVEL_LOCK", {
+      mode : 'FOR_SHARE',
+      skipLocked: !!opts.skipLocked,
+      nowait: !!opts.nowait
+    })
 
     return this;
   }

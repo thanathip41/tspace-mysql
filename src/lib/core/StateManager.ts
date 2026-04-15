@@ -39,7 +39,11 @@ const STATE_DEFAULT = {
   RAW_ALIAS: null as string | null,
   UNION: [] as string[],
   UNION_ALL: [] as string[],
-  ROW_LEVEL_LOCK : null as "FOR_UPDATE" | "FOR_SHARE" | null
+  ROW_LEVEL_LOCK : {
+    mode : null as "FOR_UPDATE" | "FOR_SHARE" | null,
+    skipLocked : false as boolean | null,
+    nowait : false as boolean | null
+  }
 } as const
 
 const STATE_DB = {

@@ -121,7 +121,9 @@ const CONSTANTS = Object.freeze({
     },
     ROW_LEVEL_LOCK : {
         update : 'FOR UPDATE',
-        share  : 'LOCK IN SHARE MODE'
+        share  : 'LOCK IN SHARE MODE',
+        skipLocked: 'SKIP LOCKED',
+        nowait : 'NOWAIT'
     }
 })
 

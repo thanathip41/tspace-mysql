@@ -1070,12 +1070,25 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return `${this.$constants("HAVING")} ${having}`;
   }
 
-  protected bindRowLevelLock(mode: "FOR_UPDATE" | "FOR_SHARE" | null) {
-    if(mode == null) return '';
+  protected bindRowLevelLock(rowLevelLock : {
+    mode       : "FOR_UPDATE" | "FOR_SHARE" | null,
+    skipLocked : boolean | null,
+    nowait     : boolean | null
+  }) {
+    
+    if(rowLevelLock.mode == null) return '';
 
-    const modeLock = mode === "FOR_UPDATE"
+    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
     ? this.$constants("ROW_LEVEL_LOCK").update
     : this.$constants("ROW_LEVEL_LOCK").share
+
+    if(rowLevelLock.skipLocked) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
+    }
+
+    if(rowLevelLock.nowait) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
+    }
 
     return modeLock;
   }
