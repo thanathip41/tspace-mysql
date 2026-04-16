@@ -8370,8 +8370,11 @@ class Model<
     retry = 1,
     originError?: any,
   ): Promise<void> {
+
     const throwError = originError == null ? e : originError;
+
     try {
+
       if (retry >= 3 || this.$state.get("RETRY") >= 3) throw throwError;
 
       const schemaTable = this.getSchemaModel();
@@ -8380,8 +8383,14 @@ class Model<
 
       if (!(e instanceof Error)) return this._stoppedRetry(throwError);
 
-      await this.sync({ force: true });
+      await new Promise((r) => setTimeout(r, 1000));
+
+      await new Model()
+      .copyModel(this)
+      .sync({ force: true }).catch(() => null);
+
     } catch (e: unknown) {
+      
       if (retry >= 3) {
         throw throwError;
       }
