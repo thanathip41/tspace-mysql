@@ -1,13 +1,17 @@
-import { utils } from "../utils"
-import { Blueprint } from "./Blueprint"
-import { DB } from "./DB"
-import { Model } from "./Model"
-import { T } from "./UtilityTypes"
+import type { T }       from "./UtilityTypes"
+import { Blueprint }    from "./Blueprint"
+import { DB }           from "./DB"
+import { Model }        from "./Model"
+import { utils }        from "../utils"
 
-type Job = {
-  id: number;
-  name: string;
-  payload: any;
+type Job<T = any> = {
+  id      : number;
+  name    : string;
+  payload : T;
+}
+
+type JobInternal = Job & {
+    __job : T.Result<Worker>;
 }
 
 type Handler = (job: Job) => any | Promise<any>;
@@ -17,6 +21,11 @@ type QueueAddOptions = {
   priority?: number       
   metadata?: Record<string, any>
   maxAttempts ?: number
+}
+
+type QueueWorkOptions = { 
+    interval ?: number; 
+    concurrency ?: number; 
 }
 
 type BufferedJob = {
@@ -54,532 +63,491 @@ const schema = {
     locked_at: Blueprint.timestamp().null(),
     
     available_at : Blueprint.timestamp().notNull(),
+    completed_at : Blueprint.timestamp().null(),
     created_at   : Blueprint.timestamp().null(),
     updated_at   : Blueprint.timestamp().null()
 };
 
 type TS = T.Schema<typeof schema>
-
 class Worker extends Model<TS> {
 
-  private buffer: BufferedJob[] = [];
-  private bufferTimeout: NodeJS.Timeout | null = null;
-  private isFlushing = false;
+    private buffer: BufferedJob[] = [];
+    private bufferTimeout: NodeJS.Timeout | null = null;
+    private isFlushing   = false;
 
-  // ตั้งค่า Tuning
-  private readonly BATCH_SIZE  = 1000; // ครบ 1,000 อันยิงทันที
-  private readonly MAX_WAIT_MS = 10;  // หรือถ้ารอนานเกิน 100ms ก็ยิงเลย
+    private BATCH_SIZE   = 1000;
+    private MAX_WAIT_MS  = 50;
 
-  private MAX_IDLE     = 10;
-  private STOPPING     = false;
-  private ACTIVE_JOBS  = 0;
-  
-  private WORKER_STATE = new Map<string, {
-    handler    : Handler;
-    idle       : number;
-    sleeping   : boolean;
-  }>
-
-  private QUEUE_LOG = {
-    dispatch: 'dispatch',
-    receive: 'receive',
-    processing: 'processing',
-    done: 'done',
-    idle: 'idle',
-    wake: 'wake',
-    fail: 'fail',
-    retry : {
-      try      : 'try',
-      attempts : 'attempts',
-      fail     : 'retry fail'
-    }
-  }
-
-  private DEBUG_LIFECYCLE = true;
-
-  protected boot(): void {
-    this.useUUID();
-    this.useSchema(schema);
-    this.useTimestamp();
-    this.useTable(this.$state.get("TABLE_JOB"));
-  }
-
-  public async initialize () {
-      await this.sync({ force : true , index: true });
-      return this;
-  }
-
-  public async getStats(name?: string) {
-
-      const where = (q: Worker) => {
-          if (name) q.where('name', name)
-          return q
-      }
-
-      return {
-          completed: await where(new Worker()).where('state', 'completed').count(),
-          active: await where(new Worker()).where('state', 'active').count(),
-          pending: await where(new Worker()).where('state', 'created').count(),
-          failed: await where(new Worker()).where('state', 'failed').count(),
-      }
-  }
-
-  public async getStatsByName() {
-
-    const rows = await new Worker()
-    .select('name', 'state')
-    .selectRaw('count(id) AS total')
-    .groupBy('name', 'state')
-    .get()
-
-    const stats = rows.reduce((acc, row) => {
-
-        const name = row.name
-        const state = row.state
-        const total = Number(row.total)
-
-        if (!acc[name]) {
-
-            acc[name] = {
-                completed: 0,
-                active: 0,
-                pending: 0,
-                failed: 0
-            }
-        }
-
-        if (state === 'completed') acc[name].completed = total
-        else if (state === 'active') acc[name].active = total
-        else if (state === 'pending') acc[name].pending = total
-        else if (state === 'failed') acc[name].failed = total
-
-        return acc
-    },{} as Record<string, {
-            completed : number
-            active    : number
-            pending   : number
-            failed    : number
-        }>
-    )
-
-    return stats;
-  }
-
-  public async getNames() {
-    return await new Worker().select('name').toArray('name');
-  }
-
-  public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
-
-    const job = await new Worker()
-    .insert({
-        name,
-        payload: payload == null ? null : this.safeJsonStringify(payload),
-        state: 'pending',
-        available_at: opts.delayMs
-        ? new Date(Date.now() + opts.delayMs)
-        : new Date(),
-
-        priority: opts.priority ?? 0,
-
-        attempts     : 0,
-        max_attempts : opts.maxAttempts ?? 3,
-
-        metadata: opts.metadata
-        ? this.safeJsonStringify(opts.metadata)
-        : null
-    })
-    .save() as T.Result<Worker>
-
-    if(this.DEBUG_LIFECYCLE) {
-      console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.receive} job ${job.id}\x1b[0m`)
-    }
-
-    const state = this.WORKER_STATE.get(name);
-
-    if(!state) return;
-
-    state.idle = 0;
-
-    if (state.sleeping) {
-
-        const { handler } = state;
-
-        if(handler) {
-          state.sleeping = false;
-          if(this.DEBUG_LIFECYCLE) {
-            console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.wake}\x1b[0m`)
-          }
-          await this.work(name , handler);
-        }
-          
-    }
+    private MAX_IDLE     = 10;
+    private STOPPING     = false;
+    private ACTIVE_JOBS  = 0;
     
-    return;
-  }
+    private WORKER_STATE = new Map<string, {
+        handler     : Handler;
+        idle        : number;
+        sleeping    : boolean;
+        running     : number;
+        concurrency : number;
+    }>
 
-  // public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
-  //   return new Promise<T.Result<Worker>>((resolve, reject) => {
-      
-  //     const jobData = {
-  //       name,
-  //       payload: payload == null ? null : this.safeJsonStringify(payload),
-  //       state: 'pending',
-  //       available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
-  //       priority: opts.priority ?? 0,
-  //       attempts: 0,
-  //       max_attempts: opts.maxAttempts ?? 3,
-  //       metadata: opts.metadata ? this.safeJsonStringify(opts.metadata) : null
-  //     };
-
-  //     this.buffer.push({ jobData, resolve, reject });
-
-  //     if (this.buffer.length >= this.BATCH_SIZE) {
-  //       this.flushBuffer();
-  //     } else if (!this.bufferTimeout) {
-  //       this.bufferTimeout = setTimeout(() => this.flushBuffer(), this.MAX_WAIT_MS);
-  //     }
-  //   });
-  // }
-
-  private async flushBuffer() {
-
-    if (this.isFlushing || this.buffer.length === 0) return;
-
-    if (this.bufferTimeout) {
-      clearTimeout(this.bufferTimeout);
-      this.bufferTimeout = null;
+    private QUEUE_LOG = {
+        dispatch: 'dispatch',
+        receive: 'receive',
+        processing: 'processing',
+        done: 'done',
+        idle: 'idle',
+        wake: 'wake',
+        fail: 'fail',
+        retry : {
+            try      : 'try',
+            attempts : 'attempts',
+            fail     : 'retry fail'
+        }
     }
 
-    this.isFlushing = true;
+    private DEBUG_LIFECYCLE = false;
 
-    const currentBatch = this.buffer;
-   
-    this.buffer = [];
-   
-    this.isFlushing = false; 
-   
-    try {
-      const jobsToInsert = currentBatch.map(b => b.jobData);
-
-      const insertedJobs = await new Worker()
-      .insertMany(jobsToInsert)
-      .save() as T.InsertManyResult<Worker>
-  
-      console.log('job length '+ jobsToInsert.length)
-      for (let i = 0; i < currentBatch.length; i++) {
-        currentBatch[i].resolve(insertedJobs[i]);
-      }
-
-      const uniqueNames = [...new Set(currentBatch.map(b => b.jobData.name))];
-
-      uniqueNames.forEach(name => this.wakeWorker(name));
-
-    } catch (error) {
-      currentBatch.forEach(b => b.reject(error));
-    } finally {
-      if (this.buffer.length > 0) {
-        this.flushBuffer();
-      }
-    }
-  }
-
-  private wakeWorker(name: string) {
-    const state = this.WORKER_STATE.get(name);
-    if (!state || !state.sleeping || !state.handler) return;
-
-    state.sleeping = false;
-    state.idle = 0;
-
-    if (this.DEBUG_LIFECYCLE) {
-      console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.wake}\x1b[0m`);
+    protected boot(): void {
+        this.useUUID();
+        this.useSchema(schema);
+        this.useTimestamp();
+        this.useTable(this.$state.get("TABLE_JOB"));
     }
 
-    // ห้าม await ฟังก์ชัน work ตรงนี้! ให้มันรันเป็น Background ไปเลย
-    this.work(name, state.handler).catch(err => {
-      console.error(`[Queue Error] ${name}:`, err);
-      state.sleeping = true;
-    });
-  }
+    public debugLifeCycle () {
+        this.DEBUG_LIFECYCLE = true
+        return this;
+    }
 
-  public async work(name: string, handler: Handler, interval = 1_000) {
-      
-      this.WORKER_STATE.set(name , {
-        handler   : handler,
-        idle      : 0,
-        sleeping  : false
-      })
+    public async initialize () {
+        await this.sync({ force : true , index: true });
+        return this;
+    }
 
-      if(this.DEBUG_LIFECYCLE) {
-        console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.dispatch}\x1b[0m`)
-      }
+    public async shutdown() {
 
-      const findJobs = async () => {
-          
-          if (this.STOPPING) {
-            if (this.ACTIVE_JOBS > 0) {
-              this.ACTIVE_JOBS--
-            }
-            return;
-          }
+        this.STOPPING = true
 
-          const state = this.WORKER_STATE.get(name);
+        while (this.ACTIVE_JOBS > 0) {
+            console.log(`\x1b[32m[Queue] waiting active jobs total '${this.ACTIVE_JOBS}'\x1b[0m`)
+            await new Promise(r => setTimeout(r, 200))
+        }
 
-          const job = await this._dequeue(name) as (Job & { __job: T.Result<Worker, unknown> }) | null
+        console.log("\x1b[32m[Queue] shutdown complete\x1b[0m")
+    }
 
-          if (job == null) {
+    public async overall(name?: string) {
 
-            if(state) {
+        const where = (q: Worker) => {
+            if (name) q.where('name', name)
+            return q
+        }
 
-              state.idle++
+        return {
+            completed : await where(new Worker()).where('state', 'completed').count(),
+            active    : await where(new Worker()).where('state', 'active').count(),
+            pending   : await where(new Worker()).where('state', 'pending').count(),
+            failed    : await where(new Worker()).where('state', 'failed').count(),
+        }
+    }
 
-              if (state.idle >= this.MAX_IDLE) {
-                state.sleeping = true
+    public async getStatsByName() {
 
-                if(this.DEBUG_LIFECYCLE) {
-                  console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.idle}\x1b[0m`)
+        const rows = await new Worker()
+        .select('name', 'state')
+        .selectRaw('count(id) AS total')
+        .groupBy('name', 'state')
+        .get()
+
+        const stats = rows.reduce((acc, row) => {
+
+            const name = row.name
+            const state = row.state
+            const total = Number(row.total)
+
+            if (!acc[name]) {
+
+                acc[name] = {
+                    completed: 0,
+                    active: 0,
+                    pending: 0,
+                    failed: 0
                 }
-                return
-              }
             }
 
-            return setTimeout(findJobs, interval)
-          }
+            if (state === 'completed') acc[name].completed = total
+            else if (state === 'active') acc[name].active = total
+            else if (state === 'pending') acc[name].pending = total
+            else if (state === 'failed') acc[name].failed = total
 
-          if(state) state.idle = 0
+            return acc
+        },{} as Record<string, {
+                completed : number
+                active    : number
+                pending   : number
+                failed    : number
+            }>
+        )
 
-          this.ACTIVE_JOBS++
+        return stats;
+    }
 
-          try {
+    public async getNames() {
+        return await new Worker().select('name').toArray('name');
+    }
+    public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
+        return new Promise<Promise<T.Result<Worker>>>((resolve, reject) => {
+        
+            const jobData = {
+                name,
+                payload: payload == null ? null : this.safeJsonStringify(payload),
+                state: 'pending',
+                available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
+                priority: opts.priority ?? 0,
+                attempts: 0,
+                max_attempts: opts.maxAttempts ?? 3,
+                metadata: opts.metadata ? this.safeJsonStringify(opts.metadata) : null
+            };
 
-            if(this.DEBUG_LIFECYCLE) {
-              console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.processing} job ${job.id}\x1b[0m`)
+            this.buffer.push({ jobData, resolve, reject });
+
+            if (this.buffer.length >= this.BATCH_SIZE) {
+                this._flushBuffer();
+            } else if (!this.bufferTimeout) {
+                this.bufferTimeout = setTimeout(() => this._flushBuffer(), this.MAX_WAIT_MS);
+            }
+        });
+    }
+
+    public async process(name: string, handler: Handler, opts : QueueWorkOptions = { interval : 1_000, concurrency : 1 } ) {
+        
+        this.WORKER_STATE.set(name , {
+            handler   : handler,
+            idle      : 0,
+            sleeping  : false,
+            running   : 0,   
+            concurrency  : opts.concurrency!
+        })
+
+        if(this.DEBUG_LIFECYCLE) {
+            console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.dispatch}\x1b[0m`)
+        }
+
+        const findJobs = async () => {
+
+        if (this.STOPPING) return;
+
+            const state = this.WORKER_STATE.get(name);
+
+            if (!state) return;
+
+            if (state.running >= state.concurrency) {
+                return setTimeout(findJobs, opts.interval)
             }
 
-            const result = await handler(job);
+            const capacity = state.concurrency - state.running;
+
+            const jobs = await this._dequeueMany(name, capacity);
+
+            if (!jobs || jobs.length === 0) {
+                state.idle++
+
+                if (state.idle >= this.MAX_IDLE) {
+                    state.sleeping = true
+
+                    if(this.DEBUG_LIFECYCLE) {
+                        console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.idle}\x1b[0m`)
+                    }
+                    return
+                }
+                return setTimeout(findJobs, opts.interval);
+            }
+
+            state.idle = 0;
+
+            const promises: Function[] = [];
+
+            for (const job of jobs) {
+                promises.push(() => this._runJob(name, job, state));
+            }
+
+            await Promise.all(promises.map(v => v()));
+
+            await new Promise((r) => setTimeout(r, 200 * jobs.length));
+
+            setImmediate(findJobs);
+        }
+
+        findJobs();
+
+        return;
+    }
+
+    private async _runJob (name: string, job: JobInternal, state: any) {
+        state.running++
+        this.ACTIVE_JOBS++
+        const handler = state.handler;
+
+        try {
+
+            if (this.DEBUG_LIFECYCLE) {
+                console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.processing} job ${job.id}\x1b[0m`)
+            }
+
+            const result = await handler(job)
 
             await new Worker()
-            .where('id',job.id)
+            .where('id', job.id)
             .update({
-                state : 'completed',
-                result : this.safeJsonStringify(result),
+                state: 'completed',
+                result: this.safeJsonStringify(result),
+                completed_at: utils.timestamp()
             })
             .void()
             .save()
 
+        } catch (err:any) {
+
             if(this.DEBUG_LIFECYCLE) {
-              console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.done} job ${job.id}\x1b[0m`)
-            }
-          
-          } catch (err:any) {
-            
-            if(this.DEBUG_LIFECYCLE) {
-              console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.fail} job ${job.id}\x1b[0m`)
+                console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.fail} job ${job.id}\x1b[0m`)
             }
 
             await new Worker()
-              .where('id',job.id)
-              .update({
-                  state : 'failed',
-                  error : this.safeJsonStringify({
-                      message: err.message,
-                      name: err.name,
-                      stack: err.stack,
-                      code: err.code,
-                  })
-              })
-              .void()
-              .save()
+            .where('id',job.id)
+            .update({
+                state : 'failed',
+                error : this.safeJsonStringify({
+                    message: err.message,
+                    name: err.name,
+                    stack: err.stack,
+                    code: err.code,
+                })
+            })
+            .void()
+            .save()
 
-              const maxAttempts = job.__job.max_attempts;
+            const maxAttempts = job.__job.max_attempts;
 
-              let attempts = job.__job.attempts;
+            let attempts = job.__job.attempts;
 
-              while (attempts < maxAttempts) {
+            while (attempts < maxAttempts) {
 
                 attempts++;
 
                 try {
 
-                  const result = await handler(job);
-
-                  await new Worker()
-                    .where('id', job.id)
-                    .update({
-                      state: 'completed',
-                      attempts,
-                      result: this.safeJsonStringify(result),
-                    })
-                    .void()
-                    .save();
-
-                  if (this.DEBUG_LIFECYCLE) {
-                    console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.done} job ${job.id}\x1b[0m`);
-                  }
-
-                  break;
-
-                } catch (err: any) {
-
-                  if (this.DEBUG_LIFECYCLE) {
-                    console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.retry.attempts} job ${job.id} (${attempts}/${maxAttempts})\x1b[0m`);
-                  }
-
-                  if (attempts >= maxAttempts) {
+                    const result = await handler(job);
 
                     await new Worker()
-                      .where('id', job.id)
-                      .update({
-                        state: 'failed',
+                        .where('id', job.id)
+                        .update({
+                        state: 'completed',
                         attempts,
-                        error: this.safeJsonStringify({
-                          retry  : true,
-                          message: err?.message,
-                          name: err?.name,
-                          stack: err?.stack,
-                          code: err?.code,
-                        }),
-                      })
-                      .void()
-                      .save();
+                        result: this.safeJsonStringify(result),
+                        })
+                        .void()
+                        .save();
 
                     if (this.DEBUG_LIFECYCLE) {
-                      console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.retry.fail} job ${job.id} (max attempts reached)\x1b[0m`);
+                        console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.done} job ${job.id}\x1b[0m`);
                     }
 
                     break;
-                  }
 
-                  await new Promise((r) => setTimeout(r, 1_000 * 2));
+                } catch (err: any) {
+
+                    if (this.DEBUG_LIFECYCLE) {
+                        console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.retry.attempts} job ${job.id} (${attempts}/${maxAttempts})\x1b[0m`);
+                    }
+
+                    if (attempts >= maxAttempts) {
+
+                        await new Worker()
+                        .where('id', job.id)
+                        .update({
+                            state: 'failed',
+                            attempts,
+                            error: this.safeJsonStringify({
+                            retry  : true,
+                            message: err?.message,
+                            name: err?.name,
+                            stack: err?.stack,
+                            code: err?.code,
+                            }),
+                        })
+                        .void()
+                        .save();
+
+                        if (this.DEBUG_LIFECYCLE) {
+                        console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.retry.fail} job ${job.id} (max attempts reached)\x1b[0m`);
+                        }
+
+                        break;
+                    }
+
+                    await new Promise((r) => setTimeout(r, 1_000 * 2));
                 }
-              }
-
-          } finally {
-            if (this.ACTIVE_JOBS > 0) {
-                this.ACTIVE_JOBS--
             }
-          }
-
-          setImmediate(findJobs)
-      }
-
-      findJobs();
-
-      return;
-  }
-
-  public async shutdown() {
-
-      this.STOPPING = true
-
-      while (this.ACTIVE_JOBS > 0) {
-        console.log(`\x1b[32m[Queue] waiting active jobs total '${this.ACTIVE_JOBS}'\x1b[0m`)
-        await new Promise(r => setTimeout(r, 200))
-      }
-
-      console.log("\x1b[32m[Queue] shutdown complete\x1b[0m")
-  }
-
-  private async _dequeue(name : string) {
-
-    if (this.STOPPING) return null
-
-    const jobEx = await new Worker()
-    .select('id')
-    .where('name',name)
-    .whereQuery(q => {
-        return q
-        .where('state','pending')
-        .where('available_at', '<=', utils.timestamp())
-        .orWhereQuery((q) => {
-          return q
-          .where('state', 'active')
-          .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
-        })
-    })
-    .latest('priority')
-    .oldest('id')
-    .first()
-
-    if(jobEx == null) return null;
-
-    const trx = await DB.beginTransaction()
-
-    try {
-
-        await trx.startTransaction()
-
-        const job = await new Worker()
-        .where('id',jobEx.id)
-        .forUpdate({ skipLocked : true })
-        .bind(trx)
-        .first()
-
-        if (!job) {
-          await trx.rollback()
-          return null
+         
+        } finally {
+            state.running--
+            this.ACTIVE_JOBS--
         }
-
-        await new Worker()
-        .where('id',job.id)
-        .update({
-          state : 'active',
-          locked_at: utils.timestamp(),
-          locked_by : process?.env?.HOSTNAME ?? 'unknown'
-        })
-        .void()
-        .bind(trx)
-        .save()
-
-        await trx.commit();
-
-        return {
-          id: job.id,
-          name: job.name,
-          payload: this.safeJsonParse(job.payload),
-          __job : job
-        }
-
-    } catch (err) {
-        await trx.rollback();
-        throw err
     }
-  }
 
-  private safeJsonParse(payload:any){
-      try {
-          return JSON.parse(payload);
-      } catch (err) {
-          return payload;
-      }
-  }
+    private async _dequeueMany(name: string, limit: number) {
 
-  private safeJsonStringify(payload: any) {
+        if (this.STOPPING) return []
 
-      if(payload == null) return null;
+        const trx = await DB.beginTransaction()
 
-      try {
-          
-          return JSON.stringify(payload, (_, value) => {
-              if (typeof value === 'bigint') {
-                  return value.toString()
-              }
-              
-              if (value instanceof Map) {
-                  return Object.fromEntries(value)
-              }
+        try {
 
-              if (value instanceof Set) {
-                  return Array.from(value)
-              }
+            await trx.startTransaction();
 
-              return value
-          })
+            const jobs = await new Worker()
+            .where('name',name)
+            .whereQuery(q => {
+                return q
+                .where('state','pending')
+                .where('available_at', '<=', utils.timestamp())
+                .orWhereQuery((q) => {
+                    return q
+                    .where('state', 'active')
+                    .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
+                })
+            })
+            .latest('priority')
+            .oldest('id')
+            .limit(limit)
+            .forUpdate({ skipLocked : true })
+            .bind(trx)
+            .get()
 
-      } catch (err) {
-          return payload
-      }
-  }
+            if (!jobs.length) {
+                await trx.rollback()
+                return [];
+            }
+
+            await new Worker()
+            .whereIn('id',jobs.map(v => v.id))
+            .updateMany({
+                state : 'active',
+                locked_at: utils.timestamp(),
+                locked_by : process?.env?.HOSTNAME ?? 'unknown'
+            })
+            .void()
+            .bind(trx)
+            .limit(limit)
+            .save()
+
+            await trx.commit();
+
+            return (jobs ?? []).map((job) => ({
+                id: job.id,
+                name: job.name,
+                payload: this.safeJsonParse(job.payload),
+                __job: job
+            }))
+
+        } catch (err) {
+            await trx.rollback();
+            throw err
+        }
+    }
+
+    private async _flushBuffer() {
+
+        if (this.isFlushing || this.buffer.length === 0) return;
+
+        if (this.bufferTimeout) {
+            clearTimeout(this.bufferTimeout);
+            this.bufferTimeout = null;
+        }
+
+        const currentBatch = this.buffer;
+
+        this.isFlushing = true;
+
+        this.buffer = [];
+    
+        this.isFlushing = false; 
+    
+        try {
+            const jobsToInsert = currentBatch.map(b => b.jobData);
+
+            const insertedJobs = await new Worker()
+            .insertMany(jobsToInsert)
+            .save() as T.InsertManyResult<Worker>
+    
+            for (let i = 0; i < currentBatch.length; i++) {
+                currentBatch[i].resolve(insertedJobs[i]);
+            }
+
+            const uniqueNames = [...new Set(currentBatch.map(b => b.jobData.name))];
+
+            uniqueNames.forEach(name => this._wakeWorker(name));
+
+        } catch (error) {
+
+            currentBatch.forEach(b => b.reject(error));
+
+        } finally {
+            if (this.buffer.length > 0) {
+                this._flushBuffer();
+            }
+        }
+    }
+
+    private _wakeWorker(name: string) {
+        const state = this.WORKER_STATE.get(name);
+
+        if (!state || !state.sleeping || !state.handler) return;
+
+        state.sleeping = false;
+        state.idle = 0;
+
+        if (this.DEBUG_LIFECYCLE) {
+            console.log(`\x1b[32m[Queue] name: '${name}' ${this.QUEUE_LOG.wake}\x1b[0m`);
+        }
+
+        this.process(name, state.handler);
+    }
+
+    private safeJsonParse(payload:any){
+        try {
+            return JSON.parse(payload);
+        } catch (err) {
+            return payload;
+        }
+    }
+
+    private safeJsonStringify(payload: any) {
+
+        if(payload == null) return null;
+
+        try {
+            
+            return JSON.stringify(payload, (_, value) => {
+                if (typeof value === 'bigint') {
+                    return value.toString()
+                }
+                
+                if (value instanceof Map) {
+                    return Object.fromEntries(value)
+                }
+
+                if (value instanceof Set) {
+                    return Array.from(value)
+                }
+
+                return value
+            })
+
+        } catch (err) {
+            return payload
+        }
+    }
 
 }
 
@@ -591,17 +559,20 @@ class Worker extends Model<TS> {
  *
  * @example
  * ```ts
- * const sendEmail = (job) => console.log('send mail :' + job.id)
+ * const sendEmail = (job) => console.log('send mail :' + job.payload.email)
  * 
  * await Queue.start();
+ * 
+ * // await Queue.flush(); **remove all jobs
  *
- * // register worker
- * Queue.work("send-email", async (job) => {
+ * // register
+ * Queue.progress("send-email", async (job) => {
  *     return await sendEmail(job);
- * });
+ * }, { concurrency : 3 });
  *
- * // add job
+ * // add
  * Queue.add("send-email", { email: "test@gmail.com" });
+ * 
  * ```
  */
 class Queue {
@@ -626,6 +597,11 @@ class Queue {
       this.WORKER = await new Worker().initialize();
     }
 
+    /**
+     * Shutdown the Queue system.
+     *
+     * @returns {Promise<void>}
+     */
     static async end(): Promise<void> {
       if (this.WORKER == null) {
         throw new Error(this.MESSAGE.INIT_ERROR);
@@ -655,7 +631,7 @@ class Queue {
      * @throws {Error} If Queue is not initialized.
      * @returns {Promise<any>}
      */
-    static async getStats(name?: string): Promise<{
+    static async overall(name?: string): Promise<{
       completed : number;
       active    : number;
       pending   : number;
@@ -665,11 +641,11 @@ class Queue {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
 
-        return await this.WORKER.getStats(name);
+        return await this.WORKER.overall(name);
     }
 
     /**
-     * Get queue statistics grouped by name.
+     * Get jobs statistics grouped by name.
      *
      * @throws {Error} If Queue is not initialized.
      * @returns {Promise<Record<string,any>>}}
@@ -680,6 +656,7 @@ class Queue {
       pending   : number;
       failed    : number;
     }>> {
+
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
@@ -709,11 +686,36 @@ class Queue {
      * @returns {Promise<any>}
      */
     static async worker(cb: (worker: Worker) => any): Promise<any> {
+        
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
 
         return await cb(this.WORKER);
+    }
+
+    /**
+     * Start a worker for processing jobs of a specific name.
+     *
+     * @param {string} name - Queue name to process.
+     * @param {Handler} handler - Job handler function.
+     * @param {QueueWorkOptions} [opts] - Job options (interval, concurrency)
+     * @throws {Error} If Queue is not initialized.
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * const helloWorld = (job) => console.log('hello world :' + job.id);
+     * 
+     * Queue.progress("hello", async (job) => {
+     *  return await helloWorld(job)
+     * }, { concurrency : 3 });
+     */
+    static async process(name: string, handler: Handler, opts: QueueWorkOptions = { interval : 1_000, concurrency : 1 }): Promise<void> {
+        if (this.WORKER == null) {
+            throw new Error(this.MESSAGE.INIT_ERROR);
+        }
+
+        return await this.WORKER.process(name, handler, opts);
     }
 
     /**
@@ -723,9 +725,15 @@ class Queue {
      * @param {any} payload - Job payload data.
      * @param {QueueAddOptions} [opts] - Job options (delay, priority, retry, etc.)
      * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
+     * @returns {Promise<T.Result<Worker>>}
+     * 
+     * @example
+     * ```ts
+     * Queue.add("send-email", { email: "test@gmail.com" });
+     * ```
      */
-    static async add(name: string, payload: any, opts: QueueAddOptions = {}): Promise<any> {
+    static async add(name: string, payload: any, opts: QueueAddOptions = {}): Promise<T.Result<Worker>> {
+        
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
@@ -734,35 +742,20 @@ class Queue {
     }
 
     /**
-     * Start a worker for processing jobs of a specific name.
+     * debug life cycle queue
      *
-     * @param {string} name - Queue name to process.
-     * @param {Handler} handler - Job handler function.
-     * @param {number} [interval] - Polling interval in ms.
      * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
+     * @returns {void}
      */
-    static async work(name: string, handler: Handler, interval?: number): Promise<any> {
+    static debugLifeCycle (): void {
+
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
 
-        return await this.WORKER.work(name, handler, interval);
-    }
+        this.WORKER.debugLifeCycle();
 
-    /**
-     * Gracefully shutdown the queue system.
-     * Waits for active jobs to finish before closing.
-     *
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<void>}
-     */
-    static async shutdown(): Promise<void> {
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.shutdown();
+        return;
     }
 }
 
