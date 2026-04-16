@@ -78,6 +78,7 @@ const STATE_MODEL = {
         updated  : boolean;
         deleted  : boolean;
     } | null,
+    TABLE_CACHE : '$cache' as string,
     TABLE_LOGGER: '$loggers' as string,
     TABLE_AUDIT : '$audits' as string,
     TABLE_JOB : '$jobs' as string,

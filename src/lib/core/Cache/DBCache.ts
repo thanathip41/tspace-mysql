@@ -192,9 +192,14 @@ class DBCache {
 
     private async _checkTableCacheExists () {
 
-        const table = this._cacheTable;
+        class Cache extends Model {
+            protected boot(): void {
+                this.useSchema(schema)
+                this.useTable(this.$state.get('TABLE_CACHE'))
+            }
+        }
 
-        const hasCacheTable = await new DB().hasTable(table);
+        const hasCacheTable = await new DB().hasTable(new Cache().getTableName());
         
         if(hasCacheTable) return;
 
@@ -207,13 +212,6 @@ class DBCache {
             expiredAt           : new Blueprint().bigInt().notNull(),
             createdAt           : new Blueprint().timestamp().notNull(),
             updatedAt           : new Blueprint().timestamp().notNull()
-        }
-
-        class Cache extends Model {
-            protected boot(): void {
-                this.useSchema(schema)
-                this.useTable(table)
-            }
         }
 
         await new Cache().sync({  force : true , index:true })
