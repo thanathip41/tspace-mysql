@@ -897,7 +897,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         sqlString = sqlString.replace(
           /(SET\s+)(.*?)(\s+WHERE)/is,
           (_, start, setPart, end) => {
-            const cleaned = setPart.replace(/`[\w_]+`\./g, '');
+            const cleaned = setPart.replace(/`[\w$_]+`\./g, '');
             return start + cleaned + end;
           }
         );
@@ -909,7 +909,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         truncateRegex.test(sqlString)
       ) {
         return sqlString
-          .replace(/`[\w_]+`\.`([\w_]+)`/g, "`$1`")
+          .replace(/`[\w$_]+`\.`([\w$_]+)`/g, "`$1`")
           .replace(/`([^`]+)`/g, '"$1"');
       }
 
@@ -1124,7 +1124,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       formatedType = "SMALLINT";
     }
 
-    if (type.startsWith("LONGTEXT")) {
+    if (type.startsWith("LONGTEXT") || type.startsWith("MEDIUMTEXT")) {
       formatedType = "TEXT";
     }
 
