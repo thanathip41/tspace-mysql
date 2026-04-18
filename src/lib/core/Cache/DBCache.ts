@@ -2,60 +2,51 @@ import { Model }      from '../Model'
 import { DB }         from '../DB';
 import { Blueprint }  from '../Blueprint';
 import { utils }      from '../../utils';
+
 class DBCache {
 
-    private _cacheTable   = '$cache';
-    private _maxLength    = 64 * 1024;
-    private _db           = () => new DB(this._cacheTable);
+    private _cacheTable   = '$cache'
+    private _v0x          = 'v0x'
+    private _maxAddress   = 10
+    private _maxLength    = 100
+    private _db           = () => new DB(this._cacheTable)
 
     provider () {
         return 'db'
     }
 
-    async all() {
-        const rows = await this._db()
-        .select('*')
-        .orderBy('hash')
-        .orderBy('chunk')
-        .get()
+    async all () {
+        
+        const cacheds = await this._db().get()
 
-        const grouped = new Map<number, any[]>()
+        const values : any[] = []
 
-        for (const row of rows) {
+        for(const cached of cacheds) {
 
-            if (
-                Number.isNaN(+row.expiredAt) ||
-                Date.now() > +row.expiredAt
-            ) {
+            for(let i = 0 ; i < this._maxAddress; i++) {
+                const find = cached[this._addressNumber(i)]
+                if(find == null || find === '') break
 
-                await this._db()
-                    .where('hash', row.hash)
+                if (
+                    Number.isNaN(+cached.expired_at) || 
+                    new Date() > new Date(+cached.expired_at)
+                ) {
+
+                    await this._db()
+                    .where('key',cached.key)
                     .delete()
+        
+                    continue
+                }
 
-                continue
-            }
-
-            if (!grouped.has(row.hash))
-                grouped.set(row.hash, [])
-
-            grouped.get(row.hash)!.push(row)
-        }
-
-        const values:any[] = []
-
-        for (const chunks of grouped.values()) {
-
-            const json = chunks
-                .sort((a,b)=>a.chunk-b.chunk)
-                .map(c => c.value)
-                .join('')
-
-            const parsed = this._safetyJsonParse(json)
-
-            if (Array.isArray(parsed)) {
-                values.push(...parsed)
-            } else {
-                values.push(parsed)
+                const maybeArray = this._safetyJsonParse(find)
+    
+                if(Array.isArray(maybeArray)) {
+                    values.push(...this._safetyJsonParse(find))
+                    continue
+                }
+    
+                values.push(this._safetyJsonParse(find))
             }
         }
 
@@ -63,118 +54,110 @@ class DBCache {
     }
 
     async exists (key : string) {
-        const hash = utils.hash32(key);
-        const cached = await this._db().where('hash',hash).exists()
+        
+        const cached = await this._db().where('key',key).exists()
         
         return cached
     }
-
-    async get(key: string, options: { attempt?: number } = {}): Promise<any> {
-
-        const attempt = options.attempt ?? 0;
+    async get(key: string) : Promise<any> {
 
         try {
 
-            const hash = utils.hash32(key);
-            
-            const rows = await this._db()
-                .select('chunk', 'value', 'expiredAt')
-                .where('hash', hash)
-                .orderBy('chunk')
-                .dd()
-                .get()
+            const cached = await this._db()
+            .where('key',key)
+            .first()
 
-            if (!rows || rows.length === 0) {
-                return null
-            }
+            if (!cached) return null
 
-            const now = Date.now()
-            const expiredAt = +rows[0].expiredAt
+            const now = Date.now();
+
+            const expiredAt = +cached.expired_at;
 
             if (Number.isNaN(expiredAt) || now > expiredAt) {
 
                 await this._db()
-                    .where('hash', hash)
-                    .deleteMany()
+                .where('key',key)
+                .deleteMany()
 
                 return null
             }
 
-            const buffers: string[] = []
+            const value = this._safetyJsonParse(cached[this._addressNumber(0)])
 
-            for (const row of rows) {
-                if (!row.value) continue
-                buffers.push(row.value)
+            if(!Array.isArray(value)) return value
+
+            const values : any[] = []
+
+            for(let i = 0 ; i < this._maxAddress; i++) {
+                const find = cached[this._addressNumber(i)]
+
+                if(find == null || find === '') break
+
+                const parsed = this._safetyJsonParse(find)
+
+                if(Array.isArray(parsed)) {
+                    values.push(...parsed)
+                    continue
+                }
+
+                values.push(parsed)
             }
 
-            const json = buffers.join('')
+            return values.length === 1 ? values[0] : values;
 
-            const parsed = this._safetyJsonParse(json)
-
-            return parsed
-
-        } catch (err: any) {
+        } catch (err : any) {
 
             const message = String(err?.message ?? '')
 
-            if (
-                message.toLowerCase().includes("doesn't exist") &&
-                attempt < 3
-            ) {
+            if(message.toLocaleLowerCase().includes("doesn't exist")) {
                 await this._checkTableCacheExists()
-
-                return this.get(key, {
-                    ...options,
-                    attempt: attempt + 1
-                })
+                return await this.get(key)
             }
 
             throw err
+
         }
     }
+    async set(key: string, value: any, ms: number) : Promise<void> {
 
-    async set(key: string, value: any, ms: number): Promise<void> {
+        const expiredAt = +new Date() + ms
 
-        const expiredAt = Date.now() + ms;
-
-        const hash = utils.hash32(key);
-
-        const now = utils.timestamp();
-
-        const json = JSON.stringify(value);
-
-        const CHUNK_SIZE = this._maxLength;
-
-        const chunks: string[] = []
-
-        for (let i = 0; i < json.length; i += CHUNK_SIZE) {
-            chunks.push(json.slice(i, i + CHUNK_SIZE))
+        if(!Array.isArray(value)) {
+            await this._db()
+            .create({
+                key,
+                [this._addressNumber(0)] : JSON.stringify(value),
+                expired_at : expiredAt,
+                created_at : utils.timestamp(),
+                updated_at : utils.timestamp()
+            })
+            .void()
+            .save()
+    
+            return
         }
 
-        const rows = chunks.map((value, i) => ({
+        const avg = value.length / this._maxAddress
+        const chunked = utils.chunkArray(value, avg > this._maxLength ? avg : this._maxLength)
+        const caches : Record<string,any> = {}
+
+        for(const [index , value] of chunked.entries()) {
+            caches[this._addressNumber(index)] = JSON.stringify(value)
+        }
+
+        await this._db()
+        .create({
             key,
-            hash,
-            chunk: i,
-            value,
-            expiredAt,
-            createdAt: now,
-            updatedAt: now
-        }))
-
-        await this._db()
-        .where('hash', hash)
-        .void()
-        .deleteMany()
-
-        await this._db()
-        .insertMany(rows)
+            ...caches,
+            expired_at : expiredAt,
+            created_at : utils.timestamp(),
+            updated_at : utils.timestamp()
+        })
         .void()
         .save()
-        .catch(() => null)
 
-        return;
+        return
     }
-
     async clear() : Promise<void> {
 
         await this._db().truncate({ force : true})
@@ -183,38 +166,48 @@ class DBCache {
     }
     async delete(key: string) : Promise<void> {
 
-        const hash = utils.hash32(key);
-
-        await this._db().where('hash',hash).deleteMany()
+        await this._db().where('key',key).delete()
 
         return
     }
 
+    private _addressNumber (number : number) {
+
+        const index = `0${number}`.slice(-2)
+        return `${this._v0x}${index}`
+    }
+
     private async _checkTableCacheExists () {
 
+        const table = this._cacheTable
         class Cache extends Model {
             protected boot(): void {
                 this.useSchema(schema)
-                this.useTable(this.$state.get('TABLE_CACHE'))
+                this.useTable(table)
             }
         }
 
-        const hasCacheTable = await new DB().hasTable(new Cache().getTableName());
+        const hasTable = await new DB().hasTable(table);
         
-        if(hasCacheTable) return;
+        if(hasTable) return;
+
+        let addresses : Record<string,any> = {}
+
+        for(let i = 0; i < this._maxAddress; i++) {
+            addresses[this._addressNumber(i)] = new Blueprint().json().null()
+        }
 
         const schema = {
             id                  : new Blueprint().int().notNull().primary().autoIncrement(),
-            key                 : new Blueprint().varchar(255).notNull(),
-            hash                : new Blueprint().bigInt().unsigned().notNull().compositeIndex(['chunk']),
-            chunk               : new Blueprint().int().default(0).notNull(),
-            value               : new Blueprint().mediumText().null(),
-            expiredAt           : new Blueprint().bigInt().notNull(),
-            createdAt           : new Blueprint().timestamp().notNull(),
-            updatedAt           : new Blueprint().timestamp().notNull()
+            key                 : new Blueprint().varchar(255).notNull().index(),
+            ...addresses,
+            expired_at           : new Blueprint().varchar(255).notNull(),
+            created_at           : new Blueprint().timestamp().notNull(),
+            updated_at           : new Blueprint().timestamp().notNull()
         }
 
-        await new Cache().sync({  force : true , index:true })
+
+        await new Cache().sync({ index:true })
 
         return
     }
