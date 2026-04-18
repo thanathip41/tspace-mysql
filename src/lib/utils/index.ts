@@ -261,8 +261,41 @@ const consoleExec  = (startTime : number , endTime : number) => {
     console.log(`\x1b[34mDURATION:\x1b[0m \x1b[32m${diffInSeconds} sec\x1b[0m`)
 }
 
-const consoleCache  = (provider : string) => {
-    console.log(`\n\x1b[34mCACHE:\x1b[0m \x1b[33m${provider}\x1b[0m`)
+const consoleCache = (provider : Record<string,any>) => {
+    
+    const colors = {
+        reset: "\x1b[0m",
+        key: "\x1b[35m", 
+        string: "\x1b[38;2;77;215;240m",
+        null: "\x1b[90m",
+    };
+
+    const colorize = (raws: Record<string,any>) => {
+        const obj = Object.fromEntries(
+            Object.entries(raws)
+            .filter(([_, v]) => v !== undefined)
+        );
+        const parts = Object.entries(obj).map(([k, v]) => {
+            let valueColor = colors.reset;
+            let value;
+
+            if (typeof v === "string") {
+                valueColor = colors.string;
+                value = `"${v}"`;
+            } else if (v === null) {
+                valueColor = colors.null;
+                value = "null";
+            } else {
+                value = JSON.stringify(v);
+            }
+
+            return `${colors.key}"${k}"${colors.reset}: ${valueColor}${value}${colors.reset}`;
+        });
+
+        return `{ ${parts.join(", ")} }`;
+        }
+
+    console.log(`\n\x1b[34mCACHE:\x1b[0m ${colorize(provider)}`)
 }
 
 const randomString = (length = 100) => {
