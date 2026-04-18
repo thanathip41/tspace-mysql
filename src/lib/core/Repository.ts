@@ -782,6 +782,7 @@ class RepositoryFactory<
         "The method createNotExists can't use without where condition"
       );
 
+    //@ts-ignore
     instance.where(where);
 
     return (await instance
@@ -917,6 +918,7 @@ class RepositoryFactory<
       instance.void()
     }
 
+    //@ts-ignore
     instance.where(where);
 
     return (await instance
@@ -991,6 +993,7 @@ class RepositoryFactory<
       instance.void();
     }
 
+    //@ts-ignore
     instance.where(where);
 
     return (await instance
@@ -1065,6 +1068,7 @@ class RepositoryFactory<
       instance.void();
     }
 
+    //@ts-ignore
     instance.where(where);
 
     return (await instance
@@ -1112,6 +1116,7 @@ class RepositoryFactory<
       instance.void();
     }
 
+    //@ts-ignore
     instance.where(where);
 
     return (await instance
@@ -1216,6 +1221,7 @@ class RepositoryFactory<
       instance.bind(transaction);
     }
 
+    //@ts-ignore
     instance.where(where);
 
     return await instance.delete();
@@ -1249,6 +1255,7 @@ class RepositoryFactory<
       instance.debug();
     }
 
+    //@ts-ignore
     instance.where(where);
 
     if (transaction != null) {

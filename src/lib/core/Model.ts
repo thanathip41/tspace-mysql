@@ -11,7 +11,6 @@ import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
 import type { T }           from "./UtilityTypes";
 import type {
-  TCache,
   TExecute,
   TRelationOptions,
   TValidateSchema,
@@ -1768,8 +1767,6 @@ class Model<
 
       await this._checkSchemaOrNextError(error, retryCount, error);
 
-      this.$state.set("RETRY", retryCount + 1);
-
       return await this._queryStatement(sql, { retry: true });
     }
   }
@@ -1832,8 +1829,6 @@ class Model<
       if (this.$state.get("JOIN")?.length) throw error;
 
       await this._checkSchemaOrNextError(error, retryCount, error);
-
-      this.$state.set("RETRY", retryCount + 1);
 
       return await this._actionStatement(sql, { retry: true });
     }
@@ -3012,10 +3007,33 @@ class Model<
     return `\`${this.getTableName()}\`.\`${this._valuePattern(column)}\``;
   }
 
+  public where<
+    K extends keyof T.ColumnOptions<this>,
+    V extends T.ColumnOptions<this>[K]
+  >(
+    column: K,
+    value: V
+  ): this;
+
+  public where<
+    K extends keyof T.ColumnOptions<this>,
+    V extends T.ColumnOptions<this>[K]
+  >(
+    column: K,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    value: V
+  ): this;
+
+  public where(
+    column: Partial<{
+    [K in keyof T.ColumnOptions<this>]: T.ColumnOptions<this>[K];
+  }>
+  ): this;
+
   /**
    * @override
    * @param {string | K} column if arguments is object
-   * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
    * @param {any?} value
    * @returns {this} this
    */
@@ -3074,20 +3092,6 @@ class Model<
       return this.whereIn(column, value);
     }
 
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(value)}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3100,15 +3104,38 @@ class Model<
     return this;
   }
 
+   /**
+   * @override
+   * @param {string | K} column if arguments is object
+   * @param {any?} value
+   * @returns {this} this
+   */
+  public orWhere<
+    K extends keyof T.ColumnOptions<this>,
+    V extends T.ColumnOptions<this>[K]
+  >(
+    column: K,
+    value: V
+  ): this;
+
   /**
    * @override
-   * @param {string} column
-   * @param {string?} operator ['=', '<', '>' ,'!=', '!<', '!>' ,'LIKE']
+   * @param {string | K} column if arguments is object
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
    * @param {any?} value
-   * @returns {this}
+   * @returns {this} this
    */
-  public orWhere<K extends T.ColumnKeys<this>>(
+  public orWhere<
+    K extends keyof T.ColumnOptions<this>,
+    V extends T.ColumnOptions<this>[K]
+  >(
     column: K,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    value: V
+  ): this;
+  
+  public orWhere<K extends T.ColumnKeys<this>>(
+    column: K | Record<string, any>,
     operator?: any,
     value?: any,
   ): this {
@@ -3151,26 +3178,12 @@ class Model<
     }
 
     if (value === null) {
-      return this.orWhereNull(column);
+      return this.orWhereNull(column as any);
     }
 
     if (Array.isArray(value)) {
-      return this.orWhereIn(column, value);
+      return this.orWhereIn(column as any, value);
     }
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(value)}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3192,20 +3205,7 @@ class Model<
    * @returns {this}
    */
   public whereDay<K extends T.ColumnKeys<this>>(column: K, day: number): this {
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `DAY(${this.bindColumn(String(column))})`,
-    //     `=`,
-    //     `'${`00${this.$utils.escape(day)}`.slice(-2)}'`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+    
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3228,19 +3228,6 @@ class Model<
     column: K,
     month: number,
   ): this {
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `MONTH(${this.bindColumn(String(column))})`,
-    //     `=`,
-    //     `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3264,20 +3251,7 @@ class Model<
     column: K,
     year: number,
   ): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `YEAR(${this.bindColumn(String(column))})`,
-    //     `=`,
-    //     `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3315,6 +3289,7 @@ class Model<
       const useOp = this.$utils.transfromValueHasOp(value);
 
       if (useOp == null) {
+        //@ts-ignore
         this.where(column, operator, value);
         continue;
       }
@@ -3388,10 +3363,12 @@ class Model<
 
         default: {
           if (useOp.op.includes("|")) {
+            //@ts-ignore
             this.orWhere(c, useOp.op.replace("|", ""), useOp.value);
             break;
           }
 
+          //@ts-ignore
           this.where(c, useOp.op, useOp.value);
         }
       }
@@ -3416,20 +3393,6 @@ class Model<
     value = this.$utils.escape(value);
 
     value = this.$utils.transfromBooleanToNumber(value);
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}->>'$.${key}'`,
-    //     `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-    //     `${this.$utils.transfromValueHasRaw(value)}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3466,18 +3429,7 @@ class Model<
    * @returns {this}
    */
   public whereUser(userId: number, column: string = "user_id"): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)} = ${this.$utils.escape(userId)}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+  
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3537,20 +3489,6 @@ class Model<
       }
     }
 
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IN")}`,
-    //     `(${values})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3585,20 +3523,6 @@ class Model<
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IN")}`,
-    //     `(${values})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3636,20 +3560,6 @@ class Model<
       )
       .join(",")}`;
 
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("NOT_IN")}`,
-    //     `(${values})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3678,26 +3588,6 @@ class Model<
     if (!Array.isArray(array)) array = [array];
 
     if (!array.length) return this;
-
-    const values = `${array
-      .map((value: string) =>
-        this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
-      )
-      .join(",")}`;
-
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("NOT_IN")}`,
-    //     `(${values})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3732,20 +3622,6 @@ class Model<
       subQuery.select("id");
     }
 
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3775,20 +3651,6 @@ class Model<
       subQuery.select("id");
     }
 
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3817,20 +3679,6 @@ class Model<
     if (subQuery instanceof Model && !subQuery.$state.get("SELECT").length) {
       subQuery.select("id");
     }
-
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3862,20 +3710,6 @@ class Model<
       subQuery.select("id");
     }
 
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -3895,30 +3729,20 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public whereBetween<K extends T.ColumnKeys<this>>(
+  public whereBetween<
+    K extends T.ColumnKeys<this>,
+    //@ts-ignore
+    V extends T.ColumnOptions<this>[K]
+  >(
     column: K,
-    array: [any, any],
+    array: [V, V],
   ): this {
     
     if (!array.length) {
-      return this.whereBetween(column, ['NULL','NULL'])
+      return this.whereBetween(column, ['NULL','NULL'] as [any,any])
     }
 
     const [value1, value2] = array;
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("BETWEEN")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-    //     `${this.$constants("AND")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3942,32 +3766,21 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public orWhereBetween<K extends T.ColumnKeys<this>>(
+  public orWhereBetween<
+    K extends T.ColumnKeys<this>,
+    //@ts-ignore
+    V extends T.ColumnOptions<this>[K]
+  >(
     column: K,
-    array: [any, any],
+    array: [V, V],
   ): this {
-    const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
      
-      return this.orWhereBetween(column,['NULL','NULL'])
+      return this.orWhereBetween(column,['NULL','NULL'] as [any,any])
     }
 
     const [value1, value2] = array;
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("BETWEEN")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-    //     `${this.$constants("AND")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3992,31 +3805,20 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public whereNotBetween<K extends T.ColumnKeys<this>>(
+  public whereNotBetween<
+    K extends T.ColumnKeys<this>,
+    //@ts-ignore
+    V extends T.ColumnOptions<this>[K]
+  >(
     column: K,
-    array: [any, any],
+    array: [V, V],
   ): this {
-    const wheres = this.$state.get("WHERE");
-
+   
     if (!array.length) {
-      return this.whereNotBetween(column,['NULL','NULL'])
+      return this.whereNotBetween(column,['NULL','NULL'] as [any,any])
     }
 
     const [value1, value2] = array;
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("NOT_BETWEEN")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-    //     `${this.$constants("AND")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -4040,33 +3842,22 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public orWhereNotBetween<K extends T.ColumnKeys<this>>(
+  public orWhereNotBetween<
+    K extends T.ColumnKeys<this>,
+    //@ts-ignore
+    V extends T.ColumnOptions<this>[K]
+  >(
     column: K,
-    array: [any, any],
+    array: [V, V],
   ): this {
-    const wheres = this.$state.get("WHERE");
 
     if (!array.length) {
-       return this.orWhereNotBetween(column,['NULL','NULL'])
+       return this.orWhereNotBetween(column,['NULL','NULL'] as [any,any])
     }
 
     const [value1, value2] = array;
 
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("NOT_BETWEEN")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-    //     `${this.$constants("AND")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
-     this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
@@ -4090,19 +3881,7 @@ class Model<
    * @returns {this}
    */
   public whereNull<K extends T.ColumnKeys<this>>(column: K): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IS_NULL")}`,
-    //   ]
-    //   .join(" ")
-    //   .replace(/^\s+/, ""),
-    // ]);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -4120,19 +3899,7 @@ class Model<
    * @returns {this}
    */
   public orWhereNull<K extends T.ColumnKeys<this>>(column: K): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IS_NULL")}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -4151,19 +3918,7 @@ class Model<
    * @returns {this}
    */
   public whereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IS_NOT_NULL")}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -4181,19 +3936,7 @@ class Model<
    * @returns {this}
    */
   public orWhereNotNull<K extends T.ColumnKeys<this>>(column: K): this {
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${this.$constants("IS_NOT_NULL")}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -4227,21 +3970,6 @@ class Model<
     value = this.$utils.escape(value);
 
     value = this.$utils.transfromBooleanToNumber(value);
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.$constants("BINARY")}`,
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -4277,21 +4005,6 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("AND")}` : "",
-    //     `${this.$constants("BINARY")}`,
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -4326,22 +4039,7 @@ class Model<
 
     value = this.$utils.transfromBooleanToNumber(value);
 
-    const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [
-    //     wheres.length ? `${this.$constants("OR")}` : "",
-    //     `${this.$constants("BINARY")}`,
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-    //   ]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
-     this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
@@ -4453,17 +4151,6 @@ class Model<
 
     if (!where.length) return this;
 
-    // const query: string = where.join(" ");
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [wheres.length ? `${this.$constants("AND")}` : "", `(${query})`]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       ...this.$utils.nestConditions(repository?.$state.get("WHERE"))
@@ -4495,29 +4182,7 @@ class Model<
       throw this._assertError(`Unknown callback query: '${repository}'`);
     }
 
-    // const where: string[] = repository?.$state.get("WHERE") || [];
-
-    // if (!where.length) return this;
-
-    // const query: string = where.join(" ");
-
-    // const wheres = this.$state.get("WHERE");
-
-    // this.$state.set("WHERE", [
-    //   ...wheres,
-    //   [wheres.length ? `${this.$constants("OR")}` : "", `(${query})`]
-    //     .join(" ")
-    //     .replace(/^\s+/, ""),
-    // ]);
-
-    // const nested = this.$utils.nestConditions(repository?.$state.get("WHERE_TEST"),'OR');
-    
-    // this.$state.set("WHERE_TEST", [
-    //   ...this.$state.get("WHERE_TEST"),
-    //   ...nested
-    // ]);
-
-     this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       ...this.$utils.nestConditions(repository?.$state.get("WHERE"),'OR')
     ]);
@@ -5244,7 +4909,7 @@ class Model<
 
   /**
    * @override
-   * @param {string=} column [column=id]
+   * @param {string} c
    * @returns {promise<number>}
    */
   public async min<K extends T.ColumnKeys<this> | "id" | "_id">(c: K): Promise<number> {
@@ -5812,13 +5477,7 @@ class Model<
   public create<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: {
-    [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
-      ? any
-      : P]: Extract<C[P], Date> extends never 
-        ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
-        : any;
-  }): this {
+  >(data: T.InsertInput<K,C>): this {
     return this.insert(data as any);
   }
 
@@ -5828,11 +5487,8 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  public update<K extends T.ColumnKeys<this>, T extends T.ColumnOptions<this>>(
-    data: { 
-      [P in K & keyof T]: 
-      Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-    },
+  public update<K extends T.ColumnKeys<this>, C extends T.ColumnOptions<this>>(
+    data:  T.UpdateInput<K, C>,
     updateNotExists: T.ColumnKeys<this>[] = [],
   ): this {
     if (!Object.keys(data).length) {
@@ -5877,12 +5533,9 @@ class Model<
    */
   public updateMany<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
+    C extends T.ColumnOptions<this>,
   >(
-    data: { 
-      [P in K & keyof T]: 
-      Extract<T[P], Record<string,unknown>> extends never ?  T[P] : string
-    }, 
+    data: T.UpdateInput<K, C>, 
     updateNotExists: string[] = []): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -6109,8 +5762,8 @@ class Model<
    */
   public updateNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.UpdateInput<K, C>): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6144,8 +5797,8 @@ class Model<
    */
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6171,8 +5824,8 @@ class Model<
    */
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6183,8 +5836,8 @@ class Model<
    */
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6195,8 +5848,8 @@ class Model<
    */
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6207,8 +5860,8 @@ class Model<
    */
   public createOrSelect<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6231,8 +5884,8 @@ class Model<
    */
   public insertOrSelect<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     return this.createOrSelect(data);
   }
 
@@ -6244,8 +5897,8 @@ class Model<
    */
   public createNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6269,8 +5922,8 @@ class Model<
    */
   public insertNotExists<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(data: { [P in K & keyof T]: T[P] }): this {
+    C extends T.ColumnOptions<this>,
+  >(data: T.InsertInput<K, C>): this {
     return this.createNotExists(data);
   }
 
@@ -6283,13 +5936,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: {
-      [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-        ? any
-        : undefined extends C[P]
-          ? never
-          : P]: Extract<C[P], Date> extends never ? C[P] : any;
-    }[],
+    data: T.InsertInput<K, C>[],
   ): this {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
@@ -6316,15 +5963,8 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: {
-      [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-        ? any
-        : undefined extends C[P]
-          ? never
-          : P]: Extract<C[P], Date> extends never ? C[P] : any;
-    }[],
+    data: T.InsertInput<K,C>[],
   ): this {
-    //@ts-ignore
     return this.createMultiple(data);
   }
 
@@ -6338,15 +5978,8 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: {
-      [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-        ? any
-        : undefined extends C[P]
-          ? never
-          : P]: Extract<C[P], Date> extends never ? C[P] : any;
-    }[],
+    data: T.InsertInput<K,C>[],
   ): this {
-    //@ts-ignore
     return this.createMultiple(data);
   }
 
@@ -6360,15 +5993,8 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: {
-      [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
-        ? any
-        : undefined extends C[P]
-          ? never
-          : P]: Extract<C[P], Date> extends never ? C[P] : any;
-    }[],
+    data: T.InsertInput<K,C>[],
   ): this {
-    //@ts-ignore
     return this.createMultiple(data);
   }
 
@@ -7484,7 +7110,7 @@ class Model<
 
     if (this.$state.get("DEBUG")) {
       this.$utils.consoleCache(
-        JSON.stringify({
+        {
           driver: this.$cache.provider(),
           key: cache.key,
           expires: cache.expires,
@@ -7494,7 +7120,7 @@ class Model<
             this.$utils.typeOf(findCache) === "string"
               ? findCache.length
               : undefined,
-        }),
+        },
       );
       const endTime = +new Date();
       this.$utils.consoleExec(startTime, endTime);
@@ -8394,6 +8020,8 @@ class Model<
       if (retry >= 3) {
         throw throwError;
       }
+
+     this.$state.set("RETRY", retry + 1);
 
       await this._checkSchemaOrNextError(e, retry + 1, originError);
     }

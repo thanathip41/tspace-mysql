@@ -256,6 +256,33 @@ export declare namespace T {
 
     type DeleteResult = boolean
 
+    type InsertInput<K, C> = {
+        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
+            null extends C[P] ? never : P]:
+            C[P] extends Date
+                ? any
+                : C[P] extends Record<string, unknown>
+                ? string
+                : C[P];
+        } & {
+        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
+            null extends C[P] ? P : never]?:
+            C[P] extends Date
+                ? any
+                : C[P] extends Record<string, unknown>
+                ? string
+                : C[P];
+    };
+
+    type UpdateInput<K, C> = {
+        [P in Exclude<K & keyof C, "id" | "_id" | "uuid">]?: 
+            C[P] extends Date
+            ? any
+            : C[P] extends Record<string, unknown>
+                ? string
+                : C[P];
+    };
+
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]

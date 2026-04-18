@@ -66,8 +66,8 @@ abstract class AbstractBuilder {
     abstract whereSubQuery (column: string , subQuery: string): this
     abstract whereNotSubQuery (column: string , subQuery: string): this
     abstract orWhereSubQuery (column: string , subQuery: string): this
-    abstract whereBetween (column: string , arrayValue: any[]): this
-    abstract whereNotBetween (column: string , arrayValue: any[]): this
+    abstract whereBetween (column: string , arrayValue: [any,any]): this
+    abstract whereNotBetween (column: string , arrayValue: [any,any]): this
     abstract having (condition: string) : this
     abstract join (pk: string | ((join: Join) => Join) , fk?: string): this
     abstract rightJoin (pk: string | ((join: Join) => Join) , fk?: string): this
