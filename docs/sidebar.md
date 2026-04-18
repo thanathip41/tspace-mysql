@@ -10,6 +10,7 @@
 - [Injection](injection)
 - [Model](model)
 - [Repository](repository)
+- [Queue](queue)
 - [View](view)
 - [Stored Procedure](stored-procedure)
 - [Blueprint](blueprint)
