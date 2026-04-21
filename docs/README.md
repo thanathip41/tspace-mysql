@@ -7,7 +7,7 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 
 | **Feature**                    | **Description**                                                                                         |
 |--------------------------------|---------------------------------------------------------------------------------------------------------|
-| **Supports Driver**            | MySQL ✅ / MariaDB ✅ / Postgres / ✅ MSSQL ⏳ / SQLite3 ⏳ / Oracle ⏳                                |
+| **Supports Driver**            | MySQL ✅ / MariaDB ✅ / Postgres ✅ / MSSQL ⏳ / SQLite3 ⏳ / Oracle ⏳                                |
 | **Query Builder**              | Create flexible queries like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. You can also use raw SQL.      |
 | **Join Clauses**               | Use `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, and `CROSS JOIN` to combine data from multiple tables.     |
 | **Model**                      | Provides a way to interact with database records as objects in code. You can perform create, read, update, and delete (CRUD) operations. Models also support soft deletes and relationship methods. |
