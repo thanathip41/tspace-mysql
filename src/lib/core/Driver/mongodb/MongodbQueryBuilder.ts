@@ -594,13 +594,23 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
-   public format(pipeline: (string | null)[] | string) {
+  public format(pipeline: (string | null)[] | string) {
     if (typeof pipeline === "string") pipeline = [pipeline];
 
     return pipeline
       .filter((s) => s !== "" || s == null)
       .join(" ")
       .replace(/\s+/g, " ");
+  }
+
+  public getActiveConnections () : string {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
+  public getMaxConnections () : string {
+    throw new Error("Method not implemented.");
+    return '';
   }
 
   protected bindJoin(values: string[]) {

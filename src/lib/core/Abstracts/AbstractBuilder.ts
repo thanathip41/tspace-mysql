@@ -36,7 +36,7 @@ abstract class AbstractBuilder {
         query : Function;
         set : Function;
         get : Function;
-        queryBuilder : Function 
+        queryBuilder : Function;
     } = {
         query: (sql :string) => {},
         set: (pool : any) => {},

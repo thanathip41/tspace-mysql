@@ -610,7 +610,6 @@ class DB extends AbstractDB {
     }
 
     const pool = new PoolConnection().connect();
-
     return await pool.connection();
   }
 
@@ -637,6 +636,48 @@ class DB extends AbstractDB {
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
     return await new this().beginTransaction(options);
+  }
+
+  /**
+   * The 'getActiveConnections' method is used to return active connections
+   *
+   * @returns {Promise<number>} this
+   */
+  async getActiveConnections () : Promise<number> {
+    const current = await new DB()
+    .query(this._queryBuilder().getActiveConnections());
+
+    return current[0]?.Connections || 0
+  }
+
+  /**
+   * The 'getActiveConnections' method is used to return active connections
+   *
+   * @returns {Promise<number>} this
+   */
+  static async getActiveConnections () : Promise<number> {
+    return await new this().getActiveConnections();
+  }
+
+  /**
+   * The 'getActiveConnections' method is used to return active connections
+   *
+   * @returns {Promise<number>} this
+   */
+  async getMaxConnections () : Promise<number> {
+    const current = await new DB()
+    .query(this._queryBuilder().getMaxConnections());
+
+    return current[0]?.MaxConnections || 0
+  }
+
+  /**
+   * The 'getActiveConnections' method is used to return active connections
+   *
+   * @returns {Promise<number>} this
+   */
+  static async getMaxConnections () : Promise<number> {
+    return await new this().getMaxConnections()
   }
 
   /**

@@ -718,6 +718,24 @@ export class MariadbQueryBuilder extends QueryBuilder {
       .replace(/\s+/g, " ");
   }
 
+  public getActiveConnections () : string {
+    const sql: string = `
+      SELECT 
+        VARIABLE_VALUE AS Connections
+      FROM 
+        PERFORMANCE_SCHEMA.GLOBAL_STATUS
+      WHERE 
+        VARIABLE_NAME = 'Threads_connected'
+    `
+
+    return this.format(sql);
+  }
+
+  public getMaxConnections () : string {
+    const sql: string = `SELECT @@max_connections AS MaxConnections;`
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

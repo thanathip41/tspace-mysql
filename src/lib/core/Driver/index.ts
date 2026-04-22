@@ -376,6 +376,9 @@ export abstract class QueryBuilder {
   public abstract sleep(second: number): string;
 
   public abstract format(sql: (string | null)[] | string): string;
+  public abstract getActiveConnections () : string;
+
+  public abstract getMaxConnections () : string;
 
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;

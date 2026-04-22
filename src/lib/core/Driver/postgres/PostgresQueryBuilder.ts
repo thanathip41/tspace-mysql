@@ -919,6 +919,29 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return replaceBackticksWithDoubleQuotes(formated);
   }
 
+  public getActiveConnections () : string {
+    const sql: string = `
+      SELECT 
+        COUNT(*) AS Connections
+      FROM 
+       PG_STAT_ACTIVITY
+    `
+
+    return this.format(sql);
+  }
+
+  public getMaxConnections () : string {
+    const sql: string = `
+    SELECT 
+      setting::int AS MaxConnections
+    FROM 
+      PG_SETTINGS
+    WHERE 
+      name = 'max_connections'
+  `
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

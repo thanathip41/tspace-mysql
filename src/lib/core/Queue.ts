@@ -26,7 +26,7 @@ type QueueAddOptions = {
 
 type QueueWorkOptions = { 
     interval ?: number; 
-    concurrency ?: number; 
+    concurrency ?: 1 | 2 | 3 | 4 | 5; 
 }
 
 type BufferedJob = {
@@ -43,7 +43,7 @@ const QUEUE_STATUS = {
     idle: 'Idle',
     wake: 'Wake',
     failed: 'Failed',
-
+    waiting : 'Waiting',
     retry: {
         attempts: 'Attempts',
         failed: 'Retry Failed',
@@ -86,17 +86,18 @@ const schema = {
 type TS = T.Schema<typeof schema>
 class Worker extends Model<TS> {
 
-    private HOSTNAME     = 'unknown';
-    private INSPECT_EXEC = false;
+    private HOSTNAME          = String(process.env.hostname ?? 'unknown');
+    private INSPECT_EXEC      = false;
+    private STOPPING          = false;
+    private IS_FLUSHING       = false;
 
-    private MAX_IDLE     = 15;
-    private STOPPING     = false;
-    private ACTIVE_JOBS  = 0;
-
-    private BATCH_SIZE   = 1000;
-    private MAX_WAIT_MS  = 50;
-    private IS_FLUSHING  = false;
-    private BUFFER       = {
+    private LIMIT_CONNECTIONS = 41;
+    private MAX_IDLE_RETRIES  = 15;
+    private ACTIVE_JOBS       = 0;
+    private BATCH_SIZE        = 1000;
+    private MAX_WAIT_MS       = 50;
+  
+    private BUFFER            = {
         jobs : [],
         timeout : null
     } as { 
@@ -104,13 +105,13 @@ class Worker extends Model<TS> {
         timeout: NodeJS.Timeout | null 
     };
 
-    private WORKER_STATE = new Map<string, {
+    private WORKER_STATE     = new Map<string, {
         handler     : Handler;
         idle        : number;
         sleeping    : boolean;
         running     : number;
         concurrency : number;
-    }>;
+    }>();
 
     protected boot(): void {
         this.useSchema(schema);
@@ -119,13 +120,14 @@ class Worker extends Model<TS> {
     }
 
     public async initialize (opts: { 
-        inspect   ?: boolean;
-        flush     ?: boolean;
-        hostname  ?: string;
-        maxIdle   ?: number;
+        inspect          ?: boolean;
+        flush            ?: boolean;
+        hostname         ?: string;
+        maxIdleRetries   ?: number;
+        limitConnections ?: number;
     } = {}) {
 
-        await this.sync({ force : true, index: true });
+        await this.sync({ force : true, index: true }).catch(() => null);
 
         if(opts.inspect) {
             this.INSPECT_EXEC = true;
@@ -140,8 +142,19 @@ class Worker extends Model<TS> {
             this.HOSTNAME = opts.hostname;
         }
 
-        if(opts.maxIdle) {
-            this.MAX_IDLE = opts.maxIdle;
+        if(opts.maxIdleRetries) {
+            this.MAX_IDLE_RETRIES = opts.maxIdleRetries;
+        }
+
+        if(opts.limitConnections) {
+            this.LIMIT_CONNECTIONS = opts.limitConnections;
+        } 
+        else {
+            const maxConnections = await DB.getMaxConnections().catch(() => null);
+
+            this.LIMIT_CONNECTIONS = maxConnections
+            ? Math.floor(maxConnections / 3)
+            : this.LIMIT_CONNECTIONS;
         }
 
         return this;
@@ -285,7 +298,7 @@ class Worker extends Model<TS> {
 
         const findJobs = async () => {
 
-        if (this.STOPPING) return;
+            if (this.STOPPING) return;
 
             const state = this.WORKER_STATE.get(name);
 
@@ -302,7 +315,7 @@ class Worker extends Model<TS> {
             if (!jobs || jobs.length === 0) {
                 state.idle++
 
-                if (state.idle >= this.MAX_IDLE) {
+                if (state.idle >= this.MAX_IDLE_RETRIES) {
                     state.sleeping = true
 
                     if(this.INSPECT_EXEC) {
@@ -329,7 +342,6 @@ class Worker extends Model<TS> {
 
         return;
     }
-
     private async _runJob (name: string, job: JobInternal, state: any) {
         state.running++
         this.ACTIVE_JOBS++
@@ -341,7 +353,9 @@ class Worker extends Model<TS> {
                 console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[38;2;77;215;240m${QUEUE_STATUS.processing}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m`)
             }
 
-            const result = await handler(job)
+            const startTime = +new Date();
+
+            const result = await handler(job);
 
             await new Worker()
             .where('id', job.id)
@@ -353,8 +367,10 @@ class Worker extends Model<TS> {
             .void()
             .save()
 
+            const endTime = +new Date();
+
             if (this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m`);
+                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${endTime - startTime}ms)`);
             }
 
         } catch (err:any) {
@@ -387,7 +403,11 @@ class Worker extends Model<TS> {
 
                 try {
 
+                    const startTime = +new Date();
+
                     const result = await handler(job);
+
+                    const endTime = +new Date();
 
                     await new Worker()
                     .where('id', job.id)
@@ -401,7 +421,7 @@ class Worker extends Model<TS> {
                     .save();
 
                     if (this.INSPECT_EXEC) {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.retry.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${attempts}/${maxAttempts})`);
+                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.retry.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${endTime - startTime}ms ${attempts}/${maxAttempts})`);
                     }
 
                     break;
@@ -431,7 +451,7 @@ class Worker extends Model<TS> {
                         .save();
 
                         if (this.INSPECT_EXEC) {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.retry.failed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (\x1b[33mmax attempts reached\x1b[0m)`);
+                            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.retry.failed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (\x1b[33mmax attempts reached\x1b[0m)`);
                         }
 
                         break;
@@ -447,9 +467,33 @@ class Worker extends Model<TS> {
         }
     }
 
+    private async _waitForSafeConnections (name: string) {
+        let connections = 0;
+
+        while (true) {
+            const conn = await DB.getActiveConnections();
+
+            connections = conn;
+
+            if (connections <= this.LIMIT_CONNECTIONS) {
+                break;
+            }
+
+            if (this.INSPECT_EXEC) {
+                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${connections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000 * 5));
+        }
+
+        return;
+    }
+
     private async _dequeueMany(name: string, limit: number) {
 
-        if (this.STOPPING) return []
+        if (this.STOPPING) return [];
+
+        await this._waitForSafeConnections(name);
 
         const trx = await DB.beginTransaction()
 
@@ -663,13 +707,16 @@ class Queue {
      * @param {Object} [opts] - options (inspect, flush)
      * @property {boolean} opts.inspect queue work flow
      * @property {boolean} opts.flush  remove all queue
+     * @property {number} opts.maxIdleRetries - Maximum idle time () when no jobs are available
+     * @property {number} opts.limitConnections - Allowed DB connections limit before pausing
      * @returns {Promise<void>}
      */
     static async start(opts: { 
-        inspect  ?: boolean; 
-        flush    ?: boolean; 
-        hostname ?: string;
-        maxIdle  ?: number;
+        inspect          ?: boolean; 
+        flush            ?: boolean; 
+        hostname         ?: string;
+        maxIdleRetries   ?: number;
+        limitConnections ?:number;
     } = {}): Promise<void> {
 
       this.WORKER = await new Worker().initialize(opts);
@@ -811,6 +858,30 @@ class Queue {
         }
 
         return await this.WORKER.process(name, handler, opts);
+    }
+
+    /**
+     * Start a worker for processing jobs of a specific name.
+     *
+     * @param {string} name - Queue name to process.
+     * @param {Handler} handler - Job handler function.
+     * @param {QueueWorkOptions} [opts] - Job options (interval, concurrency)
+     * @throws {Error} If Queue is not initialized.
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * const helloWorld = (job) => console.log('hello world :' + job.id);
+     * 
+     * Queue.on("hello", async (job) => {
+     *  return await helloWorld(job)
+     * }, { concurrency : 3 });
+     */
+    static async on(
+        name    : string, 
+        handler : Handler, 
+        opts    : QueueWorkOptions = { interval : 1_000, concurrency : 1 }
+    ): Promise<void> {
+        return await this.process(name, handler, opts);
     }
 
     /**
