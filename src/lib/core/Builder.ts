@@ -5591,12 +5591,18 @@ class Builder extends AbstractBuilder {
               ? poolCluster?.queryBuilder
               : poolCluster?.masters[0]?.queryBuilder;
           },
+          transaction : async () => {
+            return await poolCluster.masters[0].connection()
+          },
         };
       }
 
       let pool = Pool.connect();
 
       return {
+        transaction : async () => {
+          return await pool.connection()
+        },
         query: async (sql: string) => {
           return pool.query(sql);
         },

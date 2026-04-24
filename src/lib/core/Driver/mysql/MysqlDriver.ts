@@ -20,14 +20,15 @@ type MysqlConnectionOptions = {
 };
 
 export class MysqlDriver extends BaseDriver {
+  private poolTrx!: any
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
   }
   public connect(this: MysqlDriver) {
     const options  = this.options as MysqlConnectionOptions;
-    
-    this.pool = mysql2.createPool({
+
+    const configs = {
 
       host                  : options.host,
       port                  : options.port,
@@ -50,6 +51,13 @@ export class MysqlDriver extends BaseDriver {
   
       charset               : 'utf8mb4',
 
+    }
+    
+    this.pool = mysql2.createPool(configs);
+
+    this.poolTrx = mysql2.createPool({
+      ...configs,
+      connectionLimit : configs.connectionLimit * 1.5
     });
 
     this.pool.getConnection((err : any , connection:any) : void => {
@@ -120,7 +128,8 @@ export class MysqlDriver extends BaseDriver {
       });
     });
   }
-  private _connection(): Promise<TConnection> {
+
+  private async _connection2(): Promise<TConnection> {
     let closeTransaction: boolean = false;
 
     return new Promise((resolve, reject) => {
@@ -222,6 +231,67 @@ export class MysqlDriver extends BaseDriver {
       });
     });
   }
+
+  private async _connection(): Promise<TConnection> {
+     let closeTransaction: boolean = false;
+    const conn = await this.poolTrx.promise().getConnection();
+
+    return {
+      startTransaction : async () => {
+        closeTransaction = false;
+        await conn.beginTransaction()
+        return;
+      },
+      rollback : async () => {
+        if (closeTransaction) {
+          throw new Error(this.MESSAGE_TRX_CLOSED)
+        }
+        await conn.rollback()
+        await conn.release();
+        closeTransaction = true;
+        return;
+      },
+      commit : async () => {
+        if (closeTransaction) {
+          throw new Error(this.MESSAGE_TRX_CLOSED)
+        }
+        await conn.commit();
+        await conn.release();
+        closeTransaction = true;
+        return;
+      },
+      end: async () => {
+
+        if(!closeTransaction) {
+          closeTransaction = true;
+          conn.release();
+          conn.destroy();
+        }
+
+        return;
+      },
+      query : async (sql: string) => {
+
+        if (closeTransaction) {
+          throw new Error(this.MESSAGE_TRX_CLOSED)
+        }
+
+        const start: number = Date.now();
+
+        const [ results ] = await conn.query(sql);
+
+        this._detectEventQuery({ start, sql });
+        
+        this.meta(results, sql);
+        
+        return this.returning(results);
+      
+      },
+      on: (event: TPoolEvent, data: any) => this.on(event, data),
+      queryBuilder: MysqlQueryBuilder,
+    }
+  }
+
   private async _end(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       return this.pool.end((err:any) => {

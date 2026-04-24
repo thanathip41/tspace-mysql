@@ -19,6 +19,7 @@ import type {
   TFreezeStringQuery,
   TDriver,
   TPoolEvent,
+  TConnection,
 } from "../types";
 
 /**
@@ -609,8 +610,7 @@ class DB extends AbstractDB {
       return await writer.connection();
     }
 
-    const pool = new PoolConnection().connect();
-    return await pool.connection();
+    return await this.$pool.transaction();
   }
 
   /**
@@ -639,6 +639,59 @@ class DB extends AbstractDB {
   }
 
   /**
+   * Execute a database transaction.
+   *
+   * This method will:
+   * - Acquire a connection from the pool
+   * - Start a transaction
+   * - Execute the provided handler
+   * - Commit if successful
+   * - Rollback if any error occurs
+   *
+   * @template T
+   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
+   * All queries inside this handler MUST use the provided `conn` instance.
+   *
+   * @returns {Promise<T>} The result returned from the handler.
+   *
+   */
+  async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
+    const trx = await this.$pool.transaction();
+    
+    try {
+      await trx.startTransaction();
+      const results = await handler(trx);
+      await trx.commit();
+      return results;
+    } catch (err) {
+      await trx.rollback();
+      throw err;
+    }
+  }
+
+   /**
+   * Execute a database transaction.
+   *
+   * This method will:
+   * - Acquire a connection from the pool
+   * - Start a transaction
+   * - Execute the provided handler
+   * - Commit if successful
+   * - Rollback if any error occurs
+   *
+   * @template T
+   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
+   * All queries inside this handler MUST use the provided `conn` instance.
+   *
+   * @returns {Promise<T>} The result returned from the handler.
+   *
+   */
+  static async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
+    return await new this().transaction(handler);
+  }
+
+
+  /**
    * The 'getActiveConnections' method is used to return active connections
    *
    * @returns {Promise<number>} this
@@ -660,7 +713,7 @@ class DB extends AbstractDB {
   }
 
   /**
-   * The 'getActiveConnections' method is used to return active connections
+   * The 'getMaxConnections' method is used to return max connections
    *
    * @returns {Promise<number>} this
    */
@@ -672,7 +725,7 @@ class DB extends AbstractDB {
   }
 
   /**
-   * The 'getActiveConnections' method is used to return active connections
+   * The 'getMaxConnections' method is used to return max connections
    *
    * @returns {Promise<number>} this
    */
