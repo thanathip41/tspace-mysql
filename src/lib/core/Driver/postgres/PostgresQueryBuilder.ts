@@ -922,7 +922,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public getActiveConnections () : string {
     const sql: string = `
       SELECT 
-        COUNT(*) AS Connections
+        COUNT(*) AS "Connections"
       FROM 
        PG_STAT_ACTIVITY
     `
@@ -933,7 +933,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public getMaxConnections () : string {
     const sql: string = `
     SELECT 
-      setting::int AS MaxConnections
+      setting::int AS "MaxConnections"
     FROM 
       PG_SETTINGS
     WHERE 
