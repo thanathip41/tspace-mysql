@@ -1822,6 +1822,7 @@ class Model<
 
       return result == null ? await getResults(sql) : result;
     } catch (error: unknown) {
+      
       const retryCount = Number(this.$state.get("RETRY"));
 
       if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry);
@@ -8015,6 +8016,8 @@ class Model<
       .copyModel(this)
       .sync({ force: true }).catch(() => null);
 
+      this.$state.set("RETRY", retry + 1);
+
     } catch (e: unknown) {
       
       if (retry >= 3) {
@@ -8023,6 +8026,7 @@ class Model<
 
      this.$state.set("RETRY", retry + 1);
 
+      console.log('retry'+ retry + 1)
       await this._checkSchemaOrNextError(e, retry + 1, originError);
     }
   }
