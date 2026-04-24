@@ -17,6 +17,14 @@ type JobInternal = Job & {
 
 type Handler = (job: Job) => any | Promise<any>;
 
+type State = {
+    handler: Handler;
+    idle: number;
+    sleeping: boolean;
+    running: number;
+    concurrency: number;
+}
+
 type QueueAddOptions = {
   delayMs?: number          
   priority?: number       
@@ -305,7 +313,8 @@ class Worker extends Model<TS> {
             if (!state) return;
 
             if (state.running >= state.concurrency) {
-                return setTimeout(findJobs, opts.interval)
+                const jitter = Math.random() * 200;
+                return setTimeout(findJobs, opts.interval! + jitter);
             }
 
             const capacity = state.concurrency - state.running;
@@ -324,7 +333,13 @@ class Worker extends Model<TS> {
 
                     return
                 }
-                return setTimeout(findJobs, opts.interval);
+
+                const backoff = Math.min(1000, 50 * state.idle);
+                const jitter = Math.random() * 200;
+
+                return setTimeout(findJobs, opts.interval! + backoff + jitter);
+
+
             }
 
             state.idle = 0;
@@ -333,8 +348,6 @@ class Worker extends Model<TS> {
                 this._runJob(name, job, state)
             }
 
-            await new Promise((r) => setTimeout(r, 300 * jobs.length));
-
             setImmediate(findJobs);
         }
 
@@ -342,7 +355,8 @@ class Worker extends Model<TS> {
 
         return;
     }
-    private async _runJob (name: string, job: JobInternal, state: any) {
+
+    private async _runJob (name: string, job: JobInternal, state: State) {
         state.running++
         this.ACTIVE_JOBS++
         const handler = state.handler;
@@ -471,9 +485,9 @@ class Worker extends Model<TS> {
         let connections = 0;
 
         while (true) {
-            const conn = await DB.getActiveConnections();
-
-            connections = conn;
+            const activeConnections = await DB.getActiveConnections();
+           
+            connections = activeConnections;
 
             if (connections <= this.LIMIT_CONNECTIONS) {
                 break;
@@ -485,43 +499,46 @@ class Worker extends Model<TS> {
 
             await new Promise(resolve => setTimeout(resolve, 1000 * 5));
         }
-
         return;
     }
 
     private async _dequeueMany(name: string, limit: number) {
 
         if (this.STOPPING) return [];
-
+       
         await this._waitForSafeConnections(name);
 
-        const trx = await DB.beginTransaction()
-
-        try {
-
-            await trx.startTransaction();
-
-            const jobs = await new Worker()
-            .where('name',name)
-            .whereQuery(q => {
+        const findJobs = await new Worker()
+        .select('id')
+        .where('name',name)
+        .whereQuery(q => {
+            return q
+            .where('state','pending')
+            .where('available_at', '<=', utils.timestamp())
+            .orWhereQuery((q) => {
                 return q
-                .where('state','pending')
-                .where('available_at', '<=', utils.timestamp())
-                .orWhereQuery((q) => {
-                    return q
-                    .where('state', 'active')
-                    .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
-                })
+                .where('state', 'active')
+                .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
             })
+        })
+        .limit(limit)
+        .get()
+
+        if(!findJobs.length) {
+            return [];
+        }
+
+        const jobs = await DB.transaction(async (conn) => {
+            const jobs = await new Worker()
+            .whereIn('id',findJobs.map(v => v.id))
             .latest('priority')
             .oldest('id')
             .limit(limit)
             .forUpdate({ skipLocked : true })
-            .bind(trx)
+            .bind(conn)
             .get()
 
             if (!jobs.length) {
-                await trx.rollback()
                 return [];
             }
 
@@ -533,11 +550,9 @@ class Worker extends Model<TS> {
                 locked_by : this.HOSTNAME
             })
             .void()
-            .bind(trx)
+            .bind(conn)
             .limit(limit)
             .save()
-
-            await trx.commit();
 
             return (jobs ?? []).map((job) => ({
                 id      : job.id,
@@ -546,11 +561,9 @@ class Worker extends Model<TS> {
                 payload : this.safeJsonParse(job.payload),
                 __job   : job
             }))
+        })
 
-        } catch (err) {
-            await trx.rollback();
-            throw err
-        }
+        return jobs
     }
 
     private async _flushBuffer(name : string) {
