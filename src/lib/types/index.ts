@@ -141,7 +141,6 @@ export type TPoolCallback = {
 };
 
 export type TConnectionTransaction = {
-    on: (event: TPoolEvent, data: any) => void;
     query: (sql: string) => Promise<any[]>;
     /**
      * The 'startTransaction' method is used when need to started the transaction
@@ -163,6 +162,12 @@ export type TConnectionTransaction = {
      * @returns {Promise<void>}
      */
     end: () => Promise<void>;
+
+    /**
+     * The 'release' method is used to release connection
+     * @returns {Promise<void>}
+     */
+    release: () => Promise<void>;
 };
 
 export type TConnection = {
@@ -173,6 +178,7 @@ export type TConnection = {
     commit: () => Promise<void>;
     rollback: () => Promise<void>;
     end: () => Promise<void>;
+    release: () => Promise<void>;
 };
 
 export type TPoolConnected = {

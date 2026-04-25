@@ -1,4 +1,4 @@
-import { Package }           from "../core/Package";
+import { Package }        from "../core/Package";
 import { MysqlDriver }    from "./Driver/mysql/MysqlDriver";
 import { PostgresDriver } from "./Driver/postgres/PostgresDriver";
 import { MariadbDriver }  from "./Driver/mariadb/MariadbDriver";

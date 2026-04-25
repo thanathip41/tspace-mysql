@@ -36,7 +36,8 @@ export class PostgresDriver extends BaseDriver {
       return v === null ? null : parseFloat(v);
     });
 
-    this.pool = new pg.Pool({
+
+    const configs = {
       host                    : options.host,
       port                    : options.port,
       database                : options.database,
@@ -53,6 +54,13 @@ export class PostgresDriver extends BaseDriver {
       idleTimeoutMillis       : 1000 * 60,
       statement_timeout       : 1000 * 60,
       query_timeout           : 1000 * 60,
+    }
+
+    this.pool = new pg.Pool(configs);
+
+    this.poolTrx = new pg.Pool({
+      ...configs,
+      connectionLimit : configs.max * 1.5
     });
 
     this.pool.connect((err: any) => {
@@ -94,96 +102,107 @@ export class PostgresDriver extends BaseDriver {
       });
     });
   }
-  private _connection(): Promise<TConnection> {
-    let closeTransaction = false;
+  private async _connection(): Promise<TConnection> {
 
-    return new Promise((resolve, reject) => {
-      this.pool.connect((err: any, connection: any, release: any) => {
-        if (err) return reject(err);
+    const conn = await this.poolTrx.connect();
 
-        const query = (sql: string) => {
-          const start: number = Date.now();
-          return new Promise<any[]>((ok, fail) => {
-            if (closeTransaction) {
-              return fail(new Error(this.MESSAGE_TRX_CLOSED));
-            }
+    let started    = false;
+    let closed     = false;
+    let commited   = false;
+    let rollbacked = false;
 
-            connection.query(sql, (err: any, results: any) => {
-              if (err) {
-                return fail(err);
-              }
+    const query = async (sql: string) => {
 
-              this._detectEventQuery({ start, sql });
+      const start: number = Date.now();
 
-              this.meta(results, sql);
+      const results = await conn.query(sql);
 
-              return ok(this.returning(results));
-            });
-          });
-        };
+      this._detectEventQuery({ start, sql });
+      
+      this.meta(results, sql);
+      
+      return this.returning(results);
+      
+    }
 
-        const startTransaction = async () => {
-          if (closeTransaction) {
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-          await query("BEGIN").catch((err) => reject(err));
+    const startTransaction = async () => {
 
-          return;
-        };
+      await conn.query('BEGIN');
+      started = true;
+      closed  = false;
 
-        const commit = async () => {
-          if (closeTransaction) {
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-          await query("COMMIT").catch((err) => reject(err));
+      return;
+    }
 
-          await end();
+    const commit = async () => {
 
-          return;
-        };
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
 
-        const rollback = async () => {
-          if (closeTransaction) {
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-          await query("ROLLBACK").catch((err) => reject(err));
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+      commited = true;
+      await conn.query('COMMIT');
+      await end();
 
-          await end();
+      return;
+    }
 
-          return;
-        };
+    const rollback = async () => {
 
-        const end = async () => {
-          await new Promise<void>((resolve) =>
-            setTimeout(() => {
-              if (!closeTransaction) {
-                closeTransaction = true;
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
 
-                // After commit the transaction, you can't perform any actions with this transaction.
-                release();
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
 
-                // After destroying the connection, it will be removed from the connection this.pool.
-                this.pool.end();
-              }
+      rollbacked = true;
+      await conn.query('ROLLBACK');
+      await end();
 
-              return resolve();
-            }, 500)
-          );
+      return;
+    }
 
-          return;
-        };
+    const end = async () => {
 
-        return resolve({
-          on: (event: TPoolEvent, data: any) => this.on(event, data),
-          query,
-          queryBuilder: PostgresQueryBuilder,
-          startTransaction,
-          commit,
-          rollback,
-          end,
-        });
-      });
-    });
+      if (closed) return;
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      if(!commited && !rollbacked) {
+        await rollback();
+        return;
+      }
+
+      await conn.release();
+      started = false;
+      closed = true;
+    
+      return;
+    }
+
+    const release = async () => {
+      if(closed) return;
+      await conn.release()
+      return;
+    }
+
+    return {
+      on: (event: TPoolEvent, data: any) => this.on(event, data),
+      queryBuilder: PostgresQueryBuilder,
+      query,
+      startTransaction,
+      commit,
+      rollback,
+      end,
+      release
+    }
   }
 
   private async _end(): Promise<void> {

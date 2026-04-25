@@ -20,7 +20,6 @@ type MysqlConnectionOptions = {
 };
 
 export class MysqlDriver extends BaseDriver {
-  private poolTrx!: any
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
@@ -128,167 +127,107 @@ export class MysqlDriver extends BaseDriver {
       });
     });
   }
-
-  private async _connection2(): Promise<TConnection> {
-    let closeTransaction: boolean = false;
-
-    return new Promise((resolve, reject) => {
-
-      this.pool.getConnection((err: any, connection: any) => {
-
-        if (err) return reject(err);
-
-        const query = (sql: string) => {
-
-          const start: number = Date.now();
-
-          return new Promise<any[]>((ok, fail) => {
-
-            if (closeTransaction) {
-              return fail(new Error(this.MESSAGE_TRX_CLOSED));
-            }
-
-            connection.query(sql, (err: any, results: any[]) => {
-              connection.release();
-
-              if (err) {
-                return fail(err);
-              }
-
-              this._detectEventQuery({ start, sql });
-
-              this.meta(results, sql);
-
-              return ok(this.returning(results));
-            });
-          });
-        };
-
-        const startTransaction = async () => {
-          if (closeTransaction) {
-
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-
-          await query("START TRANSACTION").catch((err) => reject(err));
-
-          return;
-        };
-
-        const commit = async () => {
-          if (closeTransaction) {
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-          await query("COMMIT").catch((err) => reject(err));
-
-          await end();
-
-          return;
-        };
-
-        const rollback = async () => {
-          if (closeTransaction) {
-            throw new Error(this.MESSAGE_TRX_CLOSED);
-          }
-
-          await query("ROLLBACK").catch((err) => reject(err));
-
-          // when rollback will end of transction
-          await end();
-
-          return;
-        };
-
-        const end = async () => {
-          await new Promise<void>((resolve) =>
-            setTimeout(() => {
-              if (!closeTransaction) {
-                closeTransaction = true;
-
-                // After commit the transaction, you can't perform any actions with this transaction.
-                connection.destroy();
-
-                // After destroying the connection, it will be removed from the connection this.pool.
-                this.pool.end();
-              }
-
-              return resolve();
-            }, 500)
-          );
-
-          return;
-        };
-
-        return resolve({
-          on: (event: TPoolEvent, data: any) => this.on(event, data),
-          query,
-          queryBuilder: MysqlQueryBuilder,
-          startTransaction,
-          commit,
-          rollback,
-          end,
-        });
-      });
-    });
-  }
-
   private async _connection(): Promise<TConnection> {
-     let closeTransaction: boolean = false;
+  
     const conn = await this.poolTrx.promise().getConnection();
 
-    return {
-      startTransaction : async () => {
-        closeTransaction = false;
-        await conn.beginTransaction()
-        return;
-      },
-      rollback : async () => {
-        if (closeTransaction) {
-          throw new Error(this.MESSAGE_TRX_CLOSED)
-        }
-        await conn.rollback()
-        await conn.release();
-        closeTransaction = true;
-        return;
-      },
-      commit : async () => {
-        if (closeTransaction) {
-          throw new Error(this.MESSAGE_TRX_CLOSED)
-        }
-        await conn.commit();
-        await conn.release();
-        closeTransaction = true;
-        return;
-      },
-      end: async () => {
+    let started    = false;
+    let closed     = false;
+      let commited = false;
+    let rollbacked = false;
 
-        if(!closeTransaction) {
-          closeTransaction = true;
-          conn.release();
-          conn.destroy();
-        }
+    const query = async (sql: string) => {
 
-        return;
-      },
-      query : async (sql: string) => {
+      const start: number = Date.now();
 
-        if (closeTransaction) {
-          throw new Error(this.MESSAGE_TRX_CLOSED)
-        }
+      const [ results ] = await conn.query(sql);
 
-        const start: number = Date.now();
-
-        const [ results ] = await conn.query(sql);
-
-        this._detectEventQuery({ start, sql });
-        
-        this.meta(results, sql);
-        
-        return this.returning(results);
+      this._detectEventQuery({ start, sql });
       
-      },
+      this.meta(results, sql);
+      
+      return this.returning(results);
+      
+    }
+
+    const startTransaction = async () => {
+
+      await conn.beginTransaction();
+      started = true;
+      closed  = false;
+
+      return;
+    }
+
+    const commit = async () => {
+
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      commited = true;
+      await conn.commit();
+      await end();
+
+      return;
+    }
+
+    const rollback = async () => {
+
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      rollbacked = true
+      await conn.rollback();
+      await end();
+
+      return;
+    }
+
+    const end = async () => {
+
+      if (closed) return;
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      if(!commited && !rollbacked) {
+        await rollback();
+        return;
+      }
+
+      await conn.release();
+      started = false;
+      closed = true;
+
+      return;
+    }
+
+    const release = async () => {
+      if(closed) return;
+      await conn.release()
+      return;
+    }
+
+    return {
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MysqlQueryBuilder,
+      query,
+      startTransaction,
+      commit,
+      rollback,
+      end,
+      release
     }
   }
 

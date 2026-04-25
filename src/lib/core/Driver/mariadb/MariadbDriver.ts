@@ -17,7 +17,6 @@ type MariadbConnectionOptions = {
 }
 
 export class MariadbDriver extends BaseDriver {
-
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
@@ -27,7 +26,7 @@ export class MariadbDriver extends BaseDriver {
     const options = this.options as MariadbConnectionOptions;
     const mariadb = this.import("mariadb");
 
-    this.pool = mariadb.createPool({
+    const configs = {
 
       host             : options.host,
       port             : options.port,
@@ -46,10 +45,15 @@ export class MariadbDriver extends BaseDriver {
       pipelining       : true,
       bigIntAsNumber   : true,
       insertIdAsNumber : true,
+    }
 
+    this.pool = mariadb.createPool(configs);
+
+    this.poolTrx = mariadb.createPool({
+      ...configs,
+      connectionLimit : configs.connectionLimit * 1.5
     });
 
-   
     this.pool.getConnection().catch((err: any) => {
       const message = this._messageError.bind(this);
 
@@ -77,84 +81,119 @@ export class MariadbDriver extends BaseDriver {
   }
 
   private async _query(sql: string): Promise<any[]> {
+
     const start: number = Date.now();
+
     const results = await this.pool.query(sql);
+
     this._detectEventQuery({ start, sql });
+
     this.meta(results, sql);
+
     return this.returning(results)
   }
+  
   private async _connection(): Promise<TConnection> {
-    let closeTransaction = false;
 
-    const connection = await this.pool.getConnection();
+    const conn = await this.poolTrx.getConnection();
+    let started    = false;
+    let closed     = false;
+    let commited   = false;
+    let rollbacked = false;
 
     const query = async (sql: string) => {
-      if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
 
-      const start = Date.now();
+      const start: number = Date.now();
 
-      const results = await connection.query(sql);
+      const results = await conn.query(sql);
 
       this._detectEventQuery({ start, sql });
-
+      
       this.meta(results, sql);
-
+      
       return this.returning(results);
-    };
+    
+    }
 
     const startTransaction = async () => {
 
-      if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
-
-      await connection.beginTransaction();
-    };
-
-    const commit = async () => {
-
-      if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
-
-      await connection.commit();
-
-      await end();
-    };
-
-    const rollback = async () => {
-      if (closeTransaction) throw new Error(this.MESSAGE_TRX_CLOSED);
-
-      await connection.rollback();
-      
-      await end();
-    };
-
-    const end = async () => {
-      await new Promise<void>((resolve) =>
-        setTimeout(() => {
-          if(!closeTransaction) {
-            closeTransaction = true;
-
-            // After commit the transaction, you can't perform any actions with this transaction.
-            connection.destroy();
-
-            // After destroying the connection, it will be removed from the connection this.pool.
-            this.pool.end();
-          }
-          
-          return resolve();
-        }, 500)
-      );
+      await conn.beginTransaction();
+      started = true;
+      closed  = false;
 
       return;
-    };
+    }
+        
+    const commit = async () => {
 
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+      
+      commited = true;
+      await conn.commit();
+      await end();
+
+      return;
+    }
+
+    const rollback = async () => {
+
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      rollbacked = true
+      await conn.rollback();
+      await end();
+
+      return;
+    }
+
+    const end = async () => {
+
+      if (closed) return;
+
+      if(!started) {
+        throw new Error(this.MESSAGE_TRX_NOT_STARTED);
+      }
+
+      if(!commited && !rollbacked) {
+        await rollback();
+        return;
+      }
+
+      await conn.release();
+      started = false;
+      closed = true;
+    
+      return;
+    }
+
+    const release = async () => {
+      if(closed) return;
+      await conn.release()
+      return;
+    }
+    
     return {
       on: (event: TPoolEvent, data: any) => this.on(event, data),
-      query,
       queryBuilder: MariadbQueryBuilder,
+      query,
       startTransaction,
       commit,
       rollback,
       end,
-    };
+      release
+    }
   }
 
   private async _end(): Promise<void> {

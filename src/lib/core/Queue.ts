@@ -528,14 +528,15 @@ class Worker extends Model<TS> {
             return [];
         }
 
-        const jobs = await DB.transaction(async (conn) => {
+        return await DB.transaction(async (trx) => {
+
             const jobs = await new Worker()
             .whereIn('id',findJobs.map(v => v.id))
             .latest('priority')
             .oldest('id')
             .limit(limit)
             .forUpdate({ skipLocked : true })
-            .bind(conn)
+            .bind(trx)
             .get()
 
             if (!jobs.length) {
@@ -550,7 +551,7 @@ class Worker extends Model<TS> {
                 locked_by : this.HOSTNAME
             })
             .void()
-            .bind(conn)
+            .bind(trx)
             .limit(limit)
             .save()
 
@@ -562,8 +563,6 @@ class Worker extends Model<TS> {
                 __job   : job
             }))
         })
-
-        return jobs
     }
 
     private async _flushBuffer(name : string) {

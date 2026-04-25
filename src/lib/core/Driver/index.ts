@@ -12,7 +12,9 @@ export abstract class BaseDriver extends EventEmitter {
   private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
   private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
   protected pool!: any;
+  protected poolTrx:any;
   protected options!: Record<string, any>;
+  protected MESSAGE_TRX_NOT_STARTED = "The transaction has not been started";
   protected MESSAGE_TRX_CLOSED = "The transaction has either been closed";
   protected abstract connect(): TPoolConnected;
   protected abstract disconnect(pool: any): void;

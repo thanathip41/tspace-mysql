@@ -242,6 +242,9 @@ export class MongodblDriver extends BaseDriver {
             commit,
             rollback,
             end,
+            release: async () => {
+                return;
+            }
         };
     }
     private async _end(): Promise<void> {
