@@ -4381,6 +4381,7 @@ class Builder extends AbstractBuilder {
     this.$state.set("DELETE",true);
 
     const result = await this._actionStatement(this._queryBuilder().remove());
+   
     return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
 
@@ -5163,6 +5164,7 @@ class Builder extends AbstractBuilder {
         const data = await new Builder()
           .copyBuilder(this, { select: true })
           .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
+          .debug(this.$state.get('DEBUG'))
           .bind(this.$pool.get())
           .first();
 
@@ -5185,6 +5187,7 @@ class Builder extends AbstractBuilder {
     const results = await new Builder()
       .copyBuilder(this, { select: true })
       .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
+      .debug(this.$state.get('DEBUG'))
       .bind(this.$pool.get())
       .first();
 
@@ -5202,6 +5205,7 @@ class Builder extends AbstractBuilder {
     const resultData = await new Builder()
       .copyBuilder(this, { select: true, limit: true })
       .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
+      .debug(this.$state.get('DEBUG'))
       .bind(this.$pool.get())
       .get();
 
@@ -5237,6 +5241,7 @@ class Builder extends AbstractBuilder {
         const data = await new Builder()
           .copyBuilder(this, { select: true })
           .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
+          .debug(this.$state.get('DEBUG'))
           .bind(this.$pool.get())
           .first();
 
@@ -5297,6 +5302,7 @@ class Builder extends AbstractBuilder {
         const data = await new Builder()
           .copyBuilder(this, { select: true })
           .whereIn(this.$state.get('PRIMARY_KEY'), result.$meta.insertIds)
+          .debug(this.$state.get('DEBUG'))
           .bind(this.$pool.get())
           .first();
 

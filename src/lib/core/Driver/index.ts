@@ -58,17 +58,17 @@ export abstract class BaseDriver extends EventEmitter {
   }
 
   protected _detectQueryType(query: string) {
-    const selectRegex = /^SELECT\b/i;
-    const updateRegex = /^UPDATE\b/i;
-    const insertRegex = /^INSERT\b/i;
-    const deleteRegex = /^DELETE\b/i;
+    const selectRegex = /^\s*SELECT\b/i;
+    const updateRegex = /^\s*UPDATE\b/i;
+    const insertRegex = /^\s*INSERT\b/i;
+    const deleteRegex = /^\s*DELETE\b/i;
 
     if (selectRegex.test(query)) return "SELECT";
     if (updateRegex.test(query)) return "UPDATE";
     if (insertRegex.test(query)) return "INSERT";
     if (deleteRegex.test(query)) return "DELETE";
 
-    return "";
+    return "UNKNOWN";
   }
 
   protected _onPoolConnect(pool: any): void {

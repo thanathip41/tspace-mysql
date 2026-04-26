@@ -10,7 +10,7 @@ chai.use(chaiJsonSchema)
 describe('Testing Driver', function () {
   /* ##################################################### */
 
-  it(`Driver: Using driver in ['mysql','postgres' ,'mariadb','mssql','sqlite3'] ?`, 
+  it(`Driver: Using driver in ['mysql','postgres' ,'mariadb','mssql','sqlite'] ?`, 
   async function () {
 
     const driver = new DB().driver()
@@ -23,7 +23,12 @@ describe('Testing Driver', function () {
         ---------------------------- \x1b[34m
     `)
 
-    const validDrivers = ['mysql','postgres' ,'mariadb']
+    const validDrivers = [
+      'mysql',
+      'postgres',
+      'mariadb',
+      'sqlite'
+    ]
     expect(validDrivers).to.include(driver)
 
     const sqlFile = path.join(path.resolve(), "dbs", `${driver}.sql`);

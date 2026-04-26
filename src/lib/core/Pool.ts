@@ -3,6 +3,7 @@ import { MysqlDriver }    from "./Driver/mysql/MysqlDriver";
 import { PostgresDriver } from "./Driver/postgres/PostgresDriver";
 import { MariadbDriver }  from "./Driver/mariadb/MariadbDriver";
 import { MongodblDriver } from "./Driver/mongodb/MongodbDriver";
+import { SqliteDriver }   from "./Driver/sqlite/SqliteDriver";
 
 import Config, { 
   loadOptionsEnv 
@@ -65,6 +66,11 @@ export class PoolConnection {
 
       case "mongodb": {
         this.POOL = new MongodblDriver(options).connect();
+        break;
+      }
+
+      case "sqlite": {
+        this.POOL = new SqliteDriver(options).connect();
         break;
       }
 

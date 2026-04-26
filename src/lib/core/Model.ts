@@ -1725,7 +1725,7 @@ class Model<
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           const startTime = +new Date();
-
+        
           const results = await this.$pool.query(sql);
 
           const endTime = +new Date();
@@ -1738,7 +1738,6 @@ class Model<
 
           return results;
         }
-
         return await this.$pool.query(sql);
       };
 
@@ -8014,8 +8013,10 @@ class Model<
 
       await new Model()
       .copyModel(this)
+      .disabledRetry()
+      .debug(this.$state.get('DEBUG'))
       .sync({ force: true }).catch(() => null);
-
+     
       this.$state.set("RETRY", retry + 1);
 
     } catch (e: unknown) {
@@ -8024,9 +8025,8 @@ class Model<
         throw throwError;
       }
 
-     this.$state.set("RETRY", retry + 1);
+      this.$state.set("RETRY", retry + 1);
 
-      console.log('retry'+ retry + 1)
       await this._checkSchemaOrNextError(e, retry + 1, originError);
     }
   }

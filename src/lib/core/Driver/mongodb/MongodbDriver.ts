@@ -354,16 +354,16 @@ export class MongodblDriver extends BaseDriver {
 
         const { type } = this._parseInput(query);
 
-        const selectRegex = /^aggregate\b/i;
-        const updateRegex = /^updateMany\b/i;
-        const insertRegex = /^insertMany\b/i;
-        const deleteRegex = /^deleteMany\b/i;
+        const selectRegex = /^\s*aggregate\b/i;
+        const updateRegex = /^\s*updateMany\b/i;
+        const insertRegex = /^\s*insertMany\b/i;
+        const deleteRegex = /^\s*deleteMany\b/i;
 
         if (selectRegex.test(type)) return "SELECT";
         if (updateRegex.test(type)) return "UPDATE";
         if (insertRegex.test(type)) return "INSERT";
         if (deleteRegex.test(type)) return "DELETE";
 
-        return "";
+        return "UNKNOWN";
     }
 }
