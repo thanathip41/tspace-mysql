@@ -120,7 +120,7 @@ model User {
   uuid       String?  @unique @default(uuid())
   email      String   @unique @db.VarChar(50)
   name       String?  @db.VarChar(50)
-  actived     Boolean  @db.Boolean()
+  actived    Boolean  @db.Boolean()
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   deleted_at DateTime?
@@ -131,8 +131,7 @@ model User {
 ```
 <!-- tabs:end -->
 
-
-## Partial select typing
+## Select
 This section explains the differences in type safety when selecting a subset of a model's fields in a query.
 
 <!-- tabs:start -->
@@ -140,33 +139,133 @@ This section explains the differences in type safety when selecting a subset of 
 
 ```js
 const userRepository = Repository(User)
-const activedUsers = await userRepository.findMany({
-  where: { actived: true },
-  select: { id : true , title : true }
+const users = await userRepository.findMany({
+  where:  { actived: true },
+  select: { id : true , email : true }
 })
+
+for(const user of users) {
+  user.name  ❌ // type error
+  user.email ✅
+}
 
 ```
 #### **`select:`TypeORM**
 
 ```js
 const userRepository = getManager().getRepository(Post)
-const activedUsers = await userRepository.find({
-  where: { actived: true },
-  select: { id : true , title : true }
+const users = await userRepository.find({
+  where:  { actived: true },
+  select: { id : true , email : true }
 })
+
+for(const user of users) {
+  user.name  ✅ // no check type
+  user.email ✅
+}
 
 ```
 #### **`select:`Prisma**
 
 ```js
 const userRepository = prima.user
-const activedUsers = await userRepository.findMany({
-  where: { actived: true },
-  select: { id : true , title : true }
+const users = await userRepository.findMany({
+  where:  { actived: true },
+  select: { id : true , email : true }
 })
+
+for(const user of users) {
+  user.name  ❌ // type error
+  user.email ✅
+}
 
 ```
 <!-- tabs:end -->
+
+## Relation
+This section explains the differences in type safety when selecting a subset of a model's fields in a query.
+
+<!-- tabs:start -->
+#### **`relation:`Tspace-mysql**
+
+```js
+const userRepository = Repository(User)
+const users = await userRepository.findMany({
+  relations : { posts : true },
+  select: { 
+    id : true, 
+    name : true,
+    posts : {
+      id       : true,
+      title    : true
+    }
+  },
+})
+
+for(const user of users) {
+  // if comment the relations posts will type error in .posts
+  user.posts.forEach(post => {
+    post.id ✅
+    post.title ✅
+    post.subtitle ❌ // type error
+  })
+}
+
+```
+#### **`relation:`TypeORM**
+
+```js
+const userRepository = getManager().getRepository(Post)
+const users = await userRepository.find({
+  relations : { posts : true },
+  select: { 
+    id : true, 
+    name : true,
+    posts : {
+      id       : true,
+      title    : true
+    }
+  },
+})
+
+for(const user of users) {
+  // if comment the relations posts will not check type in .posts
+  user.posts.forEach(post => {
+    post.id ✅
+    post.title ✅
+    post.subtitle ✅ // no type check
+  })
+}
+
+```
+#### **`relation:`Prisma**
+
+```js
+const userRepository = prima.user
+const users = await userRepository.findMany({
+  // include: { posts: true } // can't use this with select
+  select: { 
+    id : true, // ❌ not allowed together
+    name : true,
+    posts : {
+      id       : true,
+      title    : true
+    }
+  },
+})
+
+for(const user of users) {
+  // if comment the relations posts will not check type in .posts
+  user.posts.forEach(post => {
+    post.id ✅
+    post.title ✅
+    post.subtitle ❌ // type error
+  })
+}
+
+```
+<!-- tabs:end -->
+
 <div class="page-nav-cards">
   <a href="#" class="prev-card">
     <div class="nav-label"> 
