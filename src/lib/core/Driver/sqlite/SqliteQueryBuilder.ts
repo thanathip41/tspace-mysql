@@ -753,20 +753,13 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }
 
   public getActiveConnections () : string {
-    const sql: string = `
-      SELECT 
-        VARIABLE_VALUE AS Connections
-      FROM 
-        PERFORMANCE_SCHEMA.GLOBAL_STATUS
-      WHERE 
-        VARIABLE_NAME = 'Threads_connected'
-    `
+    const sql: string = `SELECT 1 AS Connections`
 
     return this.format(sql);
   }
 
   public getMaxConnections () : string {
-    const sql: string = `SELECT @@max_connections AS MaxConnections;`
+    const sql: string = `SELECT 151 AS MaxConnections`
     return this.format(sql);
   }
 
@@ -928,21 +921,8 @@ export class SqliteQueryBuilder extends QueryBuilder {
     nowait     : boolean | null
   }) {
     
-    if(rowLevelLock.mode == null) return '';
-
-    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
-    ? this.$constants("ROW_LEVEL_LOCK").update
-    : this.$constants("ROW_LEVEL_LOCK").share
-
-    if(rowLevelLock.skipLocked) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
-    }
-
-    if(rowLevelLock.nowait) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
-    }
-
-    return modeLock;
+    // SQLite does NOT support SELECT … FOR UPDATE or SKIP LOCKED
+    return '';
   }
 
   private _formatedTypeAndAttributes({
