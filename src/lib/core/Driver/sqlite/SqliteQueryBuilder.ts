@@ -4,7 +4,6 @@ import { StateManager } from "../../StateManager";
 import { 
   type TStateWhereCondition 
 } from "../../../types";
-import { singular } from "pluralize";
 
 export class SqliteQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {
@@ -668,9 +667,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
 
   public getDatabase(database: string): string {
     const sql: string = [
-      `${this.$constants("SHOW_DATABASES")}`,
-      `${this.$constants("LIKE")}`,
-      `'${database.replace(/`/g, "")}'`,
+      `SELECT '${database.replace(/`/g, "")}' AS DB`,
     ].join(" ");
 
     return this.format(sql);

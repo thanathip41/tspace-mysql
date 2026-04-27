@@ -84,7 +84,7 @@ export class SqliteDriver extends BaseDriver {
   }
   private async _connection(): Promise<TConnection> {
   
-    const conn = await this.poolTrx.promise().getConnection();
+    const conn = await this.poolTrx;
 
     let started    = false;
     let closed     = false;
@@ -95,9 +95,18 @@ export class SqliteDriver extends BaseDriver {
 
       const start: number = Date.now();
 
-      const [ results ] = await conn.query(sql);
+      let results = null
 
-      
+      const command = this._detectQueryType(sql);
+
+      if(command === 'SELECT') {
+        results = conn.prepare(sql).all();
+      } else if (command === 'UNKNOWN') {
+        results = conn.exec(sql);
+      } else {
+        results = conn.prepare(sql).run();
+      }
+
       this._detectEventQuery({ start, sql });
       
       this.meta(results, sql);
@@ -108,7 +117,7 @@ export class SqliteDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
-      await conn.beginTransaction();
+      await conn.exec('BEGIN');
       started = true;
       closed  = false;
 
@@ -126,7 +135,7 @@ export class SqliteDriver extends BaseDriver {
       }
 
       commited = true;
-      await conn.commit();
+      await conn.exec('COMMIT');
       await end();
 
       return;
@@ -143,7 +152,7 @@ export class SqliteDriver extends BaseDriver {
       }
 
       rollbacked = true
-      await conn.rollback();
+      await conn.exec('ROLLBACK');
       await end();
 
       return;
@@ -162,7 +171,6 @@ export class SqliteDriver extends BaseDriver {
         return;
       }
 
-      await conn.release();
       started = false;
       closed = true;
 
@@ -171,7 +179,6 @@ export class SqliteDriver extends BaseDriver {
 
     const release = async () => {
       if(closed) return;
-      await conn.release()
       return;
     }
 
