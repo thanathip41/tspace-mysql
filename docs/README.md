@@ -7,7 +7,7 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 
 | **Feature**                    | **Description**                                                                                         |
 |--------------------------------|---------------------------------------------------------------------------------------------------------|
-| **Supports Driver**            | MySQL ✅ / MariaDB ✅ / Postgres ✅ / MSSQL ⏳ / SQLite3 ⏳ / Oracle ⏳                                |
+| **Supports Driver**            | MySQL ✅ / MariaDB ✅ / Postgres ✅ / SQLite ✅ / Mongodb ✅ (yes, even MongoDB 😏) /  MSSQL ⏳     |
 | **Query Builder**              | Create flexible queries like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. You can also use raw SQL.      |
 | **Join Clauses**               | Use `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, and `CROSS JOIN` to combine data from multiple tables.     |
 | **Model**                      | Provides a way to interact with database records as objects in code. You can perform create, read, update, and delete (CRUD) operations. Models also support soft deletes and relationship methods. |
@@ -21,6 +21,7 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 | **Repository**                 | Follows a pattern for managing database operations like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. It helps keep the code organized. |
 | **Decorators**                 | Use decorators to add extra functionality or information to model classes and methods, making the code easier to read. |
 | **Caching**                    | Improves performance by storing frequently requested data. Supports in-memory caching (like memory DB) and Redis for distributed caching. |
+| **Queue**                      | Job queue for background and async processing. Runs on top of databases for distributed workers (similar to pg-boss). |
 | **Migrations**                 | Use CLI commands to create models, make migrations, and apply changes to the database structure.          |
 | **Blueprints**                 | Create a clear layout of the database structure and how models and tables relate to each other.          |
 | **CLI**                        | A Command Line Interface for managing models, running migrations, executing queries, and performing other tasks using commands (like `make:model`, `migrate`, and `query`). |
@@ -84,6 +85,13 @@ DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
 ```
+💡 Notes
+
+Uses mysql2 as the default driver
+
+Fully supports MySQL-compatible databases such as MariaDB
+
+No additional configuration is required for standard usage
 
 ### Mariadb Database
 
@@ -118,6 +126,48 @@ DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
 ```
+
+### SQLite Database
+
+To connect the application to a SQLite database, using the following:
+
+```sh
+npm install better-sqlite3 --save
+```
+
+```js
+DB_DRIVER = sqlite
+DB_DATABASE = app.db
+```
+
+### Mongodb Database
+
+To connect the application to a Mongodb database, using the following:
+```sh
+npm install mongodb --save
+```
+
+```js
+DB_DRIVER = mongodb
+DB_HOST = localhost
+DB_PORT = 27017
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+✅ Supported Features
+
+CRUD operations (create, read, update, delete)
+Basic joins & relations (via abstraction layer)
+
+⚠️ Limitations
+
+MongoDB support is partially implemented and may not fully match SQL-based drivers like MySQL or PostgreSQL
+
+* Advanced ORM features may be limited
+* Complex joins rely on abstraction (not native MongoDB behavior)
+* Some features may behave differently compared to relational databases
+* Transactions / advanced optimizations may be limited
 
 ### Cluster Database
 If you need strict race condition control, it is required to use multiple nodes for write and read. <br>
