@@ -3008,16 +3008,24 @@ class Model<
   }
 
   public where<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     value: V
   ): this;
 
   public where<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
@@ -3111,8 +3119,12 @@ class Model<
    * @returns {this} this
    */
   public orWhere<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     value: V
@@ -3126,8 +3138,12 @@ class Model<
    * @returns {this} this
    */
   public orWhere<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
@@ -3731,8 +3747,11 @@ class Model<
    */
   public whereBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
@@ -3768,8 +3787,11 @@ class Model<
    */
   public orWhereBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
@@ -3807,8 +3829,11 @@ class Model<
    */
   public whereNotBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
@@ -3844,8 +3869,11 @@ class Model<
    */
   public orWhereNotBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
