@@ -161,7 +161,7 @@ class Worker extends Model<TS> {
             const maxConnections = await DB.getMaxConnections().catch(() => null);
 
             this.LIMIT_CONNECTIONS = maxConnections
-            ? Math.floor(maxConnections / 3)
+            ? Math.max(10, Math.floor(maxConnections / 3))
             : this.LIMIT_CONNECTIONS;
         }
 
