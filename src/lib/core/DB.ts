@@ -700,7 +700,7 @@ class DB extends AbstractDB {
     const current = await new DB()
     .query(this._queryBuilder().getActiveConnections());
 
-    return current[0]?.Connections || 0
+    return Number(current[0]?.Connections || 0)
   }
 
   /**
@@ -721,7 +721,7 @@ class DB extends AbstractDB {
     const current = await new DB()
     .query(this._queryBuilder().getMaxConnections());
 
-    return current[0]?.MaxConnections || 0
+    return Number(current[0]?.MaxConnections || 0)
   }
 
   /**
