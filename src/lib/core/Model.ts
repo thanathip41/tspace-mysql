@@ -3028,7 +3028,7 @@ class Model<
     )
   >(
     column: K,
-    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like" ,
     value: V
   ): this;
 
@@ -3041,7 +3041,7 @@ class Model<
   /**
    * @override
    * @param {string | K} column if arguments is object
-   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like"
    * @param {any?} value
    * @returns {this} this
    */
@@ -3133,7 +3133,7 @@ class Model<
   /**
    * @override
    * @param {string | K} column if arguments is object
-   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"  | "like"
    * @param {any?} value
    * @returns {this} this
    */
@@ -3146,7 +3146,7 @@ class Model<
     )
   >(
     column: K,
-    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like"  ,
     value: V
   ): this;
   
