@@ -238,7 +238,7 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> & {
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M> & K> & {
         [customKey : string]: unknown;
     };
 
@@ -264,9 +264,16 @@ export declare namespace T {
                 : C[P] extends Record<string, unknown>
                 ? string
                 : C[P];
-        } & {
+    } & {
         [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
             null extends C[P] ? P : never]?:
+            C[P] extends Date
+                ? any
+                : C[P] extends Record<string, unknown>
+                ? string
+                : C[P];
+    } & {
+        [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: 
             C[P] extends Date
                 ? any
                 : C[P] extends Record<string, unknown>
@@ -275,14 +282,22 @@ export declare namespace T {
     };
 
     type UpdateInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid">]?: 
-            C[P] extends Date
-            ? any
-            : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    };
+        [P in Exclude<K & keyof C, "id" | "_id">]: {
+            [Q in P]-?: 
+                Q extends "uuid" ? string : 
+                C[Q] extends Date ? any : 
+                C[Q] extends Record<string, unknown> ? string : 
+                C[Q]
+        } & {
+            [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: 
+                Q extends "uuid" ? string : 
+                C[Q] extends Date ? any : 
+                C[Q] extends Record<string, unknown> ? string : 
+                C[Q]
+        }
+    }[Exclude<K & keyof C, "id" | "_id">];
 
+    
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]

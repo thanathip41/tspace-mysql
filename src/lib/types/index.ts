@@ -427,14 +427,14 @@ export type TDeepExpand<T> = T extends Date
                 ? { [K in keyof T]: TDeepExpand<T[K]> }
                 : T;
                 
-export type TResultResolved<M extends Model, K = {}> = (
+export type TResultResolved<M extends Model> = (
     unknown extends TResult<M>
         ? unknown extends TResultDecorator<M>
-            ? Record<K & string, any>
+            ? Record<string, any>
             : {} extends TResultDecorator<M>
-                ? Record<K & string, any>
-                : TResultDecorator<K & M>
-        : TResult<K & M>
+                ? Record<string, any>
+                : TResultDecorator<M>
+        : TResult<M>
 );
 
 export type TConflictKeys<
