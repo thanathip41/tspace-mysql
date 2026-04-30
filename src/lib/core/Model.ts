@@ -4984,15 +4984,16 @@ class Model<
 
       await this._runBefore("update");
 
-      const result = await new Model()
-        .copyModel(this, { where: true, limit: true, orderBy: true })
-        .update({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .disableSoftDelete()
-        .bind(this.$pool.get())
-        .debug(this.$state.get("DEBUG"))
-        .save();
+      const sql = new Model()
+      .copyModel(this, { where: true, limit: true, orderBy : true })
+      .update({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .toString();
+
+      const result = await this._actionStatement(sql);
 
       await this._observer(result, "updated");
 
@@ -5024,21 +5025,23 @@ class Model<
     this._guardWhereCondition();
 
     if (this.$state.get("SOFT_DELETE")) {
+      
       const deletedAt = this._valuePattern(
-        this.$state.get("SOFT_DELETE_FORMAT"),
+        this.$state.get("SOFT_DELETE_FORMAT")
       );
 
       await this._runBefore("update");
 
-      const result = await new Model()
-        .copyModel(this, { where: true, limit: true })
-        .updateMany({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .disableSoftDelete()
-        .debug(this.$state.get("DEBUG"))
-        .bind(this.$pool.get())
-        .save();
+      const sql = new Model()
+      .copyModel(this, { where: true, limit: true, orderBy: true })
+      .update({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .toString();
+
+      const result = await this._actionStatement(sql);
 
       await this._observer(result, "updated");
 
