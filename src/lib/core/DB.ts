@@ -43,7 +43,7 @@ class DB extends AbstractDB {
    * @static
    * @returns {DB} instance of the DB
    */
-  static get instance(): DB {
+  public static get instance(): DB {
     return new this();
   }
 
@@ -53,7 +53,7 @@ class DB extends AbstractDB {
    *
    * @returns {promise<void>}
    */
-  async initialize(): Promise<void> {
+  public async initialize(): Promise<void> {
     await this.query(`${this.$constants("SELECT")} 1`);
     return;
   }
@@ -64,7 +64,7 @@ class DB extends AbstractDB {
    *
    * @returns {promise<void>}
    */
-  static async initialize(): Promise<void> {
+  public static async initialize(): Promise<void> {
     return await new this().initialize();
   }
 
@@ -78,7 +78,7 @@ class DB extends AbstractDB {
    * @param {(data: any) => any} callback - A callback function invoked when the event is emitted.
    * @returns {Promise<void>} A promise that resolves once the event listener is registered.
    */
-  async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
+  public async event(event: TPoolEvent, callback: (data: any) => any): Promise<void> {
     await this.initialize();
     if (Pool.instance == null) return;
 
@@ -97,7 +97,7 @@ class DB extends AbstractDB {
    * @param {(data: any) => any} callback - A callback function invoked when the event is emitted.
    * @returns {Promise<void>} A promise that resolves once the event listener is registered.
    */
-  static async event(
+  public static async event(
     event: TPoolEvent,
     callback: (data: any) => any,
   ): Promise<void> {
@@ -111,7 +111,7 @@ class DB extends AbstractDB {
    * @param {Record<string,any>} parameters
    * @returns {promise<any[]>}
    */
-  async query(sql: string, parameters: Record<string, any> = {}): Promise<any> {
+  public async query(sql: string, parameters: Record<string, any> = {}): Promise<any> {
     if (!Object.keys(parameters).length) {
       return await this.rawQuery(sql);
     }
@@ -149,7 +149,7 @@ class DB extends AbstractDB {
    * @param {Record<string,any>} parameters
    * @returns {promise<any[]>}
    */
-  static async query(
+  public static async query(
     sql: string,
     parameters: Record<string, any> = {},
   ): Promise<any[]> {
@@ -161,7 +161,7 @@ class DB extends AbstractDB {
    * @param {string} table table name
    * @returns {this} this
    */
-  static from(table: string): DB {
+  public static from(table: string): DB {
     return new this().from(table);
   }
 
@@ -170,7 +170,7 @@ class DB extends AbstractDB {
    * @param   {string} table table name
    * @returns {DB} DB
    */
-  static table(table: string): DB {
+  public static table(table: string): DB {
     return new this().table(table);
   }
 
@@ -181,7 +181,7 @@ class DB extends AbstractDB {
    * @param   {string} alias alias name
    * @returns {DB} DB
    */
-  static alias(sql: string, alias: string): DB {
+  public static alias(sql: string, alias: string): DB {
     return new this().alias(sql, alias);
   }
 
@@ -191,7 +191,7 @@ class DB extends AbstractDB {
    * @param {string} alias
    * @returns {string} string
    */
-  jsonObject(object: Record<string, string>, alias: string): string {
+  public jsonObject(object: Record<string, string>, alias: string): string {
     if (!Object.keys(object).length)
       throw new Error(
         "The method 'jsonObject' is not supported for empty object",
@@ -223,7 +223,7 @@ class DB extends AbstractDB {
    * @param {string} alias
    * @returns {string} string
    */
-  static jsonObject(object: Record<string, string>, alias: string): string {
+  public static jsonObject(object: Record<string, string>, alias: string): string {
     return new this().jsonObject(object, alias);
   }
 
@@ -233,7 +233,7 @@ class DB extends AbstractDB {
    * @param {string} alias
    * @returns {string} string
    */
-  JSONObject(object: Record<string, string>, alias: string): string {
+  public JSONObject(object: Record<string, string>, alias: string): string {
     return this.jsonObject(object, alias);
   }
 
@@ -244,7 +244,7 @@ class DB extends AbstractDB {
    * @param {string} alias
    * @returns {string} string
    */
-  static JSONObject(object: Record<string, string>, alias: string): string {
+  public static JSONObject(object: Record<string, string>, alias: string): string {
     return new this().jsonObject(object, alias);
   }
 
@@ -253,7 +253,7 @@ class DB extends AbstractDB {
    * @param {string} key
    * @returns {string | object} string || object
    */
-  constants(key?: keyof TConstant): string | object {
+  public constants(key?: keyof TConstant): string | object {
     return this.$constants(key);
   }
 
@@ -263,7 +263,7 @@ class DB extends AbstractDB {
    * @param {string} key
    * @returns {string | object} string || object
    */
-  static constants(key?: keyof TConstant): string | Record<string, any> {
+  public static constants(key?: keyof TConstant): string | Record<string, any> {
     return new this().constants(key);
   }
 
@@ -273,7 +273,7 @@ class DB extends AbstractDB {
    * @param {string?} final else condition
    * @returns {string} string
    */
-  caseUpdate(
+  public caseUpdate(
     cases: { when: string; then: string }[],
     final?: string,
   ): string | [] {
@@ -309,7 +309,7 @@ class DB extends AbstractDB {
    * @param {string?} final else condition
    * @returns {this}
    */
-  static caseUpdate(
+  public static caseUpdate(
     cases: { when: string; then: string }[],
     final?: string,
   ): string | [] {
@@ -320,7 +320,7 @@ class DB extends AbstractDB {
    * The 'generateUUID' methid is used to generate a universal unique identifier.
    * @returns {string} string
    */
-  generateUUID(): string {
+  public generateUUID(): string {
     return this.$utils.generateUUID();
   }
 
@@ -329,7 +329,7 @@ class DB extends AbstractDB {
    * @static
    * @returns {string} string
    */
-  static generateUUID(): string {
+  public static generateUUID(): string {
     return new this().generateUUID();
   }
 
@@ -337,7 +337,7 @@ class DB extends AbstractDB {
    * The 'snakeCase' methid is used to covert value to snakeCase pattern.
    * @returns {string} string
    */
-  snakeCase(value: string): string {
+  public snakeCase(value: string): string {
     return this.$utils.snakeCase(value);
   }
 
@@ -345,7 +345,7 @@ class DB extends AbstractDB {
    * The 'snakeCase' methid is used to covert value to snake_case pattern.
    * @returns {string} string
    */
-  static snakeCase(value: string): string {
+  public static snakeCase(value: string): string {
     return new this().$utils.snakeCase(value);
   }
 
@@ -353,7 +353,7 @@ class DB extends AbstractDB {
    * The 'camelCase' methid is used to covert value to camelCase pattern.
    * @returns {string} string
    */
-  camelCase(value: string): string {
+  public camelCase(value: string): string {
     return this.$utils.camelCase(value);
   }
 
@@ -361,7 +361,7 @@ class DB extends AbstractDB {
    * The 'camelCase' methid is used to covert value to camelCase pattern.
    * @returns {string} string
    */
-  static camelCase(value: string): string {
+  public static camelCase(value: string): string {
     return new this().$utils.camelCase(value);
   }
 
@@ -369,7 +369,7 @@ class DB extends AbstractDB {
    * The 'escape' methid is used to escaping SQL injections.
    * @returns {string} string
    */
-  escape(value: string): string {
+  public escape(value: string): string {
     return this.$utils.escape(value, true);
   }
 
@@ -377,7 +377,7 @@ class DB extends AbstractDB {
    * The 'escape' methid is used to escaping SQL injections.
    * @returns {string} string
    */
-  static escape(value: string): string {
+  public static escape(value: string): string {
     return new this().escape(value);
   }
 
@@ -385,7 +385,7 @@ class DB extends AbstractDB {
    * The 'escapeXSS' methid is used to escaping XSS characters.
    * @returns {string} string
    */
-  escapeXSS(value: string): string {
+  public escapeXSS(value: string): string {
     return this.$utils.escapeXSS(value);
   }
 
@@ -393,7 +393,7 @@ class DB extends AbstractDB {
    * The 'escapeXSS' methid is used to escaping XSS characters.
    * @returns {string} string
    */
-  static escapeXSS(value: string): string {
+  public static escapeXSS(value: string): string {
     return new this().escapeXSS(value);
   }
 
@@ -413,11 +413,12 @@ class DB extends AbstractDB {
    *     'id',
    *     DB.raw(
    *       `CONCAT(firstName, ' - ', lastName) AS fullName`
+   *      // `CONCAT(?, ' - ', ?) AS fullName,['firstName', 'lastName']`
    *     )
    *   )
    *   .findOne();
    */
-  raw(
+  public raw(
     sql: string,
     parameters: (boolean | number | string | any[] | null)[] = [],
   ): TRawStringQuery {
@@ -471,7 +472,7 @@ class DB extends AbstractDB {
    *   )
    *   .findOne();
    */
-  static raw(
+  public static raw(
     sql: string,
     parameters: (boolean | number | string | any[] | null)[] = [],
   ): TRawStringQuery {
@@ -484,7 +485,7 @@ class DB extends AbstractDB {
    * @param {string} column
    * @returns {string} string
    */
-  freeze(column: string): TFreezeStringQuery {
+  public freeze(column: string): TFreezeStringQuery {
     return `${this.$constants("FREEZE")}${column}` as TFreezeStringQuery;
   }
 
@@ -495,7 +496,7 @@ class DB extends AbstractDB {
    * @param {string} column
    * @returns {string} string
    */
-  static freeze(column: string): TFreezeStringQuery {
+  public static freeze(column: string): TFreezeStringQuery {
     return new this().freeze(column) as TFreezeStringQuery;
   }
 
@@ -510,7 +511,7 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  async getConnection(options?: TConnectionOptions): Promise<TPoolConnected> {
+  public async getConnection(options?: TConnectionOptions): Promise<TPoolConnected> {
     if (options == null) {
       const pool = await this.$pool.get();
       return await pool.newConnection();
@@ -550,7 +551,7 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  static async getConnection(
+  public static async getConnection(
     options: TConnectionOptions,
   ): Promise<TPoolConnected> {
     return new this().getConnection(options);
@@ -573,7 +574,7 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  async beginTransaction(options?: {
+  public async beginTransaction(options?: {
     primaryId?: number;
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
@@ -631,7 +632,7 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  static async beginTransaction(options?: {
+  public static async beginTransaction(options?: {
     primaryId?: number;
     nodeId?: number;
   }): Promise<TConnectionTransaction> {
@@ -655,7 +656,7 @@ class DB extends AbstractDB {
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
+  public async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
     const trx = await this.$pool.transaction();
     
     try {
@@ -686,7 +687,7 @@ class DB extends AbstractDB {
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  static async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
+  public static async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
     return await new this().transaction(handler);
   }
 
@@ -696,7 +697,7 @@ class DB extends AbstractDB {
    *
    * @returns {Promise<number>} this
    */
-  async getActiveConnections () : Promise<number> {
+  public async getActiveConnections () : Promise<number> {
     const current = await new DB()
     .query(this._queryBuilder().getActiveConnections());
 
@@ -708,7 +709,7 @@ class DB extends AbstractDB {
    *
    * @returns {Promise<number>} this
    */
-  static async getActiveConnections () : Promise<number> {
+  public static async getActiveConnections () : Promise<number> {
     return await new this().getActiveConnections();
   }
 
@@ -717,7 +718,7 @@ class DB extends AbstractDB {
    *
    * @returns {Promise<number>} this
    */
-  async getMaxConnections () : Promise<number> {
+  public async getMaxConnections () : Promise<number> {
     const current = await new DB()
     .query(this._queryBuilder().getMaxConnections());
 
@@ -729,7 +730,7 @@ class DB extends AbstractDB {
    *
    * @returns {Promise<number>} this
    */
-  static async getMaxConnections () : Promise<number> {
+  public static async getMaxConnections () : Promise<number> {
     return await new this().getMaxConnections()
   }
 
@@ -740,7 +741,7 @@ class DB extends AbstractDB {
    * @param {string[]} propertiesToRemoves
    * @returns {Array | Record} this
    */
-  removeProperties(
+  public removeProperties(
     data: any[] | Record<string, any>,
     propertiesToRemoves: string[],
   ): Array<any> | Record<string, any> {
@@ -825,7 +826,7 @@ class DB extends AbstractDB {
    * @param {string[]} propertiesToRemoves
    * @returns {Array | Record} this
    */
-  static removeProperties(
+  public static removeProperties(
     data: any[] | Record<string, any>,
     propertiesToRemoves: string[],
   ): Array<any> | Record<string, any> {
@@ -844,7 +845,7 @@ class DB extends AbstractDB {
    * @property {string} backup.to.password
    * @returns {Promise<void>}
    */
-  async backup({ database, to }: TBackup): Promise<void> {
+  public async backup({ database, to }: TBackup): Promise<void> {
     const tables = await this.getTables();
 
     const backup = await this._backup({ tables, database, to });
@@ -881,7 +882,7 @@ class DB extends AbstractDB {
    * @property {string} backup.to.password
    * @returns {Promise<void>}
    */
-  static async backup({ database, to }: TBackup): Promise<void> {
+  public static async backup({ database, to }: TBackup): Promise<void> {
     return new this().backup({ database, to });
   }
 
@@ -899,7 +900,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  async backupToFile({
+  public async backupToFile({
     filePath,
     database = `dump_${+new Date()}`,
     connection,
@@ -1032,7 +1033,7 @@ class DB extends AbstractDB {
    * @returns {Promise<void>}
    */
 
-  static async backupToFile({
+  public static async backupToFile({
     filePath,
     database,
     connection,
@@ -1054,7 +1055,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  async backupSchemaToFile({
+  public async backupSchemaToFile({
     filePath,
     database = `dump_${+new Date()}`,
     connection,
@@ -1109,7 +1110,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  static async backupSchemaToFile({
+  public static async backupSchemaToFile({
     filePath,
     database,
     connection,
@@ -1132,7 +1133,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  async backupTableToFile({
+  public async backupTableToFile({
     filePath,
     table,
     connection,
@@ -1197,7 +1198,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  static async backupTableToFile({
+  public static async backupTableToFile({
     filePath,
     table,
     connection,
@@ -1219,7 +1220,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  async backupTableSchemaToFile({
+  public async backupTableSchemaToFile({
     filePath,
     table,
     connection,
@@ -1265,7 +1266,7 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-  static async backupTableSchemaToFile({
+  public static async backupTableSchemaToFile({
     filePath,
     table,
     connection,
