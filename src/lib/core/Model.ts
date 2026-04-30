@@ -4993,7 +4993,9 @@ class Model<
       .debug(this.$state.get("DEBUG"))
       .toString();
 
-      const result = await this._actionStatement(sql);
+      const r = await this._actionStatement(sql);
+
+      const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
       await this._observer(result, "updated");
 
@@ -5006,15 +5008,15 @@ class Model<
 
     await this._runBefore("remove");
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
+    const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
-    await this._observer(r, "deleted");
+    await this._observer(result, "deleted");
 
-    await this._runAfter("remove", r);
+    await this._runAfter("remove", result);
 
-    return r;
+    return result;
   }
 
   /**
@@ -5025,7 +5027,7 @@ class Model<
     this._guardWhereCondition();
 
     if (this.$state.get("SOFT_DELETE")) {
-      
+
       const deletedAt = this._valuePattern(
         this.$state.get("SOFT_DELETE_FORMAT")
       );
@@ -5033,15 +5035,17 @@ class Model<
       await this._runBefore("update");
 
       const sql = new Model()
-      .copyModel(this, { where: true, limit: true, orderBy: true })
-      .update({
+      .copyModel(this, { where: true, orderBy: true })
+      .updateMany({
         [deletedAt]: this.$utils.timestamp(),
       })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
       .toString();
 
-      const result = await this._actionStatement(sql);
+      const r = await this._actionStatement(sql);
+
+      const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
       await this._observer(result, "updated");
 
@@ -5054,14 +5058,14 @@ class Model<
 
     await this._runBefore("remove");
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
+    const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
-    await this._observer(r, "deleted");
-    await this._runAfter("remove", r);
+    await this._observer(result, "deleted");
+    await this._runAfter("remove", result);
 
-    return r;
+    return result;
   }
 
   /**
