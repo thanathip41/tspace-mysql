@@ -36,9 +36,9 @@ class Builder extends AbstractBuilder {
   }
   /**
    * The 'driver' method is used to get current driver
-   * @returns {string} driver
+   * @returns {TDriver} driver
    */
-  public driver(): string {
+  public driver(): TDriver {
     return this.$driver;
   }
 
