@@ -173,6 +173,17 @@ class Model<
   }
 
   /**
+   * The 'query' method is used to return instance
+   * @static
+   * @example
+   * const user = await User.query().where('id',1).findOne();
+   * console.log(user);
+   */
+  static query<T>(this: new () => T): T {
+    return new this();
+  }
+
+  /**
    * The 'cache' method is used get the functions from the Cache
    * @returns {TCacheModel} cache
    */
@@ -1720,6 +1731,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any[]> {
     try {
+   
       sql = this._queryBuilder().format([sql]);
 
       const getResults = async (sql: string) => {
@@ -1738,6 +1750,7 @@ class Model<
 
           return results;
         }
+      
         return await this.$pool.query(sql);
       };
 
