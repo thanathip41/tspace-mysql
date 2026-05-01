@@ -34,68 +34,12 @@ export class MongodbQueryBuilder extends QueryBuilder {
         return result;
       };
 
-      PIPELINE.push({
-        $project : parseSelect(this.$state.get('SELECT'))
-      })
+      const project = parseSelect(this.$state.get('SELECT'))
 
-      const aggregate = this.$state.get('SELECT')
-      .map(col => {
-        const match = col.match(/\b(COUNT|AVG|SUM|MAX|MIN)\s*\((.*?)\)\s+AS\s+`?(\w+)`?/i);
-        if (!match) return null;
-
-        return {
-          fn: match[1].toUpperCase(),
-          field: String(match[2].match(/`[^`]+`\.`([^`]+)`/)?.[1] ?? ''),
-          as: match[3]
-        };
-      })
-      .find(Boolean);
-
-      if (aggregate) {
-        switch (aggregate.fn) {
-
-          case 'COUNT':
-            PIPELINE.push({
-              $count: aggregate.as
-            });
-            break;
-
-          case 'SUM':
-            PIPELINE.push({
-              $group: {
-                _id: null,
-                [aggregate.as]: { $sum: `$${aggregate.field}` }
-              }
-            });
-            break;
-
-          case 'AVG':
-            PIPELINE.push({
-              $group: {
-                _id: null,
-                [aggregate.as]: { $avg: `$${aggregate.field}` }
-              }
-            });
-            break;
-
-          case 'MAX':
-            PIPELINE.push({
-              $group: {
-                _id: null,
-                [aggregate.as]: { $max: `$${aggregate.field}` }
-              }
-            });
-            break;
-
-          case 'MIN':
-            PIPELINE.push({
-              $group: {
-                _id: null,
-                [aggregate.as]: { $min: `$${aggregate.field}` }
-              }
-            });
-            break;
-        }
+      if(Object.keys(project).length) {
+        PIPELINE.push({
+          $project : project
+        })
       }
     }
 
@@ -159,6 +103,73 @@ export class MongodbQueryBuilder extends QueryBuilder {
       PIPELINE.push({
         $match : this._parseWheres(this.$state.get('WHERE'))
       })
+    }
+
+    if(
+      this.$state.get('SELECT')?.length && 
+      !this.$state.get('SELECT').some(v => v === '*')
+    ) {
+
+
+      const aggregate = this.$state.get('SELECT')
+      .map(col => {
+        const match = col.match(/\b(COUNT|AVG|SUM|MAX|MIN)\s*\((.*?)\)\s+AS\s+`?(\w+)`?/i);
+        if (!match) return null;
+
+        return {
+          fn: match[1].toUpperCase(),
+          field: String(match[2].match(/`[^`]+`\.`([^`]+)`/)?.[1] ?? ''),
+          as: match[3]
+        };
+      })
+      .find(Boolean);
+
+      if (aggregate) {
+        switch (aggregate.fn) {
+
+          case 'COUNT':
+            PIPELINE.push({
+              $count: aggregate.as
+            });
+            break;
+
+          case 'SUM':
+            PIPELINE.push({
+              $group: {
+                _id: null,
+                [aggregate.as]: { $sum: `$${aggregate.field}` }
+              }
+            });
+            break;
+
+          case 'AVG':
+            PIPELINE.push({
+              $group: {
+                _id: null,
+                [aggregate.as]: { $avg: `$${aggregate.field}` }
+              }
+            });
+            break;
+
+          case 'MAX':
+            PIPELINE.push({
+              $group: {
+                _id: null,
+                [aggregate.as]: { $max: `$${aggregate.field}` }
+              }
+            });
+            break;
+
+          case 'MIN':
+            PIPELINE.push({
+              $group: {
+                _id: null,
+                [aggregate.as]: { $min: `$${aggregate.field}` }
+              }
+            });
+            break;
+        }
+      }
     }
       
     if(this.$state.get('ORDER_BY').length) {
