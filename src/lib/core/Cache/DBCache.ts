@@ -5,7 +5,7 @@ import { utils }      from '../../utils';
 
 class DBCache {
 
-    private _cacheTable   = '$cache'
+    private _cacheTable   = 'tspace_cache'
     private _v0x          = 'v0x'
     private _maxAddress   = 10
     private _maxLength    = 100
@@ -180,12 +180,6 @@ class DBCache {
     private async _checkTableCacheExists () {
 
         const table = this._cacheTable
-        class Cache extends Model {
-            protected boot(): void {
-                this.useSchema(schema)
-                this.useTable(table)
-            }
-        }
 
         const hasTable = await new DB().hasTable(table);
         
@@ -206,8 +200,14 @@ class DBCache {
             updated_at           : new Blueprint().timestamp().notNull()
         }
 
+        class Cache extends Model {
+            protected boot(): void {
+                this.useSchema(schema)
+                this.useTable(table)
+            }
+        }
 
-        await new Cache().sync({ index:true })
+        await new Cache().sync({ force: true, index:true })
 
         return
     }
