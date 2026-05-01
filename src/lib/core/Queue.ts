@@ -2,7 +2,6 @@ import type { T }       from "./UtilityTypes"
 import { Blueprint }    from "./Blueprint"
 import { DB }           from "./DB"
 import { Model }        from "./Model"
-import { utils }        from "../utils"
 
 export type Job<T = any> = {
   id      : number;
@@ -49,7 +48,7 @@ const QUEUE_STATUS = {
     processing  : 'Processing',
     completed   : 'Completed',
     idle        : 'Idle',
-    wake        : 'Wake',
+    wokeUp      : 'Woke up',
     failed      : 'Failed',
     waiting     : 'Waiting',
     retry       : {
@@ -61,7 +60,7 @@ const QUEUE_STATUS = {
 
 const schema = {
     id    : Blueprint.int().primary().autoIncrement(),
-    uuid  : Blueprint.varchar(36).notNull(),
+    uuid  : Blueprint.varchar(36).null(),
     name  : Blueprint.varchar(255).notNull()
     .index()
     .compositeIndex([
@@ -96,7 +95,7 @@ const schema = {
 type TS = T.Schema<typeof schema>
 class Worker extends Model<TS> {
 
-    private HOSTNAME          = String(process.env.hostname ?? 'unknown');
+    private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
     private INSPECT_EXEC      = false;
     private STOPPING          = false;
     private IS_FLUSHING       = false;
@@ -124,9 +123,9 @@ class Worker extends Model<TS> {
     }>();
 
     protected boot(): void {
-        this.useSchema(schema);
-        this.useTimestamp();
         this.useUUID();
+        this.useTimestamp();
+        this.useSchema(schema);
         this.useTable(this.$state.get("TABLE_JOB"));
     }
 
@@ -137,6 +136,12 @@ class Worker extends Model<TS> {
         maxIdleRetries   ?: number;
         limitConnections ?: number;
     } = {}) {
+
+        const driver = this.driver();
+
+        if(driver === 'mongodb') {
+            throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
+        }
 
         await this.sync({ force : true, index: true }).catch(() => null);
 
@@ -189,7 +194,7 @@ class Worker extends Model<TS> {
     }
 
     public async flush() {
-        await this.truncate({ force: true });
+        await this.truncate({ force: true })
         return;
     }
 
@@ -383,7 +388,7 @@ class Worker extends Model<TS> {
             .update({
                 status: 'completed',
                 result: this.safeJsonStringify(result),
-                completed_at: utils.timestamp()
+                completed_at: this.$utils.timestamp()
             })
             .void()
             .save()
@@ -436,7 +441,7 @@ class Worker extends Model<TS> {
                         status: 'completed',
                         attempts,
                         result: this.safeJsonStringify(result),
-                        completed_at: utils.timestamp()
+                        completed_at: this.$utils.timestamp()
                     })
                     .void()
                     .save();
@@ -483,7 +488,7 @@ class Worker extends Model<TS> {
             }
          
         } finally {
-            // state.running--
+            state.running--
             this.ACTIVE_JOBS--
         }
     }
@@ -491,20 +496,21 @@ class Worker extends Model<TS> {
     private async _waitForSafeConnections (name: string) {
         let activeConnections = 0;
 
-        while (true) {
+        // while (true) {
             
-            activeConnections = await DB.getActiveConnections();
+        //     activeConnections = await DB.getActiveConnections();
         
-            if (activeConnections <= this.LIMIT_CONNECTIONS) {
-                break;
-            }
+        //     if (activeConnections <= this.LIMIT_CONNECTIONS) {
+        //         break;
+        //     }
 
-            if (this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${activeConnections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
-            }
+        //     if (this.INSPECT_EXEC) {
+        //         console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${activeConnections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
+        //     }
 
-            await new Promise(resolve => setTimeout(resolve, 1000 * 5));
-        }
+        //     await new Promise(resolve => setTimeout(resolve, 1000 * 5));
+        // }
+
         return;
     }
 
@@ -520,11 +526,11 @@ class Worker extends Model<TS> {
         .whereQuery(q => {
             return q
             .where('status','pending')
-            .where('available_at', '<=', utils.timestamp())
+            .where('available_at', '<=', this.$utils.timestamp())
             .orWhereQuery((q) => {
                 return q
                 .where('status', 'active')
-                .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
+                .where('locked_at', '<', this.$utils.timestamp(new Date(Date.now() - 60 * 1000)))
             })
         })
         .limit(limit)
@@ -553,7 +559,7 @@ class Worker extends Model<TS> {
             .whereIn('id',jobs.map(v => v.id))
             .updateMany({
                 status : 'active',
-                locked_at: utils.timestamp(),
+                locked_at: this.$utils.timestamp(),
                 locked_by : this.HOSTNAME
             })
             .void()
@@ -609,7 +615,6 @@ class Worker extends Model<TS> {
                     
                     console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m job \x1b[38;5;208m${ids}\x1b[0m`);
                 } else {
-                    
                     console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m jobs [\x1b[38;5;208m${preview}\x1b[0m] total=(\x1b[38;5;208m${ids.length}\x1b[0m)`);
                 }
 
@@ -621,7 +626,9 @@ class Worker extends Model<TS> {
 
             const uniqueNames = [...new Set(currentBatch.map(b => b.jobData.name))];
 
-            uniqueNames.forEach(name => this._wakeWorker(name));
+            for(const name of uniqueNames) {
+                this._wakeWorker(name);
+            }
 
         } catch (error) {
 
@@ -635,18 +642,26 @@ class Worker extends Model<TS> {
     }
 
     private _wakeWorker(name: string) {
+
         const state = this.WORKER_STATE.get(name);
 
         if (!state || !state.sleeping || !state.handler) return;
 
+        const isSleeping = state.sleeping;
+
         state.sleeping = false;
+
         state.idle = 0;
 
         if (this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[36m${QUEUE_STATUS.wake}\x1b[0m`);
+            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[36m${QUEUE_STATUS.wokeUp}\x1b[0m`);
         }
 
-        this.process(name, state.handler, { concurrency : state.opts.concurrency });
+        if(isSleeping) {
+            this.process(name, state.handler, { 
+                concurrency : state.opts.concurrency 
+            });
+        }
     }
 
     private safeJsonParse(payload:any){
@@ -899,7 +914,6 @@ class Queue {
         handler : Handler, 
         opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
     ): Promise<void> {
-        
         return await this.process(name, handler, opts);
     }
 
