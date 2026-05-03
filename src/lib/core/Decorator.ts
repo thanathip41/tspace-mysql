@@ -287,8 +287,8 @@ export const Column = (blueprint: () => Blueprint): Function => {
  * for a property. Useful for serialization/deserialization logic (e.g. ORM, DTO).
  *
  * @param {Object} options - Transform options.
- * @param {(value: unknown) => any | Promise<any>} options.to - Function executed when transforming *to* database/output.
- * @param {(value: unknown) => any | Promise<any>} options.from - Function executed when transforming *from* database/input.
+ * @param {(value: unknown) => any | Promise<any>} options.to - Function executed when transforming *to* app -> database.
+ * @param {(value: unknown) => any | Promise<any>} options.from - Function executed when transforming *from* database -> app.
  * @returns {Function} A property decorator that stores transform metadata.
  *
  * @throws {Error} If the property name cannot be determined.
@@ -858,14 +858,164 @@ export const AfterRemove = (): Function => {
  * @namespace D
  */
 export const D  = {
-  Table, TableSingular, TablePlural,
-  UUID, SoftDelete, Timestamp,
-  Pattern, CamelCase , SnakeCase,
-  Column, Validate,
+
+  Table, 
+  TableSingular, 
+  TablePlural,
+  UUID, 
+
+  /**
+   * Decorator to enable automatic timestamps on a model.
+   *
+   * Stores metadata indicating that `createdAt` and `updatedAt` columns should be handled.
+   *
+   * @param {{ createdAt: string; updatedAt: string }} [columns] - Optional custom column names for timestamps.
+   * @returns {ClassDecorator} A class decorator that enables timestamp metadata.
+   *
+   * @example
+   * ```ts
+   * @Timestamp({ createdAt: 'created_at', updatedAt: 'updated_at' })
+   * class User extends Model {}
+   * ```
+ */
+  SoftDelete, 
+  Timestamp,
+  Pattern, 
+  CamelCase , 
+  SnakeCase,
+
+  /**
+   * Decorator to define a database column for a model property.
+   *
+   * Accepts a `Blueprint` function that defines the column type, constraints, and other attributes.
+   * The resulting column schema is stored as metadata on the target class.
+   *
+   * @param {() => Blueprint} blueprint - A function returning a `Blueprint` instance describing the column.
+   * @returns {Function} A property decorator that registers the column schema.
+   *
+   * @throws {Error} If the property name cannot be determined.
+   *
+   * @example
+   * ```ts
+   * class User extends Model {
+   *
+   *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+   *   public id!: number;
+   *
+   *   @Column(() => Blueprint.varchar(50).null())
+   *   public uuid!: string;
+   * }
+   *
+   * ```
+   */
+  Column, 
+
+  /**
+   * Decorator to attach validation rules to a model property.
+   *
+   * Accepts a `TValidateSchemaDecorator` object describing the validation rules
+   * (e.g., type, required, length, regex match, uniqueness, or custom validation function).
+   * The validation schema is stored as metadata on the target class.
+   *
+   * @param {TValidateSchemaDecorator} validate - An object defining validation rules for the property.
+   * @returns {Function} A decorator that registers the validation schema.
+   *
+   * @example
+   * ```ts
+   * class User extends Model {
+   *
+   *   @Column(() => Blueprint.int().notNull().primary().autoIncrement())
+   *   public id!: number;
+   *
+   *   @Column(() => Blueprint.varchar(50).null())
+   *   public uuid!: string;
+   *
+   *   @Column(() => Blueprint.varchar(50).null())
+   *   @Validate({
+   *       type: String,
+   *       require: true,
+   *       length: 50,
+   *       match: /^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+   *       unique: true,
+   *       fn: async (email: string) => {
+   *         const exists = await new User().where('email',email).exists();
+   *         if(exists) return `This column "${email}" is dupicate`;
+   *         return null;
+   *       }
+   *   })
+   *   public email!: string;
+   * }
+   *
+   * ```
+   */
+  Validate,
+
   // ------- Relations --------
-  HasOne, HasMany, BelongsTo, BelongsToMany,
+  HasOne, 
+  HasMany,
+  BelongsTo,
+  BelongsToMany,
+
   // ------- Hook -------------
-  Transform, Observer, Hooks,
-  BeforeInsert, BeforeUpdate , BeforeRemove,
-  AfterInsert, AfterUpdate , AfterRemove
+
+  /**
+   * A decorator factory that registers custom `to` and `from` transform functions
+   * for a property. Useful for serialization/deserialization logic (e.g. ORM, DTO).
+   *
+   * @param {Object} options - Transform options.
+   * @param {(value: unknown) => any | Promise<any>} options.to - Function executed when transforming *to* app -> database.
+   * @param {(value: unknown) => any | Promise<any>} options.from - Function executed when transforming *from* database -> app.
+   * @returns {Function} A property decorator that stores transform metadata.
+   *
+   * @throws {Error} If the property name cannot be determined.
+   *
+   * @example
+   * ```ts
+   * class User {
+   *   @Transform({
+   *     to: (v) => JSON.stringify(v),
+   *     from: (v) => JSON.parse(v),
+   *   })
+   *   profile;
+   * }
+   * ```
+ */
+  Transform, 
+  /**
+   * Decorator that registers a method as a generic lifecycle hook.
+   * Unlike specific hooks such as `@BeforeInsert` or `@AfterUpdate`,
+   * this decorator is **multi-purpose** and collects all tagged methods
+   * into a single metadata registry (`REFLECT_META.HOOKS`).
+   *
+   * These hook methods can later be invoked by the ORM/engine at any stage
+   * depending on your custom logic.
+   *
+   * @returns {Function} A method decorator.
+   *
+   * @throws {Error} If applied to a non-method class member.
+   *
+   * @example
+   * ```ts
+   * class User {
+   *   @Hooks()
+   *   logAction() {
+   *     console.log("A lifecycle action happened");
+   *   }
+   * }
+   * ```
+   *
+   * @example
+   * // Later, your ORM engine could do:
+   * const hooks = Reflect.getMetadata(REFLECT_META.HOOKS, userInstance) || [];
+   * for (const hook of hooks) hook.call(userInstance);
+   */
+  Hooks,
+
+  Observer,
+  BeforeInsert,
+  BeforeUpdate, 
+  BeforeRemove,
+  AfterInsert,
+  AfterUpdate, 
+  AfterRemove
 }

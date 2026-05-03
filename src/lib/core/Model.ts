@@ -3073,12 +3073,6 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.transfromDateToDateString(value);
-
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
@@ -3093,7 +3087,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+                  this.$utils.formatQueryValue(value),
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3113,12 +3107,14 @@ class Model<
       return this.whereIn(column, value);
     }
 
+    const formatedValue = this.$utils.formatQueryValue(value);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : formatedValue
       }
     ]);
 
@@ -3174,12 +3170,6 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    value = this.$utils.transfromDateToDateString(value);
-
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
@@ -3194,7 +3184,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+                  this.$utils.formatQueryValue(value),
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3214,12 +3204,14 @@ class Model<
       return this.orWhereIn(column as any, value);
     }
 
+    const formatedValue = this.$utils.formatQueryValue(value);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : formatedValue,
         condition : 'OR'
       }
     ]);
@@ -3318,7 +3310,6 @@ class Model<
       const useOp = this.$utils.transfromValueHasOp(value);
 
       if (useOp == null) {
-        //@ts-ignore
         this.where(column, operator, value);
         continue;
       }
@@ -3419,16 +3410,15 @@ class Model<
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string },
   ): this {
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
+    
+    const formatedValue = this.$utils.formatQueryValue(value);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.bindColumn(String(column))}->>'$.${key}'`,             
         operator : `${operator == null ? "=" : operator.toLocaleUpperCase()}`,         
-        value : `${this.$utils.transfromValueHasRaw(value)}`
+        value : formatedValue
       }
     ]);
 
@@ -3459,12 +3449,14 @@ class Model<
    */
   public whereUser(userId: number, column: string = "user_id"): this {
   
+    const formatedValue = this.$utils.formatQueryValue(userId);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : '=',         
-        value : `${this.$utils.escape(userId)}`,
+        value : formatedValue
       }
     ]);
 
@@ -3498,19 +3490,24 @@ class Model<
    * @returns {this}
    */
   public whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
       const sql = blueprint.sql?.where;
 
       if (sql) {
@@ -3525,7 +3522,7 @@ class Model<
         operator : `${this.$constants("IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3545,13 +3542,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
+
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.orWhereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3561,7 +3572,7 @@ class Model<
         operator : `${this.$constants("IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3581,13 +3592,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
-    const values = `${array
-      .map((value: string) =>
-        this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
-      )
-      .join(",")}`;
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.whereRaw(`${sql} ${this.$constants("NOT_IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3596,7 +3621,7 @@ class Model<
         operator : `${this.$constants("NOT_IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3616,7 +3641,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
+
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.orWhereRaw(`${sql} ${this.$constants("NOT_IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3626,7 +3671,7 @@ class Model<
         condition : 'OR',
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3771,10 +3816,13 @@ class Model<
   ): this {
     
     if (!array.length) {
-      return this.whereBetween(column, ['NULL','NULL'] as [any,any])
+      return this.whereBetween(column, [
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
-    const [value1, value2] = array;
+    let [value1, value2] = array;
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3782,9 +3830,9 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -3812,10 +3860,10 @@ class Model<
 
     if (!array.length) {
      
-      return this.orWhereBetween(column,['NULL','NULL'] as [any,any])
+      return this.orWhereBetween(column,[DB.raw(this.$constants("NULL")),DB.raw(this.$constants("NULL"))] as [any,any])
     }
 
-    const [value1, value2] = array;
+    let [value1, value2] = array;
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3824,9 +3872,9 @@ class Model<
         operator : `${this.$constants("BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`
         ].join(" ")
       }
     ]);
@@ -3853,7 +3901,10 @@ class Model<
   ): this {
    
     if (!array.length) {
-      return this.whereNotBetween(column,['NULL','NULL'] as [any,any])
+      return this.whereNotBetween(column,[
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
     const [value1, value2] = array;
@@ -3864,9 +3915,9 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("NOT_BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -3893,7 +3944,10 @@ class Model<
   ): this {
 
     if (!array.length) {
-       return this.orWhereNotBetween(column,['NULL','NULL'] as [any,any])
+       return this.orWhereNotBetween(column,[
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
     const [value1, value2] = array;
@@ -3905,9 +3959,9 @@ class Model<
         operator : `${this.$constants("NOT_BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -4008,16 +4062,12 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`
       }
     ]);
 
@@ -4042,16 +4092,12 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -4076,17 +4122,13 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
         condition : 'OR',
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -4249,10 +4291,6 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.whereQuery((query: Model) => {
       for (const index in columns) {
         const column = String(columns[index]);
@@ -4291,11 +4329,7 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    this.whereQuery((query: Model) => {
+    this.whereQuery((query) => {
       for (const key in columns) {
         const column = String(columns[key]);
         query.where(this.bindColumn(column), operator, value);

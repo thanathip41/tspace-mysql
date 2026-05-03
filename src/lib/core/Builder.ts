@@ -604,9 +604,6 @@ class Builder extends AbstractBuilder {
       arguments.length === 2
     );
 
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
     if (value === null) {
       return this.whereNull(column);
     }
@@ -620,7 +617,7 @@ class Builder extends AbstractBuilder {
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : this.$utils.formatQueryValue(value),
       }
     ]);
 
@@ -645,9 +642,6 @@ class Builder extends AbstractBuilder {
       arguments.length === 2
     );
 
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
     if (value === null) {
       return this.orWhereNull(column);
     }
@@ -656,22 +650,12 @@ class Builder extends AbstractBuilder {
       return this.orWhereIn(column, value);
     }
 
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(String(column))}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(value)}`,
-    //   ].join(" "),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : this.$utils.formatQueryValue(value),
         condition : 'OR'
       }
     ]);
@@ -710,22 +694,12 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public whereMonth(column: string, month: number): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `MONTH(${this.bindColumn(String(column))})`,
-    //     `=`,
-    //     `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
-    //   ].join(" "),
-    // ]);
-
      this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column   :  `MONTH(${this.bindColumn(String(column))})`,            
         operator : '=',         
-        value    : `'${`00${this.$utils.escape(month)}`.slice(-2)}'`,
+        value    : `'${`00${this.$utils.formatQueryValue(month)}`.slice(-2)}'`,
       }
     ]);
 
@@ -741,22 +715,13 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public whereYear(column: string, year: number): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `YEAR(${this.bindColumn(String(column))})`,
-    //     `=`,
-    //     `'${`0000${this.$utils.escape(year)}`.slice(-4)}'`,
-    //   ].join(" "),
-    // ]);
-
+  
      this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column   : `YEAR(${this.bindColumn(String(column))})`,             
         operator : '=',         
-        value    : `'${`0000${this.$utils.escape(year)}`.slice(-2)}'`,
+        value    : `'${`0000${this.$utils.formatQueryValue(year)}`.slice(-2)}'`,
       }
     ]);
 
@@ -917,25 +882,13 @@ class Builder extends AbstractBuilder {
     column: string,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}->>'$.${key}'`,
-    //     `${operator == null ? "=" : operator.toLocaleUpperCase()}`,
-    //     `${this.$utils.transfromValueHasRaw(value)}`,
-    //   ].join(" "),
-    // ]);
-
+    
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.bindColumn(String(column))}->>'$.${key}'`,             
         operator : `${operator == null ? "=" : operator.toLocaleUpperCase()}`,         
-        value : `${this.$utils.transfromValueHasRaw(value)}`
+        value : `${this.$utils.formatQueryValue(value)}`
       }
     ]);
 
@@ -969,14 +922,16 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public whereExists(sql: string | Builder): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.$constants("EXISTS")}`,
-    //     `(${sql})`,
-    //   ].join(" "),
-    // ]);
+    if (sql instanceof Builder && !sql.$state.get("SELECT").length) {
+      sql.select1();
+    }
+    
+    this.$state.set("WHERE", [
+      ...this.$state.get("WHERE"),
+      {
+        value: `${this.$constants("EXISTS")} (${sql})`
+      }
+    ]);
 
     return this;
   }
@@ -1113,15 +1068,10 @@ class Builder extends AbstractBuilder {
   public whereIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
-    
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1129,7 +1079,7 @@ class Builder extends AbstractBuilder {
         operator : `${this.$constants("IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -1148,13 +1098,9 @@ class Builder extends AbstractBuilder {
   public orWhereIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1164,7 +1110,7 @@ class Builder extends AbstractBuilder {
         condition : 'OR',
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -1183,24 +1129,6 @@ class Builder extends AbstractBuilder {
   public whereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
-
-    //   this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("NOT_IN")}`,
-    //     `(${values})`,
-    //   ].join(" "),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1208,7 +1136,7 @@ class Builder extends AbstractBuilder {
         operator : `${this.$constants("NOT_IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -1227,24 +1155,6 @@ class Builder extends AbstractBuilder {
   public orWhereNotIn(column: string, array: any[]): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value))
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
-
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("NOT_IN")}`,
-    //     `(${values})`,
-    //   ].join(" "),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1253,7 +1163,7 @@ class Builder extends AbstractBuilder {
         condition : 'OR',
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -1278,19 +1188,10 @@ class Builder extends AbstractBuilder {
       operator?: (typeof CONSTANTS)["EQ"] | (typeof CONSTANTS)["IN"];
     } = { operator: CONSTANTS["IN"] }
   ): this {
+
     if (subQuery instanceof Builder && !subQuery.$state.get("SELECT").length) {
       subQuery.select("id");
     }
-
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ].join(" "),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1325,17 +1226,6 @@ class Builder extends AbstractBuilder {
       subQuery.select("id");
     }
 
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     options.operator,
-    //     ,
-    //     `(${subQuery})`,
-    //   ].join(" "),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1369,17 +1259,7 @@ class Builder extends AbstractBuilder {
       subQuery.select("id");
     }
 
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ].join(" "),
-    // ]);
-
-      this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
@@ -1413,17 +1293,7 @@ class Builder extends AbstractBuilder {
       subQuery.select("id");
     }
 
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     options.operator,
-    //     `(${subQuery})`,
-    //   ].join(" "),
-    // ]);
-
-      this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
@@ -1447,22 +1317,10 @@ class Builder extends AbstractBuilder {
   public whereBetween(column: string, array: [any,any]): this {
 
     if (!array.length) {
-      return this.whereBetween(column,['NULL','NULL']);
+      return this.whereBetween(column,[DB.raw('NULL'),DB.raw('NULL')]);
     }
 
     const [value1, value2] = array;
-
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("BETWEEN")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
-    //     `${this.$constants("AND")}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
-    //   ].join(" "),
-    // ]);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -1470,9 +1328,9 @@ class Builder extends AbstractBuilder {
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -1503,9 +1361,9 @@ class Builder extends AbstractBuilder {
         operator : `${this.$constants("BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -1536,9 +1394,9 @@ class Builder extends AbstractBuilder {
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("NOT_BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -1570,9 +1428,9 @@ class Builder extends AbstractBuilder {
         operator : `${this.$constants("NOT_BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -1588,15 +1446,7 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public whereNull(column: string): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("IS_NULL")}`,
-    //   ].join(" "),
-    // ]);
-
+   
      this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1616,15 +1466,7 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public orWhereNull(column: string): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("IS_NULL")}`,
-    //   ].join(" "),
-    // ]);
-
+   
      this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1645,15 +1487,7 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public whereNotNull(column: string): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("IS_NOT_NULL")}`,
-    //   ].join(" "),
-    // ]);
-
+  
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1673,15 +1507,7 @@ class Builder extends AbstractBuilder {
    * @returns {this}
    */
   public orWhereNotNull(column: string): this {
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("OR")}` : "",
-    //     `${this.bindColumn(column)}`,
-    //     `${this.$constants("IS_NOT_NULL")}`,
-    //   ].join(" "),
-    // ]);
-
+  
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
@@ -1711,26 +1537,12 @@ class Builder extends AbstractBuilder {
       arguments.length === 2
     );
 
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    // this.$state.set("WHERE", [
-    //   ...this.$state.get("WHERE"),
-    //   [
-    //     this.$state.get("WHERE").length ? `${this.$constants("AND")}` : "",
-    //     `${this.$constants("BINARY")}`,
-    //     `${this.bindColumn(column)}`,
-    //     `${operator}`,
-    //     `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
-    //   ].join(" "),
-    // ]);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator : `${this.$constants("IS_NULL")}`,
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -1769,16 +1581,14 @@ class Builder extends AbstractBuilder {
       operator,
       arguments.length === 2
     );
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
+   
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
         condition: 'OR',
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -1886,9 +1696,6 @@ class Builder extends AbstractBuilder {
       arguments.length === 2
     );
 
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.whereQuery((query: DB) => {
       for (const index in columns) {
         const column = columns[index];
@@ -1923,9 +1730,6 @@ class Builder extends AbstractBuilder {
       arguments.length === 2
     );
 
-    value = this.$utils.escape(value);
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.whereQuery((query: DB) => {
       for (const column of columns) query.where(column, operator, value);
       return query;
@@ -1954,19 +1758,18 @@ class Builder extends AbstractBuilder {
       )} ${then}`;
     });
 
-    // const whereClause = [
-    //   this.$state.get("WHERE").length ? this.$constants("AND") : "",
-    //   "(",
-    //   this.$constants("CASE"),
-    //   ...query,
-    //   elseCase != null ? `ELSE ${elseCase}` : "",
-    //   this.$constants("END"),
-    //   ")",
-    // ]
-    //   .filter(Boolean)
-    //   .join(" ");
+    const whereClause = [
+      "(",
+      this.$constants("CASE"),
+      ...query,
+      elseCase != null ? `ELSE ${elseCase}` : "",
+      this.$constants("END"),
+      ")",
+    ]
+    .filter(Boolean)
+    .join(" ");
 
-    // this.$state.set("WHERE", [...this.$state.get("WHERE"), whereClause]);
+    this.whereRaw(whereClause)
 
     return this;
   }
@@ -1995,7 +1798,6 @@ class Builder extends AbstractBuilder {
     });
 
     const whereClause = [
-      this.$state.get("WHERE").length ? this.$constants("OR") : "",
       "(",
       this.$constants("CASE"),
       ...query,
@@ -2006,7 +1808,7 @@ class Builder extends AbstractBuilder {
       .filter(Boolean)
       .join(" ");
 
-    // this.$state.set("WHERE", [...this.$state.get("WHERE"), whereClause]);
+     this.orWhereRaw(whereClause)
 
     return this;
   }
@@ -3938,7 +3740,6 @@ class Builder extends AbstractBuilder {
 
     if (!result.length)
       return {
-        //@ts-ignore
         meta: {
           total: 0,
           limit,
@@ -3947,6 +3748,12 @@ class Builder extends AbstractBuilder {
           last_page: 0,
           next_page: 0,
           prev_page: 0,
+          page: {
+            prev: 0,
+            next: 0,
+            current: currentPage,
+            last: 0,
+          },
         },
         data: [],
       };
@@ -3964,7 +3771,6 @@ class Builder extends AbstractBuilder {
     const count = result?.length ?? 0;
 
     return {
-      //@ts-ignore
       meta: {
         total: total,
         limit: limit,
@@ -3973,6 +3779,12 @@ class Builder extends AbstractBuilder {
         last_page: lastPage,
         next_page: nextPage,
         prev_page: prevPage,
+        page: {
+          prev: prevPage,
+          next: nextPage,
+          current: currentPage,
+          last: lastPage,
+        },
       },
       data: result ?? [],
     };

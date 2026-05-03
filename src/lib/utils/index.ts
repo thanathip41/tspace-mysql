@@ -556,6 +556,14 @@ const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | '
     }];
 }
 
+const formatQueryValue = (v: any) : any => {
+    if(Array.isArray(v)) return v;
+    v = transfromDateToDateString(v);
+    v = escape(v);
+    v = transfromBooleanToNumber(v);
+    return transfromValueHasRaw(v);
+};
+
 const utils = {
     typeOf,
     isDate,
@@ -589,6 +597,7 @@ const utils = {
     applyTransforms,
     hash32,
     nestConditions,
+    formatQueryValue
 }
 
 export type TUtils = typeof utils
