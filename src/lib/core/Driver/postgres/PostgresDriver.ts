@@ -90,7 +90,7 @@ export class PostgresDriver extends BaseDriver {
 
       process.nextTick(() => {
         console.log(message(err?.message));
-        return process.exit();
+        if(this.options.CONNECTION_ERROR) return process.exit()
       });
     });
 
