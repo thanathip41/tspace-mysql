@@ -356,6 +356,11 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
+  public createDatabase(database: string) {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
   public createTable({
     database,
     table,

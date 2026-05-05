@@ -54,14 +54,41 @@ export class MariadbDriver extends BaseDriver {
       connectionLimit : configs.connectionLimit * 1.5
     });
 
-    this.pool.getConnection().catch((err: any) => {
-      const message = this._messageError.bind(this);
+    this.pool.getConnection().catch(async (err:any) => {
+      if(!err) return;
+      
+      if(
+        err?.message?.includes('Unknown database') || 
+        err?.message.includes('(conn:-1, no: 45028, SQLState: HY000) pool timeout')
+      ) {
+
+        const db = await mariadb.createConnection({
+          host                  : options.host,
+          port                  : options.port,
+          user                  : options.user || options.username,
+          password              : options.password,
+        })
+
+        const sql = new MariadbQueryBuilder({} as any).createDatabase(options.database);
+
+        await db.query(sql);
+
+        await db.end();
+
+        return
+      }
+
+      const message = this._messageError.bind(this)
 
       process.nextTick(() => {
-        console.log(message(err?.message));
-        return process.exit();
-      });
-    });
+          if(String(err.message).includes('Pool is close')) {
+              return
+          }
+          console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
+          if(this.options.CONNECTION_ERROR) return process.exit()
+      })
+
+    })
 
     return {
       database : () => options.database,

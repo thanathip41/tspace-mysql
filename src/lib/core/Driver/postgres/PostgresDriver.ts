@@ -63,8 +63,28 @@ export class PostgresDriver extends BaseDriver {
       connectionLimit : configs.max * 1.5
     });
 
-    this.pool.connect((err: any) => {
+    this.pool.connect(async (err: any) => {
       if (err == null || !err) return;
+
+       if(err?.message?.includes(`database "${options.database}" does not exist`)) {
+      
+        const db = new pg.Client({
+          host                  : options.host,
+          port                  : options.port,
+          user                  : options.user || options.username,
+          password              : options.password,
+          database              : "postgres",
+        })
+        
+        await db.connect();
+
+        const sql = new PostgresQueryBuilder({} as any).createDatabase(options.database);
+        
+        await db.query(sql);
+        await db.end();
+
+        return
+      }
 
       const message = this._messageError.bind(this);
 

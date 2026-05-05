@@ -198,6 +198,8 @@ export abstract class QueryBuilder {
     table: string;
   }): string;
 
+  public abstract createDatabase(database : string): string;
+
   public abstract createTable({
     database,
     table,

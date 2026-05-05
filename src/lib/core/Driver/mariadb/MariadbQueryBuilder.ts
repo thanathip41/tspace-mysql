@@ -202,6 +202,11 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public createDatabase(database: string) {
+    const sql = `CREATE DATABASE IF NOT EXISTS \`${database}\``;
+    return this.format(sql);
+  }
+
   public createTable({
     database,
     table,
