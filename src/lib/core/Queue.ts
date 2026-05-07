@@ -25,7 +25,7 @@ type State = {
 }
 
 type QueueAddOptions = {
-  delayMs     ?: number  // default now   
+  delayMs     ?: number  // default 0 
   priority    ?: number // default 0
   metadata    ?: Record<string, any> // default null
   maxAttempts ?: number // default 3
@@ -271,6 +271,7 @@ class Worker extends Model<TS> {
     public async getNames() {
         return await new Worker().select('name').toArray('name');
     }
+
     public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
         return new Promise<Promise<void>>((resolve, reject) => {
         
@@ -318,7 +319,7 @@ class Worker extends Model<TS> {
             console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.dispatch}\x1b[0m`)
         }
 
-        const findJobs = async () => {
+        const dispatch = async () => {
 
             if (this.STOPPING) return;
 
@@ -329,13 +330,14 @@ class Worker extends Model<TS> {
             if (state.running >= state.opts.concurrency) {
                 const jitter = Math.random() * 200;
                 state.running--
-                return setTimeout(findJobs, state.opts.interval + jitter);
+                setTimeout(dispatch, state.opts.interval + jitter);
+                return;
             }
 
             const capacity = state.opts.concurrency - state.running;
 
             const jobs = await this._dequeueMany(name, capacity);
-
+           
             if (!jobs || jobs.length === 0) {
                 state.idle++
 
@@ -351,21 +353,23 @@ class Worker extends Model<TS> {
 
                 const backoff = Math.min(1000, 50 * state.idle);
                 const jitter = Math.random() * 200;
-                return setTimeout(findJobs, opts.interval! + backoff + jitter);
+
+                setTimeout(dispatch, opts.interval! + backoff + jitter);
+                return;
             }
 
             state.idle = 0;
+            
+            await Promise.all(
+                jobs.map(job => this._runJob(name, job, state))
+            );
+           
+            setImmediate(dispatch);
 
-            for (const job of jobs) {
-                this._runJob(name, job, state)
-            }
-
-            return setImmediate(findJobs);
+            return;
         }
 
-        findJobs();
-
-        return;
+        return dispatch();
     }
 
     private async _runJob (name: string, job: JobInternal, state: State) {
@@ -853,9 +857,9 @@ class Queue {
      *
      * @param {(worker: Worker) => any} cb - Callback with Worker instance.
      * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
+     * @returns {Promise<Work>}
      */
-    static async worker(cb: (worker: Worker) => any): Promise<any> {
+    static async worker(cb: (worker: Worker) => any): Promise<Worker> {
         
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
