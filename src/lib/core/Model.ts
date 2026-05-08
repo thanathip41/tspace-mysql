@@ -5540,7 +5540,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -5594,8 +5594,8 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
-
+    this.$state.set("DATA", this._formatedInputData(data));
+    
     this.limit(1);
 
     if (this.$state.get("TRANSFORMS") == null) {
@@ -5638,7 +5638,7 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5820,7 +5820,7 @@ class Model<
       }`;
     });
 
-    this.$state.set("DATA", columns);
+    this.$state.set("DATA", this._formatedInputData(columns));
 
     this.$state.set("UPDATE", keyValue);
 
@@ -5861,7 +5861,7 @@ class Model<
       };
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5887,7 +5887,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5948,7 +5948,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -5985,7 +5985,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -6024,7 +6024,7 @@ class Model<
       throw this._assertError("This method must require a non-empty array.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertMultipleModel();
@@ -6999,7 +6999,7 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     return;
   }
@@ -7662,7 +7662,7 @@ class Model<
       newData.push(objects);
     }
 
-    this.$state.set("DATA", newData);
+    this.$state.set("DATA", this._formatedInputData(newData));
 
     columns = [
       ...new Set(
@@ -8431,6 +8431,33 @@ class Model<
       localKey,
       foreignKey,
     };
+  }
+
+  private _formatedInputData(data: any) {
+    const schema = this.getSchemaModel();
+    if (!schema) return data;
+
+    if(data == null) return data;
+
+    const formatObject = (obj: any) => {
+      if (obj === null || typeof obj !== 'object') return obj;
+
+      const result: any = {};
+
+      for (const key of Object.keys(schema)) {
+        if (key in obj) {
+          result[key] = obj[key];
+        }
+      }
+
+      return result;
+    };
+
+    if (Array.isArray(data)) {
+      return data.map(item => formatObject(item));
+    }
+
+    return formatObject(data);
   }
 
   private _initialModel(): this {
