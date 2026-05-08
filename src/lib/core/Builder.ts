@@ -3695,11 +3695,11 @@ class Builder extends AbstractBuilder {
    * The 'find' method is used to retrieve a single record from a database table by its primary key.
    *
    * This method allows you to quickly fetch a specific record by specifying the primary key value, which is typically an integer id.
-   * @param {number} id
+   * @param {number | string} primaryKey
    * @returns {promise<any>}
    */
-  async find(id: number): Promise<Record<string, any> | null> {
-    this.where("id", id);
+  public async find(primaryKey: number | string): Promise<Record<string, any> | null> {
+    this.where("id", primaryKey);
 
     return await this.first();
   }

@@ -22,13 +22,15 @@ import type {
   TDriver,
   TPoolConnected,
   TLifecycle,
-  TCacheModel
+  TCacheModel,
+  TRawStringQuery
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
 
 import { REFLECT_META } from "./Decorator";
 import { Join } from "./Join";
+import Repository from "./Repository";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -184,6 +186,480 @@ class Model<
   }
 
   /**
+   *
+   * The 'find' method is used to retrieve a single record from a database table by its primary key.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.find({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async find<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    primaryKey: number | string,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
+    return await Repository<M>(this as any).find(primaryKey,options);
+  }
+
+  /**
+   *
+   * The 'findOne' method is used to retrieve the get record that matches the query conditions.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.findOne({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async findOne<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
+    return await Repository<M>(this as any).findOne(options);
+  }
+
+  /**
+   *
+   * The 'findMany' method is used to retrieve the get record that matches the query conditions.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.findMany({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async findMany<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G>[]> {
+    return await Repository<M>(this as any).findMany(options);
+  }
+
+  /**
+   *
+   * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   *  const users = await User.paginate({
+   *       limit:15,
+   *       page: 1,
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   */
+  static async paginate<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await Repository<M>(this as any).paginate(options);
+  }
+
+  /**
+   * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
+   *
+   * It returns a boolean value indicating whether there are any matching records.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const users = await User.exists({
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async exists<
+    Self extends Model,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+    >
+  ): Promise<boolean> {
+    return await Repository<M>(this as any).exists(options);
+  }
+
+  /**
+   * The 'toQuery' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
+   *
+   * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const users = await User.exists({
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static toQuery<
+    Self extends Model,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+    >
+  ): string {
+    return Repository<M>(this as any).toString(options);
+  }
+
+  /**
+   * The 'create' method is used to insert a new record into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T.Result<M>>}
+   */
+  static async create<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>
+  >  {
+    return Repository<M>(this as any).create(options)
+  }
+
+  /**
+   * The 'createMany' method is used to insert a new records into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records with an array.
+   * @type     {object}  options
+   * @property {object[]} options.data
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<TS[]>}
+   */
+  static async createMany<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateMultiple<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).createMany(options)
+  }
+
+  /**
+   *
+   * The 'createOrUpdate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
+   *
+   * This method is particularly useful when you want to update a record based on certain conditions and,
+   * if the record matching those conditions doesn't exist, create a new one with the provided data.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @return {promise<NR extends true ? undefined : T.Result<M>[]>}
+   */
+  static async createOrUpdate<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).createOrUpdate(options)
+  }
+
+  /**
+   * The 'createNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
+   *
+   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+   * but without raising an error or exception if duplicates are encountered.
+   *
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T | null>}
+   */
+  static async createNotExists<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).createNotExists(options)
+  }
+
+  /**
+   *
+   * The 'createOrSelect' method to insert data into a database table while select any duplicate key constraint violations.
+   *
+   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+   * but if exists should be returns a result.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @return {promise<T.Result<M>>}
+   */
+  static async createOrSelect<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).createOrSelect(options)
+  }
+
+  /**
+   * The 'update' method is used to update existing records in a database table that are associated.
+   *
+   * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+   *
+   * It allows you to remove one record that match certain criteria.
+   * @type     {object} options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise< NR extends true ? undefined : T.Result<M> | null>}
+   */
+  static async update<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryUpdate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).update(options)
+  }
+
+  /**
+   * The 'updateMany' method is used to update existing records in a database table that are associated.
+   *
+   * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+   *
+   * It allows you to remove more records that match certain criteria.
+   * @type     {object} options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T.Result<M>[]>}
+   */
+  static async updateMany<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryUpdate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).updateMany(options)
+  }
+
+  /**
    * The 'cache' method is used get the functions from the Cache
    * @returns {TCacheModel} cache
    */
@@ -210,7 +686,7 @@ class Model<
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.exists(cacheKey);
       },
-      set: async (key: string, value: unknown, ms: number,options?: { namespace?: boolean }) => {
+      set: async (key: string, value: any, ms: number,options?: { namespace?: boolean }) => {
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.set(cacheKey, value, ms);
       },
@@ -5295,6 +5771,16 @@ class Model<
    */
   public async findOne<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     return await this.first(cb);
+  }
+
+  /**
+   * @override
+   * @param {number} id callback function return query sql
+   * @returns {promise<Record<string,any> | null>} Record | null
+   */
+  public async find<K>(primaryKey: number | string): Promise<T.Result<this, K> | null> {
+    this.where(this.$state.get("PRIMARY_KEY"), primaryKey as any);
+    return await this.first();
   }
 
   /**
