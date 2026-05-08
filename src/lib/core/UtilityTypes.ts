@@ -473,11 +473,11 @@ export declare namespace T {
             G
         >;
 
-    type RepositoryCreate<M extends Model> = TRepositoryCreate<M>
-    type RepositoryCreateMultiple<M extends Model> = TRepositoryCreateMultiple<M>;
-    type RepositoryUpdate<M extends Model> = TRepositoryUpdate<M>;
-    type RepositoryUpdateMultiple<M extends Model> = TRepositoryUpdateMultiple<M>;
-    type RepositoryCreateOrThings<M extends Model> = TRepositoryCreateOrThings<M>;
+    type RepositoryCreate<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreate<M,NR>
+    type RepositoryCreateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateMultiple<M,NR>;
+    type RepositoryUpdate<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdate<M,NR>;
+    type RepositoryUpdateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdateMultiple<M,NR>;
+    type RepositoryCreateOrThings<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateOrThings<M,NR>;
     type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
 
     type RepositoryGenericTypeOptions = TRepositoryExtendType
