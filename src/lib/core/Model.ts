@@ -1611,6 +1611,7 @@ class Model<
    * @param {Object}  object
    * @property {string} key key of cache
    * @property {number} expires ms
+   * @property {boolean} namespace whether to use namespace for cache key, default is false, namespace is `${database}:${table}:${key}`
    * @returns {this} this
    */
   public cache({ key, expires,namespace }: { 

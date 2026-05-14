@@ -1229,6 +1229,7 @@ class RepositoryFactory<
       instance.cache({
         key: cache.key,
         expires: cache.expires,
+        namespace: cache.namespace,
       });
     }
 

@@ -416,6 +416,7 @@ export type TRepositoryRequest<
   cache?: {
     key: string;
     expires: number;
+    namespace?: boolean;
   };
 
   when?: {
