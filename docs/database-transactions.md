@@ -3,7 +3,11 @@
 Within a database transaction, you can utilize the following:
 
 ```js
-const trx = await new DB().beginTransaction();
+import { DB } from 'tspace-mysql';
+import { User } from '../Models/User';
+import { Post } from '../Models/Post';
+
+const trx = await DB.beginTransaction();
 
 try {
   /**
@@ -83,6 +87,52 @@ try {
    * @rollback rollback transaction
    */
   await trx.rollback();
+
+  console.error(err);
+}
+```
+Or you can use transaction method for auto commit and rollback, you can utilize the following:
+```js
+import { DB } from 'tspace-mysql';
+import { User } from '../Models/User';
+import { Post } from '../Models/Post';
+
+try {
+  
+  const { user, posts } = await DB.transaction(async (trx) => {
+    
+    const user = await new User()
+    .create({
+      name: `tspace`,
+      email: "tspace@example.com",
+    })
+    .bind(trx) // don't forget this
+    .save();
+
+  const posts = await new Post()
+    .createMultiple([
+      {
+        user_id: user.id,
+        title: `tspace-post1`,
+      },
+      {
+        user_id: user.id,
+        title: `tspace-post2`,
+      },
+      {
+        user_id: user.id,
+        title: `tspace-post3`,
+      },
+    ])
+    .bind(trx) // don't forget this
+    .save();
+
+    return { user, posts };
+
+  });
+} catch (err) {
+  // error here is from transaction method, you don't need to worry about rollback, just catch error and handle it.
+  console.error(err);
 }
 ```
 

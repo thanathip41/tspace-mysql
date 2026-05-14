@@ -7,16 +7,19 @@ It provides methods for querying, inserting, updating, and deleting records in t
 ** The Repository check always type Type Safety if model is used the type of schema 
 
 ```
-## Select Statements
+## Repository Select Statements
 ```js
 import { Repository, OP , type T } from 'tspace-mysql'
 import { User } from '../Models/User'
 
 // Create repository instance for User entity
 const userRepository = Repository(User)
+
+// Or Use static methods for flexible querying
+// const user = await User.findOne({ ... }) // traditional way without repository
+
 // Fetch a single user with flexible query options
 const user = await userRepository.findOne({
-
   /**
    * 🎯 SELECT
    * Specify which columns should be returned.
@@ -122,6 +125,9 @@ const user = await userRepository.findOne({
   }
 })
 
+
+// Use static methods for flexible querying
+// const users = await User.findMany({ limit: 3 }) // traditional way without repository
 const users = await userRepository.findMany({
   select : {
     id : true,
@@ -141,6 +147,8 @@ const users = await userRepository.findMany({
   }
 })
 
+// Use static methods for flexible querying
+// const userPaginate = await User.pagination() // traditional way without repository
 const userPaginate = await userRepository.pagination({
   select : {
     id : true,
@@ -164,8 +172,11 @@ const findFullName = await userRepository.findOne({
   ]
 })
 ```
-## Insert Statements
+## Repository Insert Statements
 ```js
+// Use static methods for flexible querying
+// const created = await User.create({...}) // traditional way without repository
+
 const userRepository = Repository(User)
 
 const created = await userRepository.create({
@@ -215,10 +226,13 @@ const createdOrSelected = await userRepository.createOrSelect({
 
 
 ```
-## Update Statements
+## Repository Update Statements
 ```js
-const userRepository = Repository(User)
 
+// Use static methods for flexible querying
+// const updated = await User.update({...}) // traditional way without repository
+
+const userRepository = Repository(User)
 const updated = await userRepository.update({
   data : {
     name : "repository-name",
@@ -230,10 +244,13 @@ const updated = await userRepository.update({
 })
 
 ```
-## Delete Statements
+## Repository Delete Statements
 ```js
-const userRepository = Repository(User)
 
+// Use static methods for flexible querying
+// const deleted = await User.delete({...}) // traditional way without repository
+
+const userRepository = Repository(User)
 const deleted = await userRepository.delete({
   where : {
     id : 1
@@ -242,7 +259,7 @@ const deleted = await userRepository.delete({
 
 ```
 
-## Transactions
+## Repository Transactions
 
 ```js
 import { DB , Repository } from 'tspace-mysql'
@@ -286,14 +303,16 @@ try {
 
 ```
 
-## Relations
+## Repository Relations
 ```js
 import { Repository , OP } from 'tspace-mysql'
 import { User } from '../Models/User'
 import { Phone } from '../Models/Phone'
 
-const userRepository = Repository(User)
+// Use static methods for flexible querying
+// const userHasPhones = await User.findOne({...}) // traditional way without repository
 
+const userRepository = Repository(User)
 const userHasPhones = await userRepository.findOne({
   select : {
     id : true,
@@ -323,15 +342,7 @@ const phoneBelongUser = await phoneRepository.findOne({
     id: 1
   },
   relations : {
-    user : { // you can using any options in method findOne too
-      select: {
-        id: true,
-        name: true
-      },
-      where: {
-        id: 2
-      }
-    }
+    user : true
   }
 })
 
