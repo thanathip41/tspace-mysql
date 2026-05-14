@@ -219,6 +219,11 @@ export class SqliteQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public createDatabase(database: string) {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
   public createTable({
     database,
     table,

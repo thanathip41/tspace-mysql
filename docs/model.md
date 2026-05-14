@@ -1018,11 +1018,15 @@ DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()
 .cache({
-  key : 'users', // key of the cache
-  expires : 1000 * 60 // cache expires in 60 seconds
+  key : 'users1', // key of the cache
+  expires : 1000 * 60, // cache expires in 60 seconds
+  namespace : true // add namespace to the key of the cache like that 'db:users:users1' to avoid conflicts with other keys in cache
 })
 .sleep(5) // assume the query takes longer than 5 seconds...
 .findMany()
+
+// delete cache by key
+User.cache.delete('users1', { namespace : true })
 
 ```
 

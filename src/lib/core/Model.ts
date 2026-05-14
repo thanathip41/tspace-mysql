@@ -22,13 +22,15 @@ import type {
   TDriver,
   TPoolConnected,
   TLifecycle,
-  TCacheModel
+  TCacheModel,
+  TRawStringQuery
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
 
 import { REFLECT_META } from "./Decorator";
 import { Join } from "./Join";
+import Repository from "./Repository";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -173,6 +175,491 @@ class Model<
   }
 
   /**
+   * The 'query' method is used to return instance
+   * @static
+   * @example
+   * const user = await User.query().where('id',1).findOne();
+   * console.log(user);
+   */
+  static query<T>(this: new () => T): T {
+    return new this();
+  }
+
+  /**
+   *
+   * The 'find' method is used to retrieve a single record from a database table by its primary key.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.find({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async find<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    primaryKey: number | string,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
+    return await Repository<M>(this as any).find(primaryKey,options);
+  }
+
+  /**
+   *
+   * The 'findOne' method is used to retrieve the get record that matches the query conditions.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.findOne({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async findOne<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
+    return await Repository<M>(this as any).findOne(options);
+  }
+
+  /**
+   *
+   * The 'findMany' method is used to retrieve the get record that matches the query conditions.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<object>[]}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const users = await User.findMany({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async findMany<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G>[]> {
+    return await Repository<M>(this as any).findMany(options);
+  }
+
+  /**
+   *
+   * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   *  const users = await User.paginate({
+   *       limit:15,
+   *       page: 1,
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   */
+  static async paginate<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await Repository<M>(this as any).paginate(options);
+  }
+
+  /**
+   * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
+   *
+   * It returns a boolean value indicating whether there are any matching records.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const users = await User.exists({
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static async exists<
+    Self extends Model,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+    >
+  ): Promise<boolean> {
+    return await Repository<M>(this as any).exists(options);
+  }
+
+  /**
+   * The 'toQuery' method is used to retrieve the raw SQL query that would be executed by a query builder instance without actually executing it.
+   *
+   * This method is particularly useful for debugging and understanding the SQL queries generated by your application.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const users = await User.exists({
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   */
+  static toQuery<
+    Self extends Model,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+    >
+  ): string {
+    return Repository<M>(this as any).toString(options);
+  }
+
+  /**
+   * The 'create' method is used to insert a new record into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T.Result<M>>}
+   */
+  static async create<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>
+  >  {
+    return Repository<M>(this as any).create(options)
+  }
+
+  /**
+   * The 'createMany' method is used to insert a new records into a database table associated.
+   *
+   * It simplifies the process of creating and inserting records with an array.
+   * @type     {object}  options
+   * @property {object[]} options.data
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<TS[]>}
+   */
+  static async createMany<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateMultiple<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).createMany(options)
+  }
+
+  /**
+   *
+   * The 'createOrUpdate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
+   *
+   * This method is particularly useful when you want to update a record based on certain conditions and,
+   * if the record matching those conditions doesn't exist, create a new one with the provided data.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @return {promise<NR extends true ? undefined : T.Result<M>[]>}
+   */
+  static async createOrUpdate<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).createOrUpdate(options)
+  }
+
+  /**
+   * The 'createNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
+   *
+   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+   * but without raising an error or exception if duplicates are encountered.
+   *
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T | null>}
+   */
+  static async createNotExists<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).createNotExists(options)
+  }
+
+  /**
+   *
+   * The 'createOrSelect' method to insert data into a database table while select any duplicate key constraint violations.
+   *
+   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
+   * but if exists should be returns a result.
+   * @type     {object}  options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @return {promise<T.Result<M>>}
+   */
+  static async createOrSelect<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryCreateOrThings<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).createOrSelect(options)
+  }
+
+  /**
+   * The 'update' method is used to update existing records in a database table that are associated.
+   *
+   * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+   *
+   * It allows you to remove one record that match certain criteria.
+   * @type     {object} options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise< NR extends true ? undefined : T.Result<M> | null>}
+   */
+  static async update<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryUpdate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M> | null
+  >  {
+    return Repository<M>(this as any).update(options)
+  }
+
+  /**
+   * The 'updateMany' method is used to update existing records in a database table that are associated.
+   *
+   * It simplifies the process of updating records by allowing you to specify the values to be updated using a single call.
+   *
+   * It allows you to remove more records that match certain criteria.
+   * @type     {object} options
+   * @property {object} options.data
+   * @property {object} options.where
+   * @property {?boolean} options.debug
+   * @property {?transaction} options.transaction
+   * @return {promise<T.Result<M>[]>}
+   */
+  static async updateMany<
+    Self extends Model,
+    M  extends Model= Self,
+    NR extends boolean | undefined = false
+  >(
+    this: new () => Self,
+    options: T.RepositoryUpdate<M,NR>
+  ):  Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  >  {
+    return Repository<M>(this as any).updateMany(options)
+  }
+
+  /**
    * The 'cache' method is used get the functions from the Cache
    * @returns {TCacheModel} cache
    */
@@ -199,7 +686,7 @@ class Model<
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.exists(cacheKey);
       },
-      set: async (key: string, value: unknown, ms: number,options?: { namespace?: boolean }) => {
+      set: async (key: string, value: any, ms: number,options?: { namespace?: boolean }) => {
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.set(cacheKey, value, ms);
       },
@@ -1124,6 +1611,7 @@ class Model<
    * @param {Object}  object
    * @property {string} key key of cache
    * @property {number} expires ms
+   * @property {boolean} namespace whether to use namespace for cache key, default is false, namespace is `${database}:${table}:${key}`
    * @returns {this} this
    */
   public cache({ key, expires,namespace }: { 
@@ -1720,6 +2208,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any[]> {
     try {
+   
       sql = this._queryBuilder().format([sql]);
 
       const getResults = async (sql: string) => {
@@ -1738,6 +2227,7 @@ class Model<
 
           return results;
         }
+      
         return await this.$pool.query(sql);
       };
 
@@ -3008,19 +3498,27 @@ class Model<
   }
 
   public where<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     value: V
   ): this;
 
   public where<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
-    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like" ,
     value: V
   ): this;
 
@@ -3033,7 +3531,7 @@ class Model<
   /**
    * @override
    * @param {string | K} column if arguments is object
-   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like"
    * @param {any?} value
    * @returns {this} this
    */
@@ -3052,12 +3550,6 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.transfromDateToDateString(value);
-
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
@@ -3072,7 +3564,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+                  this.$utils.formatQueryValue(value),
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3092,12 +3584,14 @@ class Model<
       return this.whereIn(column, value);
     }
 
+    const formatedValue = this.$utils.formatQueryValue(value);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : formatedValue
       }
     ]);
 
@@ -3111,8 +3605,12 @@ class Model<
    * @returns {this} this
    */
   public orWhere<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     value: V
@@ -3121,16 +3619,20 @@ class Model<
   /**
    * @override
    * @param {string | K} column if arguments is object
-   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"
+   * @param {string?} operator "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE"  | "like"
    * @param {any?} value
    * @returns {this} this
    */
   public orWhere<
-    K extends keyof T.ColumnOptions<this>,
-    V extends T.ColumnOptions<this>[K]
+    K extends T.ColumnKeys<this>,
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
-    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" ,
+    operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like"  ,
     value: V
   ): this;
   
@@ -3144,12 +3646,6 @@ class Model<
       operator,
       arguments.length === 2,
     );
-
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    value = this.$utils.transfromDateToDateString(value);
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
@@ -3165,7 +3661,7 @@ class Model<
           const values = value
             ? `${value
                 .map((value: string) =>
-                  this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+                  this.$utils.formatQueryValue(value),
                 )
                 .join(",")}`
             : this.$constants(this.$constants("NULL"));
@@ -3185,12 +3681,14 @@ class Model<
       return this.orWhereIn(column as any, value);
     }
 
+    const formatedValue = this.$utils.formatQueryValue(value);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : operator,         
-        value : this.$utils.transfromValueHasRaw(value),
+        value : formatedValue,
         condition : 'OR'
       }
     ]);
@@ -3289,7 +3787,6 @@ class Model<
       const useOp = this.$utils.transfromValueHasOp(value);
 
       if (useOp == null) {
-        //@ts-ignore
         this.where(column, operator, value);
         continue;
       }
@@ -3390,16 +3887,15 @@ class Model<
     column: K,
     { key, value, operator }: { key: string; value: string; operator?: string },
   ): this {
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
+    
+    const formatedValue = this.$utils.formatQueryValue(value);
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.bindColumn(String(column))}->>'$.${key}'`,             
         operator : `${operator == null ? "=" : operator.toLocaleUpperCase()}`,         
-        value : `${this.$utils.transfromValueHasRaw(value)}`
+        value : formatedValue
       }
     ]);
 
@@ -3430,12 +3926,14 @@ class Model<
    */
   public whereUser(userId: number, column: string = "user_id"): this {
   
+    const formatedValue = this.$utils.formatQueryValue(userId);
+
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : this.bindColumn(String(column)),             
         operator : '=',         
-        value : `${this.$utils.escape(userId)}`,
+        value : formatedValue
       }
     ]);
 
@@ -3469,19 +3967,24 @@ class Model<
    * @returns {this}
    */
   public whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
-          )
-          .join(",")}`
-      : this.$constants(this.$constants("NULL"));
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
       const sql = blueprint.sql?.where;
 
       if (sql) {
@@ -3496,7 +3999,7 @@ class Model<
         operator : `${this.$constants("IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3516,13 +4019,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    const values = array.length
-      ? `${array
-          .map((value: string) =>
-            this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
+
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
           )
           .join(",")}`
       : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.orWhereRaw(`${sql} ${this.$constants("IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3532,7 +4049,7 @@ class Model<
         operator : `${this.$constants("IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3552,13 +4069,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
 
-    const values = `${array
-      .map((value: string) =>
-        this.$utils.transfromValueHasRaw(this.$utils.escape(value)),
-      )
-      .join(",")}`;
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.whereRaw(`${sql} ${this.$constants("NOT_IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3567,7 +4098,7 @@ class Model<
         operator : `${this.$constants("NOT_IN")}`,
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3587,7 +4118,27 @@ class Model<
   ): this {
     if (!Array.isArray(array)) array = [array];
 
-    if (!array.length) return this;
+    if(!array.length) {
+      array = [DB.raw(this.$constants("NULL"))];
+    }
+
+    const blueprint = this._getBlueprintByColumn(String(column));
+
+    if (blueprint?.isVirtual) {
+      const values = array.length ? `${array
+          .map((value: string) => {
+            return this.$utils.formatQueryValue(value)
+          }
+            ,
+          )
+          .join(",")}`
+      : this.$constants(this.$constants("NULL"));
+      const sql = blueprint.sql?.where;
+
+      if (sql) {
+        return this.orWhereRaw(`${sql} ${this.$constants("NOT_IN")} (${values})`);
+      }
+    }
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3597,7 +4148,7 @@ class Model<
         condition : 'OR',
         value: array
         .map((value: string) => {
-          return this.$utils.transfromValueHasRaw(this.$utils.escape(value))
+          return this.$utils.formatQueryValue(value)
         })
       }
     ]);
@@ -3731,18 +4282,24 @@ class Model<
    */
   public whereBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
   ): this {
     
     if (!array.length) {
-      return this.whereBetween(column, ['NULL','NULL'] as [any,any])
+      return this.whereBetween(column, [
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
-    const [value1, value2] = array;
+    let [value1, value2] = array;
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3750,9 +4307,9 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -3768,8 +4325,11 @@ class Model<
    */
   public orWhereBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
@@ -3777,10 +4337,10 @@ class Model<
 
     if (!array.length) {
      
-      return this.orWhereBetween(column,['NULL','NULL'] as [any,any])
+      return this.orWhereBetween(column,[DB.raw(this.$constants("NULL")),DB.raw(this.$constants("NULL"))] as [any,any])
     }
 
-    const [value1, value2] = array;
+    let [value1, value2] = array;
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -3789,9 +4349,9 @@ class Model<
         operator : `${this.$constants("BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`
         ].join(" ")
       }
     ]);
@@ -3807,15 +4367,21 @@ class Model<
    */
   public whereNotBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
   ): this {
    
     if (!array.length) {
-      return this.whereNotBetween(column,['NULL','NULL'] as [any,any])
+      return this.whereNotBetween(column,[
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
     const [value1, value2] = array;
@@ -3826,9 +4392,9 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("NOT_BETWEEN")}`,
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -3844,15 +4410,21 @@ class Model<
    */
   public orWhereNotBetween<
     K extends T.ColumnKeys<this>,
-    //@ts-ignore
-    V extends T.ColumnOptions<this>[K]
+    V extends (
+      K & keyof T.ColumnOptions<this> extends never
+        ? any
+        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
+    )
   >(
     column: K,
     array: [V, V],
   ): this {
 
     if (!array.length) {
-       return this.orWhereNotBetween(column,['NULL','NULL'] as [any,any])
+       return this.orWhereNotBetween(column,[
+        DB.raw(this.$constants("NULL")),
+        DB.raw(this.$constants("NULL"))
+      ] as [any,any])
     }
 
     const [value1, value2] = array;
@@ -3864,9 +4436,9 @@ class Model<
         operator : `${this.$constants("NOT_BETWEEN")}`,
         condition : 'OR',
         value: [
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value1))}`,
+          `${this.$utils.formatQueryValue(value1)}`,
           `${this.$constants("AND")}`,
-          `${this.$utils.transfromValueHasRaw(this.$utils.escape(value2))}`,
+          `${this.$utils.formatQueryValue(value2)}`,
         ].join(" ")
       }
     ]);
@@ -3967,16 +4539,12 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`
       }
     ]);
 
@@ -4001,16 +4569,12 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -4035,17 +4599,13 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
         column : `${this.$constants("BINARY")} ${this.bindColumn(String(column))}`,             
         operator,
         condition : 'OR',
-        value : `${this.$utils.transfromValueHasRaw(this.$utils.escape(value))}`,
+        value : `${this.$utils.formatQueryValue(value)}`,
       }
     ]);
 
@@ -4208,10 +4768,6 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
     this.whereQuery((query: Model) => {
       for (const index in columns) {
         const column = String(columns[index]);
@@ -4250,11 +4806,7 @@ class Model<
       arguments.length === 2,
     );
 
-    value = this.$utils.escape(value);
-
-    value = this.$utils.transfromBooleanToNumber(value);
-
-    this.whereQuery((query: Model) => {
+    this.whereQuery((query) => {
       for (const key in columns) {
         const column = String(columns[key]);
         query.where(this.bindColumn(column), operator, value);
@@ -4956,15 +5508,18 @@ class Model<
 
       await this._runBefore("update");
 
-      const result = await new Model()
-        .copyModel(this, { where: true, limit: true, orderBy: true })
-        .update({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .disableSoftDelete()
-        .bind(this.$pool.get())
-        .debug(this.$state.get("DEBUG"))
-        .save();
+      const sql = new Model()
+      .copyModel(this, { where: true, limit: true, orderBy : true })
+      .update({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .toString();
+
+      const r = await this._actionStatement(sql);
+
+      const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
       await this._observer(result, "updated");
 
@@ -4977,15 +5532,15 @@ class Model<
 
     await this._runBefore("remove");
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
+    const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
-    await this._observer(r, "deleted");
+    await this._observer(result, "deleted");
 
-    await this._runAfter("remove", r);
+    await this._runAfter("remove", result);
 
-    return r;
+    return result;
   }
 
   /**
@@ -4996,21 +5551,25 @@ class Model<
     this._guardWhereCondition();
 
     if (this.$state.get("SOFT_DELETE")) {
+
       const deletedAt = this._valuePattern(
-        this.$state.get("SOFT_DELETE_FORMAT"),
+        this.$state.get("SOFT_DELETE_FORMAT")
       );
 
       await this._runBefore("update");
 
-      const result = await new Model()
-        .copyModel(this, { where: true, limit: true })
-        .updateMany({
-          [deletedAt]: this.$utils.timestamp(),
-        })
-        .disableSoftDelete()
-        .debug(this.$state.get("DEBUG"))
-        .bind(this.$pool.get())
-        .save();
+      const sql = new Model()
+      .copyModel(this, { where: true, orderBy: true })
+      .updateMany({
+        [deletedAt]: this.$utils.timestamp(),
+      })
+      .bind(this.$pool.get())
+      .debug(this.$state.get("DEBUG"))
+      .toString();
+
+      const r = await this._actionStatement(sql);
+
+      const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
       await this._observer(result, "updated");
 
@@ -5023,14 +5582,14 @@ class Model<
 
     await this._runBefore("remove");
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this._queryBuilder().remove());
 
-    const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
+    const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
-    await this._observer(r, "deleted");
-    await this._runAfter("remove", r);
+    await this._observer(result, "deleted");
+    await this._runAfter("remove", result);
 
-    return r;
+    return result;
   }
 
   /**
@@ -5213,6 +5772,16 @@ class Model<
    */
   public async findOne<K>(cb?: Function): Promise<T.Result<this, K> | null> {
     return await this.first(cb);
+  }
+
+  /**
+   * @override
+   * @param {number} id callback function return query sql
+   * @returns {promise<Record<string,any> | null>} Record | null
+   */
+  public async find<K>(primaryKey: number | string): Promise<T.Result<this, K> | null> {
+    this.where(this.$state.get("PRIMARY_KEY"), primaryKey as any);
+    return await this.first();
   }
 
   /**
@@ -5458,7 +6027,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -5512,8 +6081,8 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
-
+    this.$state.set("DATA", this._formatedInputData(data));
+    
     this.limit(1);
 
     if (this.$state.get("TRANSFORMS") == null) {
@@ -5556,7 +6125,7 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5738,7 +6307,7 @@ class Model<
       }`;
     });
 
-    this.$state.set("DATA", columns);
+    this.$state.set("DATA", this._formatedInputData(columns));
 
     this.$state.set("UPDATE", keyValue);
 
@@ -5779,7 +6348,7 @@ class Model<
       };
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5805,7 +6374,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryUpdateModel();
@@ -5866,7 +6435,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -5903,7 +6472,7 @@ class Model<
       throw this._assertError("This method must require at least 1 argument.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertModel();
@@ -5942,7 +6511,7 @@ class Model<
       throw this._assertError("This method must require a non-empty array.");
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     if (this.$state.get("TRANSFORMS") == null) {
       this._queryInsertMultipleModel();
@@ -6917,7 +7486,7 @@ class Model<
       }
     }
 
-    this.$state.set("DATA", data);
+    this.$state.set("DATA", this._formatedInputData(data));
 
     return;
   }
@@ -7580,7 +8149,7 @@ class Model<
       newData.push(objects);
     }
 
-    this.$state.set("DATA", newData);
+    this.$state.set("DATA", this._formatedInputData(newData));
 
     columns = [
       ...new Set(
@@ -8349,6 +8918,33 @@ class Model<
       localKey,
       foreignKey,
     };
+  }
+
+  private _formatedInputData(data: any) {
+    const schema = this.getSchemaModel();
+    if (!schema) return data;
+
+    if(data == null) return data;
+
+    const formatObject = (obj: any) => {
+      if (obj === null || typeof obj !== 'object') return obj;
+
+      const result: any = {};
+
+      for (const key of Object.keys(schema)) {
+        if (key in obj) {
+          result[key] = obj[key];
+        }
+      }
+
+      return result;
+    };
+
+    if (Array.isArray(data)) {
+      return data.map(item => formatObject(item));
+    }
+
+    return formatObject(data);
   }
 
   private _initialModel(): this {

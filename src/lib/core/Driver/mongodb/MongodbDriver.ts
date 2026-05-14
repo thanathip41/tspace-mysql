@@ -233,11 +233,8 @@ export class MongodblDriver extends BaseDriver {
 
         return {
             on: (event: TPoolEvent, data: any) => this.on(event, data),
-
             queryBuilder: MongodbQueryBuilder,
-
             query,
-
             startTransaction,
             commit,
             rollback,

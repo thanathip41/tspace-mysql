@@ -87,7 +87,7 @@ describe("Testing Repository", function () {
   it(`Repository: Start to mock up the data in table 'users' for testing CRUD
     - Repo   : const userRepo = Repository(User);
     - Create : Repository(User).create({data: userDataObject })
-    - Select : new User().first()
+    - Select : new User().findOne()
     - CreateMultiple : Repository(User).createMultiple({ data: userDataArray })
     - Update : Repository(User).update({where: { id: 6 }, data: { name: "was update"} })
     - Delete : Repository(User).delete({where: {id: 6} })
@@ -98,7 +98,7 @@ describe("Testing Repository", function () {
     expect(created).to.be.an("object");
     expect(created).to.be.jsonSchema(userSchemaObject);
 
-    const selectd = await Repository(User).first();
+    const selectd = await Repository(User).findOne();
     expect(selectd).to.be.an("object");
     expect(selectd).to.be.jsonSchema(userSchemaObject);
 
@@ -116,7 +116,7 @@ describe("Testing Repository", function () {
 
     expect(updated).to.be.an("object");
     expect(updated).to.be.jsonSchema(userSchemaObject);
-    expect(updated.name).to.be.equal("was update");
+    expect(updated?.name).to.be.equal("was update");
 
     const deleted = await Repository(User).delete({ where: { id: 6 } });
     expect(deleted).to.be.an("boolean");
@@ -126,7 +126,7 @@ describe("Testing Repository", function () {
   it(`Repository: Start to mock up the data in table 'posts' for testing CRUD
     - Repo   : const Repository(Post) = Repository(Post);
     - Create : Repository(Post).create({ data: postDataObject })
-    - Select : Repository(Post).first()
+    - Select : Repository(Post).findOne()
     - CreateMultiple : Repository(Post).createMultiple({ data: postDataArray })
     - Update : Repository(Post).update({where: { id: 6 }, data: { title: "was update"} })
     - Delete : Repository(Post).delete({where: {id: 6} })
@@ -135,7 +135,7 @@ describe("Testing Repository", function () {
     expect(created).to.be.an("object");
     expect(created).to.be.jsonSchema(postSchemaObject);
 
-    const selectd = await Repository(Post).first();
+    const selectd = await Repository(Post).findOne();
     expect(selectd).to.be.an("object");
     expect(selectd).to.be.jsonSchema(postSchemaObject);
 
@@ -152,7 +152,7 @@ describe("Testing Repository", function () {
 
     expect(updated).to.be.an("object");
     expect(updated).to.be.jsonSchema(postSchemaObject);
-    expect(updated.title).to.be.equal("was update");
+    expect(updated?.title).to.be.equal("was update");
 
     const deleted = await Repository(Post).delete({ where: { id: 6 } });
     expect(deleted).to.be.an("boolean");
@@ -182,21 +182,21 @@ describe("Testing Repository", function () {
     - whereNotSubQuery
     - whereQuery
   `, async function () {
-    const whereEq = await Repository(User).first({
+    const whereEq = await Repository(User).findOne({
       where: { id: 1 },
     });
     expect(whereEq).to.be.an("object");
     expect(whereEq).to.be.jsonSchema(userSchemaObject);
     expect(whereEq?.id).to.be.equal(1);
 
-    const whereNotEq = await Repository(User).get({
+    const whereNotEq = await Repository(User).findMany({
       where: { id: OP.notEq(1) },
     });
     expect(whereNotEq).to.be.an("array");
     expect(whereNotEq).to.be.jsonSchema(userSchemaArray);
     expect(whereNotEq.every((v) => v?.id !== 1)).to.be.equal(true);
 
-    const whereMoreThanOne = await Repository(User).get({
+    const whereMoreThanOne = await Repository(User).findMany({
       where: { id: OP.more(1) },
     });
 
@@ -204,21 +204,21 @@ describe("Testing Repository", function () {
     expect(whereMoreThanOne).to.be.jsonSchema(userSchemaArray);
     expect(whereMoreThanOne.every((v) => v?.id > 1)).to.be.equal(true);
 
-    const whereLessThanOne = await Repository(User).get({
+    const whereLessThanOne = await Repository(User).findMany({
       where: { id: OP.less(1) },
     });
     expect(whereLessThanOne).to.be.an("array");
     expect(whereLessThanOne).to.be.jsonSchema(userSchemaArray);
     expect(whereLessThanOne.every((v) => v?.id < 1)).to.be.equal(true);
 
-    const whereIn = await Repository(User).get({
+    const whereIn = await Repository(User).findMany({
       where: { id: OP.in([2, 3, 4, 5]) },
     });
     expect(whereIn).to.be.an("array");
     expect(whereIn).to.be.jsonSchema(userSchemaArray);
     expect(whereIn.every((v) => [2, 3, 4, 5].includes(v.id))).to.be.equal(true);
 
-    const whereSubQuery = await Repository(User).get({
+    const whereSubQuery = await Repository(User).findMany({
       where: { id: OP.subQuery(new User().select("id").whereIn("id", [7, 8])) },
     });
 
@@ -230,7 +230,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : 1:1 'user' hasOne 'post' ?`, async function () {
-    const result = await Repository(User).first({
+    const result = await Repository(User).findOne({
       relations: {
         post: true,
       },
@@ -241,7 +241,7 @@ describe("Testing Repository", function () {
     expect(result).to.have.property("post");
     expect(result?.post).to.be.jsonSchema(postSchemaObject);
 
-    const results = await Repository(User).get({
+    const results = await Repository(User).findMany({
       relations: {
         post: true,
       },
@@ -279,7 +279,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : 1:M 'user' hasMany 'posts' ?`, async function () {
-    const result = await Repository(User).first({
+    const result = await Repository(User).findOne({
       relations: {
         posts: true,
       },
@@ -291,7 +291,7 @@ describe("Testing Repository", function () {
     expect(result?.posts).to.be.an("array");
     expect(result?.posts).to.be.jsonSchema(postSchemaArray);
 
-    const results = await Repository(User).get({
+    const results = await Repository(User).findMany({
       relations: {
         posts: true,
       },
@@ -339,7 +339,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : 1:1 'post' belongsTo 'user'   ?`, async function () {
-    const result = await Repository(Post).first({
+    const result = await Repository(Post).findOne({
       relations: {
         user: true,
       },
@@ -351,7 +351,7 @@ describe("Testing Repository", function () {
     expect(result?.user).to.be.an("object");
     expect(result?.user).to.be.jsonSchema(userSchemaObject);
 
-    const results = await Repository(Post).get({
+    const results = await Repository(Post).findMany({
       relations: {
         user: true,
       },
@@ -394,7 +394,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : M:M 'posts' belongsToMany 'users' ?`, async function () {
-    const result = await Repository(Post).first({
+    const result = await Repository(Post).findOne({
       relations: {
         subscribers: true,
       },
@@ -406,7 +406,7 @@ describe("Testing Repository", function () {
     expect(result?.subscribers).to.be.an("array");
     expect(result?.subscribers).to.be.jsonSchema(userSchemaArray);
 
-    const results = await Repository(Post).get({
+    const results = await Repository(Post).findMany({
       relations: {
         subscribers: true,
       },
@@ -452,7 +452,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : nested 'users' hasMany 'posts' 'posts' belongsTo 'users' ?`, async function () {
-    const result = await Repository(User).first({
+    const result = await Repository(User).findOne({
       relations: {
         posts: {
           relations: {
@@ -483,7 +483,7 @@ describe("Testing Repository", function () {
   });
 
   it(`Repository : withExists and withNotExists 'users' hasMany 'posts' ?`, async function () {
-    const exists = await Repository(User).first({
+    const exists = await Repository(User).findOne({
       relationsExists: {
         posts: true,
       },
@@ -496,7 +496,7 @@ describe("Testing Repository", function () {
 
     expect(exists).to.be.equal(null);
 
-    const notExists = await Repository(User).first({
+    const notExists = await Repository(User).findOne({
       using: (query) => query.withNotExists("posts"),
       where: {
         posts: {
@@ -525,7 +525,7 @@ describe("Testing Repository", function () {
       data: userDataArray,
     });
 
-    const usersWithoutPosts = await Repository(User).get({
+    const usersWithoutPosts = await Repository(User).findMany({
       using: (query) => query.withCount("posts"),
     });
 
@@ -536,7 +536,7 @@ describe("Testing Repository", function () {
         data: postDataArray.map((v) => ({ ...v, user_id: user.id })),
       });
 
-      const posts = await Repository(Post).get({
+      const posts = await Repository(Post).findMany({
         where: {
           user_id: user.id,
         },
@@ -552,7 +552,7 @@ describe("Testing Repository", function () {
       }
     }
 
-    const users = await Repository(User).get({
+    const users = await Repository(User).findMany({
       using: (query) => query.withCount("posts"),
     });
 
@@ -560,7 +560,7 @@ describe("Testing Repository", function () {
       expect(user?.posts).to.be.equal(5);
     }
 
-    const posts = await Repository(Post).get({
+    const posts = await Repository(Post).findMany({
       using: (query) => query.withCount("subscribers"),
     });
 

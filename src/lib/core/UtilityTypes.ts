@@ -238,7 +238,7 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M, K>> & {
+    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M> & K> & {
         [customKey : string]: unknown;
     };
 
@@ -264,9 +264,16 @@ export declare namespace T {
                 : C[P] extends Record<string, unknown>
                 ? string
                 : C[P];
-        } & {
+    } & {
         [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
             null extends C[P] ? P : never]?:
+            C[P] extends Date
+                ? any
+                : C[P] extends Record<string, unknown>
+                ? string
+                : C[P];
+    } & {
+        [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: 
             C[P] extends Date
                 ? any
                 : C[P] extends Record<string, unknown>
@@ -275,14 +282,22 @@ export declare namespace T {
     };
 
     type UpdateInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid">]?: 
-            C[P] extends Date
-            ? any
-            : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    };
+        [P in Exclude<K & keyof C, "id" | "_id">]: {
+            [Q in P]-?: 
+                Q extends "uuid" ? string : 
+                C[Q] extends Date ? any : 
+                C[Q] extends Record<string, unknown> ? string : 
+                C[Q]
+        } & {
+            [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: 
+                Q extends "uuid" ? string : 
+                C[Q] extends Date ? any : 
+                C[Q] extends Record<string, unknown> ? string : 
+                C[Q]
+        }
+    }[Exclude<K & keyof C, "id" | "_id">];
 
+    
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]
@@ -458,11 +473,11 @@ export declare namespace T {
             G
         >;
 
-    type RepositoryCreate<M extends Model> = TRepositoryCreate<M>
-    type RepositoryCreateMultiple<M extends Model> = TRepositoryCreateMultiple<M>;
-    type RepositoryUpdate<M extends Model> = TRepositoryUpdate<M>;
-    type RepositoryUpdateMultiple<M extends Model> = TRepositoryUpdateMultiple<M>;
-    type RepositoryCreateOrThings<M extends Model> = TRepositoryCreateOrThings<M>;
+    type RepositoryCreate<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreate<M,NR>
+    type RepositoryCreateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateMultiple<M,NR>;
+    type RepositoryUpdate<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdate<M,NR>;
+    type RepositoryUpdateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdateMultiple<M,NR>;
+    type RepositoryCreateOrThings<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateOrThings<M,NR>;
     type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
 
     type RepositoryGenericTypeOptions = TRepositoryExtendType

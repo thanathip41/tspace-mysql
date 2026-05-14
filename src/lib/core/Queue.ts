@@ -2,12 +2,11 @@ import type { T }       from "./UtilityTypes"
 import { Blueprint }    from "./Blueprint"
 import { DB }           from "./DB"
 import { Model }        from "./Model"
-import { utils }        from "../utils"
 
 export type Job<T = any> = {
   id      : number;
   name    : string;
-  state   : 'pending' | 'active' |'completed' | 'failed'
+  status  : 'pending' | 'active' |'completed' | 'failed'
   payload : T;
 }
 
@@ -18,73 +17,75 @@ type JobInternal = Job & {
 type Handler = (job: Job) => any | Promise<any>;
 
 type State = {
-    handler: Handler;
-    idle: number;
-    sleeping: boolean;
-    running: number;
-    concurrency: number;
+    handler     : Handler;
+    idle        : number;
+    sleeping    : boolean;
+    running     : number;
+    opts        : Required<QueueProcessOptions>
 }
 
 type QueueAddOptions = {
-  delayMs?: number          
-  priority?: number       
-  metadata?: Record<string, any>
-  maxAttempts ?: number
+  delayMs     ?: number  // default 0 
+  priority    ?: number // default 0
+  metadata    ?: Record<string, any> // default null
+  maxAttempts ?: number // default 3
 }
 
-type QueueWorkOptions = { 
-    interval ?: number; 
-    concurrency ?: 1 | 2 | 3 | 4 | 5; 
+type QueueProcessOptions = { 
+    interval    ?: number; 
+    concurrency ?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30; 
 }
 
 type BufferedJob = {
-  jobData: T.Result<Worker>;
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
+  jobData : T.Result<Worker>;
+  resolve : (value: any) => void;
+  reject  : (reason?: any) => void;
 }
 
 const QUEUE_STATUS = {
-    dispatch: 'Dispatch',
-    receive: 'Receive',
-    processing: 'Processing',
-    completed: 'Completed',
-    idle: 'Idle',
-    wake: 'Wake',
-    failed: 'Failed',
-    waiting : 'Waiting',
-    retry: {
-        attempts: 'Attempts',
-        failed: 'Retry Failed',
-        completed: 'Retry Completed',
-    },
+    dispatch    : 'Dispatch',
+    receive     : 'Receive',
+    processing  : 'Processing',
+    completed   : 'Completed',
+    idle        : 'Idle',
+    wokeUp      : 'Woke up',
+    failed      : 'Failed',
+    waiting     : 'Waiting',
+    retry       : {
+        attempts  : 'Attempts',
+        failed    : 'Retry Failed',
+        completed : 'Retry Completed',
+    }
 } as const;
 
 const schema = {
     id    : Blueprint.int().primary().autoIncrement(),
-    name  : Blueprint.varchar(255).notNull().compositeIndex([
-        "state", "available_at", "priority", "id"
+    uuid  : Blueprint.varchar(36).null(),
+    name  : Blueprint.varchar(255).notNull()
+    .index()
+    .compositeIndex([
+        "status", "available_at", "priority", "id"
     ]),
    
-    state : Blueprint.enum(
+    status : Blueprint.enum(
         'pending',
         'active',
         'completed',
         'failed'
-    ).notNull().default('pending'),
+    ).notNull().default('pending').index(),
 
-    priority : Blueprint.int().notNull().default(0),
+    priority     : Blueprint.int().notNull().default(0),
+    payload      : Blueprint.mediumtext().null(),
+    result       : Blueprint.text().null(),
+    error        : Blueprint.text().null(),
+    metadata     : Blueprint.text().null(),
 
-    payload  : Blueprint.mediumtext().null(),
-    result   : Blueprint.text().null(),
-    error    : Blueprint.text().null(),
-    metadata : Blueprint.text().null(),
+    attempts     : Blueprint.int().notNull().default(0),
+    max_attempts : Blueprint.int().notNull().default(3),
 
-    attempts: Blueprint.int().notNull().default(0),
-    max_attempts: Blueprint.int().notNull().default(3),
+    locked_by    : Blueprint.text().null(),
+    locked_at    : Blueprint.timestamp().null(),
 
-    locked_by: Blueprint.text().null(),
-    locked_at: Blueprint.timestamp().null(),
-    
     available_at : Blueprint.timestamp().notNull(),
     completed_at : Blueprint.timestamp().null(),
     created_at   : Blueprint.timestamp().null(),
@@ -94,7 +95,7 @@ const schema = {
 type TS = T.Schema<typeof schema>
 class Worker extends Model<TS> {
 
-    private HOSTNAME          = String(process.env.hostname ?? 'unknown');
+    private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
     private INSPECT_EXEC      = false;
     private STOPPING          = false;
     private IS_FLUSHING       = false;
@@ -118,12 +119,13 @@ class Worker extends Model<TS> {
         idle        : number;
         sleeping    : boolean;
         running     : number;
-        concurrency : number;
+        opts        : Required<QueueProcessOptions>
     }>();
 
     protected boot(): void {
-        this.useSchema(schema);
+        this.useUUID();
         this.useTimestamp();
+        this.useSchema(schema);
         this.useTable(this.$state.get("TABLE_JOB"));
     }
 
@@ -134,6 +136,12 @@ class Worker extends Model<TS> {
         maxIdleRetries   ?: number;
         limitConnections ?: number;
     } = {}) {
+
+        const driver = this.driver();
+
+        if(driver === 'mongodb') {
+            throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
+        }
 
         await this.sync({ force : true, index: true }).catch(() => null);
 
@@ -161,7 +169,7 @@ class Worker extends Model<TS> {
             const maxConnections = await DB.getMaxConnections().catch(() => null);
 
             this.LIMIT_CONNECTIONS = maxConnections
-            ? Math.floor(maxConnections / 3)
+            ? Math.max(10, Math.floor(maxConnections / 3))
             : this.LIMIT_CONNECTIONS;
         }
 
@@ -186,7 +194,7 @@ class Worker extends Model<TS> {
     }
 
     public async flush() {
-        await this.truncate({ force: true });
+        await this.truncate({ force: true })
         return;
     }
 
@@ -197,13 +205,14 @@ class Worker extends Model<TS> {
             return q;
         }
 
-        const completed = await where(new Worker()).where('state', 'completed').count();
-        const active    = await where(new Worker()).where('state', 'active').count();
-        const pending   = await where(new Worker()).where('state', 'pending').count();
-        const failed    = await where(new Worker()).where('state', 'failed').count();
+        const completed = await where(new Worker()).where('status', 'completed').count();
+        const active    = await where(new Worker()).where('status', 'active').count();
+        const pending   = await where(new Worker()).where('status', 'pending').count();
+        const failed    = await where(new Worker()).where('status', 'failed').count();
+        const total     = await where(new Worker()).count();
 
         return {
-            total : completed + active + pending + failed,
+            total,
             completed,
             active,
             pending,
@@ -214,10 +223,10 @@ class Worker extends Model<TS> {
     public async getJobStats(name?: string) {
 
         const rows = await new Worker()
-        .select('name', 'state')
+        .select('name', 'status')
         .selectRaw('COUNT(1) AS total')
         .when(name, (q) => q.where('name', 'LIKE' , `%${name}%`))
-        .groupBy('name', 'state')
+        .groupBy('name', 'status')
         .orderBy('name')
         .get()
 
@@ -230,9 +239,9 @@ class Worker extends Model<TS> {
         }>();
 
         for (const row of rows) {
-            const name = row.name;
-            const state = row.state;
-            const total = Number(row.total);
+            const name   = row.name;
+            const status = row.status;
+            const total  = Number(row.total);
 
             if (!map.has(name)) {
                 map.set(name, {
@@ -246,13 +255,13 @@ class Worker extends Model<TS> {
 
             const stats = map.get(name)!;
 
-            if (state === 'completed') stats.completed = total;
+            if (status === 'completed') stats.completed = total;
 
-            else if (state === 'active') stats.active = total;
+            else if (status === 'active') stats.active = total;
 
-            else if (state === 'pending') stats.pending = total;
+            else if (status === 'pending') stats.pending = total;
             
-            else if (state === 'failed') stats.failed = total;
+            else if (status === 'failed') stats.failed = total;
 
         }
 
@@ -262,13 +271,14 @@ class Worker extends Model<TS> {
     public async getNames() {
         return await new Worker().select('name').toArray('name');
     }
+
     public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
         return new Promise<Promise<void>>((resolve, reject) => {
         
             const jobData = {
                 name,
                 payload: payload == null ? null : this.safeJsonStringify(payload),
-                state: 'pending',
+                status: 'pending',
                 available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
                 priority: opts.priority ?? 0,
                 attempts: 0,
@@ -289,22 +299,27 @@ class Worker extends Model<TS> {
     public async process(
         name    : string, 
         handler : Handler, 
-        opts    : QueueWorkOptions = { interval : 1_000, concurrency : 1 } 
+        opts    : QueueProcessOptions = { 
+            interval : 1_000, 
+            concurrency : 1 
+        } 
     ) {
-        
         this.WORKER_STATE.set(name , {
-            handler   : handler,
-            idle      : 0,
-            sleeping  : false,
-            running   : 0,   
-            concurrency  : opts.concurrency!
+            handler      : handler,
+            idle         : 0,
+            sleeping     : false,
+            running      : 0,   
+            opts         : {
+                concurrency : opts.concurrency!,
+                interval    : opts.interval!
+            }
         })
 
         if(this.INSPECT_EXEC) {
             console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.dispatch}\x1b[0m`)
         }
 
-        const findJobs = async () => {
+        const dispatch = async () => {
 
             if (this.STOPPING) return;
 
@@ -312,15 +327,17 @@ class Worker extends Model<TS> {
 
             if (!state) return;
 
-            if (state.running >= state.concurrency) {
+            if (state.running >= state.opts.concurrency) {
                 const jitter = Math.random() * 200;
-                return setTimeout(findJobs, opts.interval! + jitter);
+                state.running--
+                setTimeout(dispatch, state.opts.interval + jitter);
+                return;
             }
 
-            const capacity = state.concurrency - state.running;
+            const capacity = state.opts.concurrency - state.running;
 
             const jobs = await this._dequeueMany(name, capacity);
-
+           
             if (!jobs || jobs.length === 0) {
                 state.idle++
 
@@ -337,23 +354,22 @@ class Worker extends Model<TS> {
                 const backoff = Math.min(1000, 50 * state.idle);
                 const jitter = Math.random() * 200;
 
-                return setTimeout(findJobs, opts.interval! + backoff + jitter);
-
-
+                setTimeout(dispatch, opts.interval! + backoff + jitter);
+                return;
             }
 
             state.idle = 0;
+            
+            await Promise.all(
+                jobs.map(job => this._runJob(name, job, state))
+            );
+           
+            setImmediate(dispatch);
 
-            for (const job of jobs) {
-                this._runJob(name, job, state)
-            }
-
-            setImmediate(findJobs);
+            return;
         }
 
-        findJobs();
-
-        return;
+        return dispatch();
     }
 
     private async _runJob (name: string, job: JobInternal, state: State) {
@@ -374,9 +390,9 @@ class Worker extends Model<TS> {
             await new Worker()
             .where('id', job.id)
             .update({
-                state: 'completed',
+                status: 'completed',
                 result: this.safeJsonStringify(result),
-                completed_at: utils.timestamp()
+                completed_at: this.$utils.timestamp()
             })
             .void()
             .save()
@@ -396,7 +412,7 @@ class Worker extends Model<TS> {
             await new Worker()
             .where('id',job.id)
             .update({
-                state : 'failed',
+                status : 'failed',
                 error : this.safeJsonStringify({
                     message: err.message,
                     name: err.name,
@@ -426,10 +442,10 @@ class Worker extends Model<TS> {
                     await new Worker()
                     .where('id', job.id)
                     .update({
-                        state: 'completed',
+                        status: 'completed',
                         attempts,
                         result: this.safeJsonStringify(result),
-                        completed_at: utils.timestamp()
+                        completed_at: this.$utils.timestamp()
                     })
                     .void()
                     .save();
@@ -451,7 +467,7 @@ class Worker extends Model<TS> {
                         await new Worker()
                         .where('id', job.id)
                         .update({
-                            state: 'failed',
+                            status: 'failed',
                             attempts,
                             error: this.safeJsonStringify({
                             retry  : true,
@@ -482,23 +498,23 @@ class Worker extends Model<TS> {
     }
 
     private async _waitForSafeConnections (name: string) {
-        let connections = 0;
+        let activeConnections = 0;
 
-        while (true) {
-            const activeConnections = await DB.getActiveConnections();
-           
-            connections = activeConnections;
+        // while (true) {
+            
+        //     activeConnections = await DB.getActiveConnections();
+        
+        //     if (activeConnections <= this.LIMIT_CONNECTIONS) {
+        //         break;
+        //     }
 
-            if (connections <= this.LIMIT_CONNECTIONS) {
-                break;
-            }
+        //     if (this.INSPECT_EXEC) {
+        //         console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${activeConnections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
+        //     }
 
-            if (this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${connections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
-            }
+        //     await new Promise(resolve => setTimeout(resolve, 1000 * 5));
+        // }
 
-            await new Promise(resolve => setTimeout(resolve, 1000 * 5));
-        }
         return;
     }
 
@@ -513,12 +529,12 @@ class Worker extends Model<TS> {
         .where('name',name)
         .whereQuery(q => {
             return q
-            .where('state','pending')
-            .where('available_at', '<=', utils.timestamp())
+            .where('status','pending')
+            .where('available_at', '<=', this.$utils.timestamp())
             .orWhereQuery((q) => {
                 return q
-                .where('state', 'active')
-                .where('locked_at', '<', utils.timestamp(new Date(Date.now() - 60 * 1000)))
+                .where('status', 'active')
+                .where('locked_at', '<', this.$utils.timestamp(new Date(Date.now() - 60 * 1000)))
             })
         })
         .limit(limit)
@@ -546,8 +562,8 @@ class Worker extends Model<TS> {
             await new Worker()
             .whereIn('id',jobs.map(v => v.id))
             .updateMany({
-                state : 'active',
-                locked_at: utils.timestamp(),
+                status : 'active',
+                locked_at: this.$utils.timestamp(),
                 locked_by : this.HOSTNAME
             })
             .void()
@@ -558,7 +574,7 @@ class Worker extends Model<TS> {
             return (jobs ?? []).map((job) => ({
                 id      : job.id,
                 name    : job.name,
-                state   : job.state,
+                status  : job.status,
                 payload : this.safeJsonParse(job.payload),
                 __job   : job
             }))
@@ -603,7 +619,6 @@ class Worker extends Model<TS> {
                     
                     console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m job \x1b[38;5;208m${ids}\x1b[0m`);
                 } else {
-                    
                     console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m jobs [\x1b[38;5;208m${preview}\x1b[0m] total=(\x1b[38;5;208m${ids.length}\x1b[0m)`);
                 }
 
@@ -615,7 +630,9 @@ class Worker extends Model<TS> {
 
             const uniqueNames = [...new Set(currentBatch.map(b => b.jobData.name))];
 
-            uniqueNames.forEach(name => this._wakeWorker(name));
+            for(const name of uniqueNames) {
+                this._wakeWorker(name);
+            }
 
         } catch (error) {
 
@@ -629,18 +646,26 @@ class Worker extends Model<TS> {
     }
 
     private _wakeWorker(name: string) {
+
         const state = this.WORKER_STATE.get(name);
 
         if (!state || !state.sleeping || !state.handler) return;
 
+        const isSleeping = state.sleeping;
+
         state.sleeping = false;
+
         state.idle = 0;
 
         if (this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[36m${QUEUE_STATUS.wake}\x1b[0m`);
+            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[36m${QUEUE_STATUS.wokeUp}\x1b[0m`);
         }
 
-        this.process(name, state.handler);
+        if(isSleeping) {
+            this.process(name, state.handler, { 
+                concurrency : state.opts.concurrency 
+            });
+        }
     }
 
     private safeJsonParse(payload:any){
@@ -728,7 +753,7 @@ class Queue {
         flush            ?: boolean; 
         hostname         ?: string;
         maxIdleRetries   ?: number;
-        limitConnections ?:number;
+        limitConnections ?: 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 | 150 | 200;
     } = {}): Promise<void> {
 
       this.WORKER = await new Worker().initialize(opts);
@@ -832,9 +857,9 @@ class Queue {
      *
      * @param {(worker: Worker) => any} cb - Callback with Worker instance.
      * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
+     * @returns {Promise<Work>}
      */
-    static async worker(cb: (worker: Worker) => any): Promise<any> {
+    static async worker(cb: (worker: Worker) => any): Promise<Worker> {
         
         if (this.WORKER == null) {
             throw new Error(this.MESSAGE.INIT_ERROR);
@@ -848,7 +873,7 @@ class Queue {
      *
      * @param {string} name - Queue name to process.
      * @param {Handler} handler - Job handler function.
-     * @param {QueueWorkOptions} [opts] - Job options (interval, concurrency)
+     * @param {QueueProcessOptions} [opts] - Job options (interval, concurrency)
      * @throws {Error} If Queue is not initialized.
      * @returns {Promise<void>}
      * 
@@ -862,7 +887,7 @@ class Queue {
     static async process(
         name    : string, 
         handler : Handler, 
-        opts    : QueueWorkOptions = { interval : 1_000, concurrency : 1 }
+        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
     ): Promise<void> {
 
         if (this.WORKER == null) {
@@ -877,7 +902,7 @@ class Queue {
      *
      * @param {string} name - Queue name to process.
      * @param {Handler} handler - Job handler function.
-     * @param {QueueWorkOptions} [opts] - Job options (interval, concurrency)
+     * @param {QueueProcessOptions} [opts] - Job options (interval, concurrency)
      * @throws {Error} If Queue is not initialized.
      * @returns {Promise<void>}
      * 
@@ -891,7 +916,7 @@ class Queue {
     static async on(
         name    : string, 
         handler : Handler, 
-        opts    : QueueWorkOptions = { interval : 1_000, concurrency : 1 }
+        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
     ): Promise<void> {
         return await this.process(name, handler, opts);
     }

@@ -280,6 +280,11 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public createDatabase(database: string) {
+    const sql = `CREATE DATABASE \`${database}\``;
+    return this.format(sql);
+  }
+
   public createTable({
     database,
     table,

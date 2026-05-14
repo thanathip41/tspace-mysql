@@ -9,6 +9,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {
     super(state);
   }
+
   public select = () => {
     const combindSQL = [
       this.bindSelect(this.$state.get("SELECT")),
@@ -213,6 +214,11 @@ export class MysqlQueryBuilder extends QueryBuilder {
        ) AS "IS_EXISTS"`,
     ];
 
+    return this.format(sql);
+  }
+
+  public createDatabase(database: string) {
+    const sql = `CREATE DATABASE IF NOT EXISTS \`${database}\``;
     return this.format(sql);
   }
 

@@ -78,10 +78,9 @@ const STATE_MODEL = {
         updated  : boolean;
         deleted  : boolean;
     } | null,
-    TABLE_CACHE : '$cache' as string,
-    TABLE_LOGGER: '$loggers' as string,
-    TABLE_AUDIT : '$audits' as string,
-    TABLE_JOB : '$jobs' as string,
+    TABLE_LOGGER: 'tspace_loggers' as string,
+    TABLE_AUDIT : 'tspace_audits' as string,
+    TABLE_JOB : 'tspace_jobs' as string,
     VALIDATE_SCHEMA: false as boolean,
     VALIDATE_SCHEMA_DEFINED: null as TValidateSchema | null,
     FUNCTION_RELATION: false as boolean,

@@ -1,5 +1,23 @@
 import { Model } from "./Model";
 
+type TExtendType =
+  | NumberConstructor
+  | StringConstructor
+  | BooleanConstructor
+  | DateConstructor
+  | readonly TExtendType[]
+  | { [_: string]: TExtendType };
+
+type ResolveType<T> =
+  T extends NumberConstructor ? number :
+  T extends StringConstructor ? string :
+  T extends BooleanConstructor ? boolean :
+  T extends DateConstructor ? Date :
+  T extends readonly (infer U)[] ? ResolveType<U>[] :
+  T extends Record<string, any>
+    ? { [K in keyof T]: ResolveType<T[K]> }
+    : never
+
 /**
  * Class 'Blueprint' is used to make the schema for table
  * @example
@@ -35,18 +53,15 @@ class Blueprint<T = any> {
     orderBy?: string;
     groupBy?: string;
   } | null = null;
-  private _valueType!:
-    | NumberConstructor
-    | StringConstructor
-    | DateConstructor
-    | BooleanConstructor;
+
+  private _valueType!: TExtendType
 
   /**
    * Assign type 'virtual' to column
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
+  public static virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
     return new Blueprint().virtualColumn(sql);
   }
 
@@ -55,7 +70,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
+  public virtualColumn(sql:| string | { select?: string; where?: string; orderBy?: string; groupBy?: string }): Blueprint<unknown> {
     const instance = new Blueprint();
     instance._isVirtual = true;
     if (typeof sql === "object" && sql !== null) {
@@ -72,7 +87,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static serial(_?: number): Blueprint<number> {
+  public static serial(_?: number): Blueprint<number> {
     return new Blueprint<number>().serial(_);
   }
 
@@ -80,7 +95,7 @@ class Blueprint<T = any> {
    * Assign type 'serial' in table
    * @return {Blueprint<T>} Blueprint
    */
-  serial(_?: number): Blueprint<number> {
+  public serial(_?: number): Blueprint<number> {
     const instance = new Blueprint<number>();
     instance._addAssignType("SERIAL");
     instance._valueType = Number;
@@ -92,7 +107,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static int(_?: number): Blueprint<number> {
+  public static int(_?: number): Blueprint<number> {
     return new Blueprint<number>().int(_);
   }
 
@@ -100,7 +115,7 @@ class Blueprint<T = any> {
    * Assign type 'INT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  int(_?: number): Blueprint<number> {
+  public int(_?: number): Blueprint<number> {
     const instance = new Blueprint<number>();
     instance._addAssignType("INT");
     instance._valueType = Number;
@@ -112,7 +127,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static integer(_?: number): Blueprint<number> {
+  public static integer(_?: number): Blueprint<number> {
     return new Blueprint<number>().int(_);
   }
 
@@ -120,7 +135,7 @@ class Blueprint<T = any> {
    * Assign type 'INT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  integer(_?: number): Blueprint<number> {
+  public integer(_?: number): Blueprint<number> {
     return new Blueprint<number>().int(_);
   }
 
@@ -130,7 +145,7 @@ class Blueprint<T = any> {
    * @param {number} number
    * @return {Blueprint<T>} Blueprint
    */
-  static tinyInt(number: number = 1): Blueprint<number | boolean> {
+  public static tinyInt(number: number = 1): Blueprint<number | boolean> {
     return new Blueprint<number>().tinyInt(number);
   }
 
@@ -139,7 +154,7 @@ class Blueprint<T = any> {
    * @param {number} number
    * @return {Blueprint<T>} Blueprint
    */
-  tinyInt(number: number = 1): Blueprint<number | boolean> {
+  public tinyInt(number: number = 1): Blueprint<number | boolean> {
     const instance = new Blueprint<number | boolean>();
     instance._addAssignType(`TINYINT(${number})`);
     instance._valueType = Number;
@@ -152,7 +167,7 @@ class Blueprint<T = any> {
    * @param {number} number
    * @return {Blueprint<T>} Blueprint
    */
-  static tinyint(number: number = 1): Blueprint<number | boolean> {
+  public static tinyint(number: number = 1): Blueprint<number | boolean> {
     return new Blueprint<number | boolean>().tinyInt(number);
   }
 
@@ -161,7 +176,7 @@ class Blueprint<T = any> {
    * @param {number} number
    * @return {Blueprint<T>} Blueprint
    */
-  tinyint(number: number = 1): Blueprint<number | boolean> {
+  public tinyint(number: number = 1): Blueprint<number | boolean> {
     return new Blueprint<number | boolean>().tinyInt(number);
   }
 
@@ -171,7 +186,7 @@ class Blueprint<T = any> {
    * @param {number} number [number = 10]
    * @return {Blueprint<T>} Blueprint
    */
-  static bigInt(number: number = 10): Blueprint<number> {
+  public static bigInt(number: number = 10): Blueprint<number> {
     return new Blueprint<number>().bigInt(number);
   }
 
@@ -180,7 +195,7 @@ class Blueprint<T = any> {
    * @param {number} number [number = 10]
    * @return {Blueprint<T>} Blueprint
    */
-  bigInt(number: number = 10): Blueprint<number> {
+  public bigInt(number: number = 10): Blueprint<number> {
     const instance = new Blueprint<number>();
     instance._addAssignType(`BIGINT(${number})`);
     instance._valueType = Number;
@@ -193,7 +208,7 @@ class Blueprint<T = any> {
    * @param {number} number [number = 10]
    * @return {Blueprint<T>} Blueprint
    */
-  static bigint(number: number = 10): Blueprint<number> {
+  public static bigint(number: number = 10): Blueprint<number> {
     return new Blueprint<number>().bigInt(number);
   }
 
@@ -202,7 +217,7 @@ class Blueprint<T = any> {
    * @param {number} number [number = 10]
    * @return {Blueprint<T>} Blueprint
    */
-  bigint(number: number = 10): Blueprint<number> {
+  public bigint(number: number = 10): Blueprint<number> {
     return new Blueprint<number>().bigInt(number);
   }
 
@@ -211,7 +226,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static boolean(): Blueprint<number | boolean> {
+  public static boolean(): Blueprint<number | boolean> {
     return new Blueprint<number | boolean>().boolean();
   }
 
@@ -219,7 +234,7 @@ class Blueprint<T = any> {
    * Assign type 'BOOLEAN' in table
    * @return {Blueprint<T>} Blueprint
    */
-  boolean(): Blueprint<number | boolean> {
+  public boolean(): Blueprint<number | boolean> {
     const instance = new Blueprint<number | boolean>();
     instance._addAssignType(`BOOLEAN`);
     instance._valueType = Number;
@@ -233,7 +248,7 @@ class Blueprint<T = any> {
    * @param {number} decimal  0.000...n
    * @return {Blueprint<T>} Blueprint
    */
-  static double(length: number = 0, decimal: number = 0): Blueprint<number> {
+  public static double(length: number = 0, decimal: number = 0): Blueprint<number> {
     return new Blueprint<number>().double(length,decimal);
   }
 
@@ -243,7 +258,7 @@ class Blueprint<T = any> {
    * @param {number} decimal  0.000...n
    * @return {Blueprint<T>} Blueprint
    */
-  double(length: number = 0, decimal: number = 0): Blueprint<number> {
+  public double(length: number = 0, decimal: number = 0): Blueprint<number> {
     const instance = new Blueprint<number>();
 
     instance._valueType = Number;
@@ -265,7 +280,7 @@ class Blueprint<T = any> {
    * @param {number} decimal 0.000...n
    * @return {Blueprint<T>} Blueprint
    */
-  static float(length: number = 0, decimal: number = 0): Blueprint<number> {
+  public static float(length: number = 0, decimal: number = 0): Blueprint<number> {
     return new Blueprint<number>().float(length,decimal);
   }
 
@@ -275,7 +290,7 @@ class Blueprint<T = any> {
    * @param {number} decimal 0.000...n
    * @return {Blueprint<T>} Blueprint
    */
-  float(length: number = 0, decimal: number = 0): Blueprint<number> {
+  public float(length: number = 0, decimal: number = 0): Blueprint<number> {
     const instance = new Blueprint<number>();
     instance._valueType = Number;
 
@@ -295,7 +310,7 @@ class Blueprint<T = any> {
    * @param {number} length  [length = 191] length of string
    * @return {Blueprint<T>} Blueprint
    */
-  static varchar(length: number = 191): Blueprint<string> {
+  public static varchar(length: number = 191): Blueprint<string> {
     return new Blueprint<string>().varchar(length);
   }
 
@@ -304,7 +319,7 @@ class Blueprint<T = any> {
    * @param {number} length  [length = 191] length of string
    * @return {Blueprint<T>} Blueprint
    */
-  varchar(length: number = 191): Blueprint<string> {
+  public varchar(length: number = 191): Blueprint<string> {
     const instance = new Blueprint<string>();
 
     if (length > 255) length = 255;
@@ -323,7 +338,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static uuid(): Blueprint<string> {
+  public static uuid(): Blueprint<string> {
     return new Blueprint<string>().uuid();
   }
 
@@ -331,7 +346,7 @@ class Blueprint<T = any> {
    * Assign type 'UUID' in table
    * @return {Blueprint<T>} Blueprint
    */
-  uuid(): Blueprint<string> {
+  public uuid(): Blueprint<string> {
 
     const instance = new Blueprint<string>();
 
@@ -348,7 +363,7 @@ class Blueprint<T = any> {
    * @param {number} length [length = 1] length of string
    * @return {Blueprint<T>} Blueprint
    */
-  static char(length: number = 1): Blueprint<string> {
+  public static char(length: number = 1): Blueprint<string> {
     return new Blueprint<string>().char(length);
   }
 
@@ -357,7 +372,7 @@ class Blueprint<T = any> {
    * @param {number} length [length = 1] length of string
    * @return {Blueprint<T>} Blueprint
    */
-  char(length: number = 1): Blueprint<string> {
+  public char(length: number = 1): Blueprint<string> {
     const instance = new Blueprint<number>();
 
     instance._addAssignType(`CHAR(${length})`);
@@ -372,7 +387,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static longText(): Blueprint<string> {
+  public static longText(): Blueprint<string> {
     return new Blueprint<string>().longText();
   }
 
@@ -380,7 +395,7 @@ class Blueprint<T = any> {
    * Assign type 'LONGTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  longText(): Blueprint<string> {
+  public longText(): Blueprint<string> {
     const instance = new Blueprint<number>();
 
     instance._addAssignType(`LONGTEXT`);
@@ -395,7 +410,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static longtext(): Blueprint<string> {
+  public static longtext(): Blueprint<string> {
     return new Blueprint<string>().longtext();
   }
 
@@ -403,7 +418,7 @@ class Blueprint<T = any> {
    * Assign type 'LONGTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  longtext(): Blueprint<string> {
+  public longtext(): Blueprint<string> {
     const instance = new Blueprint<number>();
 
     instance._addAssignType(`LONGTEXT`);
@@ -418,7 +433,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static binary(): Blueprint<string> {
+  public static binary(): Blueprint<string> {
     return new Blueprint<string>().binary();
   }
 
@@ -426,7 +441,7 @@ class Blueprint<T = any> {
    * Assign type 'BINARY' in table
    * @return {Blueprint<T>} Blueprint
    */
-  binary(): Blueprint<string> {
+  public binary(): Blueprint<string> {
     const instance = new Blueprint<string>();
     instance._addAssignType(`BINARY`);
     instance._valueType = String;
@@ -437,7 +452,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static json(): Blueprint<Record<string, any> | string> {
+  public static json(): Blueprint<Record<string, any> | string> {
     return new Blueprint<string>().json();
   }
 
@@ -445,7 +460,7 @@ class Blueprint<T = any> {
    * Assign type 'JSON' in table
    * @return {Blueprint<T>} Blueprint
    */
-  json(): Blueprint<Record<string, any> | string> {
+  public json(): Blueprint<Record<string, any> | string> {
     const instance = new Blueprint<Record<string, any>>();
     instance._addAssignType(`JSON`);
     instance._valueType = String;
@@ -457,7 +472,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static mediumText(): Blueprint<string> {
+  public static mediumText(): Blueprint<string> {
     return new Blueprint<string>().mediumText();
   }
 
@@ -465,7 +480,7 @@ class Blueprint<T = any> {
    * Assign type 'MEDIUMTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  mediumText(): Blueprint<string> {
+  public mediumText(): Blueprint<string> {
     const instance = new Blueprint<string>();
     instance._addAssignType(`MEDIUMTEXT`);
     instance._valueType = String;
@@ -477,7 +492,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static mediumtext(): Blueprint<string> {
+  public static mediumtext(): Blueprint<string> {
     return new Blueprint<string>().mediumText();
   }
 
@@ -485,7 +500,7 @@ class Blueprint<T = any> {
    * Assign type 'MEDIUMTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  mediumtext(): Blueprint<string> {
+  public mediumtext(): Blueprint<string> {
     return new Blueprint<string>().mediumText();
   }
 
@@ -494,7 +509,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static tinyText(): Blueprint<string> {
+  public static tinyText(): Blueprint<string> {
     return new Blueprint<string>().tinyText();
   }
 
@@ -502,7 +517,7 @@ class Blueprint<T = any> {
    * Assign type 'TINYTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  tinyText(): Blueprint<string> {
+  public tinyText(): Blueprint<string> {
     const instance = new Blueprint<string>();
     instance._addAssignType(`TINYTEXT`);
     instance._valueType = String;
@@ -514,7 +529,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static tinytext(): Blueprint<string> {
+  public static tinytext(): Blueprint<string> {
     return new Blueprint<string>().tinyText();
   }
 
@@ -522,7 +537,7 @@ class Blueprint<T = any> {
    * Assign type 'TINYTEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  tinytext(): Blueprint<string> {
+  public tinytext(): Blueprint<string> {
     return new Blueprint<string>().tinyText();
   }
 
@@ -531,7 +546,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static text(): Blueprint<string> {
+  public static text(): Blueprint<string> {
     return new Blueprint<string>().text();
   }
 
@@ -539,7 +554,7 @@ class Blueprint<T = any> {
    * Assign type 'TEXT' in table
    * @return {Blueprint<T>} Blueprint
    */
-  text(): Blueprint<string> {
+  public text(): Blueprint<string> {
     const instance = new Blueprint<string>();
     instance._addAssignType(`TEXT`);
     instance._valueType = String;
@@ -552,7 +567,7 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  static enum<K extends string | string[] | Record<string, string>>(
+  public static enum<K extends string | string[] | Record<string, string>>(
     ...enums: (K extends string ? K : K)[]
   ): Blueprint<K extends string ? K : K[keyof K]> {
     return new Blueprint<K extends string ? K : K[keyof K]>().enum(...enums);
@@ -563,7 +578,7 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  enum<K extends string | string[] | Record<string, string>>(
+  public enum<K extends string | string[] | Record<string, string>>(
     ...enums: (K extends string ? K : K)[]
   ): Blueprint<K extends string ? K : K[keyof K]> {
     const instance = new Blueprint<K extends string ? K : K[keyof K]>();
@@ -592,7 +607,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static date(): Blueprint<Date | string> {
+  public static date(): Blueprint<Date | string> {
     return new Blueprint<Date | string >().date();
   }
 
@@ -600,7 +615,7 @@ class Blueprint<T = any> {
    * Assign type 'DATE' in table
    * @return {Blueprint<T>} Blueprint
    */
-  date(): Blueprint<Date | string> {
+  public date(): Blueprint<Date | string> {
     const instance = new Blueprint<Date | string>();
     instance._addAssignType(`DATE`);
     instance._valueType = Date;
@@ -613,7 +628,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static dateTime(): Blueprint<Date | string> {
+  public static dateTime(): Blueprint<Date | string> {
     return new Blueprint<Date | string >().dateTime();
   }
 
@@ -621,7 +636,7 @@ class Blueprint<T = any> {
    * Assign type 'DATETIME' in table
    * @return {Blueprint<T>} Blueprint
    */
-  dateTime(): Blueprint<Date | string> {
+  public dateTime(): Blueprint<Date | string> {
     const instance = new Blueprint<Date | string>();
     instance._addAssignType(`DATETIME`);
     instance._valueType = Date;
@@ -633,7 +648,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static datetime(): Blueprint<Date | string> {
+  public static datetime(): Blueprint<Date | string> {
     return new Blueprint<Date | string >().dateTime();
   }
 
@@ -641,7 +656,7 @@ class Blueprint<T = any> {
    * Assign type 'DATETIME' in table
    * @return {Blueprint<T>} Blueprint
    */
-  datetime(): Blueprint<Date | string> {
+  public datetime(): Blueprint<Date | string> {
     return new Blueprint<Date | string >().dateTime();
   }
 
@@ -650,7 +665,7 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  static timestamp(): Blueprint<Date | string> {
+  public static timestamp(): Blueprint<Date | string> {
     return new Blueprint<Date | string >().timestamp();
   }
 
@@ -658,7 +673,7 @@ class Blueprint<T = any> {
    * Assign type 'TIMESTAMP' in table
    * @return {Blueprint<T>} Blueprint
    */
-  timestamp(): Blueprint<Date | string> {
+  public timestamp(): Blueprint<Date | string> {
     const instance = new Blueprint<Date | string>();
     instance._addAssignType(`TIMESTAMP`);
     instance._valueType = Date;
@@ -671,7 +686,7 @@ class Blueprint<T = any> {
    * Assign attributes 'UNSIGNED' in table
    * @return {Blueprint<T>} Blueprint
    */
-  unsigned(): Blueprint<T> {
+  public unsigned(): Blueprint<T> {
     this._addAssignAttribute(`UNSIGNED`);
     return this;
   }
@@ -680,7 +695,7 @@ class Blueprint<T = any> {
    * Assign attributes 'UNIQUE' in table
    * @return {Blueprint<T>} Blueprint
    */
-  unique(): Blueprint<T> {
+  public unique(): Blueprint<T> {
     this._addAssignAttribute(`UNIQUE`);
     return this;
   }
@@ -689,7 +704,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  null(): Blueprint<T | null> {
+  public null(): Blueprint<T | null> {
     this._addAssignAttribute(`NULL`);
     return this;
   }
@@ -698,7 +713,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  notNull(): Blueprint<T> {
+  public notNull(): Blueprint<T> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this as Blueprint<T>;
@@ -708,7 +723,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  notnull(): Blueprint<T> {
+  public notnull(): Blueprint<T> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this;
@@ -718,7 +733,7 @@ class Blueprint<T = any> {
    * Assign attributes 'PRIMARY KEY' in table
    * @return {Blueprint<T>} Blueprint
    */
-  primary(): Blueprint<T> {
+  public primary(): Blueprint<T> {
     this._addAssignAttribute(`PRIMARY KEY`);
     return this;
   }
@@ -728,7 +743,7 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  default(value: string | number | boolean): Blueprint<T> {
+  public default(value: string | number | boolean): Blueprint<T> {
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
       this._default = value ? 1 : 0
@@ -750,7 +765,7 @@ class Blueprint<T = any> {
    * Assign attributes 'default currentTimestamp' in table
    * @return {Blueprint<T>} Blueprint
    */
-  currentTimestamp(): Blueprint<T> {
+  public currentTimestamp(): Blueprint<T> {
     this._addAssignAttribute(`DEFAULT CURRENT_TIMESTAMP`);
     return this;
   }
@@ -759,7 +774,7 @@ class Blueprint<T = any> {
    * Assign attributes 'default currentTimestamp' in table
    * @return {Blueprint<T>} Blueprint
    */
-  currenttimestamp(): Blueprint<T> {
+  public currenttimestamp(): Blueprint<T> {
     this._addAssignAttribute(`DEFAULT CURRENT_TIMESTAMP`);
     return this;
   }
@@ -768,7 +783,7 @@ class Blueprint<T = any> {
    * Assign attributes 'autoIncrement' in table
    * @return {Blueprint<T>} Blueprint
    */
-  autoIncrement(): Blueprint<T> {
+  public autoIncrement(): Blueprint<T> {
     this._addAssignAttribute(`AUTO_INCREMENT`);
     return this;
   }
@@ -777,7 +792,7 @@ class Blueprint<T = any> {
    * Assign attributes 'autoIncrement' in table
    * @return {Blueprint<T>} Blueprint
    */
-  autoincrement(): Blueprint<T> {
+  public autoincrement(): Blueprint<T> {
     this._addAssignAttribute(`AUTO_INCREMENT`);
     return this;
   }
@@ -792,7 +807,7 @@ class Blueprint<T = any> {
    * @property {string?}  property.onUpdate
    * @return {Blueprint<T>} Blueprint
    */
-  foreign({
+  public foreign({
     references,
     on,
     onDelete,
@@ -820,7 +835,7 @@ class Blueprint<T = any> {
    * @param {string} name of index
    * @return {Blueprint<T>} Blueprint
    */
-  index(name: string = ""): Blueprint<T> {
+  public index(name: string = ""): Blueprint<T> {
     this._index = name;
     return this;
   }
@@ -830,7 +845,7 @@ class Blueprint<T = any> {
    * @param {string} name of index
    * @return {Blueprint<T>} Blueprint
    */
-  compositeIndex(columns: string[], name: string = ""): Blueprint<T> {
+  public compositeIndex(columns: string[], name: string = ""): Blueprint<T> {
     this._compositeIndex = {
       columns,
       name
@@ -838,55 +853,68 @@ class Blueprint<T = any> {
     return this;
   }
 
-  get sql() {
+  /**
+   * Assign type to blueprint
+   * @param {NumberConstructor|StringConstructor|BooleanConstructor|DateConstructor} type
+   * @return {Blueprint<T>} Blueprint
+   */
+  public transform<T extends TExtendType>(type: T): Blueprint<ResolveType<T>> {
+    const instance = new Blueprint<ResolveType<T>>()
+
+    instance._valueType = type;
+
+    return instance
+  }
+
+  public get sql() {
     return this._sql;
   }
 
-  get column() {
+  public get column() {
     return this._column;
   }
 
-  get type() {
+  public get type() {
     return this._type;
   }
 
-  get attributes() {
+  public get attributes() {
     return this._attributes;
   }
 
-  get foreignKey() {
+  public get foreignKey() {
     return this._foreignKey;
   }
 
-  get indexKey() {
+  public get indexKey() {
     return this._index;
   }
 
-  get compositeIndexKey() {
+  public get compositeIndexKey() {
     return this._compositeIndex;
   }
 
-  get defaultValue () {
+  public get defaultValue () {
     return this._default
   }
 
-  get valueType() {
+  public get valueType() {
     return this._valueType;
   }
 
-  get enums() {
+  public get enums() {
     return this._enum
   }
 
-  get isVirtual() {
+  public get isVirtual() {
     return this._isVirtual
   }
 
-  get isEnum() {
+  public get isEnum() {
     return this._isEnum
   }
 
-   get isNull() {
+  public get isNull() {
     return this._isNull
   }
 

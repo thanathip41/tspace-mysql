@@ -59,33 +59,36 @@ export class MysqlDriver extends BaseDriver {
       connectionLimit : configs.connectionLimit * 1.5
     });
 
-    this.pool.getConnection((err : any , connection:any) : void => {
-      if(err) {
-          const message = this._messageError.bind(this)
+    this.pool.getConnection((err : any) : void => {
+      if(!err) return;
+      
+      if(err?.message?.includes('Unknown database')) {
 
-          process.nextTick(() => {
-              if(String(err.message).includes('Pool is close')) {
-                  return
-              }
-              console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
-              if(this.options.CONNECTION_ERROR) return process.exit()
-          })
+        const db = mysql2.createConnection({
+          host                  : options.host,
+          port                  : options.port,
+          user                  : options.user || options.username,
+          password              : options.password,
+        })
 
-          return
+        const sql = new MysqlQueryBuilder({} as any).createDatabase(options.database);
+
+        db.query(sql,() => db.end());
+
+        return
       }
 
-      if(this.options.CONNECTION_SUCCESS) {
-          connection.query(`SHOW VARIABLES LIKE 'version%'`, (err: any, results : any[]) => {
-              connection.release()
-              if (err) return
-              const message = [
-                  results.find(v => v?.Variable_name === 'version'),
-                  results.find(v => v?.Variable_name === 'version_comment')   
-              ].map(v => v?.Value).join(' - ')
+      const message = this._messageError.bind(this)
 
-              console.log(this._messageConnected.bind(this)(`${message}`))
-          })
-      }
+      process.nextTick(() => {
+          if(String(err.message).includes('Pool is close')) {
+              return
+          }
+          console.log(message(err.message == null || err.message === '' ? err.code : err.message))     
+          if(this.options.CONNECTION_ERROR) return process.exit()
+      })
+
+      return
     })
 
     this.pool.on("release", (connection: unknown) => {

@@ -9,9 +9,9 @@ class RepositoryFactory<
 > {
   constructor(private _model: { new (): Model<TS, TR> }) {}
 
-  /**
+   /**
    *
-   * The 'first' method is used to retrieve the first record that matches the query conditions.
+   * The 'find' method is used to retrieve a single record from a database table by its primary key.
    *
    * It allows you to retrieve a single record from a database table that meets the specified criteria.
    * @type     {?Object}  options
@@ -41,22 +41,20 @@ class RepositoryFactory<
    *
    * const userRepository =  Repository(User)
    *
-   *  const user = await userRepository.findOne({
-   *       select : { id: true, name: true },
-   *       where : {
-   *           id: 1
-   *       }
+   *  const user = await userRepository.find(1,{
+   *     select : { id: true, name: true }
    *   })
    *
    *  const user = await userRepository.findOne()
    */
-  async first<
+  async find<
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
     SRS extends Record<string, TRawStringQuery> | undefined = undefined,
     G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
   >(
+    primaryKey : number | string,
     options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
   ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
 
@@ -66,12 +64,12 @@ class RepositoryFactory<
       throw new Error("The instance is not initialized");
     }
 
-    return await instance.first() as unknown as Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null>
+    return await instance.where(instance['$state'].get("PRIMARY_KEY"),primaryKey as any).first() as unknown as Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null>
   }
 
   /**
    *
-   * The 'findOne' method is used to retrieve the findOne record that matches the query conditions.
+   * The 'findOne' method is used to retrieve the first record that matches the query conditions.
    *
    * It allows you to retrieve a single record from a database table that meets the specified criteria.
    * @type     {?Object}  options
@@ -119,12 +117,19 @@ class RepositoryFactory<
   >(
     options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
   ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null> {
-    return await this.first(options);
+
+    const instance = this._handlerRequest(options);
+
+    if (!instance) {
+      throw new Error("The instance is not initialized");
+    }
+
+    return await instance.first() as unknown as Promise<T.ResultFiltered<M, S, SR, E, SRS, G> | null>
   }
 
   /**
    *
-   * The 'get' method is used to retrieve the get record that matches the query conditions.
+   * The 'findMany' method is used to retrieve the get record that matches the query conditions.
    *
    * It allows you to retrieve a single record from a database table that meets the specified criteria.
    * @type     {?Object}  options
@@ -163,7 +168,7 @@ class RepositoryFactory<
    *
    *  const users = await userRepository.get()
    */
-  async get<
+  async findMany<
     S  extends T.SelectOptions<M>   | undefined = undefined,
     SR extends T.RelationOptions<M> | undefined = undefined,
     E  extends T.ExceptOptions<M>   | undefined = undefined,
@@ -183,126 +188,10 @@ class RepositoryFactory<
 
   /**
    *
-   * The 'get' method is used to retrieve the get record that matches the query conditions.
-   *
-   * It allows you to retrieve a single record from a database table that meets the specified criteria.
-   * @type     {?object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {?string[]} options.relations
-   * @property {string[]} options.relationExists
-   * @property {?{condition,callback}} options.relationQuery
-   * @property {?boolean} options.debug
-   * @returns {promise<object>[]}
-   *
-   * @example
-   * import { Repository } from 'tspace-mysql'
-   * import { User } from '../Models/User'
-   *
-   * const userRepository =  Repository(User)
-   *
-   *  const users = await userRepository.findMany({
-   *       select : { id: true, name: true },
-   *       where : {
-   *           id: 1
-   *       }
-   *   })
-   *
-   *  const users = await userRepository.findMany()
-   */
-  async findMany<
-    S  extends T.SelectOptions<M>   | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
-    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
-  >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
-  ): Promise<T.ResultFiltered<M, S, SR, E, SRS, G>[]> {
-    return await this.get(options);
-  }
-
-  /**
-   *
-   * The 'pagination' method is used to perform pagination on a set of database query results obtained through the Query Builder.
-   *
-   * It allows you to split a large set of query results into smaller, more manageable pages,
-   * making it easier to display data in a web application and improve user experience.
-   * @type     {?object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {?string[]} options.relations
-   * @property {string[]} options.relationExists
-   * @property {?{condition,callback}} options.relationQuery
-   * @property {?boolean} options.debug
-   * @property {?number} options.page
-   * @returns {promise<{ meta , data[]}>}
-   *
-   * @example
-   * import { Repository } from 'tspace-mysql'
-   * import { User } from '../Models/User'
-   *
-   * const userRepository =  Repository(User)
-   *
-   *  const users = await userRepository.pagination({
-   *       select : { id: true, name: true },
-   *       where : {
-   *           id: 1
-   *       }
-   *   })
-   *
-   *  const users = await userRepository.pagination({ page : 1 , limit : 2 })
-   */
-  async pagination<
-    S  extends T.SelectOptions<M>   | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
-    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
-  >(
-    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
-  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
-
-    const instance = this._handlerRequest(options as any);
-
-    if (instance == null) throw new Error("The instance is not initialized");
-
-    return (await instance.pagination({
-      limit: options.limit,
-      page: options.page,
-    })) as unknown as Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>>;
-  }
-
-  /**
-   *
    * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
-   * making it easier to display data in a web application and improve user experience
+   * making it easier to display data in a web application and improve user experience.
    * @type     {?object}  options
    * @property {?object} options.select
    * @property {?object} options.except
@@ -349,7 +238,15 @@ class RepositoryFactory<
   >(
     options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
   ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
-    return await this.pagination(options);
+
+    const instance = this._handlerRequest(options as any);
+
+    if (instance == null) throw new Error("The instance is not initialized");
+
+    return (await instance.paginate({
+      limit: options.limit,
+      page: options.page,
+    })) as unknown as Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>>;
   }
 
   /**
@@ -372,7 +269,19 @@ class RepositoryFactory<
    * @property {?{localKey , referenceKey}[]} options.rightJoin
    * @property {?{localKey , referenceKey}[]} options.leftJoin
    * @property {?boolean} options.debug
-   * @property {?number} options.page
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const users = await userRepository.exists({
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
    */
   async exists(
     options: Partial<
@@ -406,10 +315,9 @@ class RepositoryFactory<
    * @property {?{localKey , referenceKey}[]} options.rightJoin
    * @property {?{localKey , referenceKey}[]} options.leftJoin
    * @property {?boolean} options.debug
-   * @property {?number} options.page
    * @returns {string}
    */
-  toString(
+  public toString(
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -447,7 +355,7 @@ class RepositoryFactory<
    * @property {?number} options.page
    * @returns {string} json
    */
-  async toJSON(
+  public async toJSON(
     options: Partial<
       Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
     > = {}
@@ -697,12 +605,16 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<T.Result<M>>}
    */
-  async create({
+  async create<
+    NR extends boolean | undefined = false
+  >({
     data,
     debug,
     transaction,
     noReturn,
-  }: T.RepositoryCreate<M>): Promise<T.Result<M>> {
+  }: T.RepositoryCreate<M,NR>): Promise<
+    NR extends true ? undefined : T.Result<M>
+  >  {
     if (!Object.keys(data).length) throw new Error("The data must be required");
 
     const instance = new this._model() as Model;
@@ -721,26 +633,9 @@ class RepositoryFactory<
 
     return (await instance
       .create(data as Record<string, any>)
-      .save()) as Promise<T.Result<M>>;
-  }
-
-  /**
-   * The 'insert' method is used to insert a new record into a database table associated.
-   *
-   * It simplifies the process of creating and inserting records.
-   * @type     {object}  options
-   * @property {object} options.data
-   * @property {?boolean} options.debug
-   * @property {?transaction} options.transaction
-   * @return {promise<T.Result<M>>}
-   */
-  async insert({ data, debug , transaction , noReturn }: T.RepositoryCreate<M>): Promise<T.Result<M>> {
-    return await this.create({
-      data,
-      debug,
-      transaction,
-      noReturn
-    });
+      .save()) as Promise<
+        NR extends true ? undefined : T.Result<M>
+      > 
   }
 
   /**
@@ -756,13 +651,17 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<T | null>}
    */
-  async createNotExists({
+  async createNotExists<
+    NR extends boolean | undefined = false
+  >({
     data,
     where,
     debug,
     noReturn,
     transaction
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M> | null> {
+  }: T.RepositoryCreateOrThings<M,NR>): Promise<
+      NR extends true ? undefined : T.Result<M> | null
+    > {
     let instance = new this._model() as Model;
 
     if (debug != null && debug) {
@@ -787,36 +686,9 @@ class RepositoryFactory<
 
     return (await instance
       .createNotExists(data as Record<string, any>)
-      .save()) as Promise<T.Result<M> | null>;
-  }
-
-  /**
-   * The 'insertNotExists' method to insert data into a database table while ignoring any duplicate key constraint violations.
-   *
-   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
-   * but without raising an error or exception if duplicates are encountered.
-   *
-   * @type     {object}  options
-   * @property {object} options.data
-   * @property {object} options.where
-   * @property {?boolean} options.debug
-   * @property {?transaction} options.transaction
-   * @return {promise<T | null>}
-   */
-  async insertNotExists({
-    data,
-    where,
-    debug,
-    transaction,
-    noReturn
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M> | null> {
-    return await this.createNotExists({
-      data,
-      where,
-      debug,
-      transaction,
-      noReturn
-    });
+      .save()) as Promise<
+        NR extends true ? undefined : T.Result<M> | null
+      >;
   }
 
   /**
@@ -829,12 +701,16 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<TS[]>}
    */
-  async createMultiple({
+  async createMultiple<
+    NR extends boolean | undefined = false
+  >({
     data,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryCreateMultiple<M>): Promise<T.Result<M>[]> {
+  }: T.RepositoryCreateMultiple<M,NR>): Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  > {
     if (!Object.keys(data).length) throw new Error("The data must be required");
 
     const instance = new this._model() as Model;
@@ -852,12 +728,12 @@ class RepositoryFactory<
     }
 
     return (await instance.createMultiple(data as any[]).save()) as Promise<
-      T.Result<M>[]
+      NR extends true ? undefined : T.Result<M>[]
     >;
   }
 
   /**
-   * The 'createMultiple' method is used to insert a new records into a database table associated.
+   * The 'createMany' method is used to insert a new records into a database table associated.
    *
    * It simplifies the process of creating and inserting records with an array.
    * @type     {object}  options
@@ -866,18 +742,18 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<TS[]>}
    */
-  async insertMultiple({
+  async createMany<
+    NR extends boolean | undefined = false
+  >({
     data,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryCreateMultiple<M>): Promise<T.Result<M>[]> {
-    return await this.createMultiple({
-      data,
-      debug,
-      transaction,
-      noReturn
-    });
+  }: T.RepositoryCreateMultiple<M,NR>): Promise<
+    NR extends true ? undefined : T.Result<M>[]
+  > {
+  
+    return this.createMultiple({ data , debug , transaction , noReturn })
   }
 
   /**
@@ -892,13 +768,15 @@ class RepositoryFactory<
    * @property {?boolean} options.debug
    * @return {promise<T.Result<M>>}
    */
-  async createOrUpdate({
+  async createOrUpdate<
+    NR extends boolean | undefined = false
+  >({
     data,
     where,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
+  }: T.RepositoryCreateOrThings<M,NR>): Promise<NR extends true ? undefined : T.Result<M>> {
     if (where == null || !Object.keys(where).length)
       throw new Error(
         "The method createOrUpdate can't use without where condition"
@@ -923,35 +801,7 @@ class RepositoryFactory<
 
     return (await instance
       .createOrUpdate(data as Record<string, any>)
-      .save()) as Promise<T.Result<M>>;
-  }
-
-  /**
-   *
-   * The 'insertOrUpdate' method allows you to update an existing record in a database table if it exists or create a new record if it does not exist.
-   *
-   * This method is particularly useful when you want to update a record based on certain conditions and,
-   * if the record matching those conditions doesn't exist, create a new one with the provided data.
-   * @type     {object}  options
-   * @property {object} options.data
-   * @property {object} options.where
-   * @property {?boolean} options.debug
-   * @return {promise<T.Result<M>>}
-   */
-  async insertOrUpdate({
-    data,
-    where,
-    debug,
-    transaction,
-    noReturn
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
-    return await this.createOrUpdate({
-      data,
-      where,
-      debug,
-      transaction,
-      noReturn
-    });
+      .save()) as Promise<NR extends true ? undefined : T.Result<M>>;
   }
 
   /**
@@ -966,13 +816,15 @@ class RepositoryFactory<
    * @property {?boolean} options.debug
    * @return {promise<T.Result<M>>}
    */
-  async createOrSelect({
+  async createOrSelect<
+    NR extends boolean | undefined = false
+  >({
     data,
     where,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
+  }: T.RepositoryCreateOrThings<M,NR>): Promise<NR extends true ? undefined : T.Result<M> | null> {
     if (where == null || !Object.keys(where).length) {
       throw new Error(
         "The method createOrSelect can't use without where condition"
@@ -998,36 +850,7 @@ class RepositoryFactory<
 
     return (await instance
       .createOrSelect(data as Record<string, any>)
-      .save()) as Promise<T.Result<M>>;
-  }
-
-  /**
-   *
-   * The 'insertOrSelect' method to insert data into a database table while select any duplicate key constraint violations.
-   *
-   * This method is particularly useful when you want to insert records into a table and ensure that duplicates are not inserted,
-   * but if exists should be returns a result.
-   * @type     {object}  options
-   * @property {object} options.data
-   * @property {object} options.where
-   * @property {?boolean} options.debug
-   * @property {?transaction} options.transaction
-   * @return {promise<T.Result<M>>}
-   */
-  async insertOrSelect({
-    data,
-    where,
-    debug,
-    transaction,
-    noReturn
-  }: T.RepositoryCreateOrThings<M>): Promise<T.Result<M>> {
-    return await this.createOrSelect({
-      data,
-      where,
-      debug,
-      transaction,
-      noReturn
-    });
+      .save()) as Promise<NR extends true ? undefined :T.Result<M> | null>;
   }
 
   /**
@@ -1043,13 +866,15 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<T.Result<M>>}
    */
-  async update({
+  async update<
+    NR extends boolean | undefined = false
+  >({
     data,
     where,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryUpdate<M>): Promise<T.Result<M>> {
+  }: T.RepositoryUpdate<M,NR>): Promise<NR extends true ? undefined : T.Result<M> | null> {
     if (where == null || !Object.keys(where).length) {
       throw new Error("The method update can't use without where condition");
     }
@@ -1073,7 +898,7 @@ class RepositoryFactory<
 
     return (await instance
       .update(data as Record<string, any>)
-      .save()) as Promise<T.Result<M>>;
+      .save()) as Promise<NR extends true ? undefined : T.Result<M> | null>;
   }
 
   /**
@@ -1089,13 +914,15 @@ class RepositoryFactory<
    * @property {?transaction} options.transaction
    * @return {promise<T.Result<M>[]>}
    */
-  async updateMany({
+  async updateMany<
+    NR extends boolean | undefined = false
+  >({
     data,
     where,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryUpdate<M>): Promise<T.Result<M>[]> {
+  }: T.RepositoryUpdate<M,NR>): Promise<NR extends true ? undefined : T.Result<M>[]> {
     if (where == null || !Object.keys(where).length) {
       throw new Error(
         "The method updateMany can't use without where condition"
@@ -1121,7 +948,7 @@ class RepositoryFactory<
 
     return (await instance
       .updateMany(data as Record<string, any>)
-      .save()) as Promise<T.Result<M>[]>;
+      .save()) as Promise<NR extends true ? undefined : T.Result<M>[]>;
   }
 
   /**
@@ -1162,12 +989,14 @@ class RepositoryFactory<
    * })
    *
    */
-  async updateCases({
+  async updateCases<
+    NR extends boolean | undefined = false
+  >({
     cases,
     debug,
     transaction,
     noReturn
-  }: T.RepositoryUpdateMultiple<M>): Promise<T.Result<M>[]> {
+  }: T.RepositoryUpdateMultiple<M,NR>): Promise<NR extends true ? undefined : T.Result<M>[]> {
     if (!cases.length) {
       throw new Error(
         "The method updateCases can't use without cases condition"
@@ -1188,7 +1017,9 @@ class RepositoryFactory<
       instance.void();
     }
 
-    return await instance.updateCases(cases as any[]).save() as Promise<T.Result<M>[]>;
+    return await instance.updateCases(cases as any[]).save() as Promise<
+      NR extends true ? undefined : T.Result<M>[]
+    >;
   }
 
   /**
@@ -1398,6 +1229,7 @@ class RepositoryFactory<
       instance.cache({
         key: cache.key,
         expires: cache.expires,
+        namespace: cache.namespace,
       });
     }
 

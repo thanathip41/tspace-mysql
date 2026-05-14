@@ -57,7 +57,7 @@
     "test": "npm run test:mysql && npm run test:mariadb && npm run test:postgres && npm run test:sqlite",
     "test:benchmark": "cross-env NODE_ENV=benchmark ts-node ./__tests__/benchmark.test.ts",
     "release:beta": "npm test && npm run build && npm publish --tag beta",
-    "release": "npm test && npm run build && npm publish",
+    "release": "sh ./release.sh",
     "docs": "npx docsify-cli serve docs"
   },
   "peerDependencies": {

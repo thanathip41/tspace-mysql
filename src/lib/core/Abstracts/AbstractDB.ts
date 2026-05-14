@@ -2,14 +2,19 @@ import Builder    from '../Builder'
 import type { 
     TPoolConnected, 
     TConnectionOptions, 
-    TConnectionTransaction
+    TConnectionTransaction,
+    TConnection,
+    TPoolEvent
 } from '../../types'
 
 abstract class AbstractDB extends Builder {
 
     abstract beginTransaction (): Promise<TConnectionTransaction>
+    abstract transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T>
     abstract generateUUID () : string
     abstract raw (sql : string) : string
+    abstract query(sql: string, parameters: Record<string, any>): Promise<any>
+    abstract event(event: TPoolEvent, callback: (data: any) => any): Promise<void>
     abstract escape (sql : string) : string
     abstract escapeXSS (sql : string) : string
     abstract snakeCase (sql : string) : string

@@ -416,6 +416,7 @@ export type TRepositoryRequest<
   cache?: {
     key: string;
     expires: number;
+    namespace?: boolean;
   };
 
   when?: {
@@ -468,8 +469,9 @@ export type TRepositoryRequestAggregate<
 
 export type TRepositoryCreate<
   M extends Model<any, any> = Model<any, any>,
+  NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
+  C extends T.ColumnOptions<M> = T.ColumnOptions<M>
 > = {
   data: {
     [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
@@ -481,11 +483,12 @@ export type TRepositoryCreate<
   };
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
-  noReturn?: boolean;
+  noReturn?: NR;
 };
 
 export type TRepositoryCreateMultiple<
   M extends Model<any, any> = Model<any, any>,
+  NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
   C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
 > = {
@@ -500,11 +503,12 @@ export type TRepositoryCreateMultiple<
   }[];
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
-  noReturn?: boolean;
+  noReturn?: NR;
 };
 
 export type TRepositoryCreateOrThings<
   M extends Model<any, any> = Model<any, any>,
+  NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
   C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
 > = {
@@ -520,11 +524,12 @@ export type TRepositoryCreateOrThings<
   where: T.WhereOptions<M>;
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
-  noReturn?: boolean;
+  noReturn?: NR;
 };
 
 export type TRepositoryUpdate<
   M extends Model<any, any> = Model<any, any>,
+  NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
   C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
 > = {
@@ -541,11 +546,12 @@ export type TRepositoryUpdate<
   where: T.WhereOptions<M>;
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
-  noReturn?: boolean;
+  noReturn?: NR;
 };
 
 export type TRepositoryUpdateMultiple<
   M extends Model<any, any> = Model<any, any>,
+  NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
   C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
 > = {
@@ -573,7 +579,7 @@ export type TRepositoryUpdateMultiple<
   }[];
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
-  noReturn?: boolean;
+  noReturn?: NR;
 };
 
 export type TRepositoryDelete<M extends Model<any, any> = Model<any, any>> = {
