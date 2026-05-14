@@ -22,7 +22,7 @@ describe("Testing Meta", function () {
     const indexes = metaUserWithSchema.indexes();
     const nullables = metaUserWithSchema.nullables();
     const defaults = metaUserWithSchema.defaults();
-    //@ts-expect-error
+
     const enums = metaUserWithSchema.enums('role');
    
     expect(table).to.be.equal("users");
