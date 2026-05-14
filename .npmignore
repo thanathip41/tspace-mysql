@@ -12,3 +12,4 @@ package-lock.json
 test
 __tests-report__
 sqlite.db
+release.sh
