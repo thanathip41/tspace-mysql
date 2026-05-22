@@ -23,7 +23,7 @@ abstract class AbstractDB extends Builder {
     abstract jsonObject(object : Record<string,string> , alias : string): string
     abstract constants (constants ?: string) : string | Record<string,any>
     abstract caseUpdate (cases: { when : string , then : string }[]  , final ?: string): string | []
-    abstract getConnection (options : TConnectionOptions): Promise<TPoolConnected>
+    abstract getConnection (options : TConnectionOptions): TPoolConnected
 }
 
 export { AbstractDB }

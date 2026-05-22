@@ -187,6 +187,7 @@ export type TPoolConnected = {
     queryBuilder: typeof QueryBuilder;
     query: (sql: string) => Promise<any[]>;
     connection: () => Promise<TConnection>;
+    end: () => Promise<void>;
 };
 
 export type TModelOrObject = {

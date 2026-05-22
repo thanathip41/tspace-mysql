@@ -511,10 +511,11 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  public async getConnection(options?: TConnectionOptions): Promise<TPoolConnected> {
+  public getConnection(options?: TConnectionOptions): TPoolConnected {
+    
     if (options == null) {
-      const pool = await this.$pool.get();
-      return await pool.newConnection();
+      const pool = new PoolConnection();
+      return pool.connect();
     }
 
     const {
@@ -551,9 +552,9 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  public static async getConnection(
-    options: TConnectionOptions,
-  ): Promise<TPoolConnected> {
+  public static getConnection(
+    options?: TConnectionOptions,
+  ): TPoolConnected {
     return new this().getConnection(options);
   }
 
