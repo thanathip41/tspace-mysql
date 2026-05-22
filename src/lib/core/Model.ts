@@ -23,7 +23,8 @@ import type {
   TPoolConnected,
   TLifecycle,
   TCacheModel,
-  TRawStringQuery
+  TRawStringQuery,
+  TConnectionTransaction
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
@@ -694,6 +695,44 @@ class Model<
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.delete(cacheKey);
       },
+    }
+  }
+
+  static async lockTable<
+    T, 
+    Self extends Model,
+    M  extends Model = Self
+  >(
+    this: new () => Self,
+    mode : 'WRITE' | 'READ',
+    handler: (model : M) => Promise<T>
+  ): Promise<T> {
+    
+    const trx = await DB.beginTransaction()
+    
+    try {
+
+      await trx.startTransaction();
+
+      const model = new this()
+      .bind(trx)
+
+      await model
+      .rawQuery("LOCK TABLES users READ")
+
+      const results = await handler(model as any);
+
+      await model
+      .rawQuery("UNLOCK TABLES")
+
+      await trx.commit();
+
+      return results;
+    } catch (err) {
+      await trx.rollback();
+      throw err;
+    } finally {
+      await trx.end();
     }
   }
 
@@ -3477,7 +3516,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return (await this.save()) as T.Result<this>[];
+    return (await this.bind(this.$pool.get()).save()) as T.Result<this>[];
   }
 
   /**
@@ -6743,6 +6782,7 @@ class Model<
             .from(table)
             .debug(debug)
             .createMultiple(data)
+            .bind(this.$pool.get())
             .void()
             .save();
         }),

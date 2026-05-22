@@ -629,6 +629,16 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
+  public lockTable(mode : 'WRITE' | 'READ') {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
+  public unLockTable() {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

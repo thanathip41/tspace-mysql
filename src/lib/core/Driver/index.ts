@@ -384,6 +384,10 @@ export abstract class QueryBuilder {
 
   public abstract getMaxConnections () : string;
 
+  public abstract lockTable(mode : 'WRITE' | 'READ'): string;
+
+  public abstract unLockTable(): string;
+
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
   protected abstract bindOrderBy(values: string[]): string | null;

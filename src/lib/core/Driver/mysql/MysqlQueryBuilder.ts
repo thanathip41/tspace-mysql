@@ -757,6 +757,22 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public lockTable(mode : 'WRITE' | 'READ') {
+    const sql = [
+      "LOCK TABLES",
+      this.$state.get('TABLE_NAME'),
+      mode
+    ]
+    return this.format(sql);
+  }
+
+  public unLockTable() {
+    const sql = [
+     "UNLOCK TABLES"
+    ]
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
