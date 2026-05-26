@@ -712,7 +712,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public notNull(): Blueprint<T> {
+  public notNull(): Blueprint<NonNullable<T>> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this as Blueprint<T>;
@@ -722,7 +722,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public notnull(): Blueprint<T> {
+  public notnull(): Blueprint<NonNullable<T>> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this;
@@ -744,7 +744,13 @@ class Blueprint<T = any> {
    */
   public default<I extends string | number | boolean>(
     value: I
-  ): Blueprint<(I extends string ? string : I extends number ? number : boolean) | null> {
+  ): Blueprint<(
+      I extends string 
+        ? string 
+        : I extends number 
+          ? number : boolean
+      ) | null
+    > {
 
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
