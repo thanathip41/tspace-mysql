@@ -1,12 +1,12 @@
 import { Model } from "./Model";
 
-type TExtendType =
+type ExtendType =
   | NumberConstructor
   | StringConstructor
   | BooleanConstructor
   | DateConstructor
-  | readonly TExtendType[]
-  | { [_: string]: TExtendType };
+  | readonly ExtendType[]
+  | { [_: string]: ExtendType };
 
 type ResolveType<T> =
   T extends NumberConstructor ? number :
@@ -53,7 +53,7 @@ class Blueprint<T = any> {
     groupBy?: string;
   } | null = null;
 
-  private _valueType!: TExtendType
+  private _valueType!: ExtendType
 
   /**
    * Assign type 'virtual' to column
@@ -867,7 +867,7 @@ class Blueprint<T = any> {
    * @param {NumberConstructor|StringConstructor|BooleanConstructor|DateConstructor} type
    * @return {Blueprint<T>} Blueprint
    */
-  public transform<T extends TExtendType>(type: T): Blueprint<ResolveType<T>> {
+  public transform<T extends ExtendType>(type: T): Blueprint<ResolveType<T>> {
     const instance = new Blueprint<ResolveType<T>>()
 
     instance._valueType = type;
