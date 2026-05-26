@@ -23,7 +23,6 @@ type ResolveType<T> =
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
  *   import sql from '../../../build/lib/core/SqlLike';
-import { default } from '../../../app/$audit';
  *   await new Schema().table('users',{ 
  *      id          : Blueprint.int().notNull().primary().autoIncrement(),
  *      name        : Blueprint.varchar(255).default('my name').index(),
@@ -743,13 +742,16 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  public default(value: string | number | boolean): Blueprint<T> {
+  public default<I extends string | number | boolean>(
+    value: I
+  ): Blueprint<(I extends string ? string : I extends number ? number : boolean) | null> {
+
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
       this._default = value ? 1 : 0
       return this
     }
-
+    
     if (typeof value === 'number') {
       this._addAssignAttribute(`DEFAULT ${value}`);
       this._default = value
@@ -757,7 +759,8 @@ class Blueprint<T = any> {
     }
 
     this._addAssignAttribute(`DEFAULT '${value}'`);
-    this._default = `${value}`
+    this._default = `${value}`;
+
     return this;
   }
 
