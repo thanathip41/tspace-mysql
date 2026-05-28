@@ -13,7 +13,10 @@ import type {
     TRelationResults, 
     TSelectionMerger,
     TDeepOmit,
-    TConflictKeys
+    TConflictKeys,
+    TInsertInput,
+    TUpdateInput,
+    TDefault
 } from "../types";
 
 import type { 
@@ -134,6 +137,7 @@ export type TRelation<R> = {
  *
  */
 export type TSchemaModel<M extends Model> =  ReturnType<M['typeOfSchema']>
+
 /**
  * The 'TRelationModel' type is used to get type of schema in the model
  * @generic {Model} M Model
@@ -152,11 +156,14 @@ export type TSchemaModel<M extends Model> =  ReturnType<M['typeOfSchema']>
  *
  */
 export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
+
 /**
  * The 'TResult' type is used to get type of result from model
  * @generic {Model} M Model
  */
 export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>;
+// export type TResult<M extends Model> = TRelationModel<M> & TSchemaModel<M>;
+
 
 /**
  * The 'TPaginateResult' type is used to get type of result from model using paginate , pagination
@@ -238,7 +245,11 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M> & K> & {
+    type Result<M extends Model, K = {}> = 
+    TDeepExpand<
+        TResultResolved<M> & K
+    > 
+    & {
         [customKey : string]: unknown;
     };
 
@@ -256,48 +267,10 @@ export declare namespace T {
 
     type DeleteResult = boolean
 
-    type InsertInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-            null extends C[P] ? never : P]:
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    } & {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-            null extends C[P] ? P : never]?:
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    } & {
-        [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: 
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    };
+    type InsertInput<K, C> = TInsertInput<K,C>
 
-    type UpdateInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id">]: {
-            [Q in P]-?: 
-                Q extends "uuid" ? string : 
-                C[Q] extends Date ? any : 
-                C[Q] extends Record<string, unknown> ? string : 
-                C[Q]
-        } & {
-            [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: 
-                Q extends "uuid" ? string : 
-                C[Q] extends Date ? any : 
-                C[Q] extends Record<string, unknown> ? string : 
-                C[Q]
-        }
-    }[Exclude<K & keyof C, "id" | "_id">];
+    type UpdateInput<K, C> = TUpdateInput<K, C>
 
-    
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]
@@ -481,4 +454,6 @@ export declare namespace T {
     type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
 
     type RepositoryGenericTypeOptions = TRepositoryExtendType
+
+    type Default<T = any> = TDefault<T>
 };

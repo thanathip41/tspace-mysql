@@ -1,3 +1,4 @@
+import { type T } from "./UtilityTypes";
 import { Model } from "./Model";
 
 type ExtendType =
@@ -568,7 +569,7 @@ class Blueprint<T = any> {
    */
   public static enum<K extends string | string[] | Record<string, string>>(
     ...enums: (K extends string ? K : K)[]
-  ): Blueprint<K extends string ? K : K[keyof K]> {
+  ): Blueprint<K extends string ? `${K & string}` : `${K[keyof K] & string}`> {
     return new Blueprint<K extends string ? K : K[keyof K]>().enum(...enums);
   }
 
@@ -742,15 +743,14 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  public default<I extends string | number | boolean>(
+  public default<I extends T>(
     value: I
-  ): Blueprint<(
-      I extends string 
-        ? string 
-        : I extends number 
-          ? number : boolean
-      ) | null
-    > {
+  ): Blueprint<
+    string extends  T ? T.Default<I>  :
+    number extends  T ? T.Default<I>  :
+    boolean extends T ? T.Default<I>  :
+    `${T & string}` | null
+  > {
 
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);

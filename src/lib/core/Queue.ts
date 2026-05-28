@@ -58,6 +58,13 @@ const QUEUE_STATUS = {
     }
 } as const;
 
+const STATUS = {
+    'pending' : 'pending',
+    'active' : 'active',
+    'completed': 'completed',
+    'failed': 'failed'
+} as const
+
 const schema = {
     id    : Blueprint.int().primary().autoIncrement(),
     uuid  : Blueprint.varchar(36).null(),
@@ -67,12 +74,11 @@ const schema = {
         "status", "available_at", "priority", "id"
     ]),
    
-    status : Blueprint.enum(
-        'pending',
-        'active',
-        'completed',
-        'failed'
-    ).notNull().default('pending').index(),
+    status : Blueprint
+    .enum(...Object.values(STATUS))
+    .notNull()
+    .default(STATUS.pending)
+    .index(),
 
     priority     : Blueprint.int().notNull().default(0),
     payload      : Blueprint.mediumtext().null(),

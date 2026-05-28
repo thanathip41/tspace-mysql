@@ -24,7 +24,6 @@ import type {
   TLifecycle,
   TCacheModel,
   TRawStringQuery,
-  TConnectionTransaction
 } from "../types";
 
 import type { TRelationOptionsDecorator } from "../types/decorator";
@@ -554,6 +553,7 @@ class Model<
   ):  Promise<
     NR extends true ? undefined : T.Result<M>[]
   >  {
+    //@ts-ignore
     return Repository<M>(this as any).createOrUpdate(options)
   }
 
