@@ -273,8 +273,9 @@ class ModelMeta<M extends Model> {
         if (!entry) return [];
 
         const blueprint = entry[1];
-      
-        return blueprint['_enum']
+        
+        //@ts-ignore
+        return blueprint['_enum'] as T.Result<M>[C][];
     }
 }
 

@@ -727,6 +727,7 @@ class RepositoryFactory<
       instance.void()
     }
 
+    //@ts-ignore
     return (await instance.createMultiple(data as any[]).save()) as Promise<
       NR extends true ? undefined : T.Result<M>[]
     >;

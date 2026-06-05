@@ -403,7 +403,9 @@ export type TPoolCusterConnected = {
     slaves: TClusterPool[];
 };
 
-export type TIsEnum<T> = string extends T ? false : number extends T ? false : boolean extends T ? false : [
+export type TIsEnum<T> = T extends { __isDefault: true } 
+    ? false 
+    : string extends T ? false : number extends T ? false : boolean extends T ? false : [
     T
 ] extends [string | number] ? true : false;
 
@@ -564,7 +566,7 @@ export type TDefault<T = any> = (
 
 type CleanDefaultType<T> = T extends any
     ? NonNullable<T> extends Date
-        ? any
+        ? T
         : NonNullable<T> extends Record<string, unknown>
         ? string
         : T extends { __isDefault: true }

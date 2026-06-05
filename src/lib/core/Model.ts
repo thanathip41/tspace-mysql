@@ -6055,16 +6055,7 @@ class Model<
   public insert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: {
-    [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
-      ? any
-      : P]: Extract<C[P], Date> extends never 
-        ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
-        : any;
-  }): this {
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
+  >(data: T.InsertInput<K,C>): this {
 
     this.$state.set("DATA", this._formatedInputData(data));
 
@@ -6086,7 +6077,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(data: T.InsertInput<K,C>): this {
-    return this.insert(data as any);
+    return this.insert(data);
   }
 
   /**
@@ -6544,7 +6535,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K, C>[],
+    data: T.InsertInput<K, C>[]
   ): this {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
@@ -6571,7 +6562,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
+    data: T.InsertInput<K, C>[]
   ): this {
     return this.createMultiple(data);
   }
@@ -6586,7 +6577,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
+    data: T.InsertInput<K, C>[]
   ): this {
     return this.createMultiple(data);
   }
@@ -6601,7 +6592,7 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
+    data: T.InsertInput<K, C>[]
   ): this {
     return this.createMultiple(data);
   }
