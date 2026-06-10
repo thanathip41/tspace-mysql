@@ -4037,7 +4037,7 @@ class Builder extends AbstractBuilder {
 
     this.selectRaw(
       `${this.$constants("COUNT")}(${column}) ${this.$constants(
-        "AS"
+      `${this.$constants("AS")}`,
       )} \`aggregate\``
     );
 

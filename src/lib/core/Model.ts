@@ -5359,7 +5359,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async count<K extends T.ColumnKeys<this> | "id" | "_id">(c ?: K): Promise<number> {
@@ -5369,6 +5369,7 @@ class Model<
 
     let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
 
+    column = 
       column === "*"
         ? "*"
         : distinct
@@ -5397,7 +5398,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async avg<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
@@ -5432,7 +5433,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async sum<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
@@ -5467,7 +5468,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async max<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
