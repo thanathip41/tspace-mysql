@@ -66,6 +66,8 @@ npm install -D typescript@5.9.3
   - [MySQL Database](#mysql-database)
   - [Mariadb Database](#mariadb-database)
   - [Postgres Database](#postgres-database)
+  - [SQLite Database](#sqlite-database)
+  - [Mongodb Database](#mongodb-database)
   - [Cluster Database](#cluster-database)
 - [SQL Like](#sql-Like)
 - [Query Builder](#query-builder)
@@ -246,6 +248,50 @@ DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
 ```
+
+### SQLite Database
+
+To connect the application to a SQLite database, using the following:
+
+```sh
+npm install better-sqlite3 --save
+```
+
+```js
+DB_DRIVER = sqlite
+DB_DATABASE = app.db
+```
+⚠️ Requirements for better-sqlite3
+Node.js 22 or higher is required
+
+### Mongodb Database
+
+To connect the application to a Mongodb database, using the following:
+```sh
+npm install mongodb --save
+```
+
+```js
+DB_DRIVER = mongodb
+DB_HOST = localhost
+DB_PORT = 27017
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+✅ Supported Features
+
+CRUD operations (create, read, update, delete)
+Basic joins & relations (via abstraction layer)
+
+⚠️ Limitations
+
+MongoDB support is partially implemented and may not fully match SQL-based drivers like MySQL or PostgreSQL
+
+* Advanced ORM features may be limited
+* Complex joins rely on abstraction (not native MongoDB behavior)
+* Some features may behave differently compared to relational databases
+* Transactions / advanced optimizations may be limited
 
 ### Cluster Database
 If you need strict race condition control, it is required to use multiple nodes for write and read. <br>
@@ -2700,7 +2746,7 @@ Cache can be used in a Model.
 Let's illustrate this with an example of a cache:
 
 ```js
-// support memory db and redis
+// support memory , db , redis
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
 
@@ -2708,6 +2754,7 @@ DB_CACHE = memory // by default
 DB_CACHE = db
 
 // for redis
+// npm install redis@5.6.0
 DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()

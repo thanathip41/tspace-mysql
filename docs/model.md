@@ -1006,7 +1006,7 @@ Cache can be used in a Model.
 Let's illustrate this with an example of a cache:
 
 ```js
-// support memory db and redis
+// support memory , db , redis
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
 
@@ -1014,6 +1014,7 @@ DB_CACHE = memory // by default
 DB_CACHE = db
 
 // for redis
+// npm install redis@5.6.0
 DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()
