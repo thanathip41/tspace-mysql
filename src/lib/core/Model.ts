@@ -1947,11 +1947,11 @@ class Model<
    * @param {string} column
    * @returns {string} return table.column
    */
-  public bindColumn(column: string, pattern = true): string {
+  public bindColumn(column: string, opts : { pattern : boolean } = { pattern : true }): string {
     if (!/\./.test(column)) {
       if (column === "*") return "*";
 
-      const c = pattern ? this._valuePattern(column) : column;
+      const c = opts.pattern ? this._valuePattern(column) : column;
       const alias = this.$state.get("ALIAS");
 
       return [
@@ -1965,7 +1965,7 @@ class Model<
 
     let [table, c] = column.split(".");
 
-    c = pattern ? this._valuePattern(c) : c;
+    c = opts.pattern ? this._valuePattern(c) : c;
 
     if (c === "*") {
       return `\`${table.replace(/`/g, "")}\`.*`;
@@ -4932,23 +4932,20 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+   
+     if(typeof localKey === 'string') {
+      this._handleJoin(
+        "INNER_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "INNER_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+    this.joinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -4964,23 +4961,20 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+    
+     if(typeof localKey === 'string') {
+      this._handleJoin(
+        "RIGHT_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "RIGHT_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+    this.rightJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -4996,23 +4990,20 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+
+    if(typeof localKey === 'string') {
+      this._handleJoin(
+        "LEFT_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "LEFT_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+    this.leftJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -5027,23 +5018,20 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+   
+    if(typeof localKey === 'string') {
+      this._handleJoin(
+        "CROSS_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "CROSS_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+    this.crossJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -5233,7 +5221,9 @@ class Model<
     m1: TModelOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelOrObject,
   ): this {
+    
     if (typeof m1 === "function" && !this._isModel(m1)) {
+     
       const cb = m1 as unknown as Function;
 
       const callback = cb(new JoinModel(this, "LEFT_JOIN"));
@@ -5246,7 +5236,10 @@ class Model<
       return this;
     }
 
-    if (m2 == null) return this;
+    if (this._isModel(m1) && m2 == null) {
+      m2 = m1 as unknown as TModelOrObject
+      m1 = this as unknown as TModelOrObject
+    }
 
     const {
       alias1,
@@ -5657,11 +5650,9 @@ class Model<
         PK,
         new Model()
           .from(
-            DB.raw(`
-        (${from}) AS ${TEMP}`),
+            DB.raw(`(${from}) AS ${TEMP}`),
           )
           .selectRaw(PK)
-          .toString(),
       );
 
     this.$state.set("DELETE", true);
@@ -5908,22 +5899,28 @@ class Model<
   }
   /**
    * @override
-   * @param    {object?} paginationOptions by default page = 1 , limit = 15
-   * @property {number} paginationOptions.limit
-   * @property {number} paginationOptions.page
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns  {promise<Pagination>} Pagination
    */
-  public async pagination<K>(paginationOptions?: {
-    limit?: number;
-    page?: number;
-    alias?: boolean;
+  public async pagination<K>(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<T.PaginateResult<this, K>> {
+    
     let limit = 15;
     let page = 1;
 
-    if (paginationOptions != null) {
-      limit = this.$utils.softNumber(paginationOptions?.limit || limit);
-      page = this.$utils.softNumber(paginationOptions?.page || page);
+    if(opts?.distinct) {
+      this.distinct();
+    }
+
+    if (opts != null) {
+      limit = this.$utils.softNumber(opts?.limit || limit);
+      page = this.$utils.softNumber(opts?.page || page);
     }
 
     await this._prepareQueryPipeline();
@@ -5952,17 +5949,18 @@ class Model<
   /**
    *
    * @override
-   * @param     {?object} paginationOptions by default page = 1 , limit = 15
-   * @property  {number}  paginationOptions.limit
-   * @property  {number}  paginationOptions.page
+   * @param     {?object} opts by default page = 1 , limit = 15
+   * @property  {number?} opts.limit
+   * @property  {number?} opts.page
+   * @property {boolean?} opts.distinct
    * @returns   {promise<Pagination>} Pagination
    */
-  public async paginate<K>(paginationOptions?: {
-    limit?: number;
-    page?: number;
-    alias?: boolean;
+  public async paginate<K>(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<T.PaginateResult<this, K>> {
-    return await this.pagination(paginationOptions);
+    return await this.pagination(opts);
   }
 
   /**
@@ -7468,7 +7466,7 @@ class Model<
         columns.push(this.bindColumn(key));
         continue;
       }
-      columns.push(this.bindColumn(schemaColumn.column, false));
+      columns.push(this.bindColumn(schemaColumn.column, { pattern : false }));
     }
 
     if (!columns.length) return this;
@@ -7789,7 +7787,6 @@ class Model<
       .copyModel(this, { where: true, join: true })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
-      .unset({ alias: true })
       .count(this.$state.get("PRIMARY_KEY"));
 
     let lastPage: number = Math.ceil(total / limit) || 0;
@@ -8890,8 +8887,18 @@ class Model<
   }
 
   private _handleJoinModel(m1: TModelOrObject, m2: TModelOrObject) {
-    let model1: Model = typeof m1 === "object" ? new m1.model() : new m1();
-    let model2: Model = typeof m2 === "object" ? new m2.model() : new m2();
+    
+    let model1: Model = typeof m1 === "object" 
+      ? m1 instanceof Model 
+        ? m1
+        : new m1.model() 
+      : new m1();
+    let model2: Model = typeof m2 === "object" 
+      ? m2 instanceof Model 
+        ? m2
+        : new m2.model() 
+      : new m2();
+
     let localKey: string =
       typeof m1 === "object"
         ? m1.key != null && m1.key !== ""
@@ -8904,15 +8911,19 @@ class Model<
           ? String(m2.key)
           : ""
         : "";
-    let alias1: string =
-      typeof m1 === "object"
-        ? m1.alias != null && m1.alias !== ""
+
+    let alias1: string = typeof m1 === "object" 
+      ?  m1 instanceof Model
+        ? model1.$state.get("ALIAS") ?? ""
+        : m1.alias != null && m1.alias !== ""
           ? m1.alias
           : ""
         : "";
-    let alias2: string =
-      typeof m2 === "object"
-        ? m2.alias != null && m2.alias !== ""
+
+    let alias2: string = typeof m2 === "object" 
+      ?  m2 instanceof Model
+        ? model2.$state.get("ALIAS") ?? ""
+        : m2.alias != null && m2.alias !== ""
           ? m2.alias
           : ""
         : "";
@@ -8922,6 +8933,20 @@ class Model<
         model1["$state"].get("MODEL_NAME") === this["$state"].get("MODEL_NAME")
       ) {
         this.alias(alias1);
+
+        const selecteds = this.$state.get("SELECT");
+
+        const formated = [];
+        
+        for(const selected of selecteds) {
+          const table = this.getTableName();
+          formated.push(
+            selected.replace(table, alias1)
+          )
+        }
+
+        if(formated.length) this.$state.set("SELECT",formated);
+
       }
       model1.alias(alias1);
     }

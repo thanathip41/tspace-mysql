@@ -208,6 +208,7 @@ class Builder extends AbstractBuilder {
       this.$state.set("OFFSET", null);
 
     if (options?.alias != null && options.alias)
+      this.$state.set("ALIAS", null);
       this.$state.set("RAW_ALIAS", null);
 
     return this;
@@ -3709,21 +3710,27 @@ class Builder extends AbstractBuilder {
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
    * making it easier to display data in a web application and improve user experience
-   * @param {?object} paginationOptions
-   * @param {number} paginationOptions.limit default 15
-   * @param {number} paginationOptions.page default 1
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async pagination(paginationOptions?: {
-    limit?: number;
-    page?: number;
+  public async pagination(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<TPagination> {
     let limit = 15;
     let page = 1;
 
-    if (paginationOptions != null) {
-      limit = paginationOptions?.limit || limit;
-      page = paginationOptions?.page || page;
+    if(opts?.distinct) {
+      this.distinct();
+    }
+
+    if (opts != null) {
+      limit = opts?.limit || limit;
+      page = opts?.page || page;
     }
 
     const currentPage: number = page;
@@ -3762,7 +3769,6 @@ class Builder extends AbstractBuilder {
       .copyBuilder(this, { where: true, join: true })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
-      .unset({ alias: true })
       .count();
 
     let lastPage: number = Math.ceil(total / limit) || 0;
@@ -3795,24 +3801,18 @@ class Builder extends AbstractBuilder {
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
    * making it easier to display data in a web application and improve user experience
-   * @param {?object} paginationOptions
-   * @param {number} paginationOptions.limit
-   * @param {number} paginationOptions.page
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async paginate(paginationOptions?: {
-    limit?: number;
-    page?: number;
+  public async paginate(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<TPagination> {
-    let limit = 15;
-    let page = 1;
-
-    if (paginationOptions != null) {
-      limit = paginationOptions?.limit || limit;
-      page = paginationOptions?.page || page;
-    }
-
-    return await this.pagination({ limit, page });
+    return await this.pagination(opts);
   }
 
   /**
