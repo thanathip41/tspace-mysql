@@ -634,7 +634,7 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
-  public unLockTable() {
+  public unlockTable() {
     throw new Error("Method not implemented.");
     return '';
   }

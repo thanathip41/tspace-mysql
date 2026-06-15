@@ -750,7 +750,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public unLockTable() {
+  public unlockTable() {
     const sql = [
      "UNLOCK TABLES"
     ]

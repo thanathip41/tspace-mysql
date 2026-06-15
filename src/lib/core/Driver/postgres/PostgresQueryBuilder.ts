@@ -949,18 +949,16 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
   public lockTable(mode : 'WRITE' | 'READ') {
     const sql = [
-      "LOCK TABLES",
+      "LOCK TABLE",
       this.$state.get('TABLE_NAME'),
-      mode
+      mode === 'READ' ? 'IN SHARE MODE' : 'IN ACCESS EXCLUSIVE MODE'
     ]
     return this.format(sql);
   }
 
-  public unLockTable() {
-    const sql = [
-     "UNLOCK TABLES"
-    ]
-    return this.format(sql);
+  public unlockTable() {
+    // in postgress not have unlock table, unlock when trx COMMIT / ROLLBACK
+    return null;
   }
 
   protected bindJoin(values: string[]) {

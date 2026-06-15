@@ -386,7 +386,7 @@ export abstract class QueryBuilder {
 
   public abstract lockTable(mode : 'WRITE' | 'READ'): string;
 
-  public abstract unLockTable(): string;
+  public abstract unlockTable(): string | null;
 
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;

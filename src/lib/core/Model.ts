@@ -9,6 +9,10 @@ import { StateManager }     from "./StateManager";
 import { Cache }            from "./Cache";
 import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
+import { REFLECT_META }     from "./Decorator";
+import { Join }             from "./Join";
+import { Repository }       from "./Repository";
+import { QueryBuilder }     from "./Driver";
 import type { T }           from "./UtilityTypes";
 import type {
   TExecute,
@@ -26,11 +30,9 @@ import type {
   TRawStringQuery,
 } from "../types";
 
-import type { TRelationOptionsDecorator } from "../types/decorator";
-
-import { REFLECT_META } from "./Decorator";
-import { Join } from "./Join";
-import Repository from "./Repository";
+import type { 
+  TRelationOptionsDecorator 
+} from "../types/decorator";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -698,6 +700,62 @@ class Model<
     }
   }
 
+  /**
+   * The 'lockTable' method is used table lock and execute the callback within the lock scope.
+   *
+   * The lock is automatically released after the callback completes,
+   * regardless of whether it resolves or throws an error.
+   *
+   * READ:
+   * - Other sessions can read.
+   * - Other sessions must wait before writing.
+   * - SELECT: allowed
+   * - INSERT: waits
+   * - UPDATE: waits
+   * - DELETE: waits
+   *
+   * WRITE:
+   * - Other sessions must wait before reading or writing.
+   * - SELECT: waits
+   * - INSERT: waits
+   * - UPDATE: waits
+   * - DELETE: waits
+   *
+   * The lock is released automatically after the callback completes.
+   * 
+   * @Note
+   * This approach is not recommended in clustered or load-balance environments,
+   * because locks are session-bound and requests may be routed to different database connections.
+   *
+   * @template T
+   * @param {'READ'|'WRITE'} mode Lock mode.
+   * @param {(query: this) => Promise<T>} handler Function executed while the table is locked.
+   * @returns {Promise<T>} The value returned by the callback.
+   *
+   * @example
+   * await User.lockTable('READ', async (query) => {
+   *   query.get();
+   *   return
+   * });
+   *
+   * @example
+   * await User.lockTable('WRITE', async (query) => {
+   *   // Avoid creating a new query instance inside the lock.
+   *   // The new instance uses a different connection/session and
+   *   // may wait for the current table lock to be released.
+   *   
+   *   new User().insert({
+   *     first_name: 'John',
+   *     last_name: 'Doe'
+   *   }).save();
+   * 
+   *   // Use the locked query instance instead.
+   *   await query.insert({
+   *     first_name: 'John',
+   *     last_name: 'Doe'
+   *   }).save();
+   * });
+   */
   static async lockTable<
     T, 
     Self extends Model,
@@ -708,7 +766,7 @@ class Model<
     handler: (model : M) => Promise<T>
   ): Promise<T> {
     
-    const trx = await DB.beginTransaction()
+    const trx = await DB.beginTransaction();
     
     try {
 
@@ -717,17 +775,27 @@ class Model<
       const model = new this()
       .bind(trx)
 
-      await model
-      .rawQuery("LOCK TABLES users READ")
+      const sqlLockTable = model
+      ._queryBuilder()
+      .lockTable(mode);
+
+      await model.rawQuery(sqlLockTable)
 
       const results = await handler(model as any);
 
-      await model
-      .rawQuery("UNLOCK TABLES")
+      const sqlUnlockTable = model
+      ._queryBuilder()
+      .unlockTable();
 
+      if(sqlUnlockTable != null) {
+        await model
+        .rawQuery(sqlUnlockTable)
+      }
+     
       await trx.commit();
 
       return results;
+
     } catch (err) {
       await trx.rollback();
       throw err;
@@ -7495,7 +7563,7 @@ class Model<
 
     this._handleSoftDelete();
 
-    return this._buildQueryStatement();
+    return this._buildQueryStatement() as QueryBuilder;
   }
 
   private async _runBefore(

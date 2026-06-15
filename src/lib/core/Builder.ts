@@ -11,7 +11,7 @@ import {
   PoolConnection, 
   loadOptionsEnv 
 } from "./Pool";
-import {
+import type {
   TPagination,
   TConnectionOptions,
   TPoolConnected,
