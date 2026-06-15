@@ -657,8 +657,7 @@ export class MongodbQueryBuilder extends QueryBuilder {
   }
 
   protected bindSelect(
-    values: string[],
-    { distinct }: { distinct?: string } = {}
+    values: string[]
   ) {
 
     

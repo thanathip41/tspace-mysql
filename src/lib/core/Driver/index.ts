@@ -393,8 +393,7 @@ export abstract class QueryBuilder {
   protected abstract bindOrderBy(values: string[]): string | null;
   protected abstract bindGroupBy(values: string[]): string | null;
   protected abstract bindSelect(
-    values: string[],
-    opts?: { distinct?: string },
+    values: string[]
   ): string;
   protected abstract bindFrom(args: {
     from: string[];

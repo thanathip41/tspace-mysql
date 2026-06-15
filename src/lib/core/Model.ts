@@ -1724,6 +1724,12 @@ class Model<
     return this;
   }
 
+  /**
+   *
+   * @override
+   * @param {string[]} ...columns
+   * @returns {this} this
+   */
   public addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let select: string[] = columns.map((c) => {
       const column = String(c);
@@ -2248,8 +2254,6 @@ class Model<
   ): Promise<any[]> {
     try {
    
-      sql = this._queryBuilder().format([sql]);
-
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           const startTime = +new Date();
@@ -2311,8 +2315,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any> {
     try {
-      sql = this._queryBuilder().format([sql]);
-
+     
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           const startTime = +new Date();

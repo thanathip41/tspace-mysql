@@ -283,6 +283,32 @@ class Builder extends AbstractBuilder {
   }
 
   /**
+   * The 'addSelect' method is used to add columns you want to retrieve from a database table.
+   *
+   * It allows you to choose the specific columns that should be included in the result set of a database query.
+   * @param {string[]} ...columns
+   * @returns {this} this
+   */
+  public addSelect(...columns: string[]): this {
+    let select: string[] = columns.map((c) => {
+      const column = String(c);
+
+      if (column.includes(this.$constants("RAW"))) {
+        return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
+      }
+
+      return this.bindColumn(column);
+    });
+
+    this.$state.set("ADD_SELECT", [
+      ...select,
+      ...this.$state.get("ADD_SELECT"),
+    ]);
+
+    return this;
+  }
+
+  /**
    * The 'selectRaw' method is used to specify which columns you want to retrieve from a database table.
    *
    * It allows you to choose the specific columns that should be included in the result set of a database query.
@@ -4901,9 +4927,9 @@ class Builder extends AbstractBuilder {
   }
 
   protected async _queryStatement(sql: string): Promise<any[]> {
-    sql = this._queryBuilder().format([sql]);
     
     try {
+
       const startTime = +new Date();
 
       const result = await this.$pool.query(sql);

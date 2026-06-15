@@ -872,11 +872,20 @@ export class SqliteQueryBuilder extends QueryBuilder {
       return `${this.$constants("SELECT")} ${this.$constants("DISTINCT")} *`;
     }
 
-    const findIndex = values.indexOf("*");
+    const findIndexStar = values.indexOf("*");
 
-    if (findIndex > -1) {
-      const removed = values.splice(findIndex, 1);
+    if (findIndexStar > -1) {
+      const removed = values.splice(findIndexStar, 1);
       values.unshift(removed[0]);
+    }
+
+    const findIndexDistinct = values.findIndex(
+      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
+    );
+
+    if (findIndexDistinct > -1) {
+      const [distinct] = values.splice(findIndexDistinct, 1);
+      values.unshift(distinct);
     }
 
     return `${this.$constants("SELECT")} ${values.join(", ")}`;
