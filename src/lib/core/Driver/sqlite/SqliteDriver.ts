@@ -2,7 +2,6 @@ import pathSystem             from 'path';
 import fsSystem               from 'fs';
 import { BaseDriver }         from "..";
 import { SqliteQueryBuilder } from "./SqliteQueryBuilder";
-import { exec } from 'child_process';
 import type { 
   TConnection, 
   TPoolEvent 

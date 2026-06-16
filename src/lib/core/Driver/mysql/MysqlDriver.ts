@@ -45,7 +45,7 @@ export class MysqlDriver extends BaseDriver {
       enableKeepAlive       : true,
       keepAliveInitialDelay : 1000 * 20,
      
-      maxIdle               : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      maxIdle               : Math.floor((options.connectionLimit ?? 20) * 0.1),
       idleTimeout           : 1000 * 60,
   
       charset               : 'utf8mb4',
@@ -56,7 +56,7 @@ export class MysqlDriver extends BaseDriver {
 
     this.poolTrx = mysql2.createPool({
       ...configs,
-      connectionLimit : configs.connectionLimit * 1.5
+      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
     });
 
     this.pool.getConnection((err : any) : void => {
