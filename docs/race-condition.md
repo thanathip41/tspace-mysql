@@ -148,11 +148,11 @@ simulateRaceConnection();
     <div class="nav-title"> Database Transactions </div>
   </a>
 
-  <a href="#/connection" class="next-card">
+  <a href="#/race-condition" class="next-card">
     <div class="nav-label">
         Next
         <span class="page-nav-arrow">→</span>
     </div>
-    <div class="nav-title"> Connection </div>
+    <div class="nav-title"> Race Condition </div>
   </a>
 </div>
