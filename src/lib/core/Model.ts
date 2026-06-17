@@ -6467,7 +6467,7 @@ class Model<
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6494,7 +6494,7 @@ class Model<
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6506,7 +6506,7 @@ class Model<
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6518,7 +6518,7 @@ class Model<
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 

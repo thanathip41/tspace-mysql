@@ -16,6 +16,7 @@ import type {
     TConflictKeys,
     TInsertInput,
     TUpdateInput,
+    TInsertOrUpdateInput,
     TDefault
 } from "../types";
 
@@ -271,6 +272,8 @@ export declare namespace T {
 
     type UpdateInput<K, C> = TUpdateInput<K, C>
 
+    type InsertOrUpdateInput<K, C> = TInsertOrUpdateInput<K, C>
+
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]
@@ -282,11 +285,11 @@ export declare namespace T {
 
     type ZodShapeCreate<
         M extends Model,
-        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-        Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+        O extends T.ColumnKeys<M>[] = [],
+        Opt extends T.ColumnKeys<M>[] = []
     > = {
     [K in Extract<
-        T.ColumnKeys<M, { OnlyColumn: true }>,
+        T.ColumnKeys<M>,
         keyof Columns<M>
     > as
         K extends O[number]
@@ -302,11 +305,11 @@ export declare namespace T {
 
     type ZodShapeUpdate<
         M extends Model,
-        R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+        R extends T.ColumnKeys<M>[] = [],
+        O extends T.ColumnKeys<M>[] = []
     > = {
     [K in Extract<
-        T.ColumnKeys<M, { OnlyColumn: true }>,
+        T.ColumnKeys<M>,
         keyof Columns<M>
     > as
         K extends O[number]
@@ -343,18 +346,26 @@ export declare namespace T {
             : TColumnsDecorator<M,Options>
     >
 
+    type Raw<M extends Model> = {
+        [K in keyof TSchemaModel<M>]:
+            TSchemaModel<M>[K] |
+            TOperatorQuery |
+            TRawStringQuery |
+            TFreezeStringQuery
+    }
+
     type ColumnKeys<
         M extends Model,
-        Options extends { OnlyColumn?: boolean } = {}
+        Options extends { InputQuery?: boolean } = {}
     > = (
         keyof TColumnsDecorator<M> extends never
             ? TSchemaKeyOf<M>
             : keyof TColumnsDecorator<M>
         )
     | (
-        Options["OnlyColumn"] extends true
-            ? never
-            : `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+        Options["InputQuery"] extends true
+            ? `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+            : never
         );
 
     // ColumnEnumMap does not work with T.Schema,
