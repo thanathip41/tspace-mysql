@@ -567,8 +567,8 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  public static enum<K extends string | string[] | Record<string, string>>(
-    ...enums: (K extends string ? K : K)[]
+  public static enum<K extends string | Record<string, string>>(
+    ...enums: K[]
   ): Blueprint<K extends string ? `${K & string}` : `${K[keyof K] & string}`> {
     return new Blueprint<K extends string ? K : K[keyof K]>().enum(...enums);
   }
@@ -578,9 +578,9 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  public enum<K extends string | string[] | Record<string, string>>(
-    ...enums: (K extends string ? K : K)[]
-  ): Blueprint<K extends string ? K : K[keyof K]> {
+  public enum<K extends string | Record<string, string>>(
+    ...enums: K[]
+  ): Blueprint<K extends string ? `${K & string}` : `${K[keyof K] & string}`> {
     const instance = new Blueprint<K extends string ? K : K[keyof K]>();
 
     let enumValues: string[] = [];
