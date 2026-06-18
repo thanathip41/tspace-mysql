@@ -2971,6 +2971,55 @@ class Model<
     return this;
   }
 
+   /**
+   *
+   * The 'withQueryExists' method is particularly useful when you want to filter or add conditions records based on related data.
+   *
+   * Use relation '${name}' registry models then return callback queries
+   * @param {string} nameRelation name relation in registry in your model
+   * @param {function} callback query callback
+   * @param {object} options pivot the query
+   * @example
+   *   import { Model } from 'tspace-mysql'
+   *   class User extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'posts' , model : Post })
+   *       }
+   *   }
+   *
+   *   class Post extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'comments' , model : Comment })
+   *           this.belongsTo({ name : 'user' , model : User })
+   *       }
+   *   }
+   *
+   *   class Comment extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'users' , model : User })
+   *           this.belongsTo({ name : 'post' , model : Post })
+   *       }
+   *   }
+   *
+   *   await new User().with('posts')
+   *   .withQueryExists('posts', (query : Post) => {
+   *       return query.with('comments','user')
+   *       .withQuery('comments', (query : Comment) => {
+   *           return query.with('user','post')
+   *       })
+   *       .withQueryExists('user', (query : User) => {
+   *           return query.with('posts').withQueryExists('posts',(query : Post)=> {
+   *               return query.with('comments','user')
+   *               // relation n, n, ...n
+   *           })
+   *       })
+   *   })
+   *  .findMany()
+   * @returns {this} this
+   */
   public withQueryExists<
     K extends T.RelationKeys<this>,
     R extends T.Relations<this>,
@@ -6467,7 +6516,7 @@ class Model<
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6494,7 +6543,7 @@ class Model<
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6506,7 +6555,7 @@ class Model<
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 
@@ -6518,7 +6567,7 @@ class Model<
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): this {
     return this.updateOrCreate(data);
   }
 

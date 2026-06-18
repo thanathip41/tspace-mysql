@@ -597,3 +597,11 @@ export type TUpdateInput<K, C> = {
         [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: CleanDefaultType<C[Q]>;
     }
 }[Exclude<K & keyof C, "id" | "_id">];
+
+export type TInsertOrUpdateInput<K,C> = {
+  [P in Extract<K, keyof C>]: {
+    [Q in P]-?: CleanDefaultType<C[Q]>;
+  } & {
+    [Q in Exclude<Extract<K, keyof C>, P>]?: CleanDefaultType<C[Q]>;
+  }
+}[Extract<K, keyof C>];

@@ -343,8 +343,8 @@ class Schema {
      * .listen(8000)
      */
       create: <
-       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-       Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+       O extends T.ColumnKeys<M>[] = [], 
+       Opt extends T.ColumnKeys<M>[] = []
       >(options?: {
         omit?: O;
         optional?: Opt;
@@ -379,8 +379,8 @@ class Schema {
        * .listen(8000)
        */
       update: <
-       R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+       R extends T.ColumnKeys<M>[] = [], 
+       O extends T.ColumnKeys<M>[] = []
       >(options?: {  required?: R, omit?: O; } & T.NoConflict<R, O>) => {
         return this._updateValidator(model, options)
       }
@@ -430,8 +430,8 @@ class Schema {
 
   private _createValidator<
     M extends Model,
-    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-    Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    O extends T.ColumnKeys<M>[] = [], 
+    Opt extends T.ColumnKeys<M>[] = []
   >(
     model: new () => M,
     options?: {
@@ -485,8 +485,8 @@ class Schema {
 
   private _updateValidator<
     M extends Model,
-    R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    R extends T.ColumnKeys<M>[] = [],
+    O extends T.ColumnKeys<M>[] = []
   >(
     model: new () => M,
     options?: {

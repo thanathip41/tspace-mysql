@@ -37,7 +37,7 @@ export class MariadbDriver extends BaseDriver {
       connectionLimit  : options.connectionLimit ?? 20,
       connectTimeout   : options.connectTimeout ?? 1000 * 60,
 
-      minimumIdle      : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      minimumIdle      : Math.floor((options.connectionLimit ?? 20) * 0.1),
       acquireTimeout   : 1000 * 20,
       idleTimeout      : 1000 * 60,
       queryTimeout     : 1000 * 60,
@@ -51,7 +51,7 @@ export class MariadbDriver extends BaseDriver {
 
     this.poolTrx = mariadb.createPool({
       ...configs,
-      connectionLimit : configs.connectionLimit * 1.5
+      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
     });
 
     this.pool.getConnection().catch(async (err:any) => {

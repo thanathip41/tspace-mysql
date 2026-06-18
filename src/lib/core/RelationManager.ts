@@ -237,16 +237,52 @@ class RelationManager  {
         
         relation.query = cb(relation.query == null ? new relation.model() : relation.query)
 
-        const { localKey, foreignKey } = this._valueInRelation(relation)   
+        const { localKey, foreignKey, modelPivot , pivot } = this._valueInRelation(relation)   
         
         const query = relation.query as Model
 
         if(query == null) {
             throw this._assertError(`The callback query '${relation.name}' is unknown.`)
         }
-        
+
         const clone = new Model().clone(query)
 
+        if(relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
+
+            const thisPivot =  modelPivot
+            ? new modelPivot as Model
+            : new Model().table(String(pivot))
+            
+            const sql = clone
+            .bind(this.$model['$pool'].get())
+            .select1()
+            .whereReference(
+                query.bindColumn(foreignKey),
+                thisPivot.bindColumn(localKey)
+            )
+            .toString()
+
+            const sqlPivot = thisPivot
+            .bind(this.$model['$pool'].get())
+            .select1()
+            .whereExists(sql)
+            .whereReference(
+                this.$model.bindColumn(foreignKey),
+                thisPivot.bindColumn([ 
+                        pluralize.singular(this.$model.getTableName()),
+                        foreignKey
+                    ].join("_")
+                )
+            )
+            .unset({
+                orderBy : true,
+                limit   : true
+            })
+            .toString()
+
+            return sqlPivot;
+        }
+        
         const sql = clone
         .bind(this.$model['$pool'].get())
         .select1()

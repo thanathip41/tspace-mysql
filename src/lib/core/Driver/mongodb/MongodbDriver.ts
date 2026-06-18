@@ -1,6 +1,9 @@
-import { BaseDriver } from "..";
+import { BaseDriver }          from "..";
 import { MongodbQueryBuilder } from "./MongodbQueryBuilder";
-import type { TConnection, TPoolEvent } from "../../../types";
+import type { 
+    TConnection, 
+    TPoolEvent 
+} from "../../../types";
 
 type MongodbCollection<T> = {
   aggregate: (pipeline: any[], options?: any) => {

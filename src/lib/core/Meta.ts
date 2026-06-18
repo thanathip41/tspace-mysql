@@ -12,7 +12,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {string} The table name.
      */
-    table(): string {
+    public table(): string {
         return String(this.model.toTableName());
     }
 
@@ -22,7 +22,7 @@ class ModelMeta<M extends Model> {
      * @param {T.ColumnKeys<M>} column - The column key.
      * @returns {T.ColumnKeys<M>} The validated column key.
      */
-    column(column: T.ColumnKeys<M>): T.ColumnKeys<M> {
+    public column(column: T.ColumnKeys<M>): T.ColumnKeys<M> {
         return String(column).replace(/`/g,'');
     }
 
@@ -33,7 +33,7 @@ class ModelMeta<M extends Model> {
      * @param {{ alias?: string | null }} [options] - Optional alias for the table.
      * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    columnReference(column: T.ColumnKeys<M>,
+    public columnReference(column: T.ColumnKeys<M>,
         {  
             alias = null, 
             raw   = null 
@@ -63,7 +63,7 @@ class ModelMeta<M extends Model> {
      * @param {{ alias?: string | null }} [options] - Optional alias for the table.
      * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    columnRef(
+    public columnRef(
         column: T.ColumnKeys<M>,
         {  alias = null, raw   = null }: { 
             alias ?: string | null;
@@ -78,7 +78,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {T.ColumnKeys<M>[]} An array of column keys.
      */
-    columns(): T.ColumnKeys<M>[] {
+    public columns(): T.ColumnKeys<M>[] {
         const schemaModel = this.model.getSchemaModel();
 
         const columns: T.ColumnKeys<M>[] = schemaModel == null
@@ -94,7 +94,7 @@ class ModelMeta<M extends Model> {
      * @param {string} name - The column name to check.
      * @returns {boolean} True if the column exists, false otherwise.
      */
-    hasColumn(name: string): boolean {
+    public hasColumn(name: string): boolean {
         const schemaModel = this.model.getSchemaModel();
 
         const columns: T.ColumnKeys<M>[] = schemaModel == null
@@ -109,7 +109,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {string | undefined} The primary key column, or undefined if not found.
      */
-    primaryKey(): string | undefined {
+    public primaryKey(): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return undefined;
@@ -127,7 +127,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {string[]} An array of index names.
      */
-    indexes(): string[] {
+    public indexes(): string[] {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return [];
@@ -147,7 +147,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {string[]} An array of nullables column keys.
      */
-    nullables(): NullableKeys<T.Columns<M>>[] {
+    public nullables(): NullableKeys<T.Columns<M>>[] {
 
         const schemaModel = this.model.getSchemaModel();
 
@@ -170,7 +170,7 @@ class ModelMeta<M extends Model> {
      *
      * @returns {T.SchemaModel<M> | null} An object of default values, or null if none are defined.
      */
-    defaults(): T.Columns<M> | null {
+    public defaults(): T.Columns<M> | null {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return null;
@@ -188,7 +188,7 @@ class ModelMeta<M extends Model> {
      * @param {T.ColumnKeys<M>} column - The column key.
      * @returns {("number" | "string" | "boolean" | "date" | undefined)} The column type, or undefined if not found.
      */
-    columnTypeOf(column: T.ColumnKeys<M>): string | undefined {
+    public columnTypeOf(column: T.ColumnKeys<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return undefined;
@@ -214,7 +214,7 @@ class ModelMeta<M extends Model> {
      * @param {T.ColumnKeys<M>} column - The column key.
      * @returns {string | undefined} The column type, or undefined if not found.
      */
-    columnType(column: T.ColumnKeys<M>): string | undefined {
+    public columnType(column: T.ColumnKeys<M>): string | undefined {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return undefined;
@@ -235,7 +235,7 @@ class ModelMeta<M extends Model> {
      * @returns {Record<T.Result<M>[C], T.Result<M>[C]> | null} A record mapping each enum value to itself, or null if not defined.
      */
     //@ts-ignore
-    enum<C extends T.ColumnEnumKeys<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
+    public enum<C extends T.ColumnEnumKeys<M>>(column: C): Record<T.Result<M>[C], T.Result<M>[C]> | null {
         const schemaModel = this.model.getSchemaModel();
 
         if (schemaModel == null) return null;
@@ -263,7 +263,7 @@ class ModelMeta<M extends Model> {
      * @returns {T.Result<M>[C][]}
      */
     //@ts-ignore
-    enums<C extends T.ColumnEnumKeys<M>>(column: C): T.Result<M>[C][] {
+    public enums<C extends T.ColumnEnumKeys<M>>(column: C): T.Result<M>[C][] {
         const schemaModel = this.model.getSchemaModel();
 
         if (!schemaModel) return [];

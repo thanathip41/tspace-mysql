@@ -1946,6 +1946,26 @@ class User extends Model {
      *     updated_at  : Blueprint.timestamp().null(),
      *     deleted_at  : Blueprint.timestamp().null()
      *  }) // auto-generated table when table is not exists and auto-create column when column not exists
+     * 
+     *  this.useLifecycle('beforeInsert', () => console.log('beforeInsert'))
+     *  this.useLifecycle('afterInsert',  () => console.log('afterInsert'))
+     *  this.useLifecycle('beforeUpdate', () => console.log('beforeUpdate'))
+     *  this.useLifecycle('afterUpdate',  () => console.log('afterUpdate'))
+     *  this.useLifecycle('beforeRemove', () => console.log('beforeRemove'))
+     *  this.useLifecycle('afterRemove',  () => console.log('afterRemove'))
+     * 
+     *  this.useTransform({
+     *    name : {
+     *       to   : async (name) => `${name}-> transform@before`,
+     *       from : async (name) => `${name}-> transform@after`,
+     *    }
+     *  })
+     * 
+     *  this.useHooks([
+     *    (r:any) => console.log(r,'hook1'),
+     *    (r:any) => console.log(r,'hook2'),
+     *    (r:any) => console.log(r,'hook3')
+     *  ])
      *
      *  // validate input when create or update reference to the schema in 'this.useSchema'
      *  this.useValidateSchema({
