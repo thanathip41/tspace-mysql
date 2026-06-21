@@ -45,7 +45,7 @@ export class PostgresDriver extends BaseDriver {
       password                : options.password,
       
       max                     : options.connectionLimit ?? 20,
-      min                     : Math.floor((options.connectionLimit ?? 20) * 0.1),
+      min                     : Math.floor((options.connectionLimit ?? 20) * 0.3),
 
       connectionTimeoutMillis : options.connectTimeout ?? 1000 * 60,
       keepAlive               : true,
@@ -53,7 +53,7 @@ export class PostgresDriver extends BaseDriver {
       
       idleTimeoutMillis       : 1000 * 60,
       statement_timeout       : 1000 * 60,
-      query_timeout           : 1000 * 60,
+      query_timeout           : 1000 * 90,
     }
 
     this.pool = new pg.Pool(configs);
@@ -150,6 +150,12 @@ export class PostgresDriver extends BaseDriver {
       await conn.query('BEGIN');
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null)
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }

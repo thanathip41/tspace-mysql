@@ -37,10 +37,10 @@ export class MariadbDriver extends BaseDriver {
       connectionLimit  : options.connectionLimit ?? 20,
       connectTimeout   : options.connectTimeout ?? 1000 * 60,
 
-      minimumIdle      : Math.floor((options.connectionLimit ?? 20) * 0.1),
+      minimumIdle      : options.connectionLimit ?? 20,
       acquireTimeout   : 1000 * 20,
       idleTimeout      : 1000 * 60,
-      queryTimeout     : 1000 * 60,
+      queryTimeout     : 1000 * 90,
 
       pipelining       : true,
       bigIntAsNumber   : true,
@@ -147,6 +147,12 @@ export class MariadbDriver extends BaseDriver {
       await conn.beginTransaction();
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null)
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }

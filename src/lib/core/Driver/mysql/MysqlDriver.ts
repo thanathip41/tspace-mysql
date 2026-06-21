@@ -45,8 +45,8 @@ export class MysqlDriver extends BaseDriver {
       enableKeepAlive       : true,
       keepAliveInitialDelay : 1000 * 20,
      
-      maxIdle               : Math.floor((options.connectionLimit ?? 20) * 0.1),
-      idleTimeout           : 1000 * 60,
+      maxIdle               : options.connectionLimit ?? 20,
+      idleTimeout           : 1000 * 90,
   
       charset               : 'utf8mb4',
 
@@ -136,7 +136,7 @@ export class MysqlDriver extends BaseDriver {
 
     let started    = false;
     let closed     = false;
-      let commited = false;
+    let commited   = false;
     let rollbacked = false;
 
     const query = async (sql: string) => {
@@ -158,6 +158,12 @@ export class MysqlDriver extends BaseDriver {
       await conn.beginTransaction();
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null);
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }
