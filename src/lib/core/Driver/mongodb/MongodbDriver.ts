@@ -58,16 +58,21 @@ export class MongodblDriver extends BaseDriver {
         super();
         this.options = options;
     }
+
     public connect(this: MongodblDriver) {
         const options = this.options as MongodbConnectionOptions;
         const { MongoClient } = this.import("mongodb");
 
-        const url = `mongodb://${options.user}:${options.password}@${options.host}:${options.port}/${options.database}?authSource=admin`;
+       const url =
+        `mongodb://${options.user || options.username}:${options.password}` +
+        `@${options.host}:${options.port}` +
+        `/${options.database}` +
+        `?authSource=admin`;
 
         this.pool = new MongoClient(url, {
-            maxPoolSize: options.connectionLimit ?? 10,
-            minPoolSize: Math.max(2, Math.floor((options.connectionLimit ?? 10) / 3)),
-            maxIdleTimeMS: 1000 * 60,
+            maxPoolSize: options.connectionLimit ?? 20,
+            minPoolSize: Math.floor((options.connectionLimit ?? 20) * 0.3),
+            maxIdleTimeMS: 1000 * 90,
         });
 
         this._connecting = this.pool

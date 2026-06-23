@@ -43,7 +43,7 @@ export class MysqlDriver extends BaseDriver {
       queueLimit            : 0,
 
       enableKeepAlive       : true,
-      keepAliveInitialDelay : 1000 * 20,
+      keepAliveInitialDelay : 0,
      
       maxIdle               : options.connectionLimit ?? 20,
       idleTimeout           : 1000 * 90,
