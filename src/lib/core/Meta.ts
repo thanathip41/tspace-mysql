@@ -30,47 +30,46 @@ class ModelMeta<M extends Model> {
      * Build a fully qualified column reference with an optional alias.
      *
      * @param {T.ColumnKeys<M>} column - The column key.
-     * @param {{ alias?: string | null }} [options] - Optional alias for the table.
+     * @param {{ alias?: string | null }} [opts] - Optional alias for the table.
      * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
      */
-    public columnReference(column: T.ColumnKeys<M>,
-        {  
-            alias = null, 
-            raw   = null 
-        }: { 
-            alias ?: string | null;
-            raw   ?: boolean | null; 
-        } = {}
-    ): `${string}.${T.ColumnKeys<M>}` {
+    public columnReference<
+        K extends T.ColumnKeys<M> = T.ColumnKeys<M>
+    >(column: K, opts: { 
+        alias ?: string | null;
+        raw   ?: boolean | null; 
+    } = {}
+    ): `${string}.${K}` {
 
         let base = `\`${this.table()}\`.\`${String(column)}\``;
 
-        if (alias) {
-            base = `\`${alias}\`.\`${String(column)}\``;
+        if (opts.alias) {
+            base = `\`${opts.alias}\`.\`${String(column)}\``;
         }
 
-        if(raw) {
+        if(opts.raw) {
             base = base.replace(/`/g,'');
         }
 
-        return base as `${string}.${T.ColumnKeys<M>}`;
+        return base as `${string}.${K}`;
     }
 
     /**
      * Alias for {@link columnReference}.
      *
      * @param {T.ColumnKeys<M>} column - The column key.
-     * @param {{ alias?: string | null }} [options] - Optional alias for the table.
-     * @returns {`${string}.${T.ColumnKeys<M>}`} The column reference.
+     * @param {{ alias?: string | null }} [opts] - Optional alias for the table.
+     * @returns {`${string}.${K}`} The column reference.
      */
-    public columnRef(
-        column: T.ColumnKeys<M>,
-        {  alias = null, raw   = null }: { 
-            alias ?: string | null;
-            raw   ?: boolean | null; 
-        } = {}
-    ): `${string}.${T.ColumnKeys<M>}` {
-        return this.columnReference(column, { alias, raw });
+    public columnRef<
+        K extends T.ColumnKeys<M> = T.ColumnKeys<M>
+    >(
+        column: K, opts: { 
+        alias ?: string | null;
+        raw   ?: boolean | null; 
+    } = {}
+    ): `${string}.${K}` {
+        return this.columnReference(column, opts);
     }
 
     /**
