@@ -99,7 +99,7 @@ class Join {
        
         const join = [
             `${this.builder['$constants']('AND')}`,
-            `${this.builder.bindColumn(localKey)} ${operator} '${referenceKey}'`
+            `${this.builder.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
         ].join(' ')
 
         this.join.push(join)
@@ -165,7 +165,7 @@ class Join {
 
         const join = [
             `${this.builder['$constants']('OR')}`,
-            `${this.builder.bindColumn(localKey)} ${operator} ${this.builder.bindColumn(String(referenceKey))}`
+            `${this.builder.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
         ].join(' ')
 
         this.join.push(join)

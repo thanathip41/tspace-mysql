@@ -557,7 +557,13 @@ const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | '
 }
 
 const formatQueryValue = (v: any) : any => {
-    if(Array.isArray(v)) return v;
+    if(Array.isArray(v)) {
+        const formated = [];
+        for(const val of v) {
+            formated.push(formatQueryValue(val));
+        }
+        return formated;
+    }
     v = transfromDateToDateString(v);
     v = escape(v);
     v = transfromBooleanToNumber(v);

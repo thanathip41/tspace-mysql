@@ -183,7 +183,7 @@ class JoinModel {
        
         const join = [
             `${this.model['$constants']('AND')}`,
-            `${this.model.bindColumn(localKey)} ${operator} '${referenceKey}'`
+            `${this.model.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
         ].join(' ')
 
         this.join.push(join)
@@ -249,7 +249,7 @@ class JoinModel {
 
         const join = [
             `${this.model['$constants']('OR')}`,
-            `${this.model.bindColumn(localKey)} = ${this.model.bindColumn(String(referenceKey))}`
+            `${this.model.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
         ].join(' ')
 
         this.join.push(join)
