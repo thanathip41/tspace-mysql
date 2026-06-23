@@ -34,6 +34,7 @@ import type {
   TRelationOptionsDecorator 
 } from "../types/decorator";
 
+
 let globalSettings: TGlobalSetting = {
   softDelete: false,
   debug: false,
@@ -124,7 +125,7 @@ class Model<
   static get table(): string | null {
     return new this().getTableName();
   }
-
+  
   /**
    * The 'formatPattern' method is used to change the format of the pattern.
    * @param {object} data { data , pattern }
@@ -1692,7 +1693,7 @@ class Model<
     return this;
   }
 
-  public meta(meta: "MAIN" | "SUBORDINATE") {
+  public metaTag(meta: "MAIN" | "SUBORDINATE") {
     this.$state.set("META", meta);
     return this;
   }
@@ -5062,6 +5063,20 @@ class Model<
       return this;
     }
 
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "INNER_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
     this.joinModel(
       localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
       referenceKey as TModelOrObject
@@ -5088,6 +5103,20 @@ class Model<
         localKey as `${string}.${string}` | ((join: Join) => Join),
         referenceKey as `${string}.${string}`,
       );
+      return this;
+    }
+
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "RIGHT_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
       return this;
     }
 
@@ -5120,6 +5149,20 @@ class Model<
       return this;
     }
 
+    if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "LEFT_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
     this.leftJoinModel(
       localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
       referenceKey as TModelOrObject
@@ -5145,6 +5188,20 @@ class Model<
         localKey as `${string}.${string}` | ((join: Join) => Join),
         referenceKey as `${string}.${string}`,
       );
+      return this;
+    }
+
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "CROSS_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
       return this;
     }
 
@@ -5216,7 +5273,10 @@ class Model<
       return this;
     }
 
-    if (m2 == null) return this;
+    if (this._isModel(m1) && m2 == null) {
+      m2 = m1 as unknown as TModelOrObject
+      m1 = this as unknown as TModelOrObject
+    }
 
     const {
       alias1,
@@ -5343,7 +5403,7 @@ class Model<
   ): this {
     
     if (typeof m1 === "function" && !this._isModel(m1)) {
-     
+      
       const cb = m1 as unknown as Function;
 
       const callback = cb(new JoinModel(this, "LEFT_JOIN"));
@@ -9129,7 +9189,7 @@ class Model<
 
     this.$state = new StateManager("model");
 
-    this.meta("MAIN");
+    this.metaTag("MAIN");
 
     this._makeTableName();
 

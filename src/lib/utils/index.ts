@@ -418,7 +418,7 @@ const transfromValueHasOp = (str: string) => {
 };
 
 const valueAndOperator = (
-    value: string,
+    value: any,
     operator: string,
     useDefault = false
   ): any[] => {

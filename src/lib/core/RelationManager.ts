@@ -55,7 +55,7 @@ class RelationManager  {
         if(relation.count) {
 
             const childs :  Record<string,any>[] = await query
-            .meta('SUBORDINATE')
+            .metaTag('SUBORDINATE')
             .select(foreignKey)
             .selectRaw(`${this.$model["$constants"]('COUNT')}(\`${foreignKey}\`) ${this.$model["$constants"]('AS')} \`aggregate\``)
             .whereIn(foreignKey,parentIds)
@@ -74,7 +74,7 @@ class RelationManager  {
         }
 
         const childs = await query
-        .meta('SUBORDINATE')
+        .metaTag('SUBORDINATE')
         .addSelect(foreignKey)
         .whereIn(foreignKey,parentIds)
         .debug(this.$model['$state'].get('DEBUG'))
@@ -977,7 +977,7 @@ class RelationManager  {
         if(relation.count) {
 
             const pivotResults : Record<string,any>[] = await queryPivot
-            .meta('SUBORDINATE')
+            .metaTag('SUBORDINATE')
             .select(localKeyPivotTable)
             .selectRaw(`${this.$model["$constants"]('COUNT')}(\`${localKeyPivotTable}\`) ${this.$model["$constants"]('AS')} \`aggregate\``)
             .whereIn(localKeyPivotTable,mainResultIds)
@@ -1002,7 +1002,7 @@ class RelationManager  {
         }
 
         const pivotResults: Record<string,any>[] = await queryPivot
-        .meta('SUBORDINATE')
+        .metaTag('SUBORDINATE')
         .addSelect(localKeyPivotTable)
         .whereIn(localKeyPivotTable,mainResultIds)
         .when(relation.query != null , (query : Model) => query.select(localKeyPivotTable,localKey))
@@ -1022,7 +1022,7 @@ class RelationManager  {
         )
 
         const relationResults: Record<string,any>[] = await modelRelation
-        .meta('SUBORDINATE')
+        .metaTag('SUBORDINATE')
         .addSelect(mainlocalKey)
         .whereIn(mainlocalKey ,relationIds)
         .when(relation.trashed , (query : Model) => query.disableSoftDelete())
