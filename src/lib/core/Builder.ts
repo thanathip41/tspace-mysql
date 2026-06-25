@@ -424,8 +424,7 @@ class Builder extends AbstractBuilder {
       `${this.$constants("THEN")}`,
         `${this.$constants("JSON_ARRAY")}()`,
       `${this.$constants("ELSE")}`,
-        `${this.$constants("JSON_ARRAYAGG")}`,
-        `(${this.$constants("JSON_OBJECT")}(${maping.join(", ")}))`,
+        `${this.$constants("JSON_ARRAYAGG")}(${this.$constants("JSON_OBJECT")}(${maping.join(", ")}))`,
       `${this.$constants("END")}`,
       `${this.$constants("AS")} \`${alias}\``
     ].join(" ")
