@@ -1,5 +1,5 @@
-import { utils } from "../utils";
 import { Builder } from "./Builder";
+import { utils }   from "../utils";
 class Join {
     private join : string[] = []
 
@@ -61,19 +61,19 @@ class Join {
      */
     public and(
         localKey: `${string}.${string}`,
-        referenceKey: `${string}.${string}` | string | number | boolean
+        referenceKey: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ): this;
 
     public and(
         localKey: `${string}.${string}`,
         operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like",
-        referenceKey?: `${string}.${string}` | string | number | boolean
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ): this;
 
     public and (
         localKey: `${string}.${string}`, 
         operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like", 
-        referenceKey?: `${string}.${string}` | string | number | boolean
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ) {
 
         if (!this.join.length) {
@@ -88,18 +88,38 @@ class Join {
 
         if(typeof referenceKey === 'string' && /\./.test(referenceKey)) {
             const join = [
-                `${this.builder['$constants']('AND')}`,
-                `${this.builder.bindColumn(localKey)} ${operator} ${this.builder.bindColumn(String(referenceKey))}`
+                this.builder['$constants']('AND'),
+                this.builder.bindColumn(localKey),
+                operator,
+                this.builder.bindColumn(String(referenceKey))
             ].join(' ')
 
             this.join.push(join)
 
             return this
         }
-       
+        
+
+        const format = this.formatValue(referenceKey , operator);
+
+        if(format.isRaw) {
+            
+            const join = [
+                this.builder['$constants']('AND'),
+                this.builder.bindColumn(localKey), 
+                format.value
+            ].join(' ')
+
+            this.join.push(join);
+
+            return this
+        }
+
         const join = [
-            `${this.builder['$constants']('AND')}`,
-            `${this.builder.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
+            this.builder['$constants']('AND'),
+            this.builder.bindColumn(localKey),
+            format.operator,
+            format.value
         ].join(' ')
 
         this.join.push(join)
@@ -128,18 +148,18 @@ class Join {
      */
     public or(
         localKey: `${string}.${string}`,
-        referenceKey: `${string}.${string}` | string | number | boolean
+        referenceKey: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ): this;
 
     public or(
         localKey: `${string}.${string}`,
         operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like",
-        referenceKey?: `${string}.${string}` | string | number | boolean
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ): this;
     public or (
         localKey: `${string}.${string}`, 
         operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like", 
-        referenceKey?: `${string}.${string}` | string | number | boolean
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
     ) {
 
         if (!this.join.length) {
@@ -163,9 +183,26 @@ class Join {
             return this
         }
 
+         const format = this.formatValue(referenceKey , operator);
+
+        if(format.isRaw) {
+            
+            const join = [
+                this.builder['$constants']('OR'),
+                this.builder.bindColumn(localKey), 
+                format.value
+            ].join(' ')
+
+            this.join.push(join);
+
+            return this
+        }
+
         const join = [
-            `${this.builder['$constants']('OR')}`,
-            `${this.builder.bindColumn(localKey)} ${operator} ${utils.formatQueryValue(referenceKey)}`
+            this.builder['$constants']('OR'),
+            this.builder.bindColumn(localKey),
+            format.operator,
+            format.value
         ].join(' ')
 
         this.join.push(join)
@@ -175,6 +212,26 @@ class Join {
 
     protected toString() {
         return this.join.join(' ')
+    }
+
+    private formatValue (value : unknown , operator: unknown) {
+        let formated = utils.formatQueryValue(value);
+
+        if(utils.checkValueHasRaw(value)) {
+            return { isRaw : true , value : formated , operator : null }
+        }
+
+        if (value == null) {
+            formated = '';
+            operator = `${this.builder['$constants']('IS_NULL')}`;
+        }
+
+        if(Array.isArray(value)) {
+            formated = `(${value.map((v) => utils.formatQueryValue(v)).join(', ')})`;
+            operator = `${this.builder['$constants']('IN')}`;
+        }
+
+        return { isRaw : false , value : formated , operator };
     }
 }
 
