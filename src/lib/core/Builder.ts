@@ -386,7 +386,7 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'selectObject' method is used to specify which columns you want to retrieve from a database table.
+   * The 'selectArray' method is used to specify which columns you want to retrieve from a database table.
    *
    * It allows you to choose the specific columns that should be included in the result set to 'Object' of a database query.
    * @param {string} object table name
@@ -417,18 +417,19 @@ class Builder extends AbstractBuilder {
       ];
     }
 
-    const json = `
-            ${this.$constants("CASE")}
-            ${this.$constants("WHEN")} COUNT(${
-      Object.values(maping)[1]
-    }) = 0 ${this.$constants("THEN")} ${this.$constants("JSON_ARRAY")}()
-            ${this.$constants("ELSE")} ${this.$constants("JSON_ARRAYAGG")}(
-                ${this.$constants("JSON_OBJECT")}(${maping.join(" , ")})
-            )
-            ${this.$constants("END")}
-            ${this.$constants("AS")} \`${alias}\`
-        `;
-
+    const json = [
+      `${this.$constants("CASE")}`,
+        `${this.$constants("WHEN")}`,
+        `${this.$constants("COUNT")}(${Object.values(maping)[1]}) = 0`,
+      `${this.$constants("THEN")}`,
+        `${this.$constants("JSON_ARRAY")}()`,
+      `${this.$constants("ELSE")}`,
+        `${this.$constants("JSON_ARRAYAGG")}`,
+        `(${this.$constants("JSON_OBJECT")}(${maping.join(", ")}))`,
+      `${this.$constants("END")}`,
+      `${this.$constants("AS")} \`${alias}\``
+    ].join(" ")
+     
     this.$state.set("SELECT", [...this.$state.get("SELECT"), json]);
 
     return this;
