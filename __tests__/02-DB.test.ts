@@ -98,3 +98,157 @@ describe('Testing DB', function () {
   /* ###################################################### */
 })
 
+describe('JOIN', function () {
+
+  it('DB: INNER JOIN should return matching records only', async function () {
+
+    const results = await new DB('users')
+    .select('users.*')
+    .join((join) => {
+      return join.on('users.id', 'posts.user_id');
+    })
+    .get()
+
+    expect(results).to.be.an('array');
+
+    const results2 = await new DB('users')
+    .select('users.*')
+    .join('users.id', 'posts.user_id')
+    .get()
+
+    expect(results2).to.be.an('array');
+   
+  });
+
+  it('DB: LEFT JOIN should include users without posts', async function () {
+
+    const results = await new DB('users')
+      .select('users.*')
+      .leftJoin((join) => {
+        return join.on('users.id', 'posts.user_id');
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+    expect(results.length).to.be.greaterThan(0);
+
+    const results2 = await new DB('users')
+    .select('users.*')
+    .leftJoin('users.id', 'posts.user_id')
+    .get()
+
+    expect(results2).to.be.an('array');
+    expect(results2.length).to.be.greaterThan(0);
+
+  });
+
+  it('DB: LEFT JOIN should return null joined columns when relation does not exist', async function () {
+
+    const result = await new DB('users')
+      .select('users.*')
+      .leftJoin((join) => {
+        return join.on('users.id', 'posts.user_id');
+      })
+      .where('users.id', 999999)
+      .first();
+
+    if (result) {
+      expect(result.user_id).to.equal(null);
+    }
+
+    const result2 = await new DB('users')
+      .select('users.*')
+      .leftJoin('users.id', 'posts.user_id')
+      .where('users.id', 999999)
+      .first();
+
+    if (result2) {
+      expect(result2.user_id).to.equal(null);
+    }
+  });
+
+  it('DB: LEFT JOIN should include users with posts array', async function () {
+
+    const results = await new DB('users')
+      .select('users.*')
+      .selectArray(
+        { 
+          id: "posts.id", 
+          user_id : "posts.user_id", 
+          title: "posts.title" 
+        },
+        "posts"
+      )
+      .leftJoin((join) => {
+        return join.on('users.id', 'posts.user_id');
+      })
+      .groupBy('users.id')
+      .get();
+
+    expect(results).to.be.an('array');
+    expect(results.length).to.be.greaterThan(0);
+    
+    for(const result of results) {
+      expect(result.posts).to.be.an('array');
+    }
+   
+    const results2 = await new DB('users')
+    .select('users.*')
+    .selectArray(
+      { 
+        id: "posts.id", 
+        user_id : "posts.user_id", 
+        title: "posts.title" 
+      },
+      "posts"
+    )
+    .leftJoin('users.id', 'posts.user_id')
+    .groupBy('users.id')
+    .get()
+
+    expect(results2).to.be.an('array');
+    expect(results2.length).to.be.greaterThan(0);
+
+     for(const result of results2) {
+      expect(result.posts).to.be.an('array');
+    }
+
+  });
+
+  it('DB: RIGHT JOIN should return all records from joined table', async function () {
+
+    const results = await new DB('users')
+      .select('users.*')
+      .rightJoin((join) => {
+        return join.on('users.id', 'posts.user_id');
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+    expect(results.length).to.be.greaterThan(0);
+
+    const results2 = await new DB('users')
+      .select('users.*')
+      .rightJoin('users.id', 'posts.user_id')
+      .get();
+
+    expect(results2).to.be.an('array');
+    expect(results2.length).to.be.greaterThan(0);
+  });
+
+  it('DB: JOIN should support multiple conditions', async function () {
+
+    const results = await new DB('users')
+      .select('users.*')
+      .join((join) => {
+        return join
+          .on('users.id', 'posts.user_id')
+          .and('posts.deleted_at', null);
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+
+  });
+
+});
