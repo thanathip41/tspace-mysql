@@ -14,7 +14,7 @@ class RelationManager  {
         this.$model = model;
     }
 
-    async load (parents: Record<string,any>[] , relation: TRelationOptions) {
+    public async load (parents: Record<string,any>[] , relation: TRelationOptions) {
 
         const relationIsBelongsToMany = relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany
 
@@ -73,13 +73,40 @@ class RelationManager  {
             })
         }
 
+        const ofMany = query['$state'].get('OF_MANY');
+
+        const copy =  new Model().copyModel(query)
+
         const childs = await query
         .metaTag('SUBORDINATE')
         .addSelect(foreignKey)
         .whereIn(foreignKey,parentIds)
         .debug(this.$model['$state'].get('DEBUG'))
-        .when(relation.trashed, (query : Model) => query.onlyTrashed())
-        .when(relation.all, (query : Model) => query.disableSoftDelete())
+        .when(relation.trashed, (q) => q.onlyTrashed())
+        .when(relation.all, (q) => q.disableSoftDelete())
+        .when(ofMany != null, (q) => {
+
+            const column = ofMany?.column!;
+            const aggregate = ofMany?.aggregate!
+
+            const self = copy
+            .unset({ 
+                select  : true,
+                limit   : true,
+                offset  : true,
+                groupBy : true,
+                orderBy : true
+            })
+            .selectRaw(`${aggregate}(${String(column)})`)
+            .whereIn(foreignKey, parentIds)
+            .groupBy(foreignKey)
+
+            return q
+            .whereSubQuery(
+              column,
+              self
+            )
+        })
         .bind(this.$model['$pool'].get())
         .get()
 
@@ -97,7 +124,7 @@ class RelationManager  {
         })
     }
 
-    loadExists () : string {
+    public loadExists () : string {
 
         const relations = this.$model['$state'].get('RELATIONS')
 
@@ -213,7 +240,7 @@ class RelationManager  {
         return sql
     }
 
-    getSqlExists (name : string,cb : Function) : string | null {
+    public getSqlExists (name : string,cb : Function) : string | null {
 
         const relation = this.$model['$state'].get('APPLY_RELATIONS')?.find((data: { name: string }) => data.name === name)
 
@@ -299,7 +326,7 @@ class RelationManager  {
         return sql
     }
 
-    apply (nameRelations : any[] , type : 'all' | 'exists' | 'notExists' | 'trashed' | 'count' | 'default') : TRelationOptions[] {
+    public apply (nameRelations : any[] , type : 'all' | 'exists' | 'notExists' | 'trashed' | 'count' | 'default') : TRelationOptions[] {
 
         const relations =  nameRelations.map((name: string) => {
 
@@ -343,7 +370,7 @@ class RelationManager  {
         : relations    
     }
 
-    callback (nameRelation: string , cb : Function) {
+    public callback (nameRelation: string , cb : Function) {
         
         const relation = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
@@ -370,7 +397,7 @@ class RelationManager  {
         return
     }
 
-    callbackPivot (nameRelation: string , cb : Function) {
+    public callbackPivot (nameRelation: string , cb : Function) {
         
         const relation = this.$model['$state'].get('RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
@@ -403,7 +430,7 @@ class RelationManager  {
         return
     }
 
-    returnCallback (nameRelation: string) {
+    public returnCallback (nameRelation: string) {
         
         const relation = this.$model['$state'].get('APPLY_RELATIONS').find((data: { name: string }) => data.name === nameRelation)
 
@@ -420,7 +447,7 @@ class RelationManager  {
         return relation.query == null ? new relation.model() : relation.query
     }
 
-    hasOne ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public hasOne ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
         const relation = {
             name,
             model,
@@ -434,7 +461,7 @@ class RelationManager  {
         return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
-    hasMany ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public hasMany ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
         const relation = {
             name,
             model,
@@ -448,7 +475,7 @@ class RelationManager  {
         return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
-    belongsTo ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public belongsTo ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
         const relation = {
             name,
             model,
@@ -467,7 +494,7 @@ class RelationManager  {
         ])
     }
 
-    belongsToMany({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+    public belongsToMany({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
         
         const relation = {
             name,
@@ -490,7 +517,7 @@ class RelationManager  {
         ])
     }
 
-    belongsToManySingle({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+    public belongsToManySingle({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
         
         const relation = {
             name,
@@ -512,7 +539,8 @@ class RelationManager  {
             relation
         ])
     }
-    hasOneBuilder ({ 
+    
+    public hasOneBuilder ({ 
         name, 
         as, 
         model, 

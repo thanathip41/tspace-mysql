@@ -3217,6 +3217,25 @@ class Model<
   }
 
   /**
+   * The 'ofMany' method is used to transform a hasMany relationship
+   * into a single related model by selecting one record using an aggregate
+   * function such as MAX or MIN on the specified column.
+   *
+   * @param {string} column The column used for aggregation (e.g. "id", "created_at")
+   * @param {string} aggregate The aggregate function to apply ("MAX" | "MIN")
+   * @returns this
+  */
+  public ofMany<K extends T.ColumnKeys<this>>(column: K, aggregate : "MAX" | "MIN") {
+    
+    this.$state.set('OF_MANY', { 
+      column : this.bindColumn(String(column)), 
+      aggregate 
+    });
+    
+    return this;
+  }
+
+  /**
    * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
    *
    * It indicates that a particular record in the primary table is associated with one and only one record in the related table.

@@ -108,6 +108,8 @@ const STATE_MODEL = {
 
     ON_CREATED_TABLE: null as Function | null,
     ON_SYNC_TABLE:null as Function | null,
+
+    OF_MANY : null as { column : string; aggregate : "MAX" | "MIN"} | null
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT
