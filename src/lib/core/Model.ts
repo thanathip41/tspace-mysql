@@ -3217,19 +3217,43 @@ class Model<
   }
 
   /**
-   * The 'ofMany' method is used to transform a hasMany relationship
+   * The 'ofMany' method is used to transform a many relationship,
    * into a single related model by selecting one record using an aggregate
    * function such as MAX or MIN on the specified column.
+   * 
+   * @note
+   * This method is not supported on `belongsToMany` relationships.
    *
-   * @param {string} column The column used for aggregation (e.g. "id", "created_at")
-   * @param {string} aggregate The aggregate function to apply ("MAX" | "MIN")
+   * @param {string} column The column used for aggregation (e.g. `"id"`, `"created_at"`).
+   * @param {"MAX" | "MIN"} aggregate The aggregate function used to select the record.
+   * @param {((query: Model) => void) | undefined} callback A callback used to apply additional constraints to the aggregate query.
+   * 
+   * Only filtering methods are supported. Methods that modify the result set, 
+   * such as `select` `orderBy`, `groupBy`, `limit`, `offset`, `union`, and `having`, are not supported.
    * @returns this
   */
-  public ofMany<K extends T.ColumnKeys<this>>(column: K, aggregate : "MAX" | "MIN") {
-    
+  public ofMany<
+    K extends T.ColumnKeys<this>,
+    S extends Model | unknown,
+    M = S extends this ? this : S extends Model ? S : this,
+  >(
+    column: K, 
+    aggregate : "MAX" | "MIN",
+    callback?: (query: M) => M,
+  ) {
+
+    const cb = callback == null 
+      ? null 
+      : callback(new Model().copyModel(this) as M);
+
+    if (cb instanceof Promise) {
+      throw new Error("'ofMany' does not support Promises");
+    }
+     
     this.$state.set('OF_MANY', { 
       column : this.bindColumn(String(column)), 
-      aggregate 
+      aggregate,
+      query : cb as Model | null
     });
     
     return this;
@@ -3251,7 +3275,9 @@ class Model<
    * @property {string} relation.freezeTable
    * @returns  {this}   this
    */
-  protected hasOne<K extends TR extends object ? TRelationKeys<TR> : string>({
+  protected hasOne<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
     name,
     as,
     model,

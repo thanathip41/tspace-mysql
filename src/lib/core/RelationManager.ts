@@ -73,42 +73,61 @@ class RelationManager  {
             })
         }
 
+       
         const ofMany = query['$state'].get('OF_MANY');
-
-        const copy =  new Model().copyModel(query)
-
-        const childs = await query
-        .metaTag('SUBORDINATE')
-        .addSelect(foreignKey)
-        .whereIn(foreignKey,parentIds)
-        .debug(this.$model['$state'].get('DEBUG'))
-        .when(relation.trashed, (q) => q.onlyTrashed())
-        .when(relation.all, (q) => q.disableSoftDelete())
-        .when(ofMany != null, (q) => {
-
-            const column = ofMany?.column!;
-            const aggregate = ofMany?.aggregate!
-
-            const self = copy
-            .unset({ 
-                select  : true,
-                limit   : true,
-                offset  : true,
-                groupBy : true,
-                orderBy : true
+        const clone = ofMany == null 
+            ? null 
+            : new Model()
+            .copyModel(query, {
+                where : true
             })
-            .selectRaw(`${aggregate}(${String(column)})`)
-            .whereIn(foreignKey, parentIds)
-            .groupBy(foreignKey)
+       
+        const childs = await query
+            .metaTag('SUBORDINATE')
+            .addSelect(foreignKey)
+            .whereIn(foreignKey,parentIds)
+            .debug(this.$model['$state'].get('DEBUG'))
+            .when(relation.trashed, (q) => q.onlyTrashed())
+            .when(relation.all, (q) => q.disableSoftDelete())
+            .when(ofMany != null && clone != null, (q) => {
 
-            return q
-            .whereSubQuery(
-              column,
-              self
-            )
-        })
-        .bind(this.$model['$pool'].get())
-        .get()
+                const column      = ofMany?.column!;
+                const aggregate   = ofMany?.aggregate!;
+                const queryOfMany = ofMany?.query;
+
+                if(queryOfMany != null) {
+                    
+                    const repository = new Model()
+                    .copyModel(queryOfMany, {
+                        where   : true,
+                        join    : true,
+                    })
+                
+                    clone!['$state'].set("WHERE", [
+                        ...clone!['$state'].get("WHERE"),
+                        ...repository['$utils']
+                        .nestConditions(repository['$state'].get("WHERE"))
+                    ]);
+
+                    clone!['$state'].set("JOIN", [
+                        ...clone!['$state'].get("JOIN"),
+                        ...repository['$state'].get("JOIN")
+                    ]);
+                }
+
+                const self = clone!
+                .selectRaw(`${aggregate}(${String(column)})`)
+                .whereIn(foreignKey, parentIds)
+                .groupBy(foreignKey)
+
+                return q
+                .whereSubQuery(
+                    column,
+                    self
+                )
+            })
+            .bind(this.$model['$pool'].get())
+            .get()
 
         if(this.$model['$state'].get('DEBUG')) {
             this.$model['$state'].set('QUERIES',[
@@ -144,9 +163,9 @@ class RelationManager  {
                 throw this._assertError(`The callback query '${relation.name}' is unknown.`)
             }
           
-            const clone = new Model().clone(query)
+            const clone = new Model().clone(query);
 
-            const cloneRelations = clone['$state'].get('RELATIONS')
+            const cloneRelations = clone['$state'].get('RELATIONS');
 
             if(cloneRelations.length) {
 
@@ -169,7 +188,11 @@ class RelationManager  {
                 }
             }
             
-            if(relation.relation === this.$model["$constants"]('RELATIONSHIP').belongsToMany) {
+            const isBeglongsToMany = 
+                relation.relation === 
+                this.$model["$constants"]('RELATIONSHIP').belongsToMany;
+            
+            if(isBeglongsToMany) {
 
                 const thisPivot =  modelPivot
                 ? new modelPivot as Model
@@ -214,6 +237,8 @@ class RelationManager  {
                 
             }
 
+            const ofMany = clone['$state'].get('OF_MANY');
+
             const sql = clone
             .bind(this.$model['$pool'].get())
             .select1()
@@ -221,6 +246,51 @@ class RelationManager  {
                 this.$model.bindColumn(localKey),
                 query.bindColumn(foreignKey)
             )
+            .when(ofMany != null, (q) => {
+
+                const copy =  new Model()
+                .copyModel(query, {
+                    where : true
+                })
+
+                const column     = ofMany?.column!;
+                const aggregate  = ofMany?.aggregate!;
+                const queryOfMany = ofMany?.query;
+
+                if(queryOfMany != null) {
+
+                    const repository = new Model()
+                    .copyModel(queryOfMany,{
+                        where   : true,
+                        join    : true,
+                    })
+                
+                    copy!['$state'].set("WHERE", [
+                        ...copy!['$state'].get("WHERE"),
+                        ...repository['$utils']
+                        .nestConditions(repository['$state'].get("WHERE"))
+                    ]);
+
+                    copy!['$state'].set("JOIN", [
+                        ...copy!['$state'].get("JOIN"),
+                        ...repository['$state'].get("JOIN")
+                    ]);
+                }
+
+                const self = copy
+                .selectRaw(`${aggregate}(${String(column)})`)
+                .whereReference(
+                    this.$model.bindColumn(localKey),
+                    query.bindColumn(foreignKey)
+                )
+                .groupBy(foreignKey)
+
+                return q
+                .whereSubQuery(
+                    column,
+                    self
+                )
+            })
             .unset({
                 orderBy : true,
                 limit   : true
@@ -240,7 +310,7 @@ class RelationManager  {
         return sql
     }
 
-    public getSqlExists (name : string,cb : Function) : string | null {
+    public getSqlExists (name : string, cb : Function) : string | null {
 
         const relation = this.$model['$state'].get('APPLY_RELATIONS')?.find((data: { name: string }) => data.name === name)
 
@@ -326,7 +396,10 @@ class RelationManager  {
         return sql
     }
 
-    public apply (nameRelations : any[] , type : 'all' | 'exists' | 'notExists' | 'trashed' | 'count' | 'default') : TRelationOptions[] {
+    public apply (
+        nameRelations : any[] , 
+        type : 'all' | 'exists' | 'notExists' | 'trashed' | 'count' | 'default'
+    ) : TRelationOptions[] {
 
         const relations =  nameRelations.map((name: string) => {
 
@@ -447,7 +520,15 @@ class RelationManager  {
         return relation.query == null ? new relation.model() : relation.query
     }
 
-    public hasOne ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public hasOne ({ 
+        name , 
+        as , 
+        model, 
+        localKey, 
+        foreignKey, 
+        freezeTable, 
+    } : TRelationOptions ) {
+
         const relation = {
             name,
             model,
@@ -461,7 +542,14 @@ class RelationManager  {
         return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
-    public hasMany ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public hasMany ({ 
+        name , 
+        as , 
+        model, 
+        localKey, 
+        foreignKey, 
+        freezeTable, 
+    } : TRelationOptions ) {
         const relation = {
             name,
             model,
@@ -475,7 +563,14 @@ class RelationManager  {
         return  this.$model['$state'].set('APPLY_RELATIONS', [...this.$model['$state'].get('APPLY_RELATIONS') , relation])
     }
 
-    public belongsTo ({ name , as , model  , localKey , foreignKey , freezeTable } : TRelationOptions ) {
+    public belongsTo({ 
+        name , 
+        as , 
+        model, 
+        localKey, 
+        foreignKey, 
+        freezeTable, 
+    } : TRelationOptions ) {
         const relation = {
             name,
             model,
@@ -494,7 +589,17 @@ class RelationManager  {
         ])
     }
 
-    public belongsToMany({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+    public belongsToMany({ 
+        name , 
+        as , 
+        model, 
+        localKey, 
+        foreignKey, 
+        freezeTable, 
+        pivot, 
+        oldVersion, 
+        modelPivot 
+    } : TRelationOptions ) {
         
         const relation = {
             name,
@@ -517,7 +622,17 @@ class RelationManager  {
         ])
     }
 
-    public belongsToManySingle({ name , as , model  , localKey , foreignKey , freezeTable , pivot , oldVersion, modelPivot } : TRelationOptions ) {
+    public belongsToManySingle({ 
+        name , 
+        as , 
+        model, 
+        localKey, 
+        foreignKey, 
+        freezeTable, 
+        pivot, 
+        oldVersion, 
+        modelPivot 
+    } : TRelationOptions ) {
         
         const relation = {
             name,
@@ -842,7 +957,10 @@ class RelationManager  {
             }
         }
 
-         if(relation.exists == null && relation.notExists == null) return ''
+        if(relation.exists == null && relation.notExists == null) return '';
+
+        
+        const ofMany = clone['$state'].get('OF_MANY');
 
         const sql = clone
         .bind(this.$model['$pool'].get())
@@ -851,6 +969,52 @@ class RelationManager  {
             this.$model.bindColumn(localKey),
             clone.bindColumn(foreignKey)
         )
+        .when(ofMany != null, (q) => {
+
+            const copy =  new Model()
+            .copyModel(query, {
+                where : true
+            })
+
+            const column = ofMany?.column!;
+            const aggregate = ofMany?.aggregate!;
+
+            const queryOfMany = ofMany?.query;
+
+            if(queryOfMany != null) {
+                
+                const repository = new Model()
+                .copyModel(queryOfMany, {
+                    where   : true,
+                    join    : true,
+                })
+            
+                copy!['$state'].set("WHERE", [
+                    ...copy!['$state'].get("WHERE"),
+                    ...repository['$utils']
+                    .nestConditions(repository['$state'].get("WHERE"))
+                ]);
+
+                copy!['$state'].set("JOIN", [
+                    ...copy!['$state'].get("JOIN"),
+                    ...repository['$state'].get("JOIN")
+                ]);
+            }
+
+            const self = copy
+            .selectRaw(`${aggregate}(${String(column)})`)
+            .whereReference(
+                this.$model.bindColumn(localKey),
+                query.bindColumn(foreignKey)
+            )
+            .groupBy(foreignKey)
+
+            return q
+            .whereSubQuery(
+                column,
+                self
+            )
+        })
         .unset({
             orderBy : true,
             limit   : true
@@ -959,9 +1123,9 @@ class RelationManager  {
        
         const localKeyId = parents.map((parent : Record<string,any>) => {
             
-            const data = parent[foreignKey]
+            const key = parent[foreignKey]
 
-            if(data === undefined) {
+            if(key === undefined) {
                 throw this._assertError([
                     `This relationship lacks a foreign key in the '${relation?.name}' relation.`, 
                     `Please review the query to identify whether the key '${foreignKey}' is missing.`
@@ -969,7 +1133,7 @@ class RelationManager  {
                 )
             }
 
-            return data
+            return key
            
         }).filter((d) => d != null)
 
@@ -1086,12 +1250,15 @@ class RelationManager  {
             return parents
         }
 
-        const children : Record<string , { values : Record<string,any>[] }> = [...pivotResults]
+        const children : Record<
+            string , 
+            { values : Record<string,any>[] }
+        > = [...pivotResults]
         .reduce((prev, curr) => {
 
             const key = curr[localKeyPivotTable]
 
-            if(Number.isNaN(key)) {
+            if(key === undefined) {
                 throw this._assertError([
                     `This relationship lacks a prisma key in pivot table the '${relation?.name}' relation.`, 
                     `Please review the query to identify whether the key '${localKeyPivotTable}' is missing.`
@@ -1101,11 +1268,11 @@ class RelationManager  {
             
             if (!prev[key]) {
               prev[key] = { [localKeyPivotTable]: key, values: [] }
-            }
+            };
 
-            prev[key].values.push({ ...curr })
+            prev[key].values.push({ ...curr });
 
-            return prev
+            return prev;
         }, {})
 
         for(const parent of parents) {
