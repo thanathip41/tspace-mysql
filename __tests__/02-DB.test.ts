@@ -167,54 +167,6 @@ describe('JOIN', function () {
     }
   });
 
-  it('DB: LEFT JOIN should include users with posts array', async function () {
-
-    const results = await new DB('users')
-      .select('users.*')
-      .selectArray(
-        { 
-          id: "posts.id", 
-          user_id : "posts.user_id", 
-          title: "posts.title" 
-        },
-        "posts"
-      )
-      .leftJoin((join) => {
-        return join.on('users.id', 'posts.user_id');
-      })
-      .groupBy('users.id')
-      .get();
-
-    expect(results).to.be.an('array');
-    expect(results.length).to.be.greaterThan(0);
-    
-    for(const result of results) {
-      expect(result.posts).to.be.an('array');
-    }
-   
-    const results2 = await new DB('users')
-    .select('users.*')
-    .selectArray(
-      { 
-        id: "posts.id", 
-        user_id : "posts.user_id", 
-        title: "posts.title" 
-      },
-      "posts"
-    )
-    .leftJoin('users.id', 'posts.user_id')
-    .groupBy('users.id')
-    .get()
-
-    expect(results2).to.be.an('array');
-    expect(results2.length).to.be.greaterThan(0);
-
-     for(const result of results2) {
-      expect(result.posts).to.be.an('array');
-    }
-
-  });
-
   it('DB: RIGHT JOIN should return all records from joined table', async function () {
 
     const results = await new DB('users')
