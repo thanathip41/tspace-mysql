@@ -1,7 +1,5 @@
 import { Blueprint, DB, Model } from '../../src/lib'
 
-export const pattern = 'snake_case';
-
 export class User extends Model {
     constructor() {
         super()

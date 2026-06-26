@@ -98,7 +98,7 @@ describe('Testing DB', function () {
   /* ###################################################### */
 })
 
-describe('JOIN', function () {
+describe('DB: JOIN', function () {
 
   it('DB: INNER JOIN should return matching records only', async function () {
 

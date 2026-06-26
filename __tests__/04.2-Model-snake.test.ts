@@ -19,7 +19,7 @@ import {
   PostUser as PostUserCamelCase
 }  from "./specs/camel-spec";
 
-import { DB, Model } from "../src/lib";
+import { DB, Meta } from "../src/lib";
 
 chai.use(chaiJsonSchema);
 
@@ -480,4 +480,102 @@ describe("Testing Model Snake_case Pattern", function () {
   });
 
   /* ###################################################### */
+});
+
+describe('Testing Model with Join condition', function () {
+
+  it('Join: INNER JOIN should return matching records only', async function () {
+
+    const results = await new User()
+    .joinModel((join) => {
+      return join.on(User, Post);
+    })
+    .get()
+
+    expect(results).to.be.an('array');
+
+    const results2 = await new User()
+    .join(User,Post)
+    .get()
+
+    expect(results2).to.be.an('array');
+   
+  });
+
+  it('Join: LEFT JOIN should include users without posts', async function () {
+
+    const results = await new User()
+      .leftJoinModel((join) => {
+        return join.on(User, Post);
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+    expect(results.length).to.be.greaterThan(0);
+
+    const results2 = await new User()
+    .leftJoin(User,Post)
+    .get()
+
+    expect(results2).to.be.an('array');
+    expect(results2.length).to.be.greaterThan(0);
+
+  });
+
+  it('Join: LEFT JOIN should return null joined columns when relation does not exist', async function () {
+
+    const result = await new User()
+      .leftJoinModel((join) => {
+        return join.on(User,Post);
+      })
+      .where('users.id', 999999)
+      .first();
+
+    if (result) {
+      expect(result.user_id).to.equal(null);
+    }
+
+    const result2 = await new User()
+      .leftJoin(User, Post)
+      .where('users.id', 999999)
+      .first();
+
+    if (result2) {
+      expect(result2.user_id).to.equal(null);
+    }
+  });
+
+  it('Join: RIGHT JOIN should return all records from joined table', async function () {
+
+    const results = await new User()
+      .rightJoinModel((join) => {
+        return join.on(User, Post);
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+    expect(results.length).to.be.greaterThan(0);
+
+    const results2 = await new User()
+    .rightJoin(User, Post)
+    .get();
+
+    expect(results2).to.be.an('array');
+    expect(results2.length).to.be.greaterThan(0);
+  });
+
+  it('Join: JOIN should support multiple conditions', async function () {
+
+    const results = await new User()
+      .joinModel((join) => {
+        return join
+          .on(User, Post)
+          .and(Meta(Post).columnRef('deleted_at'), null);
+      })
+      .get();
+
+    expect(results).to.be.an('array');
+
+  });
+
 });
