@@ -467,4 +467,6 @@ export declare namespace T {
     type RepositoryGenericTypeOptions = TRepositoryExtendType
 
     type Default<T = any> = TDefault<T>
+
+    type QueryModifier<M extends Model> = (query : M) => M
 };

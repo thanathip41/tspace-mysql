@@ -3480,7 +3480,7 @@ class Model<
    * @param    {Function?} callback callback of query
    * @returns  {this} this
    */
-  protected hasOneBuilder(
+  protected hasOneBuilder<K = void>(
     {
       name,
       as,
@@ -3488,7 +3488,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.hasOneBuilder(
@@ -3520,7 +3523,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected hasManyBuilder(
+  protected hasManyBuilder<K = void>(
     {
       name,
       as,
@@ -3528,7 +3531,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.hasManyBuilder(
@@ -3559,7 +3565,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected belongsToBuilder(
+  protected belongsToBuilder<K = void>(
     {
       name,
       as,
@@ -3567,7 +3573,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.belongsToBuilder(
@@ -3599,7 +3608,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected belongsToManyBuilder(
+  protected belongsToManyBuilder<K = void>(
     {
       name,
       as,
@@ -3610,7 +3619,10 @@ class Model<
       pivot,
       oldVersion,
       modelPivot,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.belongsToManyBuilder(
@@ -4894,13 +4906,10 @@ class Model<
    * @param {Function} callback callback query
    * @returns {this}
    */
-  public whereQuery<
-    T extends Model | unknown,
-    M = T extends this ? this : T extends Model ? T : this,
-  >(callback: (query: M) => M): this {
-    const copy = new Model().copyModel(this) as M;
+  public whereQuery(callback: T.QueryModifier<this>): this {
+    const copy = new Model().copyModel(this);
 
-    const repository = callback(copy);
+    const repository = callback(copy as unknown as this);
 
     if (repository instanceof Promise) {
       throw this._assertError(
@@ -4973,7 +4982,7 @@ class Model<
       arguments.length === 2,
     );
 
-    this.whereQuery((query: Model) => {
+    this.whereQuery((query) => {
       for (const index in columns) {
         const column = String(columns[index]);
 
@@ -5029,16 +5038,13 @@ class Model<
    * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
    * @returns {this} this
    */
-  public when<
-    T extends Model | unknown,
-    M = T extends this ? this : T extends Model ? T : this,
-  >(
+  public when(
     condition: string | number | undefined | null | boolean,
-    callback: (query: M) => M,
+    callback: T.QueryModifier<this>,
   ): this {
     if (!condition) return this;
 
-    const cb = callback(this as unknown as M);
+    const cb = callback(this);
 
     if (cb instanceof Promise)
       throw new Error("'when' does not support Promises");

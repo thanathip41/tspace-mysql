@@ -1298,7 +1298,7 @@ whereNotIn(column , [])
 whereNull(column)
 whereNotNull(column)
 whereBetween (column , [value1 , value2])
-whereQuery(callback)
+whereQuery(query)
 whereJson(column, { targetKey, value , OP })
 whereRaw(sql)
 whereExists(sql)
@@ -1308,7 +1308,7 @@ orWhere(column , OP , value)
 orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
-when(contition , callback)
+when(contition , query)
 select(column1 ,column2 ,...N)
 distinct()
 selectRaw(column1 ,column2 ,...N)
@@ -1341,7 +1341,7 @@ onlyTrashed()
 connection(options)
 backup({ database , connection })
 backupToFile({ filePath, database , connection })
-hook((result) => ...) // callback result to function
+hook((result) => ...) // query result to function
 sleep(seconds)
 
 /**
@@ -1369,9 +1369,9 @@ relationsExists(name1 , name2,...nameN) // withExists(name1, name2,...nameN)
  */
 relationsTrashed(name1 , name2,...nameN) // withTrashed(name1, name2,...nameN)
 /**
- * @relation call a name of relation in registry, callback query of data
+ * @relation call a name of relation in registry, query query of data
  */
-relationQuery(name, (callback) ) // withQuery(name1, (callback))
+relationQuery(name, (query) ) // withQuery(name1, (query))
 
 
 /**
@@ -1673,7 +1673,7 @@ WRITE:
 - UPDATE: waits
 - DELETE: waits
 
-The lock is released automatically after the callback completes.
+The lock is released automatically after the query completes.
 
 ```js
 import { Model, Blueprint }  from 'tspace-mysql'
@@ -2262,7 +2262,8 @@ Let's example a basic relationship:
 A one-to-one relationship is used to define relationships where a single model is the parent to one child models
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model , type T } from 'tspace-mysql';
+
 import Phone  from '../Phone'
 class User extends Model {
     constructor(){
@@ -2277,11 +2278,11 @@ class User extends Model {
     }
     /**
      * Mark a method for relationship
-     * @hasOne Get the phone associated with the user. using function callback
+     * @hasOne Get the phone associated with the user. using function query
      * @function
      */
-    phone (callback) {
-      return this.hasOneBuilder({ name : 'phone' , model : Phone } , callback)
+    phone (query ?: T.QueryModifier<Phone>) {
+      return this.hasOneBuilder({ model : Phone } , query)
     }
 }
 export default User
@@ -2300,8 +2301,8 @@ const userUsingFunction = await new User().phone().findOne()
 A one-to-many relationship is used to define relationships where a single model is the parent to one or more child models.
 
 ```js
-import { Model } from 'tspace-mysql'
-import Comment  from '../Comment'
+import { Model, type T } from 'tspace-mysql';
+import Comment  from '../Comment';
 class Post extends Model {
     constructor(){
         super()
@@ -2315,11 +2316,11 @@ class Post extends Model {
     }
     /**
      *
-     * @hasManyQuery Get the comments for the post. using function callback
+     * @hasManyQuery Get the comments for the post. using function query
      * @function
      */
-    comments (callback) {
-        return  this.hasManyBuilder({ name : 'comments' , model : Comment } , callback)
+    comments (query?: T.QueryModifier<Comment>) {
+        return  this.hasManyBuilder({ model : Comment } , query)
     }
 }
 export default Post
@@ -2338,7 +2339,7 @@ const postsUsingFunction = await new Post().comments().findOne()
 A belongsto relationship is used to define relationships where a single model is the child to parent models.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import User  from '../User'
 class Phone extends Model {
     constructor(){
@@ -2353,11 +2354,11 @@ class Phone extends Model {
     }
     /**
      *
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    user (callback) {
-        return this.belongsToBuilder({ name : 'user' , model : User }, callback)
+    user (query?: T.QueryModifier<user>) {
+      return this.belongsToBuilder({ model : User }, query)
     }
 }
 export default Phone
@@ -2376,7 +2377,7 @@ const phoneUsingFunction = await new Phone().user().findOne()
 Many-to-many relations are slightly more complicated than hasOne and hasMany relationships.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import Role from '../Role'
 class User extends Model {
     constructor(){
@@ -2390,11 +2391,11 @@ class User extends Model {
         this.belognsToMany({ name : 'roles' , model : Role })
     }
     /**
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    roles (callback) {
-        return this.belognsToManyBuilder({ model : Role } , callback)
+    roles (query?: T.QueryModifier<Role>) {
+        return this.belognsToManyBuilder({ model : Role } , query)
     }
 }
 export default User
