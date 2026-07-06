@@ -3467,6 +3467,91 @@ class Model<
   }
 
   /**
+   * The 'createRelation' method is useful for Creates a relation accessor for a model.
+   *
+   * This method defines how a model relates to another model
+   * (hasOne, hasMany, belongsTo, belongsToMany) and returns
+   * a function that can be used to modify the relation query.
+   *
+   * Example:
+   * ```ts
+   * public posts = this.createRelation(Post, {
+   *   type: 'hasMany',
+   *   foreignKey: 'user_id',
+   * });
+   *
+   * user.posts(q => q.where('id', 1));
+   * ```
+   *
+   * @template M - Target model type
+   * @template K - Optional relation name type
+   *
+   * @param model - The related model constructor
+   * @param options - Relation configuration options
+   * @param options.type - Type of relation (hasOne, hasMany, belongsTo, belongsToMany)
+   * @param options.name - Optional relation name (when applicable)
+   * @param options.as - Alias for relation
+   * @param options.localKey - Local key for the relation
+   * @param options.foreignKey - Foreign key for the relation
+   * @param options.freezeTable - Override pivot/table name
+   * @param options.pivot - Pivot table name (for many-to-many)
+   * @param options.oldVersion - Enable legacy relation behavior
+   *
+   * @returns A function that accepts a query modifier and returns the relation result
+   */
+  protected createRelation<M extends Model, K = void>(
+    model: new () => M,
+    options:  (
+    K extends void
+      ? Omit<TRelationQueryOptions, 'name' | 'model'> &
+          Partial<Pick<TRelationQueryOptions, 'name'>>
+      : Omit<TRelationQueryOptions<K>, 'model'>
+  ) & {
+      type:  
+      | 'hasOne'
+      | 'hasMany'
+      | 'belongsTo'
+      | 'belongsToMany';
+    },
+  ) {
+    return (modifier?: T.QueryModifier<M>) => {
+
+      const opts = {
+        name : options.name,
+        as: options.as,
+        localKey: options.localKey,
+        foreignKey: options.foreignKey,
+        freezeTable: options.freezeTable
+      }
+
+      switch (options.type) {
+        case 'hasOne': {
+          return this.hasOneBuilder({ model, ...opts }, modifier);
+        }
+        
+        case 'hasMany': {
+          return this.hasManyBuilder({ model, ...opts }, modifier);
+        }
+          
+        case 'belongsTo': {
+          return this.belongsToBuilder({ model, ...opts }, modifier);
+        }
+          
+        case 'belongsToMany': {
+          return this.belongsToManyBuilder({ 
+            model, 
+            ...opts,
+            pivot: options.pivot,
+            oldVersion: options.oldVersion,
+            modelPivot: options.modelPivot 
+          }, modifier);
+        }
+         
+      }
+    }
+  }
+
+  /**
    * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
    *
    * @param    {object}  relation registry relation in your model

@@ -2281,9 +2281,12 @@ class User extends Model {
      * @hasOne Get the phone associated with the user. using function query
      * @function
      */
-    phone (query ?: T.QueryModifier<Phone>) {
+    public phone (query ?: T.QueryModifier<Phone>) {
       return this.hasOneBuilder({ model : Phone } , query)
     }
+
+    // or
+    public phone = this.createRelation(Phone,{ type : 'hasOne'})
 }
 export default User
 
@@ -2319,9 +2322,12 @@ class Post extends Model {
      * @hasManyQuery Get the comments for the post. using function query
      * @function
      */
-    comments (query?: T.QueryModifier<Comment>) {
+    public comments (query?: T.QueryModifier<Comment>) {
         return  this.hasManyBuilder({ model : Comment } , query)
     }
+
+    // or
+    public comments = this.createRelation(Comment,{ type : 'hasMany'})
 }
 export default Post
 
@@ -2357,9 +2363,12 @@ class Phone extends Model {
      * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    user (query?: T.QueryModifier<user>) {
+    public user (query?: T.QueryModifier<user>) {
       return this.belongsToBuilder({ model : User }, query)
     }
+
+    // or
+    public user = this.createRelation(User,{ type : 'belognsTo'})
 }
 export default Phone
 
@@ -2394,9 +2403,12 @@ class User extends Model {
      * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    roles (query?: T.QueryModifier<Role>) {
-        return this.belognsToManyBuilder({ model : Role } , query)
+    public roles (query?: T.QueryModifier<Role>) {
+      return this.belognsToManyBuilder({ model : Role } , query)
     }
+
+    // or
+    public roles = this.createRelation(Role, { type : 'belognsToMany'})
 }
 export default User
 
