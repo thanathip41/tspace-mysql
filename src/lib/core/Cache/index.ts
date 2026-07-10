@@ -1,18 +1,22 @@
 import { MemoryCache } from "./MemoryCache";
 import { DBCache } from "./DBCache";
 import { RedisCache } from "./RedisCache";
-import options from "../../config";
+import { Config } from "../../config";
 
+type TCacheDrive = 
+  | MemoryCache 
+  | DBCache 
+  | RedisCache
 class Cache {
-  private _driver: MemoryCache | DBCache | RedisCache = new MemoryCache();
+  private _driver: TCacheDrive = new MemoryCache();
 
   constructor() {
-    this._chooseDriver(options.CACHE as "db" | "memory" | "redis");
+    this._chooseDriver(Config.CACHE as "db" | "memory" | "redis");
 
     return this;
   }
 
-  provider() {
+  public provider() {
     return this._driver.provider();
   }
 
@@ -22,7 +26,7 @@ class Cache {
    * @param {string} driver  'db' | 'memory' | 'redis'
    * @returns {this} this
    */
-  driver(driver: "db" | "memory" | "redis"): this {
+  public driver(driver: "db" | "memory" | "redis"): this {
     this._chooseDriver(driver);
     return this;
   }
@@ -32,8 +36,13 @@ class Cache {
    *
    * @returns {Promise<array>} array
    */
-  async all<T = any>(): Promise<T[] | any[]> {
-    return await this._driver.all();
+  public async all<T = any>(): Promise<T[] | any[]> {
+    try {
+      return await this._driver.all();
+    } catch (err: any) {
+      console.log(`\n\x1b[31mERROR: Cache ALL failed caused by '${err.message}'\x1b[0m`);
+      return []
+    }
   }
 
   /**
@@ -42,10 +51,11 @@ class Cache {
    * @param {string} key
    * @returns {Promise<array>} array
    */
-  async exists(key: string): Promise<boolean> {
+  public async exists(key: string): Promise<boolean> {
     try {
       return await this._driver.exists(key);
-    } catch (e) {
+    } catch (err:any) {
+      console.log(`\n\x1b[31mERROR: Cache EXISTS failed caused by '${err.message}'\x1b[0m`);
       return false;
     }
   }
@@ -55,14 +65,15 @@ class Cache {
    * @param {string} key
    * @returns {any} any
    */
-  async get<T>(key: string): Promise<T | any> {
+  public async get<T>(key: string): Promise<T | any> {
     try {
       const cache = await this._driver.get(key);
 
       if (cache == null || cache === "") return null;
 
       return cache;
-    } catch (e) {
+    } catch (err:any) {
+      console.log(`\n\x1b[31mERROR: Cache GET failed caused by '${err.message}'\x1b[0m`);
       return null;
     }
   }
@@ -75,12 +86,13 @@ class Cache {
    * @param {number}  ms
    * @returns {Promise<void>} void
    */
-  async set(key: string, value: unknown, ms: number): Promise<void> {
+  public async set(key: string, value: unknown, ms: number): Promise<void> {
     try {
       await this._driver.set(key, value, ms);
 
       return;
-    } catch (e) {
+    } catch (err:any) {
+      console.log(`\n\x1b[31mERROR: Cache SET failed caused by '${err.message}'\x1b[0m`);
       return;
     }
   }
@@ -90,8 +102,14 @@ class Cache {
    *
    * @returns {Promise<void>} void
    */
-  async clear(): Promise<void> {
-    return await this._driver.clear();
+  public async clear(): Promise<void> {
+    try {
+      await this._driver.clear();
+      return;
+    } catch (err:any) {
+      console.log(`\n\x1b[31mERROR: Cache CLEAR failed caused by '${err.message}'\x1b[0m`);
+      return;
+    }
   }
 
   /**
@@ -99,9 +117,15 @@ class Cache {
    *
    * @returns {Promise<void>} void
    */
-  async delete(key: string): Promise<void> {
-    await this._driver.delete(key);
-    return;
+  public async delete(key: string): Promise<void> {
+    try {
+      await this._driver.delete(key);
+      return;
+
+    } catch (err: any) {
+      console.log(`\n\x1b[31mERROR: Cache DELETE failed caused by '${err.message}'\x1b[0m`);
+      return;
+    }
   }
 
   private _chooseDriver(driver: "db" | "memory" | "redis") {
@@ -111,7 +135,7 @@ class Cache {
     }
 
     if (driver != null && driver.includes("redis")) {
-      this._driver = new RedisCache(String(options.CACHE));
+      this._driver = new RedisCache(Config.CACHE);
       return;
     }
 
