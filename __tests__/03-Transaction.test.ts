@@ -161,37 +161,40 @@ describe('Testing Transaction', function () {
         }
     })
 
-     it(`DB: Error thrown when startTransaction used after transaction end: "The transaction has either been closed"`, 
-    async function () {
-        await new DB('users').truncate({ force : true })
-        await new DB('posts').truncate({ force : true })
+    it(`DB: Error thrown when startTransaction used after transaction end: "The transaction has either been closed"`, 
+        async function () {
 
-        const connection = await new DB().beginTransaction();
+            await new DB('users').truncate({ force : true });
+            await new DB('posts').truncate({ force : true });
+            
+            const connection = await new DB().beginTransaction();
 
-        try {
+            try {
 
-        await connection.startTransaction();
+                await connection.startTransaction();
 
-        const user = await new DB('users')
-        .create(userDataObject)
-        .bind(connection)
-        .save() as Record<string,any>
+                const user = await new DB('users')
+                .create(userDataObject)
+                .bind(connection)
+                .save() as Record<string,any>
 
-        await new DB('posts')
-        .createMultiple(postDataArray.map(v => ({ ...v, user_id: user.id })))
-        .bind(connection)
-        .save();
+                await new DB('posts')
+                .createMultiple(postDataArray.map(v => ({ ...v, user_id: user.id })))
+                .bind(connection)
+                .save();
 
-        await connection.commit();
+                await connection.commit();
 
-        await connection.end();
+                await connection.end();
 
-        await connection.startTransaction();
+                await connection.startTransaction();
 
-        } catch (err:any) {
-            expect(err?.message).to.be.equal("The transaction has either been closed");
+            } catch (err:any) {
+                await connection.rollback();
+                expect(err?.message).to.be.equal("The transaction has either been closed");
+            }
         }
-    })
+    )
   /* ###################################################### */
 })
 
