@@ -34,6 +34,16 @@ class Builder extends AbstractBuilder {
   static get instance(): Builder {
     return new this();
   }
+
+  /**
+   * The 'driver' method is used to get current driver
+   * @static
+   * @returns {TDriver} driver
+   */
+  static driver(): TDriver {
+    return new this().driver();
+  }
+
   /**
    * The 'driver' method is used to get current driver
    * @returns {TDriver} driver
@@ -763,7 +773,11 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  public whereRaw(sql: string): this {
+  public whereRaw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): this {
+
+    if(parameters.length) {
+      sql = this.$utils.bindingParameters(sql,parameters);
+    };
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -771,7 +785,7 @@ class Builder extends AbstractBuilder {
         value : sql,
       }
     ]);
-
+   
     return this;
   }
 
@@ -783,15 +797,20 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  public orWhereRaw(sql: string): this {
+  public orWhereRaw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): this {
+
+    if(parameters.length) {
+      sql = this.$utils.bindingParameters(sql,parameters);
+    };
    
-     this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {           
         value : sql,
         condition: 'OR'
       }
     ]);
+    
 
     return this;
   }
