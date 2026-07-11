@@ -325,6 +325,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
     type: string;
     attributes: string[];
   }) {
+
     const sql = [
       this.$constants("ALTER_TABLE"),
       `\`${table.replace(/`/g, "")}\``,
@@ -511,11 +512,10 @@ export class SqliteQueryBuilder extends QueryBuilder {
     .join(", ");
 
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
-      this.$constants("ADD_INDEX"),
+      this.$constants("CREATE_INDEX"),
       `\`${name}\``,
-      `(${cols})`
+      this.$constants("ON"),
+      `\`${table}\`(${cols})`
     ];
 
     return this.format(sql);
@@ -530,8 +530,6 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }) {
     
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
       this.$constants("DROP"),
       this.$constants("INDEX"),
       `\`${name}\``
