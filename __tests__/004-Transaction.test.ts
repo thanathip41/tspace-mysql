@@ -188,9 +188,11 @@ describe('Testing Transaction', function () {
                 await connection.end();
 
                 await connection.startTransaction();
-
+               
             } catch (err:any) {
                 await connection.rollback();
+                console.log('error:' + err?.message)
+                console.log(err?.message === "The transaction has either been closed")
                 expect(err?.message).to.be.equal("The transaction has either been closed");
             }
         }

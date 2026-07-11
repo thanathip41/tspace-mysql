@@ -145,7 +145,7 @@ class Worker extends Model<TS> {
         limitConnections ?: number;
     } = {}) {
 
-        const driver = this.driver();
+        const driver = DB.driver();
 
         if(driver === 'mongodb') {
             throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');

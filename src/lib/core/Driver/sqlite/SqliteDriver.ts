@@ -117,6 +117,10 @@ export class SqliteDriver extends BaseDriver {
     }
 
     const startTransaction = async () => {
+
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
       // SQLite does NOT support concurrent transactions on the same connection.
       // This loop blocks execution until the previous transaction finishes (commit/rollback).
       // Without this, multiple BEGIN statements can overlap and cause:
@@ -161,9 +165,7 @@ export class SqliteDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);

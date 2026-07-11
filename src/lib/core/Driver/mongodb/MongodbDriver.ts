@@ -164,12 +164,11 @@ export class MongodblDriver extends BaseDriver {
         const supportsTransaction =
             (client as any)?.topology?.s?.description?.type !== "Single";
 
-        const ensureOpen = () => {
-            if (closed) throw new Error(this.MESSAGE_TRX_CLOSED);
-        };
-
         const query = async (collectionName: string): Promise<any[]> => {
-            ensureOpen();
+            
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             const start = Date.now();
 
@@ -194,7 +193,10 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const startTransaction = async () => {
-            ensureOpen();
+
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             if (!supportsTransaction) {
                 throw new Error(
@@ -211,7 +213,10 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const commit = async () => {
-            ensureOpen();
+
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             if (supportsTransaction && inTransaction) {
                 await session.commitTransaction();
@@ -222,7 +227,8 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const rollback = async () => {
-            ensureOpen();
+            
+            if (closed) return;
 
             if (supportsTransaction && inTransaction) {
                 await session.abortTransaction();

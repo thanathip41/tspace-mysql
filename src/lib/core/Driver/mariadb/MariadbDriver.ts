@@ -144,6 +144,10 @@ export class MariadbDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
       await conn.beginTransaction();
       started = true;
       closed  = false;
@@ -176,9 +180,7 @@ export class MariadbDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);
