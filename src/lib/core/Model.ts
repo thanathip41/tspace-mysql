@@ -6040,8 +6040,6 @@ class Model<
   ): Promise<any[]> {
     if (column == null) column = "id" as K;
 
-    this.selectRaw(`${this.bindColumn(column as string)}`);
-
     const sql: string = this._queryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
