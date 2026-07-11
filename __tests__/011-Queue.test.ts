@@ -7,7 +7,7 @@ describe('Queue Tests', function () {
     this.timeout(30000)
     // Initialize Queue with flush to clean up previous test data
     await Queue.start({ 
-      inspect: true, 
+      inspect: false, 
       flush: true 
     })
   })
@@ -39,7 +39,10 @@ describe('Queue Tests', function () {
       }
       
       // Re-initialize for other tests
-      await Queue.start({ flush: false })
+      await Queue.start({ 
+        inspect: false, 
+        flush: true 
+      })
     })
 
     it('should flush all jobs when flush option is true', async function () {
@@ -113,14 +116,14 @@ describe('Queue Tests', function () {
       await Queue.add('delayed-job', { 
         email: 'delayed@gmail.com'
       }, {
-        delayMs: 5000
+        delayMs: 3000
       })
       
       const stats = await Queue.getJobOverallStats('delayed-job')
       expect(stats.pending).to.be.equal(1)
       
       // Wait for delay to pass
-      await new Promise(r => setTimeout(r, 5500))
+      await new Promise(r => setTimeout(r, 4000))
     })
 
     it('should add multiple jobs with different priorities', async function () {
@@ -155,8 +158,8 @@ describe('Queue Tests', function () {
       await new Promise(r => setTimeout(r, 3000))
       
       expect(processedJob).to.not.be.null
-      //@ts-ignore
-      expect(processedJob?.payload.email).to.be.equal('success@gmail.com')
+  
+      expect(processedJob!?.payload.email).to.be.equal('success@gmail.com')
     })
 
     it('should process jobs with specified concurrency', async function () {
@@ -208,7 +211,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for retries
-      await new Promise(r => setTimeout(r, 15000))
+      await new Promise(r => setTimeout(r, 5000))
       
       expect(attemptCount).to.be.equal(3)
     })
@@ -233,11 +236,11 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for all retries
-      await new Promise(r => setTimeout(r, 12000))
+      await new Promise(r => setTimeout(r, 2000));
       
       const stats = await Queue.getJobOverallStats(jobName)
       expect(stats.failed).to.be.equal(1)
-      // The job should have been attempted 2 times (maxAttempts)
+      // The job should have been attempted 2 times (maxAttempts) + 1
       expect(attemptCount).to.be.equal(3)
     })
   })
@@ -383,7 +386,7 @@ describe('Queue Tests', function () {
       addedTime = Date.now()
       
       await Queue.add(jobName, { test: 'delay' }, {
-        delayMs: 3000
+        delayMs: 2000
       })
       
       Queue.on(jobName, async (job) => {
@@ -392,10 +395,10 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for delay + processing
-      await new Promise(r => setTimeout(r, 8000))
+      await new Promise(r => setTimeout(r, 4000))
 
       expect(processedTime).to.not.be.null
-      expect(processedTime! - addedTime!).to.be.greaterThanOrEqual(3000)
+      expect(processedTime! - addedTime!).to.be.greaterThanOrEqual(2000)
     })
   })
 

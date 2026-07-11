@@ -49,7 +49,6 @@ describe('Testing Transaction', function () {
         expect(postsAfterCommited).to.be.jsonSchema(postSchemaArray)
 
         } catch (err) {
-            console.log(err)
             await connection.rollback();
         }
     })
@@ -84,7 +83,6 @@ describe('Testing Transaction', function () {
         expect(postsWithoutCommit).to.be.an('array').that.is.empty
 
         } catch (err) {
-             console.log(err)
             await connection.rollback();
         }
     })
@@ -191,8 +189,6 @@ describe('Testing Transaction', function () {
                
             } catch (err:any) {
                 await connection.rollback();
-                console.log('error:' + err?.message)
-                console.log(err?.message === "The transaction has either been closed")
                 expect(err?.message).to.be.equal("The transaction has either been closed");
             }
         }
