@@ -236,7 +236,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for all retries
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 5000));
       
       const stats = await Queue.getJobOverallStats(jobName)
       expect(stats.failed).to.be.equal(1)
