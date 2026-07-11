@@ -422,32 +422,14 @@ class DB extends AbstractDB {
     sql: string,
     parameters: (boolean | number | string | any[] | null)[] = [],
   ): TRawStringQuery {
+
     if (!parameters.length) {
       return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
     }
 
-    let bindSql = sql;
+    sql = this.$utils.bindingParameters(sql,parameters);
 
-    for (const parameter of parameters) {
-      if (parameter === null) {
-        bindSql = bindSql.replace("?", this.$constants("NULL"));
-        continue;
-      }
-
-      if (parameter === true || parameter === false) {
-        bindSql = bindSql.replace("?", `'${parameter === true ? 1 : 0}'`);
-        continue;
-      }
-
-      bindSql = bindSql.replace(
-        "?",
-        Array.isArray(parameter)
-          ? `(${parameter.map((p) => p).join(",")})`
-          : `${parameter}`,
-      );
-    }
-
-    return `${this.$constants("RAW")}${bindSql}` as TRawStringQuery;
+    return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
   }
 
   /**

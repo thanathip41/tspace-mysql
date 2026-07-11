@@ -570,6 +570,31 @@ const formatQueryValue = (v: any) : any => {
     return transfromValueHasRaw(v);
 };
 
+const bindingParameters = (sql: string, parameters: (boolean | number | string | any[] | null)[] = []) => {
+    let bindSql = sql;
+
+    for (const parameter of parameters) {
+      if (parameter === null) {
+        bindSql = bindSql.replace("?", CONSTANTS.NULL);
+        continue;
+      }
+
+      if (parameter === true || parameter === false) {
+        bindSql = bindSql.replace("?", `'${parameter === true ? 1 : 0}'`);
+        continue;
+      }
+
+      bindSql = bindSql.replace(
+        "?",
+        Array.isArray(parameter)
+          ? `(${parameter.map((p) => p).join(",")})`
+          : `${parameter}`,
+      );
+    }
+
+    return bindSql;
+}
+
 const utils = {
     typeOf,
     isDate,
@@ -603,7 +628,8 @@ const utils = {
     applyTransforms,
     hash32,
     nestConditions,
-    formatQueryValue
+    formatQueryValue,
+    bindingParameters
 }
 
 export type TUtils = typeof utils
