@@ -17,7 +17,8 @@ import type {
     TInsertInput,
     TUpdateInput,
     TInsertOrUpdateInput,
-    TDefault
+    TDefault,
+    TRemoveDefault
 } from "../types";
 
 import type { 
@@ -328,24 +329,6 @@ export declare namespace T {
         T extends null ? z.ZodNull :
         z.ZodTypeAny;
 
-    type ColumnBlueprints<M extends Model<any,any,any>> = {
-        [K in keyof Columns<M, { InputQuery : true }>]: Blueprint<Columns<M, { InputQuery : true }>[K]>;
-    };
-
-    type Columns<
-        M extends Model<any,any,any>,
-        Options extends { InputQuery?: boolean } = {}
-        > = TDeepExpand<
-        keyof TColumnsDecorator<M> extends never
-            ? {
-                [K in keyof TSchemaModel<M>]:
-                Options['InputQuery'] extends true
-                    ? TSchemaModel<M>[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
-                    : TSchemaModel<M>[K]
-            }
-            : TColumnsDecorator<M,Options>
-    >
-
     type Raw<M extends Model<any,any,any>> = {
         [K in keyof TSchemaModel<M>]:
             TSchemaModel<M>[K] |
@@ -354,9 +337,65 @@ export declare namespace T {
             TFreezeStringQuery
     }
 
+    type ColumnBlueprints<M extends Model<any,any,any>> = {
+        [K in keyof Columns<M, { InputQuery : true }>]: Blueprint<Columns<M, { InputQuery : true }>[K]>;
+    };
+
+    type Columns<
+        M extends Model<any, any, any>,
+        Options extends {
+            InputQuery ?: boolean;
+            Default    ?: boolean;
+        } = {
+            InputQuery : false;
+            Default    : false;
+        }
+    > = TDeepExpand<
+        keyof TColumnsDecorator<M> extends never
+            ? {
+                [K in keyof TSchemaModel<M>]:
+                    Options["InputQuery"] extends true
+                        ? (
+                            Options["Default"] extends false
+                                ? TRemoveDefault<TSchemaModel<M>[K]>
+                                : TSchemaModel<M>[K]
+                        )
+                        | TOperatorQuery
+                        | TRawStringQuery
+                        | TFreezeStringQuery
+                        : (
+                            Options["Default"] extends false
+                                ? TRemoveDefault<TSchemaModel<M>[K]>
+                                : TSchemaModel<M>[K]
+                        );
+            }
+            : TColumnsDecorator<M, Options>
+    >;
+
+    type ColumnOptions<
+        M extends Model<any, any, any>,
+        Options extends {
+            InputQuery  ?: boolean;
+            Default     ?: boolean;
+        } = { InputQuery: true }
+    > = Columns<M, Options>;
+
+    type ColumnValue<
+        M extends Model<any, any, any>,
+        K extends T.ColumnKeys<M>,
+        C extends T.ColumnOptions<M> = T.ColumnOptions<M, { 
+            InputQuery : true, 
+            Default: false 
+        }>
+    > = K extends keyof C ? C[K] : any;
+
     type ColumnKeys<
         M extends Model<any, any,any>,
-        Options extends { InputQuery?: boolean } = {}
+        Options extends { 
+            InputQuery ?: boolean;
+        } = {
+            InputQuery : true
+        }
     > = (
         keyof TColumnsDecorator<M> extends never
             ? TSchemaKeyOf<M>
@@ -414,9 +453,7 @@ export declare namespace T {
     type RelationKeys<M extends Model<any,any,any>> =
         | (keyof TColumnsDecorator<M> extends never
             ? TRelationKeys<TRelationModel<M>>
-            : keyof TRelationsDecorator<M>)
-
-    type ColumnOptions<M extends Model<any, any,any>> = Columns<M , { InputQuery : true }>;
+            : keyof TRelationsDecorator<M>);
 
     type WhereOptions<M extends Model<any,any,any>> =
         TRepositoryWhere<TSchemaModel<M>, TRelationModel<M>, M>;

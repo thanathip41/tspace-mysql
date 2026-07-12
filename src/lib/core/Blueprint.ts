@@ -226,16 +226,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static boolean(): Blueprint<number | boolean> {
-    return new Blueprint<number | boolean>().boolean();
+  public static boolean(): Blueprint<boolean | number> {
+    return new Blueprint().boolean();
   }
 
   /**
    * Assign type 'BOOLEAN' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public boolean(): Blueprint<number | boolean> {
-    const instance = new Blueprint<number | boolean>();
+  public boolean(): Blueprint<boolean | number> {
+    const instance = new Blueprint();
     instance._addAssignType(`BOOLEAN`);
     instance._valueType = Number;
     return instance;
@@ -452,16 +452,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static json(): Blueprint<Record<string, any> | string> {
-    return new Blueprint<string>().json();
+  public static json(): Blueprint<any> {
+    return new Blueprint().json();
   }
 
   /**
    * Assign type 'JSON' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public json(): Blueprint<Record<string, any> | string> {
-    const instance = new Blueprint<Record<string, any>>();
+  public json(): Blueprint<any> {
+    const instance = new Blueprint();
     instance._addAssignType(`JSON`);
     instance._valueType = String;
     return instance;
@@ -746,9 +746,9 @@ class Blueprint<T = any> {
   public default<I extends T>(
     value: I
   ): Blueprint<
-    string extends  T ? T.Default<I>  :
-    number extends  T ? T.Default<I>  :
-    boolean extends T ? T.Default<I>  :
+    string extends  T ? T.Default<string>  :
+    boolean extends T ? T.Default<boolean> :
+    number extends  T ? T.Default<number>  :
     `${T & string}` | null
   > {
 

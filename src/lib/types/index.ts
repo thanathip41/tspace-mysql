@@ -561,9 +561,11 @@ export type TDefault<T = any> = (
         : T extends number 
             ? number 
         : T extends boolean
-          ? boolean
+          ? boolean | number
           : T
 ) & { __isDefault: true }
+
+export type TRemoveDefault<T> = T extends TDefault<infer U> ? U : T;
 
 type CleanDefaultType<T> = T extends any
     ? NonNullable<T> extends Date
@@ -647,9 +649,9 @@ export type TSaveModelResult<
     : A extends "createNotExists"
         ? T.InsertResult<M> | null
     : A extends "createOrUpdate"
-        ? T.InsertResult<M> | T.UpdateResult<M>
+        ? T.Result<M>
     : A extends "createOrSelect"
-        ? T.InsertResult<M> | T.Result<M>
+        ? T.Result<M>
     : A extends "update"
         ? T.UpdateResult<M>
     : A extends "updateMany"
@@ -660,5 +662,3 @@ export type TSaveModelResult<
         | T.UpdateResult<M>
         | T.UpdateManyResult<M>
         | T.Result<M>
-    
-    
