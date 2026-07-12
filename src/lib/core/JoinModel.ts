@@ -10,7 +10,7 @@ class JoinModel {
     private join : string[] = []
 
     constructor(
-        protected model : Model, 
+        protected model : Model<any,any,any>, 
         protected type : 'INNER_JOIN' | 'LEFT_JOIN' | 'RIGHT_JOIN' | 'CROSS_JOIN' = 'INNER_JOIN'
     ) {}
 

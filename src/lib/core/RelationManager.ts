@@ -8,9 +8,9 @@ import type {
 
 class RelationManager  {
 
-    private $model : Model
+    private $model : Model<any,any,any>
     
-    constructor(model : Model) {
+    constructor(model : Model<any,any,any>) {
         this.$model = model;
     }
 

@@ -27,7 +27,7 @@ class Audit extends Model<TS> {
         this.useTable(this.$state.get("TABLE_AUDIT"));
     }
 
-    static async tracking (instance : Model, { 
+    static async tracking (instance : Model<any,any,any>, { 
         sql, 
         fn
     } : { sql : string; fn : () => Promise<any>}){

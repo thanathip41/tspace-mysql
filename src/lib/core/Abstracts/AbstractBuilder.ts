@@ -7,6 +7,7 @@ import type {
     TConstant, 
     TDriver
 }  from "../../types"
+import { Builder } from "../Builder";
 abstract class AbstractBuilder {
 
     protected $utils !: TUtils 
@@ -65,7 +66,7 @@ abstract class AbstractBuilder {
     abstract whereIn (column: string , arrayValues:any[]): this
     abstract orWhereIn (column: string , arrayValues:any[]): this
     abstract whereNotIn (column: string , arrayValues: any[]): this
-    abstract whereSubQuery (column: string , subQuery: string): this
+    // abstract whereSubQuery (column: string , subQuery: string): this
     abstract whereNotSubQuery (column: string , subQuery: string): this
     abstract orWhereSubQuery (column: string , subQuery: string): this
     abstract whereBetween (column: string , arrayValue: [any,any]): this
@@ -87,20 +88,21 @@ abstract class AbstractBuilder {
     abstract random (): this
     abstract inRandom (): this
     abstract limit (number : number): this
-    abstract insert(data: Record<string,any>, { database }: { database?: string }): this
-    abstract create(data: Record<string,any>, { database }: { database?: string }): this
-    abstract update (data: Record<string,any>,updateNotExists ?: string[]): this
-    abstract updateMany (data: Record<string,any>,updateNotExists ?: string[]): this
-    abstract insertNotExists(data: Record<string,any>) : this
-    abstract createNotExists(data: Record<string,any>) : this
-    abstract insertOrUpdate (data: Record<string,any>) : this
-    abstract createOrUpdate (data: Record<string,any>) : this
-    abstract updateOrInsert (data: Record<string,any>) : this
-    abstract updateOrCreate (data: Record<string,any>) : this
-    abstract createMultiple (data: Record<string,any>[], { database }: { database?: string }) : this
-    abstract insertMultiple (data: Record<string,any>[], { database }: { database?: string }) : this
-    abstract createMany (data: Record<string,any>[], { database }: { database?: string }) : this
-    abstract insertMany (data: Record<string,any>[], { database }: { database?: string }) : this
+    abstract insert(data: Record<string,any>, { database }: { database?: string }): Builder<"create">
+    abstract create(data: Record<string,any>, { database }: { database?: string }): Builder<"create">
+    abstract update (data: Record<string,any>,updateNotExists ?: string[]): Builder<"update">
+    abstract updateMany (data: Record<string,any>,updateNotExists ?: string[]): Builder<"updateMany">
+    abstract insertNotExists(data: Record<string,any>) : Builder<"create"> | null
+    abstract createNotExists(data: Record<string,any>) : Builder<"create"> | null
+    abstract insertOrUpdate (data: Record<string,any>) : Builder<"createOrUpdate">
+    abstract createOrUpdate (data: Record<string,any>) : Builder<"createOrUpdate">
+    abstract updateOrInsert (data: Record<string,any>) : Builder<"createOrUpdate">
+    abstract updateOrCreate (data: Record<string,any>) : Builder<"createOrUpdate">
+    abstract createMultiple (data: Record<string,any>[], { database }: { database?: string }) : Builder<"createMany">
+    abstract insertMultiple (data: Record<string,any>[], { database }: { database?: string }) : Builder<"createMany">
+    abstract createMany (data: Record<string,any>[], { database }: { database?: string }) : Builder<"createMany">
+    abstract insertMany (data: Record<string,any>[], { database }: { database?: string }) : Builder<"createMany">
+    abstract save () :Promise<any>
     abstract except (...columns : string[]) : this
     abstract drop (): Promise<any>
     abstract truncate ({ force } : { force : boolean }): Promise<any>
@@ -129,7 +131,6 @@ abstract class AbstractBuilder {
     abstract delete () : Promise<boolean>
     abstract deleteMany () : Promise<boolean>
     abstract exists () : Promise<boolean>
-    abstract save ():  Promise<Record<string,any> | any[] | null | undefined>
     abstract increment (column : string , value : number) : Promise<number>
     abstract decrement (column : string , value : number) : Promise<number>
     abstract faker (round : number , cb ?: Function): Promise<void>

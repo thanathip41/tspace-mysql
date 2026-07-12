@@ -4,7 +4,7 @@ class Join {
     private join : string[] = []
 
     constructor(
-        protected builder : Builder , 
+        protected builder : Builder<any>, 
         protected type : 'INNER_JOIN' | 'LEFT_JOIN' | 'RIGHT_JOIN' | 'CROSS_JOIN' = 'INNER_JOIN'
     ) {}
 

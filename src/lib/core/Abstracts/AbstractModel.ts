@@ -12,7 +12,7 @@ import type {
     TModelOrObject
 } from '../../types'
 import { JoinModel } from '../JoinModel';
-abstract class AbstractModel extends Builder {
+abstract class AbstractModel extends Builder<any> {
 
     protected $cache             !: TCache 
     protected $relation          !: RelationManager

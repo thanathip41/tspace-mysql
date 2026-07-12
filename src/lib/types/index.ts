@@ -3,8 +3,9 @@ import { TCache as Cache } from '../core/Cache';
 import { CONSTANTS } from '../constants';
 import { Join } from "../core/Join";
 import { QueryBuilder } from "../core/Driver";
-import { TResult } from "../core";
+import { T, TResult } from "../core";
 import { TResultDecorator } from "./decorator";
+import Builder from "../core/Builder";
 
 export type TCache = Cache;
 
@@ -23,7 +24,7 @@ export type TConstant = typeof CONSTANTS;
 
 export type TRelationOptions<K = any> = {
     name: K;
-    model: new () => Model<any, any>;
+    model: new () => Model<any, any,any>;
     as?: string;
     localKey?: string;
     foreignKey?: string;
@@ -43,7 +44,7 @@ export type TRelationOptions<K = any> = {
 
 export type TRelationQueryOptions<K = any> = {
     name : K extends void ? never : K;
-    model: new () => Model<any, any>;
+    model: new () => Model<any, any, any>;
     as?: string;
     localKey?: string;
     foreignKey?: string;
@@ -191,11 +192,11 @@ export type TPoolConnected = {
 };
 
 export type TModelOrObject = {
-    model: new () => Model<any, any>;
+    model: new () => Model<any, any, any>;
     alias?: string;
     key?: string;
     join?: Join;
-} | (new () => Model<any, any>);
+} | (new () => Model<any, any, any>);
 
 export type TCreateNewConnection = {
     on: (event: TPoolEvent, data: (r: any) => any) => void;
@@ -605,3 +606,59 @@ export type TInsertOrUpdateInput<K,C> = {
     [Q in Exclude<Extract<K, keyof C>, P>]?: CleanDefaultType<C[Q]>;
   }
 }[Extract<K, keyof C>];
+
+export type TAction =
+    | "create"
+    | "createMany"
+    | "createNotExists"
+    | "createOrSelect"
+    | "createOrUpdate"
+    | "update"
+    | "updateMany"
+    | null;
+
+export type TSaveBuilderResult<
+  A extends TAction
+> =
+    A extends "create"
+        ? Record<string,any>
+    : A extends "createMany"
+        ? Record<string,any>[]
+    : A extends "createNotExists"
+        ? Record<string,any> | null
+    : A extends "createOrUpdate"
+        ? Record<string,any>
+    : A extends "createOrSelect"
+        ? Record<string,any>
+    : A extends "update"
+        ? Record<string,any> | null
+    : A extends "updateMany"
+        ? Record<string,any>[]
+    : any
+
+export type TSaveModelResult<
+    M extends Model<any,any,any>,
+    A extends TAction
+> =
+    A extends "create"
+        ? T.InsertResult<M>
+    : A extends "createMany"
+        ? T.InsertManyResult<M>
+    : A extends "createNotExists"
+        ? T.InsertResult<M> | null
+    : A extends "createOrUpdate"
+        ? T.InsertResult<M> | T.UpdateResult<M>
+    : A extends "createOrSelect"
+        ? T.InsertResult<M> | T.Result<M>
+    : A extends "update"
+        ? T.UpdateResult<M>
+    : A extends "updateMany"
+        ? T.UpdateManyResult<M>
+    : 
+        | T.InsertResult<M>
+        | T.InsertManyResult<M>
+        | T.UpdateResult<M>
+        | T.UpdateManyResult<M>
+        | T.Result<M>
+    
+    

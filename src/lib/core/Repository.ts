@@ -947,6 +947,7 @@ class RepositoryFactory<
     //@ts-ignore
     instance.where(where);
 
+    //@ts-ignore
     return (await instance
       .updateMany(data as Record<string, any>)
       .save()) as Promise<NR extends true ? undefined : T.Result<M>[]>;
@@ -1018,6 +1019,7 @@ class RepositoryFactory<
       instance.void();
     }
 
+    //@ts-ignore
     return await instance.updateCases(cases as any[]).save() as Promise<
       NR extends true ? undefined : T.Result<M>[]
     >;

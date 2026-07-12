@@ -607,7 +607,7 @@ class Schema {
     changed,
     index,
   }: {
-    models: (Model | null)[];
+    models: (Model<any,any,any> | null)[];
     force   : boolean; // forece will sync table & missing column
     log     : boolean;
     foreign : boolean;

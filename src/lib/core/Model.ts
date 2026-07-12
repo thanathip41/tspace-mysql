@@ -28,6 +28,8 @@ import type {
   TLifecycle,
   TCacheModel,
   TRawStringQuery,
+  TAction,
+  TSaveModelResult
 } from "../types";
 
 import type { 
@@ -77,6 +79,7 @@ let globalSettings: TGlobalSetting = {
 class Model<
   TS extends Record<string, any> = any,
   TR = unknown,
+  TA extends TAction = any
 > extends AbstractModel {
   constructor() {
     super();
@@ -2236,7 +2239,7 @@ class Model<
    * @returns {Model} Model
    */
   public copyModel(
-    instance: Model,
+    instance: Model<any,any,any>,
     options?: {
       update?: boolean;
       insert?: boolean;
@@ -2441,7 +2444,7 @@ class Model<
    * @override
    * @returns {string} return sql query
    */
-  public CTEs<M extends Model>(
+  public CTEs<M extends Model<any,any,any>>(
     as: string,
     callback: (query: M) => M,
     bindModel?: new () => M,
@@ -6368,7 +6371,7 @@ class Model<
   public insert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K,C>): this {
+  >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
 
     this.$state.set("DATA", this._formatedInputData(data));
 
@@ -6378,7 +6381,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT");
 
-    return this;
+    return this as Model<TS, TR, "create">
   }
 
   /**
@@ -6389,8 +6392,8 @@ class Model<
   public create<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K,C>): this {
-    return this.insert(data);
+  >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
+    return this.insert(data) as Model<TS, TR, "create">
   }
 
   /**
@@ -6402,7 +6405,7 @@ class Model<
   public update<K extends T.ColumnKeys<this>, C extends T.ColumnOptions<this>>(
     data:  T.UpdateInput<K, C>,
     updateNotExists: T.ColumnKeys<this>[] = [],
-  ): this {
+  ): Model<TS, TR, "update"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6434,7 +6437,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as unknown as Model<TS, TR, "update">
   }
 
   /**
@@ -6448,7 +6451,7 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.UpdateInput<K, C>, 
-    updateNotExists: string[] = []): this {
+    updateNotExists: string[] = []): Model<TS, TR, "updateMany"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6476,7 +6479,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "updateMany">;
   }
 
   /**
@@ -6511,7 +6514,7 @@ class Model<
       }
       >;
     }[],
-  ): this {
+  ): Model<TS, TR, "updateMany"> {
     if (!cases.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
@@ -6664,7 +6667,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "updateMany">;
   }
 
   /**
@@ -6675,7 +6678,7 @@ class Model<
   public updateNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.UpdateInput<K, C>): this {
+  >(data: T.UpdateInput<K, C>): Model<TS, TR, "update"> {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6699,7 +6702,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "update">
   }
 
   /**
@@ -6710,7 +6713,7 @@ class Model<
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertOrUpdateInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6726,7 +6729,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
-    return this;
+    return this as Model<TS, TR, "createOrUpdate">;
   }
 
   /**
@@ -6737,8 +6740,8 @@ class Model<
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertOrUpdateInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6749,8 +6752,8 @@ class Model<
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertOrUpdateInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6761,8 +6764,8 @@ class Model<
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertOrUpdateInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6773,7 +6776,7 @@ class Model<
   public createOrSelect<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6786,7 +6789,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
-    return this;
+    return this as Model<TS, TR, "createOrSelect">
   }
 
   /**
@@ -6797,8 +6800,8 @@ class Model<
   public insertOrSelect<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.createOrSelect(data);
+  >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
+    return this.createOrSelect(data) as Model<TS, TR, "createOrSelect">
   }
 
   /**
@@ -6810,7 +6813,7 @@ class Model<
   public createNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6823,7 +6826,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
-    return this;
+    return this as Model<TS,TR,"createNotExists">;
   }
 
   /**
@@ -6835,8 +6838,8 @@ class Model<
   public insertNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.createNotExists(data);
+  >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
+    return this.createNotExists(data) as Model<TS,TR,"createNotExists">;
   }
 
   /**
@@ -6849,7 +6852,7 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
-  ): this {
+  ): Model<TS, TR, "createMany"> {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
@@ -6862,7 +6865,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
-    return this;
+    return this as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6876,8 +6879,8 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
-  ): this {
-    return this.createMultiple(data);
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6891,8 +6894,8 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
-  ): this {
-    return this.createMultiple(data);
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6906,8 +6909,8 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
-  ): this {
-    return this.createMultiple(data);
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6945,15 +6948,7 @@ class Model<
    * @override
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
-  public async save({ waitMs = 0 } = {}): Promise<
-    | T.InsertResult<this>
-    | T.InsertManyResult<this>
-    | T.InsertNotExistsResult<this>
-    | T.UpdateResult<this>
-    | T.UpdateManyResult<this>
-    | null
-    | undefined
-  > {
+  public async save({ waitMs = 0 } = {}): Promise<TSaveModelResult<this, TA>> {
     this.$state.set("AFTER_SAVE", waitMs);
 
     switch (String(this.$state.get("SAVE"))) {
