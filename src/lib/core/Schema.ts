@@ -708,6 +708,13 @@ class Schema {
     log: boolean;
   }) {
 
+    if(DB.driver() === 'sqlite') {
+      console.log(
+        `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE ADD FOREIGN KEY.\x1b[0m`
+      );
+      return;
+    }
+
     for (const key in schemaModel) {
       if (schemaModel[key]?.foreignKey == null) continue;
       const foreign = schemaModel[key].foreignKey;
@@ -983,7 +990,7 @@ class Schema {
 
     if(DB.driver() === 'sqlite') {
       console.log(
-        `\n\x1b[31mERROR: SQLite does not support changing columns\x1b[0m`
+        `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE CHANGE COLUMN\x1b[0m`
       );
       return;
     }
