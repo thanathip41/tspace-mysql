@@ -11,7 +11,7 @@ import {
   PoolConnection, 
   loadOptionsEnv 
 } from "./Pool";
-import {
+import type {
   TPagination,
   TConnectionOptions,
   TPoolConnected,
@@ -19,8 +19,11 @@ import {
   TPoolCusterConnected,
   TDriver,
   TConstant,
+  TSaveBuilderResult,
+  TAction,
 } from "../types";
-class Builder extends AbstractBuilder {
+
+class Builder<TA extends TAction = null> extends AbstractBuilder {
   constructor() {
     super();
     this._initialConnection();
@@ -34,6 +37,16 @@ class Builder extends AbstractBuilder {
   static get instance(): Builder {
     return new this();
   }
+
+  /**
+   * The 'driver' method is used to get current driver
+   * @static
+   * @returns {TDriver} driver
+   */
+  static driver(): TDriver {
+    return new this().driver();
+  }
+
   /**
    * The 'driver' method is used to get current driver
    * @returns {TDriver} driver
@@ -208,6 +221,7 @@ class Builder extends AbstractBuilder {
       this.$state.set("OFFSET", null);
 
     if (options?.alias != null && options.alias)
+      this.$state.set("ALIAS", null);
       this.$state.set("RAW_ALIAS", null);
 
     return this;
@@ -277,6 +291,32 @@ class Builder extends AbstractBuilder {
     }
 
     this.$state.set("SELECT", select);
+
+    return this;
+  }
+
+  /**
+   * The 'addSelect' method is used to add columns you want to retrieve from a database table.
+   *
+   * It allows you to choose the specific columns that should be included in the result set of a database query.
+   * @param {string[]} ...columns
+   * @returns {this} this
+   */
+  public addSelect(...columns: string[]): this {
+    let select: string[] = columns.map((c) => {
+      const column = String(c);
+
+      if (column.includes(this.$constants("RAW"))) {
+        return column?.replace(this.$constants("RAW"), "").replace(/'/g, "");
+      }
+
+      return this.bindColumn(column);
+    });
+
+    this.$state.set("ADD_SELECT", [
+      ...select,
+      ...this.$state.get("ADD_SELECT"),
+    ]);
 
     return this;
   }
@@ -359,7 +399,7 @@ class Builder extends AbstractBuilder {
   }
 
   /**
-   * The 'selectObject' method is used to specify which columns you want to retrieve from a database table.
+   * The 'selectArray' method is used to specify which columns you want to retrieve from a database table.
    *
    * It allows you to choose the specific columns that should be included in the result set to 'Object' of a database query.
    * @param {string} object table name
@@ -390,18 +430,18 @@ class Builder extends AbstractBuilder {
       ];
     }
 
-    const json = `
-            ${this.$constants("CASE")}
-            ${this.$constants("WHEN")} COUNT(${
-      Object.values(maping)[1]
-    }) = 0 ${this.$constants("THEN")} ${this.$constants("JSON_ARRAY")}()
-            ${this.$constants("ELSE")} ${this.$constants("JSON_ARRAYAGG")}(
-                ${this.$constants("JSON_OBJECT")}(${maping.join(" , ")})
-            )
-            ${this.$constants("END")}
-            ${this.$constants("AS")} \`${alias}\`
-        `;
-
+    const json = [
+      `${this.$constants("CASE")}`,
+        `${this.$constants("WHEN")}`,
+        `${this.$constants("COUNT")}(${Object.values(maping)[1]}) = 0`,
+      `${this.$constants("THEN")}`,
+        `${this.$constants("JSON_ARRAY")}()`,
+      `${this.$constants("ELSE")}`,
+        `${this.$constants("JSON_ARRAYAGG")}(${this.$constants("JSON_OBJECT")}(${maping.join(", ")}))`,
+      `${this.$constants("END")}`,
+      `${this.$constants("AS")} \`${alias}\``
+    ].join(" ")
+     
     this.$state.set("SELECT", [...this.$state.get("SELECT"), json]);
 
     return this;
@@ -566,7 +606,7 @@ class Builder extends AbstractBuilder {
    */
   public when(
     condition: string | number | undefined | null | Boolean,
-    callback: (query: Builder) => Builder
+    callback: (query: Builder<any>) => Builder
   ): this {
     if (!condition) return this;
 
@@ -736,7 +776,11 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  public whereRaw(sql: string): this {
+  public whereRaw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): this {
+
+    if(parameters.length) {
+      sql = this.$utils.bindingParameters(sql,parameters);
+    };
 
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
@@ -744,7 +788,7 @@ class Builder extends AbstractBuilder {
         value : sql,
       }
     ]);
-
+   
     return this;
   }
 
@@ -756,15 +800,20 @@ class Builder extends AbstractBuilder {
    * @param {string} sql where column with raw sql
    * @returns {this} this
    */
-  public orWhereRaw(sql: string): this {
+  public orWhereRaw(sql: string, parameters: (boolean | number | string | any[] | null)[] = []): this {
+
+    if(parameters.length) {
+      sql = this.$utils.bindingParameters(sql,parameters);
+    };
    
-     this.$state.set("WHERE", [
+    this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {           
         value : sql,
         condition: 'OR'
       }
     ]);
+    
 
     return this;
   }
@@ -2315,7 +2364,7 @@ class Builder extends AbstractBuilder {
    * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
    * @returns {this} this
    */
-  public update(data: Record<string, any>, updateNotExists: string[] = []): this {
+  public update(data: Record<string, any>, updateNotExists: string[] = []): Builder<"update"> {
     this.limit(1);
 
     if (!Object.keys(data).length)
@@ -2336,7 +2385,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Builder<"update">;
   }
 
   /**
@@ -2349,7 +2398,7 @@ class Builder extends AbstractBuilder {
    * @param {array?} updateNotExists options for except update some records in your ${data} using name column(s)
    * @returns {this} this
    */
-  public updateMany(data: Record<string, any>, updateNotExists: string[] = []): this {
+  public updateMany(data: Record<string, any>, updateNotExists: string[] = []): Builder<"updateMany"> {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2368,7 +2417,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Builder<"updateMany">;
   }
 
   /**
@@ -2395,7 +2444,7 @@ class Builder extends AbstractBuilder {
       condition: ((query: Builder) => Builder) | Record<string, any>,
       columns: Record<string, any> 
     }[]
-  ): this {
+  ): Builder<"updateMany"> {
     if (!cases.length)
       throw new Error(`The method 'updateCases' must not be empty.`);
 
@@ -2518,7 +2567,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Builder<"updateMany">;
   }
 
   /**
@@ -2530,7 +2579,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  public updateNotExists(data: Record<string, any>): this {
+  public updateNotExists(data: Record<string, any>): Builder<'update'> {
     this.limit(1);
 
     if (!Object.keys(data).length)
@@ -2545,7 +2594,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Builder<'update'>;
   }
 
   /**
@@ -2555,7 +2604,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  public insert(data: Record<string, any>): this {
+  public insert(data: Record<string, any>): Builder<"create">{
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2563,7 +2612,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "INSERT");
 
-    return this;
+    return this as Builder<"create">
   }
 
   /**
@@ -2573,8 +2622,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data
    * @returns {this} this
    */
-  public create(data: Record<string, any>): this {
-    return this.insert(data);
+  public create(data: Record<string, any>): Builder<"create"> {
+    return this.insert(data) as Builder<"create">
   }
 
   /**
@@ -2584,7 +2633,7 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  public createMultiple(data: any[]): this {
+  public createMultiple(data: any[]): Builder<"createMany"> {
     if (!Object.keys(data).length)
       throw new Error("This method must be required");
 
@@ -2592,7 +2641,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
-    return this;
+    return this as Builder<"createMany">
   }
 
   /**
@@ -2602,8 +2651,8 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  public createMany(data: any[]): this {
-    return this.createMultiple(data);
+  public createMany(data: any[]): Builder<"createMany"> {
+    return this.createMultiple(data) as Builder<"createMany">
   }
 
   /**
@@ -2613,8 +2662,8 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  public insertMultiple(data: any[]): this {
-    return this.createMultiple(data);
+  public insertMultiple(data: any[]): Builder<"createMany"> {
+    return this.createMultiple(data) as Builder<"createMany">
   }
 
   /**
@@ -2624,8 +2673,8 @@ class Builder extends AbstractBuilder {
    * @param {array} data create multiple data
    * @returns {this} this this
    */
-  public insertMany(data: any[]): this {
-    return this.createMultiple(data);
+  public insertMany(data: any[]): Builder<"createMany"> {
+    return this.createMultiple(data) as Builder<"createMany">
   }
 
   /**
@@ -2636,11 +2685,11 @@ class Builder extends AbstractBuilder {
    * @param {object} data create not exists data
    * @returns {this} this this
    */
-  public createNotExists(data: Record<string, any>): this {
+  public createNotExists(data: Record<string, any>): Builder<"create"> {
     this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
-    return this;
+    return this as Builder<"create">;
   }
 
   /**
@@ -2651,9 +2700,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert not exists data
    * @returns {this} this this
    */
-  public insertNotExists(data: Record<string, any> & { length?: never }): this {
-    this.createNotExists(data);
-    return this;
+  public insertNotExists(data: Record<string, any> & { length?: never }): Builder<"create"> {
+    return this.createNotExists(data) as Builder<"create">
   }
 
   /**
@@ -2664,11 +2712,11 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert data
    * @returns {this} this this
    */
-  public createOrSelect(data: Record<string, any> & { length?: never }): this {
+  public createOrSelect(data: Record<string, any> & { length?: never }): Builder<'create'> {
     this._queryInsert(data);
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
-    return this;
+    return this as Builder<'create'>
   }
 
   /**
@@ -2679,9 +2727,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  public insertOrSelect(data: Record<string, any> & { length?: never }): this {
-    this.createOrSelect(data);
-    return this;
+  public insertOrSelect(data: Record<string, any> & { length?: never }): Builder<'create'> {
+    return this.createOrSelect(data) as Builder<'create'>;
   }
 
   /**
@@ -2692,7 +2739,7 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  public updateOrCreate(data: Record<string, any> & { length?: never }): this {
+  public updateOrCreate(data: Record<string, any> & { length?: never }): Builder<"createOrUpdate"> {
     this.limit(1);
 
     this._queryUpdate(data);
@@ -2701,7 +2748,7 @@ class Builder extends AbstractBuilder {
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
-    return this;
+    return this as Builder<"createOrUpdate">;
   }
 
   /**
@@ -2712,9 +2759,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  public updateOrInsert(data: Record<string, any> & { length?: never }): this {
-    this.updateOrCreate(data);
-    return this;
+  public updateOrInsert(data: Record<string, any> & { length?: never }): Builder<"createOrUpdate"> {
+    return this.updateOrCreate(data) as Builder<"createOrUpdate">;
   }
 
   /**
@@ -2725,9 +2771,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data insert or update data
    * @returns {this} this this
    */
-  public insertOrUpdate(data: Record<string, any> & { length?: never }): this {
-    this.updateOrCreate(data);
-    return this;
+  public insertOrUpdate(data: Record<string, any> & { length?: never }): Builder<"createOrUpdate"> {
+    return this.updateOrCreate(data) as Builder<"createOrUpdate">
   }
 
   /**
@@ -2739,9 +2784,8 @@ class Builder extends AbstractBuilder {
    * @param {object} data create or update data
    * @returns {this} this this
    */
-  public createOrUpdate(data: Record<string, any> & { length?: never }): this {
-    this.updateOrCreate(data);
-    return this;
+  public createOrUpdate(data: Record<string, any> & { length?: never }): Builder<"createOrUpdate"> {
+    return this.updateOrCreate(data) as Builder<"createOrUpdate">;
   }
 
   /**
@@ -3709,21 +3753,27 @@ class Builder extends AbstractBuilder {
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
    * making it easier to display data in a web application and improve user experience
-   * @param {?object} paginationOptions
-   * @param {number} paginationOptions.limit default 15
-   * @param {number} paginationOptions.page default 1
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async pagination(paginationOptions?: {
-    limit?: number;
-    page?: number;
+  public async pagination(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<TPagination> {
     let limit = 15;
     let page = 1;
 
-    if (paginationOptions != null) {
-      limit = paginationOptions?.limit || limit;
-      page = paginationOptions?.page || page;
+    if(opts?.distinct) {
+      this.distinct();
+    }
+
+    if (opts != null) {
+      limit = opts?.limit || limit;
+      page = opts?.page || page;
     }
 
     const currentPage: number = page;
@@ -3762,7 +3812,6 @@ class Builder extends AbstractBuilder {
       .copyBuilder(this, { where: true, join: true })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
-      .unset({ alias: true })
       .count();
 
     let lastPage: number = Math.ceil(total / limit) || 0;
@@ -3795,24 +3844,18 @@ class Builder extends AbstractBuilder {
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
    * making it easier to display data in a web application and improve user experience
-   * @param {?object} paginationOptions
-   * @param {number} paginationOptions.limit
-   * @param {number} paginationOptions.page
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async paginate(paginationOptions?: {
-    limit?: number;
-    page?: number;
+  public async paginate(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<TPagination> {
-    let limit = 15;
-    let page = 1;
-
-    if (paginationOptions != null) {
-      limit = paginationOptions?.limit || limit;
-      page = paginationOptions?.page || page;
-    }
-
-    return await this.pagination({ limit, page });
+    return await this.pagination(opts);
   }
 
   /**
@@ -4037,7 +4080,7 @@ class Builder extends AbstractBuilder {
 
     this.selectRaw(
       `${this.$constants("COUNT")}(${column}) ${this.$constants(
-        "AS"
+      `${this.$constants("AS")}`,
       )} \`aggregate\``
     );
 
@@ -4323,9 +4366,7 @@ class Builder extends AbstractBuilder {
    * It's a versatile method that can be used in various scenarios, depending on whether you're working with a new or existing record.
    * @returns {Promise<any>} promise
    */
-  public async save({ waitMs = 100 } = {}): Promise<
-    Record<string, any> | any[] | null | undefined
-  > {
+  public async save({ waitMs = 100 } = {}): Promise<TSaveBuilderResult<TA>> {
     this.$state.set("AFTER_SAVE", waitMs);
 
     switch (this.$state.get("SAVE")) {
@@ -4816,7 +4857,7 @@ class Builder extends AbstractBuilder {
   }
 
   public copyBuilder(
-    instance: Builder,
+    instance: Builder<any>,
     options?: {
       update?: boolean;
       insert?: boolean;
@@ -4901,9 +4942,9 @@ class Builder extends AbstractBuilder {
   }
 
   protected async _queryStatement(sql: string): Promise<any[]> {
-    sql = this._queryBuilder().format([sql]);
     
     try {
+
       const startTime = +new Date();
 
       const result = await this.$pool.query(sql);

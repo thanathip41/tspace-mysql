@@ -24,7 +24,7 @@ class Logger extends Model<TS> {
         this.useTable(this.$state.get('TABLE_LOGGER'));
     }
 
-    static async tracking (instance : Model, { 
+    static async tracking (instance : Model<any,any,any>, { 
         sql, 
         fn,
     } : { sql : string;  fn : () => Promise<any> }) {

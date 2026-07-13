@@ -422,32 +422,14 @@ class DB extends AbstractDB {
     sql: string,
     parameters: (boolean | number | string | any[] | null)[] = [],
   ): TRawStringQuery {
+
     if (!parameters.length) {
       return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
     }
 
-    let bindSql = sql;
+    sql = this.$utils.bindingParameters(sql,parameters);
 
-    for (const parameter of parameters) {
-      if (parameter === null) {
-        bindSql = bindSql.replace("?", this.$constants("NULL"));
-        continue;
-      }
-
-      if (parameter === true || parameter === false) {
-        bindSql = bindSql.replace("?", `'${parameter === true ? 1 : 0}'`);
-        continue;
-      }
-
-      bindSql = bindSql.replace(
-        "?",
-        Array.isArray(parameter)
-          ? `(${parameter.map((p) => p).join(",")})`
-          : `${parameter}`,
-      );
-    }
-
-    return `${this.$constants("RAW")}${bindSql}` as TRawStringQuery;
+    return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
   }
 
   /**
@@ -511,10 +493,11 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  public async getConnection(options?: TConnectionOptions): Promise<TPoolConnected> {
+  public getConnection(options?: TConnectionOptions): TPoolConnected {
+    
     if (options == null) {
-      const pool = await this.$pool.get();
-      return await pool.newConnection();
+      const pool = new PoolConnection();
+      return pool.connect();
     }
 
     const {
@@ -551,9 +534,9 @@ class DB extends AbstractDB {
    * @property {string} option.password
    * @returns {Connection}
    */
-  public static async getConnection(
-    options: TConnectionOptions,
-  ): Promise<TPoolConnected> {
+  public static getConnection(
+    options?: TConnectionOptions,
+  ): TPoolConnected {
     return new this().getConnection(options);
   }
 

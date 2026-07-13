@@ -5,7 +5,7 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 | Feature / API | TypeORM (Repo) | TypeORM (QueryBuilder) | Prisma | Tspace-mysql (Repo) | Tspace-mysql (Builder) |
 |--------------|----------------|------------------------|--------|---------------------|------------------------|
 | Partial select typing | ⚠ Medium  | ❌ Unsafe | ✅ Safe | ✅ Safe | ⚠ Medium  |
-| Except columns | ❌ Not supported | ❌ Not supported | ✅ v6.2+ | ✅ Supported | ✅ Supported|
+| Except columns(Omit) | ❌ Not supported | ❌ Not supported | ✅ v6.2+ | ✅ Supported | ✅ Supported|
 | Invalid field detection | ✅ Compile-time | ❌ Runtime | ✅ Compile-time | ✅ Compile-time | ✅ Compile-time |
 | Result shape accuracy | ⚠ Approximate | ❌ Inaccurate | ✅ Exact | ✅ Exact | ⚠ Approximate |
 | Where condition typing | ✅ Strong  | ❌ None (string-based) | ✅ Strong | ✅ Strong | ✅ Strong |
@@ -20,7 +20,7 @@ Comparing how different ORMs validate queries, selected fields, and result shape
 
 
 ## Schema
-Setup schema
+This section explains the differences in setup schema of a model’s.
 <!-- tabs:start -->
 ### **schema:`Tspace-mysql`**
 ```js
@@ -138,10 +138,15 @@ This section explains the differences in type safety when selecting a subset of 
 #### **`select:`Tspace-mysql**
 
 ```js
+import { Repository } from 'tspace-mysql';
+
 const userRepository = Repository(User)
 const users = await userRepository.findMany({
-  where:  { actived: true },
-  select: { id : true , email : true }
+  select: { 
+    id : true ,  ✅
+    email : true  ✅
+    emailx : true  ❌ // type error
+  }
 })
 
 for(const user of users) {
@@ -153,31 +158,165 @@ for(const user of users) {
 #### **`select:`TypeORM**
 
 ```js
-const userRepository = getManager().getRepository(Post)
+import getManager from '../<your-manager>';
+const userRepository = getManager().getRepository(User)
 const users = await userRepository.find({
-  where:  { actived: true },
-  select: { id : true , email : true }
+  select: { 
+    id : true ,  ✅
+    email : true  ✅
+    emailx : true  ❌ // type error
+  }
 })
 
 for(const user of users) {
-  user.name  ✅ // no check type
-  user.email ✅
+  user.name  💩 // no check type
+  user.email 💩 // no check type
 }
 
 ```
 #### **`select:`Prisma**
 
 ```js
+import prima from '../<your-prima>';
 const userRepository = prima.user
 const users = await userRepository.findMany({
-  where:  { actived: true },
-  select: { id : true , email : true }
+  select: { 
+    id : true ,  ✅
+    email : true  ✅
+    emailx : true  ❌ // type error 
+  }
 })
 
 for(const user of users) {
   user.name  ❌ // type error
   user.email ✅
 }
+
+```
+<!-- tabs:end -->
+
+## Omit
+This section explains the differences in type safety when omit a subset of a model's fields in a query.
+
+<!-- tabs:start -->
+#### **`omit:`Tspace-mysql**
+
+```js
+const userRepository = Repository(User)
+const users = await userRepository.findMany({
+  except: { 
+    id : true ,  ✅
+    email : true  ✅
+  }
+})
+
+for(const user of users) {
+  user.name  ✅
+  user.email ❌ // type error
+}
+
+```
+#### **`omit:`TypeORM**
+
+```js
+// No. TypeORM doesn't have a omit.
+import { EntityTarget } from "typeorm";
+type OmitFields<T> = Partial<Record<keyof T, true>>;
+
+function omitToSelect<T extends object>(
+  entity: EntityTarget<T>,
+  omit: OmitFields<T>
+) {
+  const metadata = db.getMetadata(entity);
+
+  return Object.fromEntries(
+    metadata.columns
+      .filter(col => !omit[col.propertyName as keyof T])
+      .map(col => [col.propertyName, true])
+  );
+}
+
+const userRepository = getManager().getRepository(User)
+
+const users = await userRepository.find({
+  select: omitToSelect(User, {
+    password: true,
+    email: true,
+  })
+})
+
+for(const user of users) {
+  user.name  💩 // no check type
+  user.email 💩 // no check type
+}
+
+```
+#### **`omit:`Prisma**
+
+```js
+const userRepository = prima.user
+const users = await userRepository.findMany({
+  omit: { 
+    id : true ,  ✅
+    email : true  ✅
+  }
+})
+
+for(const user of users) {
+  user.name  ✅
+  user.email ❌ // type error
+}
+
+```
+<!-- tabs:end -->
+
+## Where
+This section explains the differences in type safety when where of a model's fields in a query.
+
+<!-- tabs:start -->
+#### **`where:`Tspace-mysql**
+
+```js
+const userRepository = Repository(User)
+const users = await userRepository.findMany({
+  where:  { 
+    id : 1 ,  ✅
+    email : true,  ❌ // type error email is string
+    // email : 'true' ✅
+    actived: true, ✅
+    activedx: true, ❌ // type error
+  }
+})
+
+```
+#### **`where:`TypeORM**
+
+```js
+const userRepository = getManager().getRepository(Post)
+const users = await userRepository.find({
+  where:  { 
+    id : 1 ,  ✅
+    email : true,  ❌ // type error email is string
+    // email : 'true' ✅
+    actived: true, ✅
+    activedx: true, ❌ // type error
+  }
+})
+
+```
+#### **`where:`Prisma**
+
+```js
+const userRepository = prima.user
+const users = await userRepository.findMany({
+  where:  { 
+    id : 1 ,  ✅
+    email : true,  ❌ // type error email is string
+    // email : 'true' ✅
+    actived: true, ✅
+    activedx: true, ❌ // type error
+  }
+})
 
 ```
 <!-- tabs:end -->
@@ -243,13 +382,19 @@ for(const user of users) {
 ```js
 const userRepository = prima.user
 const users = await userRepository.findMany({
-  // include: { posts: true } // can't use this with select
+  // include cannot be combined with select
+  // include: { posts: true }
   select: { 
-    id : true, // ❌ not allowed together
+    id : true,
     name : true,
     posts : {
-      id       : true,
-      title    : true
+      select : { // 💩 Nested relation selection requires another select block
+        id       : true,
+        title    : true
+      },
+      where : {
+        // ...// 💩 Relation filters must be defined alongside the nested select
+      }
     }
   },
 })

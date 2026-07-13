@@ -66,6 +66,8 @@ npm install -D typescript@5.9.3
   - [MySQL Database](#mysql-database)
   - [Mariadb Database](#mariadb-database)
   - [Postgres Database](#postgres-database)
+  - [SQLite Database](#sqlite-database)
+  - [Mongodb Database](#mongodb-database)
   - [Cluster Database](#cluster-database)
 - [SQL Like](#sql-Like)
 - [Query Builder](#query-builder)
@@ -107,6 +109,7 @@ npm install -D typescript@5.9.3
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
 - [Race Condition](#race-condition)
+- [Lock Table](#lock-table)
 - [Connection](#connection)
 - [Backup](#backup)
 - [Injection](#injection)
@@ -246,6 +249,50 @@ DB_USERNAME = root
 DB_PASSWORD = password
 DB_DATABASE = database
 ```
+
+### SQLite Database
+
+To connect the application to a SQLite database, using the following:
+
+```sh
+npm install better-sqlite3 --save
+```
+
+```js
+DB_DRIVER = sqlite
+DB_DATABASE = app.db
+```
+⚠️ Requirements for better-sqlite3
+Node.js 22 or higher is required
+
+### Mongodb Database
+
+To connect the application to a Mongodb database, using the following:
+```sh
+npm install mongodb --save
+```
+
+```js
+DB_DRIVER = mongodb
+DB_HOST = localhost
+DB_PORT = 27017
+DB_USERNAME = root
+DB_PASSWORD = password
+DB_DATABASE = database
+```
+✅ Supported Features
+
+CRUD operations (create, read, update, delete)
+Basic joins & relations (via abstraction layer)
+
+⚠️ Limitations
+
+MongoDB support is partially implemented and may not fully match SQL-based drivers like MySQL or PostgreSQL
+
+* Advanced ORM features may be limited
+* Complex joins rely on abstraction (not native MongoDB behavior)
+* Some features may behave differently compared to relational databases
+* Transactions / advanced optimizations may be limited
 
 ### Cluster Database
 If you need strict race condition control, it is required to use multiple nodes for write and read. <br>
@@ -1251,7 +1298,7 @@ whereNotIn(column , [])
 whereNull(column)
 whereNotNull(column)
 whereBetween (column , [value1 , value2])
-whereQuery(callback)
+whereQuery(query)
 whereJson(column, { targetKey, value , OP })
 whereRaw(sql)
 whereExists(sql)
@@ -1261,7 +1308,7 @@ orWhere(column , OP , value)
 orWhereRaw(sql)
 orWhereIn(column , [])
 orWhereSubQuery(colmn , rawSQL)
-when(contition , callback)
+when(contition , query)
 select(column1 ,column2 ,...N)
 distinct()
 selectRaw(column1 ,column2 ,...N)
@@ -1294,7 +1341,7 @@ onlyTrashed()
 connection(options)
 backup({ database , connection })
 backupToFile({ filePath, database , connection })
-hook((result) => ...) // callback result to function
+hook((result) => ...) // query result to function
 sleep(seconds)
 
 /**
@@ -1322,9 +1369,9 @@ relationsExists(name1 , name2,...nameN) // withExists(name1, name2,...nameN)
  */
 relationsTrashed(name1 , name2,...nameN) // withTrashed(name1, name2,...nameN)
 /**
- * @relation call a name of relation in registry, callback query of data
+ * @relation call a name of relation in registry, query query of data
  */
-relationQuery(name, (callback) ) // withQuery(name1, (callback))
+relationQuery(name, (query) ) // withQuery(name1, (query))
 
 
 /**
@@ -1604,6 +1651,148 @@ async function simulateRaceConnection(): Promise<void> {
 simulateRaceConnection();
 
 ```
+## Lock Table
+
+Within a lock table, you can utilize the following:
+
+This approach is not recommended in clustered or load-balance environments,
+because locks are session-bound and requests may be routed to different database connections.
+
+READ:
+- Other sessions can read.
+- Other sessions must wait before writing.
+- SELECT: allowed
+- INSERT: waits
+- UPDATE: waits
+- DELETE: waits
+
+WRITE:
+- Other sessions must wait before reading or writing.
+- SELECT: waits
+- INSERT: waits
+- UPDATE: waits
+- DELETE: waits
+
+The lock is released automatically after the query completes.
+
+```js
+import { Model, Blueprint }  from 'tspace-mysql'
+
+class User extends Model {
+  protected boot() {
+    this.useSchema({
+      id     : Blueprint.int().notNull().primary().autoIncrement(),
+      email   : Blueprint.varchar(20).notNull()
+    });
+  }
+}
+
+async function requestA() {
+  
+  try {
+   
+    console.log("A: locking table...");
+
+    // READ | WRITE
+    await User.lockTable('WRITE', async (query) => {
+      console.log("A: table LOCKED");
+
+      // Simulate a long-running write transaction.
+      // WRITE operations from other sessions will wait
+      // until the table lock is released.
+      //
+      // READ behavior depends on the selected lock mode:
+      // - READ  lock: other readers are allowed
+      // - WRITE lock: readers/writers may be blocked
+      await new Promise((r) => setTimeout(r, 1000 * 10));
+
+      // IMPORTANT:
+      // While the table is locked, all database operations
+      // must use the provided `query` instance.
+      //
+      // This guarantees the operation runs on the same
+      // database session/connection that owns the lock.
+      //
+      // ❌ May fail because it can use a different connection:
+      // await new User().insert({...}).save();
+      //
+      // ✅ Uses the lock owner session:
+      await query.insert({...}).save();
+
+      // In READ mode this write operation will throw,
+      // because writes are not permitted under a READ lock.
+      // In WRITE mode it executes successfully.
+
+      console.log("A: unlocking table...");
+    });
+  
+    console.log("A: done");
+
+  } catch (err:any) {
+
+    console.error('❌ SHOULD NOT FAIL:', err.message);
+  }
+}
+
+async function requestB(n: number = 1) {
+    console.log(`B(${n}): waiting 1s before query...`);
+    await new Promise((r) => setTimeout(r, 1000));
+
+    console.log(`B(${n}): trying SELECT...`);
+
+    const start = Date.now();
+
+    try {
+
+      const users = await new User().select('id').get();
+      console.log(`B(${n}): result`, users.length);
+
+      console.log(`B(${n}): finished in`, Date.now() - start, "ms");
+    } catch (err:any) {
+      console.error(`B(${n}): ERROR`, err.message);
+    }  
+}
+
+async function requestC(n: number = 1) {
+    console.log(`C(${n}): waiting 1s before query...`);
+    await new Promise((r) => setTimeout(r, 1000));
+
+    console.log(`C(${n}): trying Insert...Select`);
+
+    const start = Date.now();
+
+    try {
+
+      await new User().faker(1);
+
+      const users = await new User().select('id').get();
+      console.log(`C(${n}): result`, users.length);
+
+      console.log(`C(${n}): finished in`, Date.now() - start, "ms");
+    } catch (err:any) {
+      console.error(`C(${n}): ERROR`, err.message);
+    }
+}
+
+(async () => {
+  // Test scenario:
+  //
+  // 1. Request  A acquires a table lock.
+  // 2. Requests B perform concurrent reads.
+  // 3. Request  C performs a concurrent write.
+  // 4. Observe whether operations are blocked, queued, or rejected
+  //    according to the selected lock mode.
+  await Promise.all([
+    requestA(), 
+    requestB(1),
+    requestB(2),
+    requestC(3)
+  ])
+  .then(r => process.exit(1))
+    
+})()
+
+```
 
 ## Connection
 
@@ -1757,6 +1946,26 @@ class User extends Model {
      *     updated_at  : Blueprint.timestamp().null(),
      *     deleted_at  : Blueprint.timestamp().null()
      *  }) // auto-generated table when table is not exists and auto-create column when column not exists
+     * 
+     *  this.useLifecycle('beforeInsert', () => console.log('beforeInsert'))
+     *  this.useLifecycle('afterInsert',  () => console.log('afterInsert'))
+     *  this.useLifecycle('beforeUpdate', () => console.log('beforeUpdate'))
+     *  this.useLifecycle('afterUpdate',  () => console.log('afterUpdate'))
+     *  this.useLifecycle('beforeRemove', () => console.log('beforeRemove'))
+     *  this.useLifecycle('afterRemove',  () => console.log('afterRemove'))
+     * 
+     *  this.useTransform({
+     *    name : {
+     *       to   : async (name) => `${name}-> transform@before`,
+     *       from : async (name) => `${name}-> transform@after`,
+     *    }
+     *  })
+     * 
+     *  this.useHooks([
+     *    (r:any) => console.log(r,'hook1'),
+     *    (r:any) => console.log(r,'hook2'),
+     *    (r:any) => console.log(r,'hook3')
+     *  ])
      *
      *  // validate input when create or update reference to the schema in 'this.useSchema'
      *  this.useValidateSchema({
@@ -2053,7 +2262,8 @@ Let's example a basic relationship:
 A one-to-one relationship is used to define relationships where a single model is the parent to one child models
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model , type T } from 'tspace-mysql';
+
 import Phone  from '../Phone'
 class User extends Model {
     constructor(){
@@ -2068,12 +2278,15 @@ class User extends Model {
     }
     /**
      * Mark a method for relationship
-     * @hasOne Get the phone associated with the user. using function callback
+     * @hasOne Get the phone associated with the user. using function query
      * @function
      */
-    phone (callback) {
-      return this.hasOneBuilder({ name : 'phone' , model : Phone } , callback)
+    public phone (query ?: T.QueryModifier<Phone>) {
+      return this.hasOneBuilder({ model : Phone } , query)
     }
+
+    // or
+    public phone = this.createRelation(Phone,{ type : 'hasOne'})
 }
 export default User
 
@@ -2091,8 +2304,8 @@ const userUsingFunction = await new User().phone().findOne()
 A one-to-many relationship is used to define relationships where a single model is the parent to one or more child models.
 
 ```js
-import { Model } from 'tspace-mysql'
-import Comment  from '../Comment'
+import { Model, type T } from 'tspace-mysql';
+import Comment  from '../Comment';
 class Post extends Model {
     constructor(){
         super()
@@ -2106,12 +2319,15 @@ class Post extends Model {
     }
     /**
      *
-     * @hasManyQuery Get the comments for the post. using function callback
+     * @hasManyQuery Get the comments for the post. using function query
      * @function
      */
-    comments (callback) {
-        return  this.hasManyBuilder({ name : 'comments' , model : Comment } , callback)
+    public comments (query?: T.QueryModifier<Comment>) {
+        return  this.hasManyBuilder({ model : Comment } , query)
     }
+
+    // or
+    public comments = this.createRelation(Comment,{ type : 'hasMany'})
 }
 export default Post
 
@@ -2129,7 +2345,7 @@ const postsUsingFunction = await new Post().comments().findOne()
 A belongsto relationship is used to define relationships where a single model is the child to parent models.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import User  from '../User'
 class Phone extends Model {
     constructor(){
@@ -2144,12 +2360,15 @@ class Phone extends Model {
     }
     /**
      *
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    user (callback) {
-        return this.belongsToBuilder({ name : 'user' , model : User }, callback)
+    public user (query?: T.QueryModifier<user>) {
+      return this.belongsToBuilder({ model : User }, query)
     }
+
+    // or
+    public user = this.createRelation(User,{ type : 'belognsTo'})
 }
 export default Phone
 
@@ -2167,7 +2386,7 @@ const phoneUsingFunction = await new Phone().user().findOne()
 Many-to-many relations are slightly more complicated than hasOne and hasMany relationships.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import Role from '../Role'
 class User extends Model {
     constructor(){
@@ -2181,12 +2400,15 @@ class User extends Model {
         this.belognsToMany({ name : 'roles' , model : Role })
     }
     /**
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    roles (callback) {
-        return this.belognsToManyBuilder({ model : Role } , callback)
+    public roles (query?: T.QueryModifier<Role>) {
+      return this.belognsToManyBuilder({ model : Role } , query)
     }
+
+    // or
+    public roles = this.createRelation(Role, { type : 'belognsToMany'})
 }
 export default User
 
@@ -2700,7 +2922,7 @@ Cache can be used in a Model.
 Let's illustrate this with an example of a cache:
 
 ```js
-// support memory db and redis
+// support memory , db , redis
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
 
@@ -2708,6 +2930,7 @@ DB_CACHE = memory // by default
 DB_CACHE = db
 
 // for redis
+// npm install redis@5.6.0
 DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()

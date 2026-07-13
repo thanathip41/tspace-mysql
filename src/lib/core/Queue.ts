@@ -1,7 +1,8 @@
-import type { T }       from "./UtilityTypes"
-import { Blueprint }    from "./Blueprint"
-import { DB }           from "./DB"
-import { Model }        from "./Model"
+import type { T }       from "./UtilityTypes";
+import { Blueprint }    from "./Blueprint";
+import { DB }           from "./DB";;
+import { Model }        from "./Model";
+import { Meta }         from "./Meta";
 
 export type Job<T = any> = {
   id      : number;
@@ -58,6 +59,13 @@ const QUEUE_STATUS = {
     }
 } as const;
 
+const STATUS = {
+    'pending' : 'pending',
+    'active' : 'active',
+    'completed': 'completed',
+    'failed': 'failed'
+} as const
+
 const schema = {
     id    : Blueprint.int().primary().autoIncrement(),
     uuid  : Blueprint.varchar(36).null(),
@@ -67,21 +75,21 @@ const schema = {
         "status", "available_at", "priority", "id"
     ]),
    
-    status : Blueprint.enum(
-        'pending',
-        'active',
-        'completed',
-        'failed'
-    ).notNull().default('pending').index(),
+    status : Blueprint
+    .enum(...Object.values(STATUS))
+    .notNull()
+    .default(STATUS.pending)
+    .index(),
 
-    priority     : Blueprint.int().notNull().default(0),
+    priority     : Blueprint.int().default(0),
     payload      : Blueprint.mediumtext().null(),
     result       : Blueprint.text().null(),
     error        : Blueprint.text().null(),
     metadata     : Blueprint.text().null(),
 
-    attempts     : Blueprint.int().notNull().default(0),
-    max_attempts : Blueprint.int().notNull().default(3),
+    attempts     : Blueprint.int().default(0),
+    max_attempts : Blueprint.int().default(3),
+    delay_ms     : Blueprint.int().default(0),
 
     locked_by    : Blueprint.text().null(),
     locked_at    : Blueprint.timestamp().null(),
@@ -137,7 +145,7 @@ class Worker extends Model<TS> {
         limitConnections ?: number;
     } = {}) {
 
-        const driver = this.driver();
+        const driver = DB.driver();
 
         if(driver === 'mongodb') {
             throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
@@ -182,7 +190,7 @@ class Worker extends Model<TS> {
 
         while (this.ACTIVE_JOBS > 0) {
             if(this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m waiting active jobs total '${this.ACTIVE_JOBS}'`)
+               console.log(`\x1b[34mQueue:\x1b[0m Currently processing ${this.ACTIVE_JOBS} job(s)`)
             }
                 
             await new Promise(r => setTimeout(r, 200))
@@ -201,7 +209,7 @@ class Worker extends Model<TS> {
     public async getJobOverallStats(name?: string) {
 
         const where = (q: Worker) => {
-            if(name)  q.where('name','LIKE',`%${name}%`)
+            if(name)  q.where('name','LIKE',`%${DB.escape(name!)}%`)
             return q;
         }
 
@@ -225,7 +233,7 @@ class Worker extends Model<TS> {
         const rows = await new Worker()
         .select('name', 'status')
         .selectRaw('COUNT(1) AS total')
-        .when(name, (q) => q.where('name', 'LIKE' , `%${name}%`))
+        .when(name, (q) => q.where('name', 'LIKE' , `%${DB.escape(name!)}%`))
         .groupBy('name', 'status')
         .orderBy('name')
         .get()
@@ -267,6 +275,14 @@ class Worker extends Model<TS> {
 
         return Array.from(map.values());
     }
+    public async getJobs(name?: string) {
+
+        const jobs = await new Worker()
+        .when(name != null, (q) => q.where('name','LIKE',`%${DB.escape(name!)}%`))
+        .get();
+      
+        return jobs;
+    }
 
     public async getNames() {
         return await new Worker().select('name').toArray('name');
@@ -279,6 +295,7 @@ class Worker extends Model<TS> {
                 name,
                 payload: payload == null ? null : this.safeJsonStringify(payload),
                 status: 'pending',
+                delay_ms: opts.delayMs ?? 0,
                 available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
                 priority: opts.priority ?? 0,
                 attempts: 0,
@@ -384,6 +401,10 @@ class Worker extends Model<TS> {
             }
 
             const startTime = +new Date();
+
+            if(job.__job.delay_ms) {
+                await new Promise(r => setTimeout(r, job.__job.delay_ms));
+            }
 
             const result = await handler(job);
 
@@ -497,46 +518,52 @@ class Worker extends Model<TS> {
         }
     }
 
-    private async _waitForSafeConnections (name: string) {
-        let activeConnections = 0;
-
-        // while (true) {
-            
-        //     activeConnections = await DB.getActiveConnections();
-        
-        //     if (activeConnections <= this.LIMIT_CONNECTIONS) {
-        //         break;
-        //     }
-
-        //     if (this.INSPECT_EXEC) {
-        //         console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.waiting}\x1b[0m DB connections high \x1b[33m (${activeConnections}/${this.LIMIT_CONNECTIONS})\x1b[0m`);
-        //     }
-
-        //     await new Promise(resolve => setTimeout(resolve, 1000 * 5));
-        // }
-
-        return;
-    }
-
     private async _dequeueMany(name: string, limit: number) {
 
         if (this.STOPPING) return [];
-       
-        await this._waitForSafeConnections(name);
-
+    
         const findJobs = await new Worker()
         .select('id')
-        .where('name',name)
-        .whereQuery(q => {
-            return q
-            .where('status','pending')
-            .where('available_at', '<=', this.$utils.timestamp())
+        .where('name', name)
+        .whereQuery(query => {
+            return query
+            .where('status','=','pending')
+            .when(DB.driver() === 'mysql' || DB.driver() === 'mariadb', (q) => { 
+                return q.whereRaw(
+                    `DATE_SUB(
+                        ${Meta(Worker).columnRef('available_at')}, 
+                        INTERVAL (${Meta(Worker).columnRef('delay_ms')} * 1000) MICROSECOND
+                    ) <= ?`,
+                    [`'${this.$utils.timestamp()}'`]
+                )
+               
+            }) 
+            .when(DB.driver() === 'postgres', (q) => {
+                return q.whereRaw(
+                    `${Meta(Worker).columnRef('available_at')}
+                    - 
+                    (${Meta(Worker).columnRef('delay_ms')} * INTERVAL '1 millisecond')
+                    <= ?`,
+                    [`'${this.$utils.timestamp()}'`]
+                )
+            })
+            .when(DB.driver() === 'sqlite', (q) => {
+                return q.whereRaw(
+                    `datetime(
+                        ${Meta(Worker).columnRef('available_at')},
+                        '-' || (${Meta(Worker).columnRef('delay_ms')} / 1000.0) || ' seconds'
+                    ) <= ?`,
+                    [`'${this.$utils.timestamp()}'`]
+                )
+            })
             .orWhereQuery((q) => {
                 return q
-                .where('status', 'active')
+                .where('status', '=', 'active')
                 .where('locked_at', '<', this.$utils.timestamp(new Date(Date.now() - 60 * 1000)))
             })
         })
+        .latest('priority')
+        .oldest('id')
         .limit(limit)
         .get()
 
@@ -821,7 +848,7 @@ class Queue {
      * 
      * @param {string} [name] - Optional queue name filter.
      * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<Record<string,any>>}
+     * @returns {Promise<any>}
      */
     static async getJobStats(name?: string): Promise<{
       completed : number;
@@ -835,6 +862,22 @@ class Queue {
         }
 
         return await this.WORKER.getJobStats(name);
+    }
+
+    /**
+     * The 'getJobs' method is used to Get jobs.
+     * 
+     * @param {string} [name] - Optional queue name filter.
+     * @throws {Error} If Queue is not initialized.
+     * @returns {Promise<T.Result<Worker>[]>}
+     */
+    static async getJobs(name?: string): Promise<T.Result<Worker>[]> {
+
+        if (this.WORKER == null) {
+            throw new Error(this.MESSAGE.INIT_ERROR);
+        }
+
+        return await this.WORKER.getJobs(name);
     }
 
     /**

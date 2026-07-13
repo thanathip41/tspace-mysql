@@ -43,10 +43,10 @@ export class MysqlDriver extends BaseDriver {
       queueLimit            : 0,
 
       enableKeepAlive       : true,
-      keepAliveInitialDelay : 1000 * 20,
+      keepAliveInitialDelay : 0,
      
-      maxIdle               : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
-      idleTimeout           : 1000 * 60,
+      maxIdle               : options.connectionLimit ?? 20,
+      idleTimeout           : 1000 * 90,
   
       charset               : 'utf8mb4',
 
@@ -56,7 +56,7 @@ export class MysqlDriver extends BaseDriver {
 
     this.poolTrx = mysql2.createPool({
       ...configs,
-      connectionLimit : configs.connectionLimit * 1.5
+      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
     });
 
     this.pool.getConnection((err : any) : void => {
@@ -136,7 +136,7 @@ export class MysqlDriver extends BaseDriver {
 
     let started    = false;
     let closed     = false;
-      let commited = false;
+    let commited   = false;
     let rollbacked = false;
 
     const query = async (sql: string) => {
@@ -155,9 +155,19 @@ export class MysqlDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
       await conn.beginTransaction();
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null);
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }
@@ -181,9 +191,7 @@ export class MysqlDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);

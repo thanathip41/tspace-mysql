@@ -1,6 +1,9 @@
-import { BaseDriver } from "..";
+import { BaseDriver }          from "..";
 import { MongodbQueryBuilder } from "./MongodbQueryBuilder";
-import type { TConnection, TPoolEvent } from "../../../types";
+import type { 
+    TConnection, 
+    TPoolEvent 
+} from "../../../types";
 
 type MongodbCollection<T> = {
   aggregate: (pipeline: any[], options?: any) => {
@@ -55,16 +58,21 @@ export class MongodblDriver extends BaseDriver {
         super();
         this.options = options;
     }
+
     public connect(this: MongodblDriver) {
         const options = this.options as MongodbConnectionOptions;
         const { MongoClient } = this.import("mongodb");
 
-        const url = `mongodb://${options.user}:${options.password}@${options.host}:${options.port}/${options.database}?authSource=admin`;
+       const url =
+        `mongodb://${options.user || options.username}:${options.password}` +
+        `@${options.host}:${options.port}` +
+        `/${options.database}` +
+        `?authSource=admin`;
 
         this.pool = new MongoClient(url, {
-            maxPoolSize: options.connectionLimit ?? 10,
-            minPoolSize: Math.max(2, Math.floor((options.connectionLimit ?? 10) / 3)),
-            maxIdleTimeMS: 1000 * 60,
+            maxPoolSize: options.connectionLimit ?? 20,
+            minPoolSize: Math.floor((options.connectionLimit ?? 20) * 0.3),
+            maxIdleTimeMS: 1000 * 90,
         });
 
         this._connecting = this.pool
@@ -156,12 +164,11 @@ export class MongodblDriver extends BaseDriver {
         const supportsTransaction =
             (client as any)?.topology?.s?.description?.type !== "Single";
 
-        const ensureOpen = () => {
-            if (closed) throw new Error(this.MESSAGE_TRX_CLOSED);
-        };
-
         const query = async (collectionName: string): Promise<any[]> => {
-            ensureOpen();
+            
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             const start = Date.now();
 
@@ -186,7 +193,10 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const startTransaction = async () => {
-            ensureOpen();
+
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             if (!supportsTransaction) {
                 throw new Error(
@@ -203,7 +213,10 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const commit = async () => {
-            ensureOpen();
+
+            if (closed) {
+                throw new Error(this.MESSAGE_TRX_CLOSED)
+            }
 
             if (supportsTransaction && inTransaction) {
                 await session.commitTransaction();
@@ -214,7 +227,8 @@ export class MongodblDriver extends BaseDriver {
         };
 
         const rollback = async () => {
-            ensureOpen();
+            
+            if (closed) return;
 
             if (supportsTransaction && inTransaction) {
                 await session.abortTransaction();

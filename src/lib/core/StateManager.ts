@@ -1,5 +1,6 @@
 
 import { Blueprint } from "./Blueprint";
+import { Model }     from "./Model";
 import type { 
     TPattern,
     TRelationOptions,
@@ -7,6 +8,7 @@ import type {
     TStateWhereCondition, 
     TValidateSchema 
 } from "../types";
+
 
 const STATE_DEFAULT = {
   PRIMARY_KEY: 'id' as string,
@@ -108,6 +110,8 @@ const STATE_MODEL = {
 
     ON_CREATED_TABLE: null as Function | null,
     ON_SYNC_TABLE:null as Function | null,
+
+    OF_MANY : null as { column : string; aggregate : "MAX" | "MIN" , query : Model | null } | null
 } as const
 
 type State = typeof STATE_MODEL & typeof STATE_DB & typeof STATE_DEFAULT

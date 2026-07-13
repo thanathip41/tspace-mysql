@@ -9,13 +9,15 @@ import type {
   TPoolConnected 
 } from "../../types";
 export abstract class BaseDriver extends EventEmitter {
-  private SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
-  private SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
   protected pool!: any;
   protected poolTrx:any;
   protected options!: Record<string, any>;
+  protected SLOW_QUERY_EXECUTE_TIME = 1000 * 15;
+  protected SLOW_QUERY_LIMIT_LENGTH = 1000 * 2;
+  protected TRX_TIMEOUT = 120;
   protected MESSAGE_TRX_NOT_STARTED = "The transaction has not been started";
   protected MESSAGE_TRX_CLOSED = "The transaction has either been closed";
+  protected MESSAGE_TRX_TIMEOUT = `The transaction has been open for more than ${this.TRX_TIMEOUT} seconds. It will be rollbacked automatically.`;
   protected abstract connect(): TPoolConnected;
   protected abstract disconnect(pool: any): void;
   protected abstract meta(results: any, sql: string): void;
@@ -384,13 +386,16 @@ export abstract class QueryBuilder {
 
   public abstract getMaxConnections () : string;
 
+  public abstract lockTable(mode : 'WRITE' | 'READ'): string;
+
+  public abstract unlockTable(): string | null;
+
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
   protected abstract bindOrderBy(values: string[]): string | null;
   protected abstract bindGroupBy(values: string[]): string | null;
   protected abstract bindSelect(
-    values: string[],
-    opts?: { distinct?: string },
+    values: string[]
   ): string;
   protected abstract bindFrom(args: {
     from: string[];

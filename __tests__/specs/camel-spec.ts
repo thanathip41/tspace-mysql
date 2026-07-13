@@ -1,8 +1,4 @@
 import { Blueprint, DB, Model } from '../../src/lib'
-
-export const pattern = 'camelCase';
-
-
 export class User extends Model {
     constructor() {
         super()

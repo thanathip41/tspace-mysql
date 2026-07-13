@@ -20,7 +20,7 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 | **Metadata**                   | Get the metadata of a Model. |
 | **Repository**                 | Follows a pattern for managing database operations like `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. It helps keep the code organized. |
 | **Decorators**                 | Use decorators to add extra functionality or information to model classes and methods, making the code easier to read. |
-| **Caching**                    | Improves performance by storing frequently requested data. Supports in-memory caching (like memory DB) and Redis for distributed caching. |
+| **Caching**                  | Improves performance by storing frequently requested data. Supports in-memory caching (like memory DB) and Redis for distributed caching. |
 | **Queue**                      | Job queue for background and async processing. Runs on top of databases for distributed workers (similar to pg-boss). |
 | **Migrations**                 | Use CLI commands to create models, make migrations, and apply changes to the database structure.          |
 | **Blueprints**                 | Create a clear layout of the database structure and how models and tables relate to each other.          |
@@ -139,6 +139,8 @@ npm install better-sqlite3 --save
 DB_DRIVER = sqlite
 DB_DATABASE = app.db
 ```
+⚠️ Requirements for better-sqlite3
+Node.js 22 or higher is required
 
 ### Mongodb Database
 

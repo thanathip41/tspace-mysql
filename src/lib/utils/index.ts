@@ -418,7 +418,7 @@ const transfromValueHasOp = (str: string) => {
 };
 
 const valueAndOperator = (
-    value: string,
+    value: any,
     operator: string,
     useDefault = false
   ): any[] => {
@@ -557,12 +557,43 @@ const nestConditions = (conditions : TStateWhereCondition[],condition: 'AND' | '
 }
 
 const formatQueryValue = (v: any) : any => {
-    if(Array.isArray(v)) return v;
+    if(Array.isArray(v)) {
+        const formated = [];
+        for(const val of v) {
+            formated.push(formatQueryValue(val));
+        }
+        return formated;
+    }
     v = transfromDateToDateString(v);
     v = escape(v);
     v = transfromBooleanToNumber(v);
     return transfromValueHasRaw(v);
 };
+
+const bindingParameters = (sql: string, parameters: (boolean | number | string | any[] | null)[] = []) => {
+    let bindSql = sql;
+
+    for (const parameter of parameters) {
+      if (parameter === null) {
+        bindSql = bindSql.replace("?", CONSTANTS.NULL);
+        continue;
+      }
+
+      if (parameter === true || parameter === false) {
+        bindSql = bindSql.replace("?", `'${parameter === true ? 1 : 0}'`);
+        continue;
+      }
+
+      bindSql = bindSql.replace(
+        "?",
+        Array.isArray(parameter)
+          ? `(${parameter.map((p) => p).join(",")})`
+          : `${parameter}`,
+      );
+    }
+
+    return bindSql;
+}
 
 const utils = {
     typeOf,
@@ -597,7 +628,8 @@ const utils = {
     applyTransforms,
     hash32,
     nestConditions,
-    formatQueryValue
+    formatQueryValue,
+    bindingParameters
 }
 
 export type TUtils = typeof utils

@@ -1,12 +1,13 @@
+import { type T } from "./UtilityTypes";
 import { Model } from "./Model";
 
-type TExtendType =
+type ExtendType =
   | NumberConstructor
   | StringConstructor
   | BooleanConstructor
   | DateConstructor
-  | readonly TExtendType[]
-  | { [_: string]: TExtendType };
+  | readonly ExtendType[]
+  | { [_: string]: ExtendType };
 
 type ResolveType<T> =
   T extends NumberConstructor ? number :
@@ -23,7 +24,6 @@ type ResolveType<T> =
  * @example
  *   import { Schema , Blueprint }  from 'tspace-mysql'
  *   import sql from '../../../build/lib/core/SqlLike';
-import { default } from '../../../app/$audit';
  *   await new Schema().table('users',{ 
  *      id          : Blueprint.int().notNull().primary().autoIncrement(),
  *      name        : Blueprint.varchar(255).default('my name').index(),
@@ -54,7 +54,7 @@ class Blueprint<T = any> {
     groupBy?: string;
   } | null = null;
 
-  private _valueType!: TExtendType
+  private _valueType!: ExtendType
 
   /**
    * Assign type 'virtual' to column
@@ -226,16 +226,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static boolean(): Blueprint<number | boolean> {
-    return new Blueprint<number | boolean>().boolean();
+  public static boolean(): Blueprint<boolean | number> {
+    return new Blueprint().boolean();
   }
 
   /**
    * Assign type 'BOOLEAN' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public boolean(): Blueprint<number | boolean> {
-    const instance = new Blueprint<number | boolean>();
+  public boolean(): Blueprint<boolean | number> {
+    const instance = new Blueprint();
     instance._addAssignType(`BOOLEAN`);
     instance._valueType = Number;
     return instance;
@@ -452,16 +452,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static json(): Blueprint<Record<string, any> | string> {
-    return new Blueprint<string>().json();
+  public static json(): Blueprint<any> {
+    return new Blueprint().json();
   }
 
   /**
    * Assign type 'JSON' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public json(): Blueprint<Record<string, any> | string> {
-    const instance = new Blueprint<Record<string, any>>();
+  public json(): Blueprint<any> {
+    const instance = new Blueprint();
     instance._addAssignType(`JSON`);
     instance._valueType = String;
     return instance;
@@ -567,9 +567,9 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  public static enum<K extends string | string[] | Record<string, string>>(
-    ...enums: (K extends string ? K : K)[]
-  ): Blueprint<K extends string ? K : K[keyof K]> {
+  public static enum<K extends string | Record<string, string>>(
+    ...enums: K[]
+  ): Blueprint<K extends string ? `${K & string}` : `${K[keyof K] & string}`> {
     return new Blueprint<K extends string ? K : K[keyof K]>().enum(...enums);
   }
 
@@ -578,9 +578,9 @@ class Blueprint<T = any> {
    * @param {...string} enums n1, n2, n3, ...n
    * @return {Blueprint<T>} Blueprint
    */
-  public enum<K extends string | string[] | Record<string, string>>(
-    ...enums: (K extends string ? K : K)[]
-  ): Blueprint<K extends string ? K : K[keyof K]> {
+  public enum<K extends string | Record<string, string>>(
+    ...enums: K[]
+  ): Blueprint<K extends string ? `${K & string}` : `${K[keyof K] & string}`> {
     const instance = new Blueprint<K extends string ? K : K[keyof K]>();
 
     let enumValues: string[] = [];
@@ -713,7 +713,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public notNull(): Blueprint<T> {
+  public notNull(): Blueprint<NonNullable<T>> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this as Blueprint<T>;
@@ -723,7 +723,7 @@ class Blueprint<T = any> {
    * Assign attributes 'NOT NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public notnull(): Blueprint<T> {
+  public notnull(): Blueprint<NonNullable<T>> {
     this._addAssignAttribute(`NOT NULL`);
     this._isNull = false;
     return this;
@@ -743,13 +743,21 @@ class Blueprint<T = any> {
    * @param {string | number} value  default value
    * @return {Blueprint<T>} Blueprint
    */
-  public default(value: string | number | boolean): Blueprint<T> {
+  public default<I extends T>(
+    value: I
+  ): Blueprint<
+    string extends  T ? T.Default<string>  :
+    boolean extends T ? T.Default<boolean> :
+    number extends  T ? T.Default<number>  :
+    `${T & string}` | null
+  > {
+
     if (typeof value === 'boolean') {
       this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
       this._default = value ? 1 : 0
       return this
     }
-
+    
     if (typeof value === 'number') {
       this._addAssignAttribute(`DEFAULT ${value}`);
       this._default = value
@@ -757,7 +765,8 @@ class Blueprint<T = any> {
     }
 
     this._addAssignAttribute(`DEFAULT '${value}'`);
-    this._default = `${value}`
+    this._default = `${value}`;
+
     return this;
   }
 
@@ -858,11 +867,13 @@ class Blueprint<T = any> {
    * @param {NumberConstructor|StringConstructor|BooleanConstructor|DateConstructor} type
    * @return {Blueprint<T>} Blueprint
    */
-  public transform<T extends TExtendType>(type: T): Blueprint<ResolveType<T>> {
-    const instance = new Blueprint<ResolveType<T>>()
-
-    instance._valueType = type;
-
+  public transform<T extends ExtendType>(_: T): Blueprint<ResolveType<T>> {
+    
+    const instance = Object.assign(
+      new Blueprint<ResolveType<T>>(),
+      this
+    );
+    
     return instance
   }
 

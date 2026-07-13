@@ -5,6 +5,7 @@
 - [Query Builder](query-builder)
 - [Database Transactions](database-transactions)
 - [Race Condition](race-condition)
+- [Lock Table](lock-table)
 - [Connection](connection)
 - [Backup](backup)
 - [Injection](injection)

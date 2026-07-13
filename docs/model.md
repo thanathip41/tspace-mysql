@@ -385,7 +385,7 @@ Let's example a basic relationship:
 A one-to-one relationship is used to define relationships where a single model is the parent to one child models
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import Phone  from '../Phone'
 class User extends Model {
     constructor(){
@@ -400,11 +400,11 @@ class User extends Model {
     }
     /**
      * Mark a method for relationship
-     * @hasOne Get the phone associated with the user. using function callback
+     * @hasOne Get the phone associated with the user. using function query
      * @function
      */
-    phone (callback) {
-      return this.hasOneBuilder({ name : 'phone' , model : Phone } , callback)
+    phone (query?: T.QueryModifier<Phone>) {
+      return this.hasOneBuilder({ model : Phone } , query)
     }
 }
 export default User
@@ -423,7 +423,7 @@ const userUsingFunction = await new User().phone().findOne()
 A one-to-many relationship is used to define relationships where a single model is the parent to one or more child models.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import Comment  from '../Comment'
 class Post extends Model {
     constructor(){
@@ -438,11 +438,11 @@ class Post extends Model {
     }
     /**
      *
-     * @hasManyQuery Get the comments for the post. using function callback
+     * @hasManyQuery Get the comments for the post. using function query
      * @function
      */
-    comments (callback) {
-        return  this.hasManyBuilder({ name : 'comments' , model : Comment } , callback)
+    comments (query?: T.QueryModifier<Comment>) {
+      return  this.hasManyBuilder({ model : Comment } , query)
     }
 }
 export default Post
@@ -461,7 +461,7 @@ const postsUsingFunction = await new Post().comments().findOne()
 A belongsto relationship is used to define relationships where a single model is the child to parent models.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import User  from '../User'
 class Phone extends Model {
     constructor(){
@@ -476,11 +476,11 @@ class Phone extends Model {
     }
     /**
      *
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    user (callback) {
-        return this.belongsToBuilder({ name : 'user' , model : User }, callback)
+    user (query?: T.QueryModifier<User>) {
+      return this.belongsToBuilder({ model : User }, query)
     }
 }
 export default Phone
@@ -499,7 +499,7 @@ const phoneUsingFunction = await new Phone().user().findOne()
 Many-to-many relations are slightly more complicated than hasOne and hasMany relationships.
 
 ```js
-import { Model } from 'tspace-mysql'
+import { Model, type T } from 'tspace-mysql'
 import Role from '../Role'
 class User extends Model {
     constructor(){
@@ -513,11 +513,11 @@ class User extends Model {
         this.belognsToMany({ name : 'roles' , model : Role })
     }
     /**
-     * @belongsToBuilder Get the user that owns the phone.. using function callback
+     * @belongsToBuilder Get the user that owns the phone.. using function query
      * @function
      */
-    roles (callback) {
-        return this.belognsToManyBuilder({ model : Role } , callback)
+    roles (query?: T.QueryModifier<Role>) {
+      return this.belognsToManyBuilder({ model : Role } , query)
     }
 }
 export default User
@@ -1006,7 +1006,7 @@ Cache can be used in a Model.
 Let's illustrate this with an example of a cache:
 
 ```js
-// support memory db and redis
+// support memory , db , redis
 // set cache in file config  .env , .env.development ... etc
 DB_CACHE = memory // by default
 
@@ -1014,6 +1014,7 @@ DB_CACHE = memory // by default
 DB_CACHE = db
 
 // for redis
+// npm install redis@5.6.0
 DB_CACHE = redis://username:password@server:6379
 
 const users = await new User()

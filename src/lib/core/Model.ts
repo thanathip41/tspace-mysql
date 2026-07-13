@@ -9,6 +9,10 @@ import { StateManager }     from "./StateManager";
 import { Cache }            from "./Cache";
 import { JoinModel }        from "./JoinModel";
 import { CONSTANTS }        from "../constants";
+import { REFLECT_META }     from "./Decorator";
+import { Join }             from "./Join";
+import { Repository }       from "./Repository";
+import { QueryBuilder }     from "./Driver";
 import type { T }           from "./UtilityTypes";
 import type {
   TExecute,
@@ -23,14 +27,15 @@ import type {
   TPoolConnected,
   TLifecycle,
   TCacheModel,
-  TRawStringQuery
+  TRawStringQuery,
+  TAction,
+  TSaveModelResult
 } from "../types";
 
-import type { TRelationOptionsDecorator } from "../types/decorator";
+import type { 
+  TRelationOptionsDecorator 
+} from "../types/decorator";
 
-import { REFLECT_META } from "./Decorator";
-import { Join } from "./Join";
-import Repository from "./Repository";
 
 let globalSettings: TGlobalSetting = {
   softDelete: false,
@@ -74,6 +79,7 @@ let globalSettings: TGlobalSetting = {
 class Model<
   TS extends Record<string, any> = any,
   TR = unknown,
+  TA extends TAction = any
 > extends AbstractModel {
   constructor() {
     super();
@@ -122,7 +128,7 @@ class Model<
   static get table(): string | null {
     return new this().getTableName();
   }
-
+  
   /**
    * The 'formatPattern' method is used to change the format of the pattern.
    * @param {object} data { data , pattern }
@@ -553,6 +559,7 @@ class Model<
   ):  Promise<
     NR extends true ? undefined : T.Result<M>[]
   >  {
+    //@ts-ignore
     return Repository<M>(this as any).createOrUpdate(options)
   }
 
@@ -694,6 +701,110 @@ class Model<
         const cacheKey = options?.namespace ? getCacheKey(key) : key;
         return await Cache.delete(cacheKey);
       },
+    }
+  }
+
+  /**
+   * The 'lockTable' method is used table lock and execute the callback within the lock scope.
+   *
+   * The lock is automatically released after the callback completes,
+   * regardless of whether it resolves or throws an error.
+   *
+   * READ:
+   * - Other sessions can read.
+   * - Other sessions must wait before writing.
+   * - SELECT: allowed
+   * - INSERT: waits
+   * - UPDATE: waits
+   * - DELETE: waits
+   *
+   * WRITE:
+   * - Other sessions must wait before reading or writing.
+   * - SELECT: waits
+   * - INSERT: waits
+   * - UPDATE: waits
+   * - DELETE: waits
+   *
+   * The lock is released automatically after the callback completes.
+   * 
+   * @Note
+   * This approach is not recommended in clustered or load-balance environments,
+   * because locks are session-bound and requests may be routed to different database connections.
+   *
+   * @template T
+   * @param {'READ'|'WRITE'} mode Lock mode.
+   * @param {(query: this) => Promise<T>} handler Function executed while the table is locked.
+   * @returns {Promise<T>} The value returned by the callback.
+   *
+   * @example
+   * await User.lockTable('READ', async (query) => {
+   *   query.get();
+   *   return
+   * });
+   *
+   * @example
+   * await User.lockTable('WRITE', async (query) => {
+   *   // Avoid creating a new query instance inside the lock.
+   *   // The new instance uses a different connection/session and
+   *   // may wait for the current table lock to be released.
+   *   
+   *   new User().insert({
+   *     first_name: 'John',
+   *     last_name: 'Doe'
+   *   }).save();
+   * 
+   *   // Use the locked query instance instead.
+   *   await query.insert({
+   *     first_name: 'John',
+   *     last_name: 'Doe'
+   *   }).save();
+   * });
+   */
+  static async lockTable<
+    T, 
+    Self extends Model,
+    M  extends Model = Self
+  >(
+    this: new () => Self,
+    mode : 'WRITE' | 'READ',
+    handler: (model : M) => Promise<T>
+  ): Promise<T> {
+    
+    const trx = await DB.beginTransaction();
+    
+    try {
+
+      await trx.startTransaction();
+
+      const model = new this()
+      .bind(trx)
+
+      const sqlLockTable = model
+      ._queryBuilder()
+      .lockTable(mode);
+
+      await model.rawQuery(sqlLockTable)
+
+      const results = await handler(model as any);
+
+      const sqlUnlockTable = model
+      ._queryBuilder()
+      .unlockTable();
+
+      if(sqlUnlockTable != null) {
+        await model
+        .rawQuery(sqlUnlockTable)
+      }
+     
+      await trx.commit();
+
+      return results;
+
+    } catch (err) {
+      await trx.rollback();
+      throw err;
+    } finally {
+      await trx.end();
     }
   }
 
@@ -1585,7 +1696,7 @@ class Model<
     return this;
   }
 
-  public meta(meta: "MAIN" | "SUBORDINATE") {
+  public metaTag(meta: "MAIN" | "SUBORDINATE") {
     this.$state.set("META", meta);
     return this;
   }
@@ -1685,6 +1796,12 @@ class Model<
     return this;
   }
 
+  /**
+   *
+   * @override
+   * @param {string[]} ...columns
+   * @returns {this} this
+   */
   public addSelect<K extends T.ColumnKeys<this>>(...columns: K[]): this {
     let select: string[] = columns.map((c) => {
       const column = String(c);
@@ -1908,11 +2025,11 @@ class Model<
    * @param {string} column
    * @returns {string} return table.column
    */
-  public bindColumn(column: string, pattern = true): string {
+  public bindColumn(column: string, opts : { pattern : boolean } = { pattern : true }): string {
     if (!/\./.test(column)) {
       if (column === "*") return "*";
 
-      const c = pattern ? this._valuePattern(column) : column;
+      const c = opts.pattern ? this._valuePattern(column) : column;
       const alias = this.$state.get("ALIAS");
 
       return [
@@ -1926,7 +2043,7 @@ class Model<
 
     let [table, c] = column.split(".");
 
-    c = pattern ? this._valuePattern(c) : c;
+    c = opts.pattern ? this._valuePattern(c) : c;
 
     if (c === "*") {
       return `\`${table.replace(/`/g, "")}\`.*`;
@@ -2122,7 +2239,7 @@ class Model<
    * @returns {Model} Model
    */
   public copyModel(
-    instance: Model,
+    instance: Model<any,any,any>,
     options?: {
       update?: boolean;
       insert?: boolean;
@@ -2209,8 +2326,6 @@ class Model<
   ): Promise<any[]> {
     try {
    
-      sql = this._queryBuilder().format([sql]);
-
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           const startTime = +new Date();
@@ -2272,8 +2387,7 @@ class Model<
     { retry = false } = {},
   ): Promise<any> {
     try {
-      sql = this._queryBuilder().format([sql]);
-
+     
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
           const startTime = +new Date();
@@ -2330,7 +2444,7 @@ class Model<
    * @override
    * @returns {string} return sql query
    */
-  public CTEs<M extends Model>(
+  public CTEs<M extends Model<any,any,any>>(
     as: string,
     callback: (query: M) => M,
     bindModel?: new () => M,
@@ -2861,6 +2975,55 @@ class Model<
     return this;
   }
 
+   /**
+   *
+   * The 'withQueryExists' method is particularly useful when you want to filter or add conditions records based on related data.
+   *
+   * Use relation '${name}' registry models then return callback queries
+   * @param {string} nameRelation name relation in registry in your model
+   * @param {function} callback query callback
+   * @param {object} options pivot the query
+   * @example
+   *   import { Model } from 'tspace-mysql'
+   *   class User extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'posts' , model : Post })
+   *       }
+   *   }
+   *
+   *   class Post extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'comments' , model : Comment })
+   *           this.belongsTo({ name : 'user' , model : User })
+   *       }
+   *   }
+   *
+   *   class Comment extends Model {
+   *       constructor(){
+   *           super()
+   *           this.hasMany({ name : 'users' , model : User })
+   *           this.belongsTo({ name : 'post' , model : Post })
+   *       }
+   *   }
+   *
+   *   await new User().with('posts')
+   *   .withQueryExists('posts', (query : Post) => {
+   *       return query.with('comments','user')
+   *       .withQuery('comments', (query : Comment) => {
+   *           return query.with('user','post')
+   *       })
+   *       .withQueryExists('user', (query : User) => {
+   *           return query.with('posts').withQueryExists('posts',(query : Post)=> {
+   *               return query.with('comments','user')
+   *               // relation n, n, ...n
+   *           })
+   *       })
+   *   })
+   *  .findMany()
+   * @returns {this} this
+   */
   public withQueryExists<
     K extends T.RelationKeys<this>,
     R extends T.Relations<this>,
@@ -3057,6 +3220,49 @@ class Model<
   }
 
   /**
+   * The 'ofMany' method is used to transform a many relationship,
+   * into a single related model by selecting one record using an aggregate
+   * function such as MAX or MIN on the specified column.
+   * 
+   * @note
+   * This method is not supported on `belongsToMany` relationships.
+   *
+   * @param {string} column The column used for aggregation (e.g. `"id"`, `"created_at"`).
+   * @param {"MAX" | "MIN"} aggregate The aggregate function used to select the record.
+   * @param {((query: Model) => void) | undefined} callback A callback used to apply additional constraints to the aggregate query.
+   * 
+   * Only filtering methods are supported. Methods that modify the result set, 
+   * such as `select` `orderBy`, `groupBy`, `limit`, `offset`, `union`, and `having`, are not supported.
+   * @returns this
+  */
+  public ofMany<
+    K extends T.ColumnKeys<this>,
+    S extends Model | unknown,
+    M = S extends this ? this : S extends Model ? S : this,
+  >(
+    column: K, 
+    aggregate : "MAX" | "MIN",
+    callback?: (query: M) => M,
+  ) {
+
+    const cb = callback == null 
+      ? null 
+      : callback(new Model().copyModel(this) as M);
+
+    if (cb instanceof Promise) {
+      throw new Error("'ofMany' does not support Promises");
+    }
+     
+    this.$state.set('OF_MANY', { 
+      column : this.bindColumn(String(column)), 
+      aggregate,
+      query : cb as Model | null
+    });
+    
+    return this;
+  }
+
+  /**
    * The 'hasOne' relationship defines a one-to-one relationship between two database tables.
    *
    * It indicates that a particular record in the primary table is associated with one and only one record in the related table.
@@ -3072,7 +3278,9 @@ class Model<
    * @property {string} relation.freezeTable
    * @returns  {this}   this
    */
-  protected hasOne<K extends TR extends object ? TRelationKeys<TR> : string>({
+  protected hasOne<
+    K extends TR extends object ? TRelationKeys<TR> : string
+  >({
     name,
     as,
     model,
@@ -3262,6 +3470,91 @@ class Model<
   }
 
   /**
+   * The 'createRelation' method is useful for Creates a relation accessor for a model.
+   *
+   * This method defines how a model relates to another model
+   * (hasOne, hasMany, belongsTo, belongsToMany) and returns
+   * a function that can be used to modify the relation query.
+   *
+   * Example:
+   * ```ts
+   * public posts = this.createRelation(Post, {
+   *   type: 'hasMany',
+   *   foreignKey: 'user_id',
+   * });
+   *
+   * user.posts(q => q.where('id', 1));
+   * ```
+   *
+   * @template M - Target model type
+   * @template K - Optional relation name type
+   *
+   * @param model - The related model constructor
+   * @param options - Relation configuration options
+   * @param options.type - Type of relation (hasOne, hasMany, belongsTo, belongsToMany)
+   * @param options.name - Optional relation name (when applicable)
+   * @param options.as - Alias for relation
+   * @param options.localKey - Local key for the relation
+   * @param options.foreignKey - Foreign key for the relation
+   * @param options.freezeTable - Override pivot/table name
+   * @param options.pivot - Pivot table name (for many-to-many)
+   * @param options.oldVersion - Enable legacy relation behavior
+   *
+   * @returns A function that accepts a query modifier and returns the relation result
+   */
+  protected createRelation<M extends Model, K = void>(
+    model: new () => M,
+    options:  (
+    K extends void
+      ? Omit<TRelationQueryOptions, 'name' | 'model'> &
+          Partial<Pick<TRelationQueryOptions, 'name'>>
+      : Omit<TRelationQueryOptions<K>, 'model'>
+  ) & {
+      type:  
+      | 'hasOne'
+      | 'hasMany'
+      | 'belongsTo'
+      | 'belongsToMany';
+    },
+  ) {
+    return (modifier?: T.QueryModifier<M>) => {
+
+      const opts = {
+        name : options.name,
+        as: options.as,
+        localKey: options.localKey,
+        foreignKey: options.foreignKey,
+        freezeTable: options.freezeTable
+      }
+
+      switch (options.type) {
+        case 'hasOne': {
+          return this.hasOneBuilder({ model, ...opts }, modifier);
+        }
+        
+        case 'hasMany': {
+          return this.hasManyBuilder({ model, ...opts }, modifier);
+        }
+          
+        case 'belongsTo': {
+          return this.belongsToBuilder({ model, ...opts }, modifier);
+        }
+          
+        case 'belongsToMany': {
+          return this.belongsToManyBuilder({ 
+            model, 
+            ...opts,
+            pivot: options.pivot,
+            oldVersion: options.oldVersion,
+            modelPivot: options.modelPivot 
+          }, modifier);
+        }
+         
+      }
+    }
+  }
+
+  /**
    * The 'hasOneBuilder' method is useful for creating 'hasOne' relationship to function
    *
    * @param    {object}  relation registry relation in your model
@@ -3275,7 +3568,7 @@ class Model<
    * @param    {Function?} callback callback of query
    * @returns  {this} this
    */
-  protected hasOneBuilder(
+  protected hasOneBuilder<K = void>(
     {
       name,
       as,
@@ -3283,7 +3576,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.hasOneBuilder(
@@ -3315,7 +3611,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected hasManyBuilder(
+  protected hasManyBuilder<K = void>(
     {
       name,
       as,
@@ -3323,7 +3619,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.hasManyBuilder(
@@ -3354,7 +3653,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected belongsToBuilder(
+  protected belongsToBuilder<K = void>(
     {
       name,
       as,
@@ -3362,7 +3661,10 @@ class Model<
       localKey,
       foreignKey,
       freezeTable,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.belongsToBuilder(
@@ -3394,7 +3696,7 @@ class Model<
    * @param    {function?} callback callback of query
    * @returns  {this} this
    */
-  protected belongsToManyBuilder(
+  protected belongsToManyBuilder<K = void>(
     {
       name,
       as,
@@ -3405,7 +3707,10 @@ class Model<
       pivot,
       oldVersion,
       modelPivot,
-    }: TRelationQueryOptions,
+    }: K extends void ? 
+      Omit<TRelationQueryOptions, 'name'> &
+      Partial<Pick<TRelationQueryOptions, 'name'>>
+    : TRelationQueryOptions<K>,
     callback?: Function,
   ): this {
     this.$relation.belongsToManyBuilder(
@@ -3477,7 +3782,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return (await this.save()) as T.Result<this>[];
+    return (await this.bind(this.$pool.get()).save()) as T.Result<this>[];
   }
 
   /**
@@ -3499,11 +3804,7 @@ class Model<
 
   public where<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     value: V
@@ -3511,11 +3812,7 @@ class Model<
 
   public where<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like" ,
@@ -3606,11 +3903,7 @@ class Model<
    */
   public orWhere<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     value: V
@@ -3625,11 +3918,7 @@ class Model<
    */
   public orWhere<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like"  ,
@@ -4282,11 +4571,7 @@ class Model<
    */
   public whereBetween<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     array: [V, V],
@@ -4325,11 +4610,7 @@ class Model<
    */
   public orWhereBetween<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     array: [V, V],
@@ -4367,11 +4648,7 @@ class Model<
    */
   public whereNotBetween<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     array: [V, V],
@@ -4410,11 +4687,7 @@ class Model<
    */
   public orWhereNotBetween<
     K extends T.ColumnKeys<this>,
-    V extends (
-      K & keyof T.ColumnOptions<this> extends never
-        ? any
-        : T.ColumnOptions<this>[K & keyof T.ColumnOptions<this>]
-    )
+    V extends T.ColumnValue<this, K>
   >(
     column: K,
     array: [V, V],
@@ -4689,13 +4962,10 @@ class Model<
    * @param {Function} callback callback query
    * @returns {this}
    */
-  public whereQuery<
-    T extends Model | unknown,
-    M = T extends this ? this : T extends Model ? T : this,
-  >(callback: (query: M) => M): this {
-    const copy = new Model().copyModel(this) as M;
+  public whereQuery(callback: T.QueryModifier<this>): this {
+    const copy = new Model().copyModel(this);
 
-    const repository = callback(copy);
+    const repository = callback(copy as unknown as this);
 
     if (repository instanceof Promise) {
       throw this._assertError(
@@ -4768,7 +5038,7 @@ class Model<
       arguments.length === 2,
     );
 
-    this.whereQuery((query: Model) => {
+    this.whereQuery((query) => {
       for (const index in columns) {
         const column = String(columns[index]);
 
@@ -4824,16 +5094,13 @@ class Model<
    * @param {string | number | undefined | null | Boolean} condition when condition true will return query callback
    * @returns {this} this
    */
-  public when<
-    T extends Model | unknown,
-    M = T extends this ? this : T extends Model ? T : this,
-  >(
+  public when(
     condition: string | number | undefined | null | boolean,
-    callback: (query: M) => M,
+    callback: T.QueryModifier<this>,
   ): this {
     if (!condition) return this;
 
-    const cb = callback(this as unknown as M);
+    const cb = callback(this);
 
     if (cb instanceof Promise)
       throw new Error("'when' does not support Promises");
@@ -4893,23 +5160,34 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+   
+     if(typeof localKey === 'string') {
+      this._handleJoin(
+        "INNER_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "INNER_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "INNER_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
+    this.joinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -4925,23 +5203,34 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+    
+     if(typeof localKey === 'string') {
+      this._handleJoin(
+        "RIGHT_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "RIGHT_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "RIGHT_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
+    this.rightJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -4957,23 +5246,34 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+
+    if(typeof localKey === 'string') {
+      this._handleJoin(
+        "LEFT_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "LEFT_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+    if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "LEFT_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
+    this.leftJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -4988,23 +5288,34 @@ class Model<
     localKey: `${string}.${string}` | ((join: Join) => Join) | TModelOrObject,
     referenceKey?: `${string}.${string}` | TModelOrObject,
   ): this {
-    if (
-      typeof localKey === "function" &&
-      typeof localKey === "function" &&
-      this._isModel(localKey) &&
-      this._isModel(referenceKey)
-    ) {
-      return this.joinModel(
-        localKey as TModelOrObject,
-        referenceKey as TModelOrObject,
+   
+    if(typeof localKey === 'string') {
+      this._handleJoin(
+        "CROSS_JOIN",
+        localKey as `${string}.${string}` | ((join: Join) => Join),
+        referenceKey as `${string}.${string}`,
       );
+      return this;
     }
 
-    this._handleJoin(
-      "CROSS_JOIN",
-      localKey as `${string}.${string}` | ((join: Join) => Join),
-      referenceKey as `${string}.${string}`,
-    );
+     if (typeof localKey === "function" && !this._isModel(localKey)) {
+
+      const cb = localKey as unknown as Function;
+
+      const callback = cb(new Join(this, "CROSS_JOIN"));
+
+      this.$state.set("JOIN", [
+        ...this.$state.get("JOIN"),
+        callback["toString"](),
+      ]);
+
+      return this;
+    }
+
+    this.crossJoinModel(
+      localKey as TModelOrObject | ((join: JoinModel) => JoinModel),
+      referenceKey as TModelOrObject
+    )
 
     return this;
   }
@@ -5069,7 +5380,10 @@ class Model<
       return this;
     }
 
-    if (m2 == null) return this;
+    if (this._isModel(m1) && m2 == null) {
+      m2 = m1 as unknown as TModelOrObject
+      m1 = this as unknown as TModelOrObject
+    }
 
     const {
       alias1,
@@ -5194,7 +5508,9 @@ class Model<
     m1: TModelOrObject | ((join: JoinModel) => JoinModel),
     m2?: TModelOrObject,
   ): this {
+    
     if (typeof m1 === "function" && !this._isModel(m1)) {
+      
       const cb = m1 as unknown as Function;
 
       const callback = cb(new JoinModel(this, "LEFT_JOIN"));
@@ -5207,7 +5523,10 @@ class Model<
       return this;
     }
 
-    if (m2 == null) return this;
+    if (this._isModel(m1) && m2 == null) {
+      m2 = m1 as unknown as TModelOrObject
+      m1 = this as unknown as TModelOrObject
+    }
 
     const {
       alias1,
@@ -5320,7 +5639,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async count<K extends T.ColumnKeys<this> | "id" | "_id">(c ?: K): Promise<number> {
@@ -5330,6 +5649,7 @@ class Model<
 
     let column = c == null ? this.$state.get('PRIMARY_KEY') : String(c);
 
+    column = 
       column === "*"
         ? "*"
         : distinct
@@ -5358,7 +5678,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async avg<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
@@ -5393,7 +5713,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async sum<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
@@ -5428,7 +5748,7 @@ class Model<
   /**
    *
    * @override
-   * @param {string=} column [column=id]
+   * @param {string=} c [column=id]
    * @returns {promise<number>}
    */
   public async max<K extends T.ColumnKeys<this> | "id" | "_id">(c?: K): Promise<number> {
@@ -5617,11 +5937,9 @@ class Model<
         PK,
         new Model()
           .from(
-            DB.raw(`
-        (${from}) AS ${TEMP}`),
+            DB.raw(`(${from}) AS ${TEMP}`),
           )
           .selectRaw(PK)
-          .toString(),
       );
 
     this.$state.set("DELETE", true);
@@ -5692,8 +6010,6 @@ class Model<
     column?: K,
   ): Promise<any[]> {
     if (column == null) column = "id" as K;
-
-    this.selectRaw(`${this.bindColumn(column as string)}`);
 
     const sql: string = this._queryBuilder().select();
 
@@ -5868,22 +6184,28 @@ class Model<
   }
   /**
    * @override
-   * @param    {object?} paginationOptions by default page = 1 , limit = 15
-   * @property {number} paginationOptions.limit
-   * @property {number} paginationOptions.page
+   * @param    {object?}  opts by default page = 1 , limit = 15
+   * @property {number?}  opts.limit
+   * @property {number?}  opts.page
+   * @property {boolean?} opts.distinct
    * @returns  {promise<Pagination>} Pagination
    */
-  public async pagination<K>(paginationOptions?: {
-    limit?: number;
-    page?: number;
-    alias?: boolean;
+  public async pagination<K>(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<T.PaginateResult<this, K>> {
+    
     let limit = 15;
     let page = 1;
 
-    if (paginationOptions != null) {
-      limit = this.$utils.softNumber(paginationOptions?.limit || limit);
-      page = this.$utils.softNumber(paginationOptions?.page || page);
+    if(opts?.distinct) {
+      this.distinct();
+    }
+
+    if (opts != null) {
+      limit = this.$utils.softNumber(opts?.limit || limit);
+      page = this.$utils.softNumber(opts?.page || page);
     }
 
     await this._prepareQueryPipeline();
@@ -5912,17 +6234,18 @@ class Model<
   /**
    *
    * @override
-   * @param     {?object} paginationOptions by default page = 1 , limit = 15
-   * @property  {number}  paginationOptions.limit
-   * @property  {number}  paginationOptions.page
+   * @param     {?object} opts by default page = 1 , limit = 15
+   * @property  {number?} opts.limit
+   * @property  {number?} opts.page
+   * @property {boolean?} opts.distinct
    * @returns   {promise<Pagination>} Pagination
    */
-  public async paginate<K>(paginationOptions?: {
-    limit?: number;
-    page?: number;
-    alias?: boolean;
+  public async paginate<K>(opts?: {
+    limit    ?: number;
+    page     ?: number;
+    distinct ?: boolean;
   }): Promise<T.PaginateResult<this, K>> {
-    return await this.pagination(paginationOptions);
+    return await this.pagination(opts);
   }
 
   /**
@@ -6016,16 +6339,7 @@ class Model<
   public insert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: {
-    [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as null extends C[P]
-      ? any
-      : P]: Extract<C[P], Date> extends never 
-        ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
-        : any;
-  }): this {
-    if (!Object.keys(data).length) {
-      throw this._assertError("This method must require at least 1 argument.");
-    }
+  >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
 
     this.$state.set("DATA", this._formatedInputData(data));
 
@@ -6035,7 +6349,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT");
 
-    return this;
+    return this as Model<TS, TR, "create">
   }
 
   /**
@@ -6046,8 +6360,8 @@ class Model<
   public create<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K,C>): this {
-    return this.insert(data as any);
+  >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
+    return this.insert(data) as Model<TS, TR, "create">
   }
 
   /**
@@ -6059,7 +6373,7 @@ class Model<
   public update<K extends T.ColumnKeys<this>, C extends T.ColumnOptions<this>>(
     data:  T.UpdateInput<K, C>,
     updateNotExists: T.ColumnKeys<this>[] = [],
-  ): this {
+  ): Model<TS, TR, "update"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6091,7 +6405,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as unknown as Model<TS, TR, "update">
   }
 
   /**
@@ -6105,7 +6419,7 @@ class Model<
     C extends T.ColumnOptions<this>,
   >(
     data: T.UpdateInput<K, C>, 
-    updateNotExists: string[] = []): this {
+    updateNotExists: string[] = []): Model<TS, TR, "updateMany"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6133,7 +6447,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "updateMany">;
   }
 
   /**
@@ -6168,7 +6482,7 @@ class Model<
       }
       >;
     }[],
-  ): this {
+  ): Model<TS, TR, "updateMany"> {
     if (!cases.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
@@ -6321,7 +6635,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "updateMany">;
   }
 
   /**
@@ -6332,7 +6646,7 @@ class Model<
   public updateNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.UpdateInput<K, C>): this {
+  >(data: T.UpdateInput<K, C>): Model<TS, TR, "update"> {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6356,7 +6670,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE");
 
-    return this;
+    return this as Model<TS, TR, "update">
   }
 
   /**
@@ -6367,7 +6681,7 @@ class Model<
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     this.limit(1);
 
     if (!Object.keys(data).length) {
@@ -6383,7 +6697,7 @@ class Model<
 
     this.$state.set("SAVE", "UPDATE_OR_INSERT");
 
-    return this;
+    return this as Model<TS, TR, "createOrUpdate">;
   }
 
   /**
@@ -6394,8 +6708,8 @@ class Model<
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6406,8 +6720,8 @@ class Model<
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6418,8 +6732,8 @@ class Model<
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.updateOrCreate(data);
+  >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
+    return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
 
   /**
@@ -6430,7 +6744,7 @@ class Model<
   public createOrSelect<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6443,7 +6757,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_OR_SELECT");
 
-    return this;
+    return this as Model<TS, TR, "createOrSelect">
   }
 
   /**
@@ -6454,8 +6768,8 @@ class Model<
   public insertOrSelect<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.createOrSelect(data);
+  >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
+    return this.createOrSelect(data) as Model<TS, TR, "createOrSelect">
   }
 
   /**
@@ -6467,7 +6781,7 @@ class Model<
   public createNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
+  >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
     }
@@ -6480,7 +6794,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_NOT_EXISTS");
 
-    return this;
+    return this as Model<TS,TR,"createNotExists">;
   }
 
   /**
@@ -6492,8 +6806,8 @@ class Model<
   public insertNotExists<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
-  >(data: T.InsertInput<K, C>): this {
-    return this.createNotExists(data);
+  >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
+    return this.createNotExists(data) as Model<TS,TR,"createNotExists">;
   }
 
   /**
@@ -6505,8 +6819,8 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K, C>[],
-  ): this {
+    data: T.InsertInput<K, C>[]
+  ): Model<TS, TR, "createMany"> {
     if (!Array.isArray(data) || !data.length) {
       throw this._assertError("This method must require a non-empty array.");
     }
@@ -6519,7 +6833,7 @@ class Model<
 
     this.$state.set("SAVE", "INSERT_MULTIPLE");
 
-    return this;
+    return this as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6532,9 +6846,9 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
-  ): this {
-    return this.createMultiple(data);
+    data: T.InsertInput<K, C>[]
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6547,9 +6861,9 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
-  ): this {
-    return this.createMultiple(data);
+    data: T.InsertInput<K, C>[]
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6562,9 +6876,9 @@ class Model<
     K extends T.ColumnKeys<this>,
     C extends T.ColumnOptions<this>,
   >(
-    data: T.InsertInput<K,C>[],
-  ): this {
-    return this.createMultiple(data);
+    data: T.InsertInput<K, C>[]
+  ): Model<TS, TR, "createMany"> {
+    return this.createMultiple(data) as Model<TS, TR, "createMany">;
   }
 
   /**
@@ -6602,15 +6916,7 @@ class Model<
    * @override
    * @returns {Promise<Record<string,any> | any[] | null | undefined>}
    */
-  public async save({ waitMs = 0 } = {}): Promise<
-    | T.InsertResult<this>
-    | T.InsertManyResult<this>
-    | T.InsertNotExistsResult<this>
-    | T.UpdateResult<this>
-    | T.UpdateManyResult<this>
-    | null
-    | undefined
-  > {
+  public async save({ waitMs = 0 } = {}): Promise<TSaveModelResult<this, TA>> {
     this.$state.set("AFTER_SAVE", waitMs);
 
     switch (String(this.$state.get("SAVE"))) {
@@ -6743,6 +7049,7 @@ class Model<
             .from(table)
             .debug(debug)
             .createMultiple(data)
+            .bind(this.$pool.get())
             .void()
             .save();
         }),
@@ -7436,7 +7743,7 @@ class Model<
         columns.push(this.bindColumn(key));
         continue;
       }
-      columns.push(this.bindColumn(schemaColumn.column, false));
+      columns.push(this.bindColumn(schemaColumn.column, { pattern : false }));
     }
 
     if (!columns.length) return this;
@@ -7462,7 +7769,7 @@ class Model<
 
     this._handleSoftDelete();
 
-    return this._buildQueryStatement();
+    return this._buildQueryStatement() as QueryBuilder;
   }
 
   private async _runBefore(
@@ -7757,7 +8064,6 @@ class Model<
       .copyModel(this, { where: true, join: true })
       .bind(this.$pool.get())
       .debug(this.$state.get("DEBUG"))
-      .unset({ alias: true })
       .count(this.$state.get("PRIMARY_KEY"));
 
     let lastPage: number = Math.ceil(total / limit) || 0;
@@ -8858,8 +9164,18 @@ class Model<
   }
 
   private _handleJoinModel(m1: TModelOrObject, m2: TModelOrObject) {
-    let model1: Model = typeof m1 === "object" ? new m1.model() : new m1();
-    let model2: Model = typeof m2 === "object" ? new m2.model() : new m2();
+    
+    let model1: Model = typeof m1 === "object" 
+      ? m1 instanceof Model 
+        ? m1
+        : new m1.model() 
+      : new m1();
+    let model2: Model = typeof m2 === "object" 
+      ? m2 instanceof Model 
+        ? m2
+        : new m2.model() 
+      : new m2();
+
     let localKey: string =
       typeof m1 === "object"
         ? m1.key != null && m1.key !== ""
@@ -8872,15 +9188,19 @@ class Model<
           ? String(m2.key)
           : ""
         : "";
-    let alias1: string =
-      typeof m1 === "object"
-        ? m1.alias != null && m1.alias !== ""
+
+    let alias1: string = typeof m1 === "object" 
+      ?  m1 instanceof Model
+        ? model1.$state.get("ALIAS") ?? ""
+        : m1.alias != null && m1.alias !== ""
           ? m1.alias
           : ""
         : "";
-    let alias2: string =
-      typeof m2 === "object"
-        ? m2.alias != null && m2.alias !== ""
+
+    let alias2: string = typeof m2 === "object" 
+      ?  m2 instanceof Model
+        ? model2.$state.get("ALIAS") ?? ""
+        : m2.alias != null && m2.alias !== ""
           ? m2.alias
           : ""
         : "";
@@ -8890,6 +9210,20 @@ class Model<
         model1["$state"].get("MODEL_NAME") === this["$state"].get("MODEL_NAME")
       ) {
         this.alias(alias1);
+
+        const selecteds = this.$state.get("SELECT");
+
+        const formated = [];
+        
+        for(const selected of selecteds) {
+          const table = this.getTableName();
+          formated.push(
+            selected.replace(table, alias1)
+          )
+        }
+
+        if(formated.length) this.$state.set("SELECT",formated);
+
       }
       model1.alias(alias1);
     }
@@ -8952,7 +9286,7 @@ class Model<
 
     this.$state = new StateManager("model");
 
-    this.meta("MAIN");
+    this.metaTag("MAIN");
 
     this._makeTableName();
 

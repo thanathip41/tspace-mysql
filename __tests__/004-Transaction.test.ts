@@ -2,7 +2,12 @@ import chai, { expect  } from 'chai'
 import { describe, it } from 'mocha'
 import chaiJsonSchema from 'chai-json-schema'
 import { DB }  from '../src/lib'
-import { postSchemaArray, userSchemaObject,userDataObject, postDataArray } from './specs/default-spec';
+import { 
+    postSchemaArray, 
+    userSchemaObject,
+    userDataObject, 
+    postDataArray 
+} from './specs/default-spec';
 
 chai.use(chaiJsonSchema)
 
@@ -44,7 +49,6 @@ describe('Testing Transaction', function () {
         expect(postsAfterCommited).to.be.jsonSchema(postSchemaArray)
 
         } catch (err) {
-            console.log(err)
             await connection.rollback();
         }
     })
@@ -79,7 +83,6 @@ describe('Testing Transaction', function () {
         expect(postsWithoutCommit).to.be.an('array').that.is.empty
 
         } catch (err) {
-             console.log(err)
             await connection.rollback();
         }
     })
@@ -156,37 +159,40 @@ describe('Testing Transaction', function () {
         }
     })
 
-     it(`DB: Error thrown when startTransaction used after transaction end: "The transaction has either been closed"`, 
-    async function () {
-        await new DB('users').truncate({ force : true })
-        await new DB('posts').truncate({ force : true })
+    it(`DB: Error thrown when startTransaction used after transaction end: "The transaction has either been closed"`, 
+        async function () {
 
-        const connection = await new DB().beginTransaction();
+            await new DB('users').truncate({ force : true });
+            await new DB('posts').truncate({ force : true });
+            
+            const connection = await new DB().beginTransaction();
 
-        try {
+            try {
 
-        await connection.startTransaction();
+                await connection.startTransaction();
 
-        const user = await new DB('users')
-        .create(userDataObject)
-        .bind(connection)
-        .save() as Record<string,any>
+                const user = await new DB('users')
+                .create(userDataObject)
+                .bind(connection)
+                .save() as Record<string,any>
 
-        await new DB('posts')
-        .createMultiple(postDataArray.map(v => ({ ...v, user_id: user.id })))
-        .bind(connection)
-        .save();
+                await new DB('posts')
+                .createMultiple(postDataArray.map(v => ({ ...v, user_id: user.id })))
+                .bind(connection)
+                .save();
 
-        await connection.commit();
+                await connection.commit();
 
-        await connection.end();
+                await connection.end();
 
-        await connection.startTransaction();
-
-        } catch (err:any) {
-            expect(err?.message).to.be.equal("The transaction has either been closed");
+                await connection.startTransaction();
+               
+            } catch (err:any) {
+                await connection.rollback();
+                expect(err?.message).to.be.equal("The transaction has either been closed");
+            }
         }
-    })
+    )
   /* ###################################################### */
 })
 

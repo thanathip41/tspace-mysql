@@ -37,10 +37,10 @@ export class MariadbDriver extends BaseDriver {
       connectionLimit  : options.connectionLimit ?? 20,
       connectTimeout   : options.connectTimeout ?? 1000 * 60,
 
-      minimumIdle      : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      minimumIdle      : options.connectionLimit ?? 20,
       acquireTimeout   : 1000 * 20,
       idleTimeout      : 1000 * 60,
-      queryTimeout     : 1000 * 60,
+      queryTimeout     : 1000 * 90,
 
       pipelining       : true,
       bigIntAsNumber   : true,
@@ -51,7 +51,7 @@ export class MariadbDriver extends BaseDriver {
 
     this.poolTrx = mariadb.createPool({
       ...configs,
-      connectionLimit : configs.connectionLimit * 1.5
+      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
     });
 
     this.pool.getConnection().catch(async (err:any) => {
@@ -144,9 +144,19 @@ export class MariadbDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
       await conn.beginTransaction();
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null)
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }
@@ -170,9 +180,7 @@ export class MariadbDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);

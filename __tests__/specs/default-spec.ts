@@ -153,10 +153,7 @@ export const postSchemaArray = {
   },
 };
 
-const pattern = 'default';
-
-export const userDataObject = Model.formatPattern({
-  data: {
+export const userDataObject = {
     uuid: DB.generateUUID(),
     email: "test01@example.com",
     name: "name:test01",
@@ -166,13 +163,10 @@ export const userDataObject = Model.formatPattern({
     created_at: new Date(),
     updated_at: new Date(),
     deleted_at: null,
-  },
-  pattern,
-});
+  }
 
 export const userDataArray = [2, 3, 4, 5, 6].map((i) => {
-  return Model.formatPattern({
-    data: {
+  return {
       uuid: DB.generateUUID(),
       email: `test0${i}@example.com`,
       name: `name:test0${i}`,
@@ -182,13 +176,10 @@ export const userDataArray = [2, 3, 4, 5, 6].map((i) => {
       created_at: new Date(),
       updated_at: new Date(),
       deleted_at: null,
-    },
-    pattern,
-  });
+    }
 });
 
-export const postDataObject = Model.formatPattern({
-  data: {
+export const postDataObject = {
     uuid: DB.generateUUID(),
     user_id: 1,
     title: "title:01",
@@ -197,14 +188,11 @@ export const postDataObject = Model.formatPattern({
     created_at: new Date(),
     updated_at: new Date(),
     deleted_at: null,
-  },
-  pattern,
-});
+  }
 
 export const postDataArray = [2, 3, 4, 5, 6].map((i) => {
-  return Model.formatPattern({
-    data: {
-     uuid: DB.generateUUID(),
+  return {
+      uuid: DB.generateUUID(),
       user_id: i === 4 ? null : i,
       title: `title:0${i}`,
       subtitle: `subtitle:test0${i}`,
@@ -212,7 +200,5 @@ export const postDataArray = [2, 3, 4, 5, 6].map((i) => {
       created_at: new Date(),
       updated_at: new Date(),
       deleted_at: null,
-    },
-    pattern,
-  });
+    }
 });

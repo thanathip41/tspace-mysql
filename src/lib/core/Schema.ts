@@ -6,6 +6,7 @@ import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
 import { T }            from "./UtilityTypes";
 import { AlterTable }   from "./Contracts/AlterTable";
+import DB from "./DB";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -343,8 +344,8 @@ class Schema {
      * .listen(8000)
      */
       create: <
-       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-       Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+       O extends T.ColumnKeys<M>[] = [], 
+       Opt extends T.ColumnKeys<M>[] = []
       >(options?: {
         omit?: O;
         optional?: Opt;
@@ -379,8 +380,8 @@ class Schema {
        * .listen(8000)
        */
       update: <
-       R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-       O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+       R extends T.ColumnKeys<M>[] = [], 
+       O extends T.ColumnKeys<M>[] = []
       >(options?: {  required?: R, omit?: O; } & T.NoConflict<R, O>) => {
         return this._updateValidator(model, options)
       }
@@ -430,8 +431,8 @@ class Schema {
 
   private _createValidator<
     M extends Model,
-    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [], 
-    Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    O extends T.ColumnKeys<M>[] = [], 
+    Opt extends T.ColumnKeys<M>[] = []
   >(
     model: new () => M,
     options?: {
@@ -485,8 +486,8 @@ class Schema {
 
   private _updateValidator<
     M extends Model,
-    R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-    O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+    R extends T.ColumnKeys<M>[] = [],
+    O extends T.ColumnKeys<M>[] = []
   >(
     model: new () => M,
     options?: {
@@ -607,7 +608,7 @@ class Schema {
     changed,
     index,
   }: {
-    models: (Model | null)[];
+    models: (Model<any,any,any> | null)[];
     force   : boolean; // forece will sync table & missing column
     log     : boolean;
     foreign : boolean;
@@ -706,6 +707,13 @@ class Schema {
     model: Model;
     log: boolean;
   }) {
+
+    if(DB.driver() === 'sqlite') {
+      console.log(
+        `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE ADD FOREIGN KEY.\x1b[0m`
+      );
+      return;
+    }
 
     for (const key in schemaModel) {
       if (schemaModel[key]?.foreignKey == null) continue;
@@ -979,6 +987,13 @@ class Schema {
     model: Model;
     log: boolean;
   }) {
+
+    if(DB.driver() === 'sqlite') {
+      console.log(
+        `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE CHANGE COLUMN\x1b[0m`
+      );
+      return;
+    }
 
     const schemaTable = await model.getSchema();
 

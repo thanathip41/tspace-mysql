@@ -8,9 +8,11 @@ import type {
     TValidateSchema , 
     TCache, 
     TRelationOptions,
-    TRelationQueryOptions
+    TRelationQueryOptions,
+    TModelOrObject
 } from '../../types'
-abstract class AbstractModel extends Builder {
+import { JoinModel } from '../JoinModel';
+abstract class AbstractModel extends Builder<any> {
 
     protected $cache             !: TCache 
     protected $relation          !: RelationManager
@@ -170,6 +172,23 @@ abstract class AbstractModel extends Builder {
     abstract relationsCount<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
     //@ts-ignore
     abstract relationsTrashed<K extends T.RelationKeys<this>>(...nameRelations : K[]) : this
+
+    abstract joinModel (
+        m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelOrObject
+    ): this
+    abstract rightJoinModel (
+        m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelOrObject
+    ): this
+    abstract leftJoinModel (
+        m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelOrObject
+    ): this
+    abstract crossJoinModel (
+        m1: TModelOrObject | ((join: JoinModel) => JoinModel),
+        m2?: TModelOrObject
+    ): this
     
 }
 

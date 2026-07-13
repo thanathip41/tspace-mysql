@@ -1,8 +1,7 @@
-import pathSystem             from 'path';
-import fsSystem               from 'fs';
+import pathSystem             from "path";
+import fsSystem               from "fs";
 import { BaseDriver }         from "..";
 import { SqliteQueryBuilder } from "./SqliteQueryBuilder";
-import { exec } from 'child_process';
 import type { 
   TConnection, 
   TPoolEvent 
@@ -13,6 +12,7 @@ type SqliteConnectionOptions = {
 };
 
 export class SqliteDriver extends BaseDriver {
+  private IS_TRX_ACTIVE = false;
   constructor(options: Record<string, any>) {
     super();
     this.options = options;
@@ -82,6 +82,7 @@ export class SqliteDriver extends BaseDriver {
       }
     });
   }
+
   private async _connection(): Promise<TConnection> {
   
     const conn = await this.poolTrx;
@@ -117,9 +118,28 @@ export class SqliteDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
-      await conn.exec('BEGIN');
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+      // SQLite does NOT support concurrent transactions on the same connection.
+      // This loop blocks execution until the previous transaction finishes (commit/rollback).
+      // Without this, multiple BEGIN statements can overlap and cause:
+      // "Cannot start a transaction within a transaction".
+      while(this.IS_TRX_ACTIVE) {
+        await new Promise(r => setTimeout(r, 1000));
+      };
+
+      this.IS_TRX_ACTIVE = true;
+
+      await conn.exec('BEGIN IMMEDIATE');
       started = true;
       closed  = false;
+      
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null);
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }
@@ -135,6 +155,8 @@ export class SqliteDriver extends BaseDriver {
       }
 
       commited = true;
+      this.IS_TRX_ACTIVE = false;
+
       await conn.exec('COMMIT');
       await end();
 
@@ -143,15 +165,15 @@ export class SqliteDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);
       }
 
-      rollbacked = true
+      rollbacked = true;
+      this.IS_TRX_ACTIVE = false;
+
       await conn.exec('ROLLBACK');
       await end();
 
@@ -173,6 +195,7 @@ export class SqliteDriver extends BaseDriver {
 
       started = false;
       closed = true;
+      this.IS_TRX_ACTIVE = false;
 
       return;
     }

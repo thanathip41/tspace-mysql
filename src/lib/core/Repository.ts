@@ -727,6 +727,7 @@ class RepositoryFactory<
       instance.void()
     }
 
+    //@ts-ignore
     return (await instance.createMultiple(data as any[]).save()) as Promise<
       NR extends true ? undefined : T.Result<M>[]
     >;
@@ -796,11 +797,11 @@ class RepositoryFactory<
       instance.void()
     }
 
-    //@ts-ignore
     instance.where(where);
 
+    //@ts-ignore
     return (await instance
-      .createOrUpdate(data as Record<string, any>)
+      .createOrUpdate(data as any)
       .save()) as Promise<NR extends true ? undefined : T.Result<M>>;
   }
 
@@ -824,7 +825,7 @@ class RepositoryFactory<
     debug,
     transaction,
     noReturn
-  }: T.RepositoryCreateOrThings<M,NR>): Promise<NR extends true ? undefined : T.Result<M> | null> {
+  }: T.RepositoryCreateOrThings<M,NR>): Promise<NR extends true ? undefined : T.Result<M>> {
     if (where == null || !Object.keys(where).length) {
       throw new Error(
         "The method createOrSelect can't use without where condition"
@@ -848,9 +849,10 @@ class RepositoryFactory<
     //@ts-ignore
     instance.where(where);
 
+    //@ts-ignore
     return (await instance
       .createOrSelect(data as Record<string, any>)
-      .save()) as Promise<NR extends true ? undefined :T.Result<M> | null>;
+      .save()) as Promise<NR extends true ? undefined :T.Result<M>>;
   }
 
   /**
@@ -946,6 +948,7 @@ class RepositoryFactory<
     //@ts-ignore
     instance.where(where);
 
+    //@ts-ignore
     return (await instance
       .updateMany(data as Record<string, any>)
       .save()) as Promise<NR extends true ? undefined : T.Result<M>[]>;
@@ -1017,6 +1020,7 @@ class RepositoryFactory<
       instance.void();
     }
 
+    //@ts-ignore
     return await instance.updateCases(cases as any[]).save() as Promise<
       NR extends true ? undefined : T.Result<M>[]
     >;

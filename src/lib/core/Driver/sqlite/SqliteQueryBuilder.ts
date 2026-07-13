@@ -325,21 +325,9 @@ export class SqliteQueryBuilder extends QueryBuilder {
     type: string;
     attributes: string[];
   }) {
-    const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table.replace(/`/g, "")}\``,
-      this.$constants("CHANGE"),
-      `\`${column}\``,
-      `\`${column}\` ${type} ${
-        attributes != null && attributes.length
-          ? `${attributes
-              .filter((v: string) => !["PRIMARY KEY"].includes(v))
-              .join(" ")}`
-          : ""
-      }`,
-    ];
 
-    return this.format(sql);
+    throw new Error("SQLite does not support changing columns");
+    return ""
   }
 
   public getChildFKs({ database, table }: { database: string; table: string }) {
@@ -511,11 +499,10 @@ export class SqliteQueryBuilder extends QueryBuilder {
     .join(", ");
 
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
-      this.$constants("ADD_INDEX"),
+      this.$constants("CREATE_INDEX"),
       `\`${name}\``,
-      `(${cols})`
+      this.$constants("ON"),
+      `\`${table}\`(${cols})`
     ];
 
     return this.format(sql);
@@ -530,8 +517,6 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }) {
     
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
       this.$constants("DROP"),
       this.$constants("INDEX"),
       `\`${name}\``
@@ -768,6 +753,22 @@ export class SqliteQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public lockTable(mode : 'WRITE' | 'READ') {
+    const sql = [
+      "LOCK TABLES",
+      this.$state.get('TABLE_NAME'),
+      mode
+    ]
+    return this.format(sql);
+  }
+
+  public unlockTable() {
+    const sql = [
+     "UNLOCK TABLES"
+    ]
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
@@ -856,11 +857,20 @@ export class SqliteQueryBuilder extends QueryBuilder {
       return `${this.$constants("SELECT")} ${this.$constants("DISTINCT")} *`;
     }
 
-    const findIndex = values.indexOf("*");
+    const findIndexStar = values.indexOf("*");
 
-    if (findIndex > -1) {
-      const removed = values.splice(findIndex, 1);
+    if (findIndexStar > -1) {
+      const removed = values.splice(findIndexStar, 1);
       values.unshift(removed[0]);
+    }
+
+    const findIndexDistinct = values.findIndex(
+      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
+    );
+
+    if (findIndexDistinct > -1) {
+      const [distinct] = values.splice(findIndexDistinct, 1);
+      values.unshift(distinct);
     }
 
     return `${this.$constants("SELECT")} ${values.join(", ")}`;

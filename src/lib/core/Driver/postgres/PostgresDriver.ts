@@ -1,4 +1,4 @@
-import { BaseDriver } from "..";
+import { BaseDriver }           from "..";
 import { PostgresQueryBuilder } from "./PostgresQueryBuilder";
 import type { 
   TConnection, 
@@ -45,7 +45,7 @@ export class PostgresDriver extends BaseDriver {
       password                : options.password,
       
       max                     : options.connectionLimit ?? 20,
-      min                     : Math.max(2, Math.floor((options.connectionLimit ?? 20) / 3)),
+      min                     : Math.floor((options.connectionLimit ?? 20) * 0.3),
 
       connectionTimeoutMillis : options.connectTimeout ?? 1000 * 60,
       keepAlive               : true,
@@ -53,14 +53,14 @@ export class PostgresDriver extends BaseDriver {
       
       idleTimeoutMillis       : 1000 * 60,
       statement_timeout       : 1000 * 60,
-      query_timeout           : 1000 * 60,
+      query_timeout           : 1000 * 90,
     }
 
     this.pool = new pg.Pool(configs);
 
     this.poolTrx = new pg.Pool({
       ...configs,
-      connectionLimit : configs.max * 1.5
+      connectionLimit : Math.min(10, Math.round(configs.max * 0.5))
     });
 
     this.pool.connect(async (err: any) => {
@@ -147,9 +147,19 @@ export class PostgresDriver extends BaseDriver {
 
     const startTransaction = async () => {
 
+      if (closed) {
+        throw new Error(this.MESSAGE_TRX_CLOSED)
+      }
+
       await conn.query('BEGIN');
       started = true;
       closed  = false;
+
+      setTimeout(() => {
+        if(commited || rollbacked) return;
+        console.log(this.MESSAGE_TRX_TIMEOUT);
+        rollback().catch(() => null)
+      }, 1000 * this.TRX_TIMEOUT);
 
       return;
     }
@@ -172,9 +182,7 @@ export class PostgresDriver extends BaseDriver {
 
     const rollback = async () => {
 
-      if (closed) {
-        throw new Error(this.MESSAGE_TRX_CLOSED)
-      }
+      if (closed) return;
 
       if(!started) {
         throw new Error(this.MESSAGE_TRX_NOT_STARTED);

@@ -13,7 +13,12 @@ import type {
     TRelationResults, 
     TSelectionMerger,
     TDeepOmit,
-    TConflictKeys
+    TConflictKeys,
+    TInsertInput,
+    TUpdateInput,
+    TInsertOrUpdateInput,
+    TDefault,
+    TRemoveDefault
 } from "../types";
 
 import type { 
@@ -133,7 +138,8 @@ export type TRelation<R> = {
  *   }
  *
  */
-export type TSchemaModel<M extends Model> =  ReturnType<M['typeOfSchema']>
+export type TSchemaModel<M extends Model<any,any,any>> =  ReturnType<M['typeOfSchema']>
+
 /**
  * The 'TRelationModel' type is used to get type of schema in the model
  * @generic {Model} M Model
@@ -151,20 +157,23 @@ export type TSchemaModel<M extends Model> =  ReturnType<M['typeOfSchema']>
  *   }
  *
  */
-export type TRelationModel<M extends Model> = ReturnType<M['typeOfRelation']>;
+export type TRelationModel<M extends Model<any,any,any>> = ReturnType<M['typeOfRelation']>;
+
 /**
  * The 'TResult' type is used to get type of result from model
  * @generic {Model} M Model
  */
-export type TResult<M extends Model> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>;
+export type TResult<M extends Model<any,any,any>> = TRelationResults<TRelationModel<M>> & TSchemaModel<M>;
+// export type TResult<M extends Model<any,any,any>> = TRelationModel<M> & TSchemaModel<M>;
+
 
 /**
  * The 'TPaginateResult' type is used to get type of result from model using paginate , pagination
  * @generic {Model} M Model
  */
-export type TPaginateResult<M extends Model> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>;
+export type TPaginateResult<M extends Model<any,any,any>> = TPagination<TRelationResults<TRelationModel<M>> & TSchemaModel<M>>;
 
-export type TSchemaKeyOf<M extends Model, T = TSchemaModel<M>> = keyof {
+export type TSchemaKeyOf<M extends Model<any,any,any>, T = TSchemaModel<M>> = keyof {
     [K in keyof T as string extends K ? never : K]: T[K];
 } extends never ? string : keyof {
     [K in keyof T as string extends K ? never : K]: T[K];
@@ -179,15 +188,15 @@ export declare namespace T {
     // ------------------------------------------------------
 
     // --- The type support decorator and self set generic type in model ---
-    type SchemaModel<M extends Model> = keyof TColumnsDecorator<M> extends never
+    type SchemaModel<M extends Model<any,any,any>> = keyof TColumnsDecorator<M> extends never
         ? TDeepExpand<TSchemaModel<M>>
         : TDeepExpand<TColumnsDecorator<M>>;
  
-    type RelationModel<M extends Model> = keyof TColumnsDecorator<M> extends never
+    type RelationModel<M extends Model<any,any,any>> = keyof TColumnsDecorator<M> extends never
         ? TDeepExpand<TRelationModel<M>>
         : TDeepExpand<TRelationsDecorator<M>>;
 
-    type Repository<M extends Model> = ReturnType<typeof Repository<M>>;
+    type Repository<M extends Model<any,any,any>> = ReturnType<typeof Repository<M>>;
 
     type ResultFiltered<
         M  extends Model,
@@ -230,7 +239,7 @@ export declare namespace T {
         : never;
 
     type PaginateResultFiltered<
-        M extends Model,
+        M extends Model<any,any,any>,
         K = {}, 
         S = undefined, 
         SR = undefined,
@@ -238,66 +247,34 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
-    type Result<M extends Model, K = {}> = TDeepExpand<TResultResolved<M> & K> & {
+    type Result<M extends Model<any,any,any>, K = {}> = 
+    TDeepExpand<
+        TResultResolved<M> & K
+    > 
+    & {
         [customKey : string]: unknown;
     };
 
-    type PaginateResult<M extends Model, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
+    type PaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
     
-    type InsertResult<M extends Model> = TDeepExpand<TResultResolved<M>>;
+    type InsertResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>>;
 
-    type InsertManyResult<M extends Model> = TDeepExpand<TResultResolved<M>>[];
+    type InsertManyResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>>[];
 
-    type InsertNotExistsResult<M extends Model> = TDeepExpand<TResultResolved<M>> | null
+    type InsertNotExistsResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>> | null
 
-    type UpdateResult<M extends Model> = TDeepExpand<TResultResolved<M>> | null
+    type UpdateResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>> | null
 
-    type UpdateManyResult<M extends Model> = TDeepExpand<TResultResolved<M>>[]
+    type UpdateManyResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>>[]
 
     type DeleteResult = boolean
 
-    type InsertInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-            null extends C[P] ? never : P]:
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    } & {
-        [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-            null extends C[P] ? P : never]?:
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    } & {
-        [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: 
-            C[P] extends Date
-                ? any
-                : C[P] extends Record<string, unknown>
-                ? string
-                : C[P];
-    };
+    type InsertInput<K, C> = TInsertInput<K,C>
 
-    type UpdateInput<K, C> = {
-        [P in Exclude<K & keyof C, "id" | "_id">]: {
-            [Q in P]-?: 
-                Q extends "uuid" ? string : 
-                C[Q] extends Date ? any : 
-                C[Q] extends Record<string, unknown> ? string : 
-                C[Q]
-        } & {
-            [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: 
-                Q extends "uuid" ? string : 
-                C[Q] extends Date ? any : 
-                C[Q] extends Record<string, unknown> ? string : 
-                C[Q]
-        }
-    }[Exclude<K & keyof C, "id" | "_id">];
+    type UpdateInput<K, C> = TUpdateInput<K, C>
 
-    
+    type InsertOrUpdateInput<K, C> = TInsertOrUpdateInput<K, C>
+
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]
@@ -308,12 +285,12 @@ export declare namespace T {
     };
 
     type ZodShapeCreate<
-        M extends Model,
-        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-        Opt extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+        M extends Model<any,any,any>,
+        O extends T.ColumnKeys<M>[] = [],
+        Opt extends T.ColumnKeys<M>[] = []
     > = {
     [K in Extract<
-        T.ColumnKeys<M, { OnlyColumn: true }>,
+        T.ColumnKeys<M>,
         keyof Columns<M>
     > as
         K extends O[number]
@@ -328,12 +305,12 @@ export declare namespace T {
     };
 
     type ZodShapeUpdate<
-        M extends Model,
-        R extends T.ColumnKeys<M, { OnlyColumn: true }>[] = [],
-        O extends T.ColumnKeys<M, { OnlyColumn: true }>[] = []
+        M extends Model<any,any,any>,
+        R extends T.ColumnKeys<M>[] = [],
+        O extends T.ColumnKeys<M>[] = []
     > = {
     [K in Extract<
-        T.ColumnKeys<M, { OnlyColumn: true }>,
+        T.ColumnKeys<M>,
         keyof Columns<M>
     > as
         K extends O[number]
@@ -352,41 +329,87 @@ export declare namespace T {
         T extends null ? z.ZodNull :
         z.ZodTypeAny;
 
-    type ColumnBlueprints<M extends Model> = {
+    type Raw<M extends Model<any,any,any>> = {
+        [K in keyof TSchemaModel<M>]:
+            TSchemaModel<M>[K] |
+            TOperatorQuery |
+            TRawStringQuery |
+            TFreezeStringQuery
+    }
+
+    type ColumnBlueprints<M extends Model<any,any,any>> = {
         [K in keyof Columns<M, { InputQuery : true }>]: Blueprint<Columns<M, { InputQuery : true }>[K]>;
     };
 
     type Columns<
-        M extends Model,
-        Options extends { InputQuery?: boolean } = {}
-        > = TDeepExpand<
+        M extends Model<any, any, any>,
+        Options extends {
+            InputQuery ?: boolean;
+            Default    ?: boolean;
+        } = {
+            InputQuery : false;
+            Default    : false;
+        }
+    > = TDeepExpand<
         keyof TColumnsDecorator<M> extends never
             ? {
                 [K in keyof TSchemaModel<M>]:
-                Options['InputQuery'] extends true
-                    ? TSchemaModel<M>[K] | TOperatorQuery | TRawStringQuery | TFreezeStringQuery
-                    : TSchemaModel<M>[K]
+                    Options["InputQuery"] extends true
+                        ? (
+                            Options["Default"] extends false
+                                ? TRemoveDefault<TSchemaModel<M>[K]>
+                                : TSchemaModel<M>[K]
+                        )
+                        | TOperatorQuery
+                        | TRawStringQuery
+                        | TFreezeStringQuery
+                        : (
+                            Options["Default"] extends false
+                                ? TRemoveDefault<TSchemaModel<M>[K]>
+                                : TSchemaModel<M>[K]
+                        );
             }
-            : TColumnsDecorator<M,Options>
-    >
+            : TColumnsDecorator<M, Options>
+    >;
+
+    type ColumnOptions<
+        M extends Model<any, any, any>,
+        Options extends {
+            InputQuery  ?: boolean;
+            Default     ?: boolean;
+        } = { InputQuery: true }
+    > = Columns<M, Options>;
+
+    type ColumnValue<
+        M extends Model<any, any, any>,
+        K extends T.ColumnKeys<M>,
+        C extends T.ColumnOptions<M> = T.ColumnOptions<M, { 
+            InputQuery : true, 
+            Default: false 
+        }>
+    > = K extends keyof C ? C[K] : any;
 
     type ColumnKeys<
-        M extends Model,
-        Options extends { OnlyColumn?: boolean } = {}
+        M extends Model<any, any,any>,
+        Options extends { 
+            InputQuery ?: boolean;
+        } = {
+            InputQuery : true
+        }
     > = (
         keyof TColumnsDecorator<M> extends never
             ? TSchemaKeyOf<M>
             : keyof TColumnsDecorator<M>
         )
     | (
-        Options["OnlyColumn"] extends true
-            ? never
-            : `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+        Options["InputQuery"] extends true
+            ? `${string}.${string}` | TRawStringQuery | TFreezeStringQuery
+            : never
         );
 
     // ColumnEnumMap does not work with T.Schema,
     // but it works with decorators and T.SchemaStrict.
-    type ColumnEnumMap<M extends Model> =
+    type ColumnEnumMap<M extends Model<any,any,any>> =
         keyof TColumnsDecorator<M> extends never
             ? {
                 [K in keyof TSchemaModel<M> as
@@ -405,7 +428,7 @@ export declare namespace T {
 
     // ColumnEnumKeys does not work with T.Schema,
     // but it works with decorators and T.SchemaStrict.
-    type ColumnEnumKeys<M extends Model> =
+    type ColumnEnumKeys<M extends Model<any,any,any>> =
         keyof TColumnsDecorator<M> extends never
             ? {
                 [K in keyof TSchemaModel<M>]: TIsEnum<
@@ -422,41 +445,39 @@ export declare namespace T {
                     : never;
               }[keyof TColumnsDecorator<M>];
 
-    type Relations<M extends Model> =
+    type Relations<M extends Model<any,any,any>> =
         keyof TColumnsDecorator<M> extends never
             ? TRelationModel<M>
             : TRelationsDecorator<M>;
             
-    type RelationKeys<M extends Model> =
+    type RelationKeys<M extends Model<any,any,any>> =
         | (keyof TColumnsDecorator<M> extends never
             ? TRelationKeys<TRelationModel<M>>
-            : keyof TRelationsDecorator<M>)
+            : keyof TRelationsDecorator<M>);
 
-    type ColumnOptions<M extends Model> = Columns<M , { InputQuery : true }>;
-
-    type WhereOptions<M extends Model> =
+    type WhereOptions<M extends Model<any,any,any>> =
         TRepositoryWhere<TSchemaModel<M>, TRelationModel<M>, M>;
 
-    type SelectOptions<M extends Model> =
+    type SelectOptions<M extends Model<any,any,any>> =
         TRepositorySelect<TSchemaModel<M>, TRelationModel<M>, M>;
 
-    type ExceptOptions<M extends Model> =
+    type ExceptOptions<M extends Model<any,any,any>> =
         TRepositoryExcept<TSchemaModel<M>,TRelationModel<M>, M>;
 
-    type OrderByOptions<M extends Model> =
+    type OrderByOptions<M extends Model<any,any,any>> =
         TRepositoryOrderBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
-    type GroupByOptions<M extends Model> =
+    type GroupByOptions<M extends Model<any,any,any>> =
         TRepositoryGroupBy<TSchemaModel<M>, TRelationModel<M>, M>;
 
-    type RelationOptions<M extends Model> = 
+    type RelationOptions<M extends Model<any,any,any>> = 
         TRepositoryRelation<
             TRelationModel<M>, 
             M
         >;
 
     type RepositoryOptions<
-        M extends Model, 
+        M extends Model<any,any,any>, 
         S = undefined, 
         SR = undefined, 
         E = undefined, 
@@ -473,12 +494,16 @@ export declare namespace T {
             G
         >;
 
-    type RepositoryCreate<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreate<M,NR>
-    type RepositoryCreateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateMultiple<M,NR>;
-    type RepositoryUpdate<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdate<M,NR>;
-    type RepositoryUpdateMultiple<M extends Model,NR extends boolean | undefined = false> = TRepositoryUpdateMultiple<M,NR>;
-    type RepositoryCreateOrThings<M extends Model,NR extends boolean | undefined = false> = TRepositoryCreateOrThings<M,NR>;
-    type RepositoryDelete<M extends Model>  = TRepositoryDelete<M>;
+    type RepositoryCreate<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryCreate<M,NR>
+    type RepositoryCreateMultiple<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryCreateMultiple<M,NR>;
+    type RepositoryUpdate<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryUpdate<M,NR>;
+    type RepositoryUpdateMultiple<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryUpdateMultiple<M,NR>;
+    type RepositoryCreateOrThings<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryCreateOrThings<M,NR>;
+    type RepositoryDelete<M extends Model<any,any,any>>  = TRepositoryDelete<M>;
 
     type RepositoryGenericTypeOptions = TRepositoryExtendType
+
+    type Default<T = any> = TDefault<T>
+
+    type QueryModifier<M extends Model<any,any,any>> = (query : M) => M
 };

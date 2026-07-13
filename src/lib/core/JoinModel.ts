@@ -3,17 +3,45 @@ import { Model } from "./Model"
 import type { 
     TModelOrObject 
 } from "../types"
+import { utils } from "../utils"
+import constants from "../constants"
 
 class JoinModel {
     private join : string[] = []
 
     constructor(
-        protected model : Model , 
+        protected model : Model<any,any,any>, 
         protected type : 'INNER_JOIN' | 'LEFT_JOIN' | 'RIGHT_JOIN' | 'CROSS_JOIN' = 'INNER_JOIN'
     ) {}
 
-    on (m1: TModelOrObject, m2 : TModelOrObject) {
+    /**
+     * The 'on' method is used to Adds an ON condition to the current JOIN clause.
+     *
+     * Creates a join condition by comparing two column references.
+     * Both parameters must be fully qualified column names in the
+     * format `table.column`.
+     *
+     * @param {TModelOrObject | `${string}.${string}`} m1 The model  (e.g User)
+     * @param {TModelOrObject | `${string}.${string}`} m2 The model reference (e.g. Post).
+     *
+     * @returns The current join model instance for method chaining.
+     *
+     * @example
+     * new User()
+     *   .joinModel((join) => join.on(User, Post));
+     * 
+     */
+    public on(m1: `${string}.${string}`, m2: `${string}.${string}`): this;
+    public on(m1: TModelOrObject, m2: TModelOrObject): this;
+    public on(
+        m1: `${string}.${string}` | TModelOrObject,
+        m2: `${string}.${string}` | TModelOrObject
+    ): this {
 
+        if(typeof m1 === 'string' && typeof m2 === 'string') {
+            return this.onRaw(m1,m2);
+        }
+       
         const {
             alias1,
             alias2,
@@ -23,7 +51,7 @@ class JoinModel {
             model2,
             localKey,
             foreignKey
-        } = this._handleJoinModel(m1, m2)
+        } = this.handleJoinModel(m1, m2)
        
         const copy = new Model()
         .copyModel(this.model)
@@ -74,67 +102,83 @@ class JoinModel {
         return this
     }
 
-    and (m1: TModelOrObject, m2 : TModelOrObject) {
+    /**
+     * The 'and' method is used to Adds an additional condition to the current JOIN ON clause using AND.
+     *
+     * This method must be called after `.on()`.
+     *
+     * @param localKey - The left-side column reference.
+     * @param referenceKey - The right-side column reference.
+     *
+     * @returns The current join model instance.
+     *
+     * @example
+     * new User()
+     *   .joinModel((join) =>
+     *     join
+     *       .on(User, Post)
+     *       .and(Post.columnRef('type'), 'article')
+     *       .and(Post.columnRef('published'), true)
+     *   );
+     */
+    public and(
+        localKey: `${string}.${string}`,
+        referenceKey: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ): this;
 
-        if(!this.join.length) {
-            return this.on(m1, m2)
+    public and(
+        localKey: `${string}.${string}`,
+        operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like",
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ): this;
+
+    public and(
+        localKey: `${string}.${string}`, 
+        operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like", 
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ) {
+
+        if (!this.join.length) {
+            throw new Error("Call .on() before using this");
         }
 
-        const {
-            alias1,
-            alias2,
-            table1,
-            table2,
-            localKey,
-            foreignKey
-        } = this._handleJoinModel(m1, m2)
-       
-        const join = this._handleCombindJoin(
-            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
-            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`
-        )
+        [referenceKey, operator] = utils.valueAndOperator(
+            referenceKey,
+            operator,
+            arguments.length === 2
+        );
 
-        this.join.push(join)
+        if(typeof referenceKey === 'string' && /\./.test(referenceKey)) {
+            const join = [
+                `${this.model['$constants']('AND')}`,
+                `${this.model.bindColumn(localKey)} ${operator} ${this.model.bindColumn(String(referenceKey))}`
+            ].join(' ')
 
-        return this
-    }
+            this.join.push(join)
 
-    or (m1: TModelOrObject, m2 : TModelOrObject) {
-
-        if(!this.join.length) {
-            return this.on(m1, m2)
+            return this
         }
-
-        const {
-            alias1,
-            alias2,
-            table1,
-            table2,
-            model1,
-            model2,
-            localKey,
-            foreignKey
-        } = this._handleJoinModel(m1, m2)
        
-        const join = this._handleCombindJoin(
-            `${alias1 === '' ? table1 : `${table1}|${alias1}`}.${localKey}`, 
-            `${alias2 === '' ? table2 : `${table2}|${alias2}`}.${foreignKey}`,
-            { operator : 'OR'}
-        )
+        const format = this.formatValue(referenceKey , operator);
 
-        this.join.push(join)
+        if(format.isRaw) {
+            
+            const join = [
+                this.model['$constants']('AND'),
+                this.model.bindColumn(localKey), 
+                format.value
+            ].join(' ')
 
-        return this
-    }
+            this.join.push(join);
 
-    onRaw (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
-       
-        const table = referenceKey?.split('.')?.shift()
+            return this
+        }
 
         const join = [
-            `${this.model['$constants'](this.type)}`,
-            `\`${table}\` ${this.model['$constants']('ON')}`,
-            `${this.model.bindColumn(localKey)} = ${this.model.bindColumn(String(referenceKey))}`
+            this.model['$constants']('AND'),
+            this.model.bindColumn(localKey),
+            format.operator,
+            format.value
         ].join(' ')
 
         this.join.push(join)
@@ -142,32 +186,82 @@ class JoinModel {
         return this
     }
 
-    andRaw (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
+    /**
+     * The 'or' method is used to Adds an additional condition to the current JOIN ON clause using OR.
+     *
+     * This method must be called after `.on()`.
+     *
+     * @param localKey - The left-side column reference.
+     * @param referenceKey - The right-side column reference.
+     *
+     * @returns The current join model instance.
+     *
+     * @example
+     * new User()
+     *   .joinModel((join) =>
+     *     join
+     *       .on(User, Post)
+     *       .or('posts.type', 'article')
+     *       .or('posts.published', true)
+     *   );
+     */
+    public or(
+        localKey: `${string}.${string}`,
+        referenceKey: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ): this;
 
-        if(!this.join.length) {
-            return this.onRaw(localKey, referenceKey)
+    public or(
+        localKey: `${string}.${string}`,
+        operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like",
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ): this;
+    public or(
+        localKey: `${string}.${string}`, 
+        operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like", 
+        referenceKey?: `${string}.${string}` | string | number | boolean | null | (string | number | boolean | null)[]
+    ) {
+
+        if (!this.join.length) {
+            throw new Error("Call .on() before using this");
         }
-       
-        const join = [
-            `${this.model['$constants']('AND')}`,
-            `${this.model.bindColumn(localKey)} = ${this.model.bindColumn(String(referenceKey))}`
-        ].join(' ')
 
-        this.join.push(join)
+        [referenceKey, operator] = utils.valueAndOperator(
+            referenceKey,
+            operator,
+            arguments.length === 2
+        );
 
-        return this
-    }
+        if(typeof referenceKey === 'string' && /\./.test(referenceKey)) {
+            const join = [
+                `${this.model['$constants']('OR')}`,
+                `${this.model.bindColumn(localKey)} ${operator} ${this.model.bindColumn(String(referenceKey))}`
+            ].join(' ')
 
-    orRaw (localKey: `${string}.${string}`, referenceKey ?: `${string}.${string}`) {
+            this.join.push(join)
 
-        if(!this.join.length) {
+            return this
+        }
 
-            return this.onRaw(localKey, referenceKey)
+         const format = this.formatValue(referenceKey , operator);
+
+        if(format.isRaw) {
+            
+            const join = [
+                this.model['$constants']('OR'),
+                this.model.bindColumn(localKey), 
+                format.value
+            ].join(' ')
+
+            this.join.push(join);
+
+            return this
         }
 
         const join = [
-            `${this.model['$constants']('OR')}`,
-            `${this.model.bindColumn(localKey)} = ${this.model.bindColumn(String(referenceKey))}`
+            this.model['$constants']('OR'),
+            this.model.bindColumn(localKey),
+            format.operator,
+            format.value
         ].join(' ')
 
         this.join.push(join)
@@ -176,13 +270,17 @@ class JoinModel {
     }
 
     protected toString() {
-        return this.join.join(' ')
+        return this.join.join(' ');
     }
 
-    private _handleJoinModel ( 
-        m1: TModelOrObject,
-        m2: TModelOrObject
+    private handleJoinModel ( 
+        m1: TModelOrObject | string,
+        m2: TModelOrObject | string
     ) {
+
+        if(typeof m1 === 'string' || typeof m2 === 'string') {
+            throw new Error('Please Check your callback')
+        }
 
         let model1      : Model  = typeof m1 === 'object' ? new m1.model() : new m1()
         let model2      : Model  = typeof m2 === 'object' ? new m2.model() : new m2()
@@ -225,31 +323,39 @@ class JoinModel {
         }
     }
 
-    private _handleCombindJoin (localKey: `${string}.${string}` , referenceKey ?: `${string}.${string}` , { operator = 'AND' }: { operator?: 'AND' | 'OR' } = {}) {
+    private onRaw (localKey: `${string}.${string}`, referenceKey : `${string}.${string}`) {
+       
+        const table = referenceKey.split('.')?.shift();
 
-        let table = referenceKey?.split('.')?.shift()
-
-        const aliasRef = /\|/.test(String(table))
-
-        if(aliasRef) {
-
-            const tableRef = table?.split('|')?.shift()
-
-            table = `\`${tableRef}\` ${this.model['$constants']('AS')} \`${table?.split('|')?.pop()}\``
-
-            referenceKey =  String(referenceKey?.split('|')?.pop() ?? referenceKey) as `${string}.${string}`
-        }
-
-        const alias = /\|/.test(String(localKey))
-
-        if(alias) {
-            localKey = String(localKey?.split('|')?.pop() ?? localKey) as `${string}.${string}`
-        }
-
-        return [
-            `${this.model['$constants'](operator)}`,
+        const join = [
+            `${this.model['$constants'](this.type)}`,
+            `\`${table}\` ${this.model['$constants']('ON')}`,
             `${this.model.bindColumn(localKey)} = ${this.model.bindColumn(String(referenceKey))}`
         ].join(' ')
+
+        this.join.push(join)
+
+        return this
+    }
+
+    private formatValue (value : unknown , operator: unknown) {
+        let formated = utils.formatQueryValue(value);
+
+        if(utils.checkValueHasRaw(value)) {
+            return { isRaw : true , value : formated , operator : null }
+        }
+
+        if (value == null) {
+            formated = '';
+            operator = `${this.model['$constants']('IS_NULL')}`;
+        }
+
+        if(Array.isArray(value)) {
+            formated = `(${value.map((v) => utils.formatQueryValue(v)).join(', ')})`;
+            operator = `${this.model['$constants']('IN')}`;
+        }
+
+        return { isRaw : false , value : formated , operator };
     }
 }
 
