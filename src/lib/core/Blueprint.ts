@@ -867,11 +867,13 @@ class Blueprint<T = any> {
    * @param {NumberConstructor|StringConstructor|BooleanConstructor|DateConstructor} type
    * @return {Blueprint<T>} Blueprint
    */
-  public transform<T extends ExtendType>(type: T): Blueprint<ResolveType<T>> {
-    const instance = new Blueprint<ResolveType<T>>()
-
-    instance._valueType = type;
-
+  public transform<T extends ExtendType>(_: T): Blueprint<ResolveType<T>> {
+    
+    const instance = Object.assign(
+      new Blueprint<ResolveType<T>>(),
+      this
+    );
+    
     return instance
   }
 
