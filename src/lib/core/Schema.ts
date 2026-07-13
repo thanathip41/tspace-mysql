@@ -6,6 +6,7 @@ import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
 import { T }            from "./UtilityTypes";
 import { AlterTable }   from "./Contracts/AlterTable";
+import DB from "./DB";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -979,6 +980,13 @@ class Schema {
     model: Model;
     log: boolean;
   }) {
+
+    if(DB.driver() === 'sqlite') {
+      console.log(
+        `\n\x1b[31mERROR: SQLite does not support changing columns\x1b[0m`
+      );
+      return;
+    }
 
     const schemaTable = await model.getSchema();
 

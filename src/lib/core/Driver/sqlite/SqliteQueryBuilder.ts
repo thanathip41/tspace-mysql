@@ -326,21 +326,8 @@ export class SqliteQueryBuilder extends QueryBuilder {
     attributes: string[];
   }) {
 
-    const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table.replace(/`/g, "")}\``,
-      this.$constants("CHANGE"),
-      `\`${column}\``,
-      `\`${column}\` ${type} ${
-        attributes != null && attributes.length
-          ? `${attributes
-              .filter((v: string) => !["PRIMARY KEY"].includes(v))
-              .join(" ")}`
-          : ""
-      }`,
-    ];
-
-    return this.format(sql);
+    throw new Error("SQLite does not support changing columns");
+    return ""
   }
 
   public getChildFKs({ database, table }: { database: string; table: string }) {
