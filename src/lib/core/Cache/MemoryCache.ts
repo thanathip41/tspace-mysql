@@ -1,5 +1,4 @@
 import { utils } from "../../utils";
-
 class MemoryCache {
     private cache: Map<string, { value: any, expiredAt: number }>;
 
@@ -23,7 +22,7 @@ class MemoryCache {
         })
     }
 
-    exists(key: string): Promise<boolean> {
+    async exists(key: string): Promise<boolean> {
         return new Promise((resolve) => {
             const cached = this.cache.get(key)
             return resolve(cached != null)
@@ -32,27 +31,35 @@ class MemoryCache {
 
     async get(key: string): Promise<any> {
         return await new Promise((resolve) => {
+            
             const cached = this.cache.get(key);
-
+           
             if (!cached) {
                 return resolve(null);
             }
-    
+
             if (Date.now() > cached.expiredAt) {
                 this.cache.delete(key);
                 return resolve(null);
             }
-    
-            return resolve(cached.value);
+
+            const value = utils.shallowClone(cached.value)
+
+            return resolve(value);
         });
     }
     
     async set(key: string, value: any, ms: number): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
+            
             const expiredAt = Date.now() + ms;
-            this.cache.set(key, { value, expiredAt });
-    
-            return resolve()
+
+            this.cache.set(key, { 
+                value     : utils.shallowClone(value), 
+                expiredAt : expiredAt 
+            });
+            
+            return resolve();
         });
     }
     

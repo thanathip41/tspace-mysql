@@ -595,6 +595,28 @@ const bindingParameters = (sql: string, parameters: (boolean | number | string |
     return bindSql;
 }
 
+const shallowClone = (value:any) => {
+    if(typeOf(value) === 'object') {
+        return {...value};
+    }
+
+    if(typeOf(value) === 'array') {
+        const values = [];
+
+        for (const v of value) {
+            values.push(
+                typeOf(v) === "object" 
+                ? { ...v } 
+                : v
+            );
+        }
+
+        return values
+    }
+
+    return value;
+}
+
 const utils = {
     typeOf,
     isDate,
@@ -629,7 +651,8 @@ const utils = {
     hash32,
     nestConditions,
     formatQueryValue,
-    bindingParameters
+    bindingParameters,
+    shallowClone
 }
 
 export type TUtils = typeof utils

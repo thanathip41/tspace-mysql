@@ -8244,7 +8244,7 @@ class Model<
 
     await this._observer(result, "selected");
 
-    this._setCache(result);
+    await this._setCache(result);
 
     return result;
   }
