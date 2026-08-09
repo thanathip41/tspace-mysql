@@ -18,7 +18,8 @@ import type {
     TUpdateInput,
     TInsertOrUpdateInput,
     TDefault,
-    TRemoveDefault
+    TRemoveDefault,
+    TAnyKeys
 } from "../types";
 
 import type { 
@@ -249,11 +250,11 @@ export declare namespace T {
 
     type Result<M extends Model<any,any,any>, K = {}> = 
     TDeepExpand<
-        TResultResolved<M> & K
+        TResultResolved<M> 
+        & K
+        & TAnyKeys
     > 
-    & {
-        [customKey : string]: unknown;
-    };
+   
 
     type PaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
     

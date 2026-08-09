@@ -662,3 +662,7 @@ export type TSaveModelResult<
         | T.UpdateResult<M>
         | T.UpdateManyResult<M>
         | T.Result<M>
+
+export type TAnyKeys = {
+    [customKey : string]: unknown;
+}
