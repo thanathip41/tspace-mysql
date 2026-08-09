@@ -26,6 +26,24 @@ tspace-mysql is an Object-Relational Mapping (ORM) tool designed to run seamless
 | **Blueprints**                 | Create a clear layout of the database structure and how models and tables relate to each other.          |
 | **CLI**                        | A Command Line Interface for managing models, running migrations, executing queries, and performing other tasks using commands (like `make:model`, `migrate`, and `query`). |
 
+## 📚 For LLMs & AI Assistants
+
+Complete Skills Documentation is available in the [`skills/`](../skills) folder. This includes comprehensive, verified guides for:
+
+- Model Setup & Blueprint
+- Query Builder & SQL Operations
+- Relationships (hasOne, hasMany, belongsTo, belongsToMany)
+- Repository Pattern
+- Decorators
+- Type Safety (T namespace)
+- Transactions
+- Caching (DB_CACHE, .cache())
+- Queue System
+- CLI Commands
+- Complete Real-World Examples
+
+All skills documentation is **100% verified** against the source code.
+
 ## Install
 
 Install with [npm](https://www.npmjs.com/):

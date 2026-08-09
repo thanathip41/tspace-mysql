@@ -43,7 +43,29 @@ npm install -g tspace-mysql
 
 ## Documentation
 
-See the [`docs`](https://thanathip41.github.io/tspace-mysql) directory for full documentation.
+### For LLMs & AI Assistants
+
+📚 **Complete Skills Documentation** is available in the [`skills/`](./skills) folder. This includes comprehensive, verified guides for:
+
+- Model Setup & Blueprint
+- Query Builder & SQL Operations
+- Relationships (hasOne, hasMany, belongsTo, belongsToMany)
+- Repository Pattern
+- Decorators
+- Type Safety (T namespace)
+- Transactions
+- Caching (DB_CACHE, .cache())
+- Queue System
+- CLI Commands
+- Complete Real-World Examples
+
+All skills documentation is **100% verified** against the source code.
+
+### Human-Readable Documentation
+
+See the [`docs/`](./docs) directory for full documentation with examples.
+
+Online: https://thanathip41.github.io/tspace-mysql
 
 ## TypeScript
 
