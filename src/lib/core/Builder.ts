@@ -3964,21 +3964,25 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {promise<any[]>}
    */
   public async get(cb?: Function): Promise<any[]> {
-    if (this.$state.get("EXCEPTS")?.length)
-      this.select(...(await this.exceptColumns()));
 
+    if (this.$state.get("VOID")) return [];
+
+    if (this.$state.get("EXCEPTS")?.length) {
+      this.select(...(await this.exceptColumns()));
+    }
+      
     let sql: string = this._queryBuilder().select();
 
     if (cb) {
       const callbackSql = cb(sql);
-      if (callbackSql == null || callbackSql === "")
+      if (callbackSql == null || callbackSql === "") {
         throw new Error("Please provide a callback for execution");
+      }
+        
       sql = callbackSql;
     }
 
     const result: any[] = await this._queryStatement(sql);
-
-    if (this.$state.get("VOID")) return [];
 
     await this.$utils.hookHandle(this.$state.get("HOOKS"), result || []);
 
@@ -4011,6 +4015,28 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     const result: any[] = await this._queryStatement(sql);
 
     return this._resultHandler(JSON.stringify(result));
+  }
+
+  /**
+   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
+   *
+   * It retrieves multiple records from a database table based on the criteria specified in the query.
+   * The optional callback function can be used to modify the generated SQL query before execution.
+   *
+   * @param {Function?} cb callback function return query sql
+   * @returns {AsyncIterable<any>}
+   */
+  public async *toAsyncIterable(cb?: Function): AsyncIterable<any>  {
+
+    if (this.$state.get("VOID")) return yield* [];
+
+    const results = await this.get(cb);
+
+    for(const result of results) {
+      yield result;
+    }
+
+    return 
   }
 
   /**

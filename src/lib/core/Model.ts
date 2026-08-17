@@ -6002,6 +6002,25 @@ class Model<
   }
 
   /**
+   * 
+   * @override
+   * @param {Function?} cb callback function return query sql
+   * @returns {AsyncIterable<T.Result<this, K>>}
+   */
+  public async *toAsyncIterable<K>(cb?: Function): AsyncIterable<T.Result<this, K>> {
+    
+    if (this.$state.get("VOID")) return yield* [];
+
+    const results : any[]  = await this.get(cb);
+
+    for(const result of results) {
+      yield result;
+    }
+
+    return;
+  }
+
+  /**
    * @override
    * @param {string=} column [column=id]
    * @returns {promise<Array>}
@@ -6147,6 +6166,7 @@ class Model<
    * @returns {promise<array>} Array
    */
   public async get<K>(cb?: Function): Promise<T.Result<this, K>[]> {
+
     if (this.$state.get("VOID")) return [];
 
     await this._prepareQueryPipeline();
@@ -6182,6 +6202,7 @@ class Model<
   public async findMany<K>(cb?: Function): Promise<T.Result<this, K>[]> {
     return await this.get(cb);
   }
+
   /**
    * @override
    * @param    {object?}  opts by default page = 1 , limit = 15
