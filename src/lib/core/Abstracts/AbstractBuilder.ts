@@ -119,7 +119,6 @@ abstract class AbstractBuilder {
     abstract getGroupBy (column : string,): Promise<Map<string | number , any[]>>
     abstract findGroupBy (column : string,): Promise<Map<string | number , any[]>>
     abstract toArray (column : string,): Promise<any[]>
-    abstract toJSON(): Promise<string>
     abstract toSQL(): string
     abstract toString(): string
     abstract count (column : string): Promise<number>

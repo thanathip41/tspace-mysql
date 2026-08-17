@@ -329,44 +329,7 @@ class RepositoryFactory<
 
     return instance.toString();
   }
-
-  /**
-   * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   *
-   * It returns a JSON formatted.
-   * @type     {?object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {?boolean} options.debug
-   * @property {?number} options.page
-   * @returns {string} json
-   */
-  public async toJSON(
-    options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
-    > = {}
-  ): Promise<string> {
-    
-    const instance = this._handlerRequest(options as any);
-
-    if (instance == null) throw new Error("The instance is not initialized");
-    return await instance.toJSON();
-  }
-
+  
   /**
    * The 'toArray' method is used to execute a database query and retrieve the result set that matches the query conditions.
    *

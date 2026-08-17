@@ -4001,23 +4001,6 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   /**
-   *
-   * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   *
-   * It returns a JSON formatted
-   * @returns {promise<string>}
-   */
-  public async toJSON(): Promise<string> {
-    const sql: string = this._queryBuilder().select();
-
-    const result: any[] = await this._queryStatement(sql);
-
-    return this._resultHandler(JSON.stringify(result));
-  }
-
-  /**
    * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
    *
    * It retrieves multiple records from a database table based on the criteria specified in the query.
