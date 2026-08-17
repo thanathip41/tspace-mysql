@@ -4032,11 +4032,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const results = await this.get(cb);
 
-    for(const result of results) {
-      yield result;
-    }
-
-    return 
+    return yield* results;
   }
 
   /**
