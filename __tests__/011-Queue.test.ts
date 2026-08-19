@@ -1,6 +1,10 @@
 import { expect } from 'chai'
 import { describe, it, before, after } from 'mocha'
 import { Queue, Job } from '../src/lib'
+
+const sleep = async (ms : number) => {
+  return await new Promise(r => setTimeout(r, ms))
+}
 describe('Queue Tests', function () {
   
   before(async function () {
@@ -123,7 +127,7 @@ describe('Queue Tests', function () {
       expect(stats.pending).to.be.equal(1)
       
       // Wait for delay to pass
-      await new Promise(r => setTimeout(r, 4000))
+      await sleep(5000);
     })
 
     it('should add multiple jobs with different priorities', async function () {
@@ -155,7 +159,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for processing
-      await new Promise(r => setTimeout(r, 3000))
+      await sleep(5000);
       
       expect(processedJob).to.not.be.null
   
@@ -180,13 +184,13 @@ describe('Queue Tests', function () {
         currentConcurrent++
         maxObservedConcurrent = Math.max(maxObservedConcurrent, currentConcurrent)
         processedJobs.push(job)
-        await new Promise(r => setTimeout(r, 100))
+        await sleep(100);
         currentConcurrent--
         return 'done'
       }, { concurrency: maxConcurrent })
       
       // Wait for processing
-      await new Promise(r => setTimeout(r, 5000))
+      await sleep(5000);
       
       expect(processedJobs.length).to.be.equal(10)
       expect(maxObservedConcurrent).to.be.lessThanOrEqual(maxConcurrent)
@@ -211,7 +215,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for retries
-      await new Promise(r => setTimeout(r, 5000))
+      await sleep(5000);
       
       expect(attemptCount).to.be.equal(3)
     })
@@ -236,7 +240,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for all retries
-      await new Promise(r => setTimeout(r, 5000));
+      await sleep(5000);
       
       const stats = await Queue.getJobOverallStats(jobName)
       expect(stats.failed).to.be.equal(1)
@@ -367,7 +371,7 @@ describe('Queue Tests', function () {
         return 'done'
       }, { concurrency: 1 })
       
-      await new Promise(r => setTimeout(r, 3000))
+      await sleep(5000);
       
       // priorities (higher number = higher priority)
       expect(processedOrder[0]).to.be.equal(100)
@@ -395,7 +399,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for delay + processing
-      await new Promise(r => setTimeout(r, 4000))
+      await sleep(4000);
 
       expect(processedTime).to.not.be.null
       expect(processedTime! - addedTime!).to.be.greaterThanOrEqual(2000)
@@ -418,12 +422,12 @@ describe('Queue Tests', function () {
       
       Queue.on(jobName, async (job) => {
         processedCount++
-        await new Promise(r => setTimeout(r, 200))
+        await sleep(200);
         return 'done'
       }, { concurrency: 1 })
       
       // Wait a bit for some processing
-      await new Promise(r => setTimeout(r, 500))
+      await sleep(500);
       
       // Shutdown should wait for active jobs
       await Queue.end()
