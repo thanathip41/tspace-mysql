@@ -4415,19 +4415,22 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public whereIn<K extends T.ColumnKeys<this>>(column: K, array: any[]): this {
+  public whereIn<
+    K extends T.ColumnKeys<this>,
+    V extends T.ColumnValue<this, K>
+  >(column: K, array: V[]): this {
 
     if (!Array.isArray(array)) array = [array];
 
     if(!array.length) {
-      array = [DB.raw(this.$constants("NULL"))];
+      array = [DB.raw(this.$constants("NULL"))] as V[];
     }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
       const values = array.length ? `${array
-          .map((value: string) => {
+          .map((value) => {
             return this.$utils.formatQueryValue(value)
           }
             ,
@@ -4447,7 +4450,7 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("IN")}`,
         value: array
-        .map((value: string) => {
+        .map((value) => {
           return this.$utils.formatQueryValue(value)
         })
       }
@@ -4462,21 +4465,24 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public orWhereIn<K extends T.ColumnKeys<this>>(
+  public orWhereIn<
+    K extends T.ColumnKeys<this>,
+    V extends T.ColumnValue<this, K>
+  >(
     column: K,
-    array: any[],
+    array: V[],
   ): this {
     if (!Array.isArray(array)) array = [array];
 
     if(!array.length) {
-      array = [DB.raw(this.$constants("NULL"))];
+      array = [DB.raw(this.$constants("NULL"))] as V[];
     }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
       const values = array.length ? `${array
-          .map((value: string) => {
+          .map((value) => {
             return this.$utils.formatQueryValue(value)
           }
             ,
@@ -4497,7 +4503,7 @@ class Model<
         condition : 'OR',          
         operator : `${this.$constants("IN")}`,
         value: array
-        .map((value: string) => {
+        .map((value) => {
           return this.$utils.formatQueryValue(value)
         })
       }
@@ -4512,21 +4518,24 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public whereNotIn<K extends T.ColumnKeys<this>>(
+  public whereNotIn<
+    K extends T.ColumnKeys<this>,
+    V extends T.ColumnValue<this, K>
+  >(
     column: K,
-    array: any[],
+    array: V[],
   ): this {
     if (!Array.isArray(array)) array = [array];
 
     if(!array.length) {
-      array = [DB.raw(this.$constants("NULL"))];
+      array = [DB.raw(this.$constants("NULL"))] as V[];
     }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
       const values = array.length ? `${array
-          .map((value: string) => {
+          .map((value) => {
             return this.$utils.formatQueryValue(value)
           }
             ,
@@ -4546,7 +4555,7 @@ class Model<
         column : this.bindColumn(String(column)),             
         operator : `${this.$constants("NOT_IN")}`,
         value: array
-        .map((value: string) => {
+        .map((value) => {
           return this.$utils.formatQueryValue(value)
         })
       }
@@ -4561,21 +4570,24 @@ class Model<
    * @param {array} array
    * @returns {this}
    */
-  public orWhereNotIn<K extends T.ColumnKeys<this>>(
+  public orWhereNotIn<
+    K extends T.ColumnKeys<this>,
+    V extends T.ColumnValue<this, K>
+  >(
     column: K,
-    array: any[],
+    array: V[],
   ): this {
     if (!Array.isArray(array)) array = [array];
 
     if(!array.length) {
-      array = [DB.raw(this.$constants("NULL"))];
+      array = [DB.raw(this.$constants("NULL"))] as V[];
     }
 
     const blueprint = this._getBlueprintByColumn(String(column));
 
     if (blueprint?.isVirtual) {
       const values = array.length ? `${array
-          .map((value: string) => {
+          .map((value) => {
             return this.$utils.formatQueryValue(value)
           }
             ,
@@ -4596,7 +4608,7 @@ class Model<
         operator : `${this.$constants("NOT_IN")}`,
         condition : 'OR',
         value: array
-        .map((value: string) => {
+        .map((value) => {
           return this.$utils.formatQueryValue(value)
         })
       }
