@@ -2,7 +2,6 @@ import type { T }       from "./UtilityTypes";
 import { Blueprint }    from "./Blueprint";
 import { DB }           from "./DB";;
 import { Model }        from "./Model";
-import { Meta }         from "./Meta";
 
 export type Job<T = any> = {
   id      : number;
@@ -107,14 +106,21 @@ class Worker extends Model<TS> {
     private INSPECT_EXEC      = false;
     private STOPPING          = false;
     private IS_FLUSHING       = false;
-
-    private LIMIT_CONNECTIONS = 41;
-    private MAX_IDLE_RETRIES  = 15;
     private ACTIVE_JOBS       = 0;
+
+    private MAX_IDLE_RETRIES  = 5;
     private BATCH_SIZE        = 1000;
     private MAX_WAIT_MS       = 50;
-  
-    private BUFFER            = {
+
+    private POLL = {
+        interval : null,
+        timeout : 1000 * 60
+    } as {
+        interval : NodeJS.Timeout | null,
+        timeout : number
+    }
+
+    private BUFFER = {
         jobs : [],
         timeout : null
     } as { 
@@ -122,7 +128,7 @@ class Worker extends Model<TS> {
         timeout: NodeJS.Timeout | null 
     };
 
-    private WORKER_STATE     = new Map<string, {
+    private WORKER_STATE = new Map<string, {
         handler     : Handler;
         idle        : number;
         sleeping    : boolean;
@@ -142,7 +148,10 @@ class Worker extends Model<TS> {
         flush            ?: boolean;
         hostname         ?: string;
         maxIdleRetries   ?: number;
-        limitConnections ?: number;
+        poll           ?: {
+            enabled ?: boolean;
+            timeout ?: number;
+        };
     } = {}) {
 
         const driver = DB.driver();
@@ -170,15 +179,12 @@ class Worker extends Model<TS> {
             this.MAX_IDLE_RETRIES = opts.maxIdleRetries;
         }
 
-        if(opts.limitConnections) {
-            this.LIMIT_CONNECTIONS = opts.limitConnections;
-        } 
-        else {
-            const maxConnections = await DB.getMaxConnections().catch(() => null);
+        if (opts.poll?.enabled !== false) {
+            this.POLL.timeout = opts.poll?.timeout ?? this.POLL.timeout;
 
-            this.LIMIT_CONNECTIONS = maxConnections
-            ? Math.max(10, Math.floor(maxConnections / 3))
-            : this.LIMIT_CONNECTIONS;
+            this.POLL.interval = setInterval(() => {
+                this._pollWorkerJobs();
+            }, this.POLL.timeout);
         }
 
         return this;
@@ -186,18 +192,25 @@ class Worker extends Model<TS> {
 
     public async shutdown() {
 
-        this.STOPPING = true
-
         while (this.ACTIVE_JOBS > 0) {
             if(this.INSPECT_EXEC) {
                console.log(`\x1b[34mQueue:\x1b[0m Currently processing ${this.ACTIVE_JOBS} job(s)`)
             }
                 
-            await new Promise(r => setTimeout(r, 200))
+            await new Promise(r => setTimeout(r, 200));
         }
 
+        await new Promise(r => setTimeout(r, 2000));
+
+        if (this.POLL.interval) {
+            clearInterval(this.POLL.timeout);
+            this.POLL.interval = null;
+        }
+
+        this.STOPPING = true;
+
         if(this.INSPECT_EXEC) {
-            console.log("\x1b[34mQueue:\x1b[0m \x1b[32mJob processing stopped\x1b[0m")
+            console.log("\x1b[34mQueue:\x1b[0m \x1b[31mJob processing stopped\x1b[0m")
         }
     }
 
@@ -295,12 +308,14 @@ class Worker extends Model<TS> {
                 name,
                 payload: payload == null ? null : this.safeJsonStringify(payload),
                 status: 'pending',
-                delay_ms: opts.delayMs ?? 0,
-                available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
                 priority: opts.priority ?? 0,
                 attempts: 0,
                 max_attempts: opts.maxAttempts ?? 3,
-                metadata: opts.metadata ? this.safeJsonStringify(opts.metadata) : null
+                metadata: opts.metadata ? this.safeJsonStringify(opts.metadata) : null,
+                delay_ms: opts.delayMs ?? 0,
+                available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
+                created_at: new Date(),
+                updated_at : new Date()
             } as T.Result<Worker>;
 
             this.BUFFER.jobs.push({ jobData, resolve, reject });
@@ -345,9 +360,10 @@ class Worker extends Model<TS> {
             if (!state) return;
 
             if (state.running >= state.opts.concurrency) {
-                const jitter = Math.random() * 200;
+                const jitter = Math.floor(Math.random() * 2000) + 500
+                const delayMs = (state.opts.interval! ?? 0) + jitter
                 state.running--
-                setTimeout(dispatch, state.opts.interval + jitter);
+                setTimeout(dispatch, delayMs);
                 return;
             }
 
@@ -368,10 +384,10 @@ class Worker extends Model<TS> {
                     return
                 }
 
-                const backoff = Math.min(1000, 50 * state.idle);
-                const jitter = Math.random() * 200;
+                const jitter = Math.floor(Math.random() * 4000) + 1000
+                const delayMs = (opts.interval! ?? 0) + jitter;
 
-                setTimeout(dispatch, opts.interval! + backoff + jitter);
+                setTimeout(dispatch, delayMs);
                 return;
             }
 
@@ -413,7 +429,8 @@ class Worker extends Model<TS> {
             .update({
                 status: 'completed',
                 result: this.safeJsonStringify(result),
-                completed_at: this.$utils.timestamp()
+                completed_at: this.$utils.timestamp(),
+                attempts : 0
             })
             .void()
             .save()
@@ -466,7 +483,7 @@ class Worker extends Model<TS> {
                         status: 'completed',
                         attempts,
                         result: this.safeJsonStringify(result),
-                        completed_at: this.$utils.timestamp()
+                        completed_at: this.$utils.timestamp(),
                     })
                     .void()
                     .save();
@@ -491,11 +508,11 @@ class Worker extends Model<TS> {
                             status: 'failed',
                             attempts,
                             error: this.safeJsonStringify({
-                            retry  : true,
-                            message: err?.message,
-                            name: err?.name,
-                            stack: err?.stack,
-                            code: err?.code,
+                                retry  : true,
+                                message: err?.message,
+                                name: err?.name,
+                                stack: err?.stack,
+                                code: err?.code,
                             }),
                         })
                         .void()
@@ -527,35 +544,8 @@ class Worker extends Model<TS> {
         .where('name', name)
         .whereQuery(query => {
             return query
-            .where('status','=','pending')
-            .when(DB.driver() === 'mysql' || DB.driver() === 'mariadb', (q) => { 
-                return q.whereRaw(
-                    `DATE_SUB(
-                        ${Meta(Worker).columnRef('available_at')}, 
-                        INTERVAL (${Meta(Worker).columnRef('delay_ms')} * 1000) MICROSECOND
-                    ) <= ?`,
-                    [`'${this.$utils.timestamp()}'`]
-                )
-               
-            }) 
-            .when(DB.driver() === 'postgres', (q) => {
-                return q.whereRaw(
-                    `${Meta(Worker).columnRef('available_at')}
-                    - 
-                    (${Meta(Worker).columnRef('delay_ms')} * INTERVAL '1 millisecond')
-                    <= ?`,
-                    [`'${this.$utils.timestamp()}'`]
-                )
-            })
-            .when(DB.driver() === 'sqlite', (q) => {
-                return q.whereRaw(
-                    `datetime(
-                        ${Meta(Worker).columnRef('available_at')},
-                        '-' || (${Meta(Worker).columnRef('delay_ms')} / 1000.0) || ' seconds'
-                    ) <= ?`,
-                    [`'${this.$utils.timestamp()}'`]
-                )
-            })
+            .whereIn('status',['pending'])
+            .where('created_at', '<=', this.$utils.timestamp())
             .orWhereQuery((q) => {
                 return q
                 .where('status', '=', 'active')
@@ -607,7 +597,6 @@ class Worker extends Model<TS> {
             }))
         })
     }
-
     private async _flushBuffer(name : string) {
 
         if (this.IS_FLUSHING || this.BUFFER.jobs.length === 0) return;
@@ -671,11 +660,9 @@ class Worker extends Model<TS> {
             }
         }
     }
-
     private _wakeWorker(name: string) {
 
         const state = this.WORKER_STATE.get(name);
-
         if (!state || !state.sleeping || !state.handler) return;
 
         const isSleeping = state.sleeping;
@@ -689,12 +676,43 @@ class Worker extends Model<TS> {
         }
 
         if(isSleeping) {
-            this.process(name, state.handler, { 
-                concurrency : state.opts.concurrency 
-            });
+            this.process(name, state.handler, state.opts);
         }
     }
+    private async _pollWorkerJobs () {
 
+        const faileds = await new Worker()
+        .select('id')
+        .whereIn('status',['pending','failed'])
+        .where('available_at', '<=', this.$utils.timestamp())
+        .get();
+
+        await new Worker()
+        .updateMany({
+            status : 'pending',
+            attempts : 0
+        })
+        .whereIn('id',faileds.map(f => f.id))
+        .void()
+        .save()
+
+        const names = await new Worker()
+        .select('name')
+        .whereIn('status',['pending'])
+        .where('available_at', '<=', this.$utils.timestamp())
+        .groupBy('name')
+        .toArray('name');
+
+        if (this.INSPECT_EXEC) {
+            console.log(`\x1b[34mQueue:\x1b[0m \x1b[32mPoll checked\x1b[0m (${names.length} pending)`);
+        }
+
+        for(const name of names) {
+            this._wakeWorker(name)
+        }
+
+        return;
+    }
     private safeJsonParse(payload:any){
         try {
             return JSON.parse(payload);
@@ -702,7 +720,6 @@ class Worker extends Model<TS> {
             return payload;
         }
     }
-
     private safeJsonStringify(payload: any) {
 
         if(payload == null) return null;
@@ -729,7 +746,6 @@ class Worker extends Model<TS> {
             return payload
         }
     }
-
 }
 
 /**
@@ -768,11 +784,13 @@ class Queue {
     /**
      * The 'start' method is used to initialize the Queue system.
      * Creates and prepares the underlying Worker instance.
+     * 
      * @param {Object} [opts] - options (inspect, flush)
-     * @property {boolean} opts.inspect queue work flow
-     * @property {boolean} opts.flush  remove all queue
-     * @property {number} opts.maxIdleRetries - Maximum idle time () when no jobs are available
-     * @property {number} opts.limitConnections - Allowed DB connections limit before pausing
+     * @property {boolean?} opts.inspect queue work flow
+     * @property {boolean?} opts.flush  remove all queue
+     * @property {number?} opts.maxIdleRetries - Maximum idle time () when no jobs are available
+     * @property {boolean} [opts.poll.enabled] - Enable or disable worker job polling.
+     * @property {number} [opts.poll.timeout] - Polling interval in milliseconds.
      * @returns {Promise<void>}
      */
     static async start(opts: { 
@@ -780,7 +798,10 @@ class Queue {
         flush            ?: boolean; 
         hostname         ?: string;
         maxIdleRetries   ?: number;
-        limitConnections ?: 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 | 150 | 200;
+        poll           ?: {
+            enabled ?: boolean;
+            timeout ?: number;
+        };
     } = {}): Promise<void> {
 
       this.WORKER = await new Worker().initialize(opts);
