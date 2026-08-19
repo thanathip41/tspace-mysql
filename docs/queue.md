@@ -24,10 +24,15 @@ const fakeSendEmail = async (job: Job) => {
 
 // start the Queue
 await Queue.start({ 
-  inspect : true, 
-  flush : false, // flush = true -> remove all jobs
-  hostname: 'pod1'
-}); 
+  inspect  : true,    // @default false, enable queue workflow inspection
+  flush    : false,   // @default false, true -> remove all jobs
+  hostname : 'pod1',  // @default null, worker hostname
+  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
+  poll : {            
+    enabled : true,   // @default false, enable periodic job checking
+    timeout : 10_000  // @default 60_000, polling interval
+  };
+});  
 
 const worker = 20;
 
