@@ -11,7 +11,7 @@ describe('Queue Tests', function () {
     this.timeout(30000)
     // Initialize Queue with flush to clean up previous test data
     await Queue.start({ 
-      inspect: false, 
+      inspect: true, 
       flush: true 
     })
   })
@@ -44,7 +44,7 @@ describe('Queue Tests', function () {
       
       // Re-initialize for other tests
       await Queue.start({ 
-        inspect: false, 
+        inspect: true, 
         flush: true 
       })
     })
@@ -177,13 +177,14 @@ describe('Queue Tests', function () {
       
       // Add jobs
       for (let i = 0; i < 10; i++) {
-        await Queue.add(jobName, { index: i })
+        Queue.add(jobName, { index: i })
       }
       
       Queue.on(jobName, async (job: Job) => {
         currentConcurrent++
         maxObservedConcurrent = Math.max(maxObservedConcurrent, currentConcurrent)
         processedJobs.push(job)
+        console.log('job: ->' , job.id)
         await sleep(100);
         currentConcurrent--
         return 'done'
@@ -191,7 +192,8 @@ describe('Queue Tests', function () {
       
       // Wait for processing
       await sleep(5000);
-      
+
+    
       expect(processedJobs.length).to.be.equal(10)
       expect(maxObservedConcurrent).to.be.lessThanOrEqual(maxConcurrent)
     })
@@ -358,7 +360,7 @@ describe('Queue Tests', function () {
       const jobName = 'priority-order'
       const processedOrder: number[] = []
       
-      await Queue.flush();
+      // await Queue.flush();
 
       // Add jobs with different priorities (higher number = higher priority)
       Queue.add(jobName, { priority: 1 }, { priority: 1 })
@@ -436,7 +438,10 @@ describe('Queue Tests', function () {
       expect(processedCount).to.be.greaterThan(0)
       
       // Re-initialize for any subsequent tests
-      await Queue.start({ flush: false })
+      await Queue.start({ 
+        inspect: true, 
+        flush: false
+      })
     })
   })
 
