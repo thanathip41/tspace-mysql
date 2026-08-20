@@ -179,7 +179,7 @@ class Worker extends Model<TS> {
             this.MAX_IDLE_RETRIES = opts.maxIdleRetries;
         }
 
-        if (opts.poll?.enabled !== false) {
+        if (opts.poll?.enabled) {
             this.POLL.timeout = opts.poll?.timeout ?? this.POLL.timeout;
 
             this.POLL.interval = setInterval(() => {
