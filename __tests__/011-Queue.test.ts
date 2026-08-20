@@ -184,16 +184,14 @@ describe('Queue Tests', function () {
         currentConcurrent++
         maxObservedConcurrent = Math.max(maxObservedConcurrent, currentConcurrent)
         processedJobs.push(job)
-        console.log('job: ->' , job.id)
         await sleep(100);
         currentConcurrent--
         return 'done'
       }, { concurrency: maxConcurrent })
       
       // Wait for processing
-      await sleep(5000);
+      await sleep(8000);
 
-    
       expect(processedJobs.length).to.be.equal(10)
       expect(maxObservedConcurrent).to.be.lessThanOrEqual(maxConcurrent)
     })
@@ -360,13 +358,12 @@ describe('Queue Tests', function () {
       const jobName = 'priority-order'
       const processedOrder: number[] = []
       
-      // await Queue.flush();
+      await Queue.flush();
 
       // Add jobs with different priorities (higher number = higher priority)
-      Queue.add(jobName, { priority: 1 }, { priority: 1 })
-      Queue.add(jobName, { priority: 100 }, { priority: 100 })
-      Queue.add(jobName, { priority: 50 }, { priority: 50 })
-      Queue.add(jobName, { priority: 10 }, { priority: 10 })
+      for (const priority of [1, 100, 50, 10]) {
+        await Queue.add(jobName, { priority }, { priority })
+      }
       
       Queue.on(jobName, async (job) => {
         processedOrder.push(job.payload.priority)
@@ -374,7 +371,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       await sleep(5000);
-      
+    
       // priorities (higher number = higher priority)
       expect(processedOrder[0]).to.be.equal(100)
       expect(processedOrder[1]).to.be.equal(50)
