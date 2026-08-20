@@ -91,12 +91,12 @@ const schema = {
     delay_ms     : Blueprint.int().default(0),
 
     locked_by    : Blueprint.text().null(),
-    locked_at    : Blueprint.timestamp().null(),
+    locked_at    : Blueprint.datetime().null(),
 
-    available_at : Blueprint.timestamp().notNull(),
-    completed_at : Blueprint.timestamp().null(),
-    created_at   : Blueprint.timestamp().null(),
-    updated_at   : Blueprint.timestamp().null()
+    available_at : Blueprint.datetime().notNull(),
+    completed_at : Blueprint.datetime().null(),
+    created_at   : Blueprint.datetime().null(),
+    updated_at   : Blueprint.datetime().null()
 };
 
 type TS = T.Schema<typeof schema>
@@ -215,7 +215,14 @@ class Worker extends Model<TS> {
     }
 
     public async flush() {
+        const jobs = await new Worker().count('id');
+        
         await this.truncate({ force: true })
+
+        if(this.INSPECT_EXEC) {
+          console.log(`\x1b[34mQueue:\x1b[0m \x1b[31mFlush all jobs (${jobs} jobs)\x1b[0m`);
+        }
+
         return;
     }
 
