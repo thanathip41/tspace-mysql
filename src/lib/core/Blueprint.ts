@@ -680,6 +680,55 @@ class Blueprint<T = any> {
     return instance;
   }
 
+  /**
+   * Assign 'raw' in table
+   * @static
+   * @param {object} opts
+   * @property {string} opts.select
+   * @property {string | undefined} opts.where
+   * @return {Blueprint<T>} Blueprint
+   * @example
+   * const schema = {
+   *   raw   : Blueprint.raw({ type : 'DECIMAL(10, 2)' , attribute : 'DEFAULT(1)'}),
+   *   enums : Blueprint.raw({ type : `ENUM('pending', 'active', 'banned')` , attribute : `DEFAULT 'pending'`}),
+   * }
+   */
+  public static raw(opts : { 
+    type: string; 
+    attribute ?: string 
+  }): Blueprint<string> {
+    return new Blueprint<string>().raw(opts);
+  }
+
+  /**
+   * Assign 'raw' in table
+   * @param {object} opts
+   * @property {string} opts.select
+   * @property {string | undefined} opts.where
+   * @return {Blueprint<T>} Blueprint
+   * * @example
+   * const schema = {
+   *   raw   : Blueprint.raw({ type : 'DECIMAL(10, 2)' , attribute : 'DEFAULT(1)'}),
+   *   enums : Blueprint.raw({ type : `ENUM('pending', 'active', 'banned')` , attribute : `DEFAULT 'pending'`}),
+   * }
+   */
+  public raw(opts : { 
+    type      : string; 
+    attribute ?: string 
+  }): Blueprint<string> {
+    const instance = new Blueprint<string>();
+
+    instance._addAssignType(opts.type);
+
+    if(opts.attribute) {
+      instance._addAssignAttribute(opts.attribute);
+    }
+
+    instance._valueType = String;
+
+    return instance;
+  }
+
   //---------------------------- attributes ------------------------------------//
 
   /**
