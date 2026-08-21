@@ -577,11 +577,18 @@ type CleanDefaultType<T> = T extends any
             : T
     : never;
 
-type IsOptional<T> = null extends T 
-    ? true 
-    : (T extends any ? (T extends { __isDefault: true } ? true : never) : never) extends never 
-        ? false 
-        : true;
+type IsOptional<T> =
+    null extends T
+        ? true
+        : undefined extends T
+            ? true
+            : (T extends any
+                ? T extends { __isDefault: true }
+                    ? true
+                    : never
+                : never) extends never
+                ? false
+                : true;
 
 export type TInsertInput<K, C> = {
     [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
