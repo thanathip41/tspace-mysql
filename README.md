@@ -2988,22 +2988,27 @@ import { PostUser } from './PostUser'
 
 class UserObserve {
 
-    public selected(results) {
-      console.log({ results , selected : true })
-    }
-
-    public created(results) {
-        console.log({ results , created : true })
-    }
-
-    public updated(results) {
-      console.log({ results , updated : true })
-    }
-
-    public deleted(results) {
-      console.log({ results , deleted : true })
-    }
+  public selected(results) {
+    console.log({ results , selected : true })
   }
+
+  public created(results) {
+      console.log({ results , created : true })
+  }
+
+  public updated(results) {
+    console.log({ results , updated : true })
+  }
+
+  public deleted(results) {
+    console.log({ results , deleted : true })
+  }
+}
+
+enum UserRole {
+  Admin = 'admin',
+  User  = 'user',
+}
 
 @Pattern('camelCase')
 @Observer(UserObserve)
@@ -3038,6 +3043,9 @@ class User extends Model {
 
     @Column(() => Blueprint.varchar(50).null())
     public password !: string
+
+    @Column(() => Blueprint.enum(...Object.values(UserRole)).default(UserRole.Admin))
+    public role !: `${UserRole}`
 
     @Column(() => Blueprint.timestamp().null())
     public createdAt!: Date
