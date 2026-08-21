@@ -3044,7 +3044,7 @@ class User extends Model {
     @Column(() => Blueprint.varchar(50).null())
     public password !: string
 
-    @Column(() => Blueprint.enum(...Object.values(UserRole)).default(UserRole.Admin))
+    @Column(() => Blueprint.enum(UserRole).default(UserRole.Admin))
     public role !: `${UserRole}`
 
     @Column(() => Blueprint.timestamp().null())
@@ -4428,7 +4428,13 @@ Blueprint is a tool used for defining database schemas programmatically.
 It allows developers to describe the structure of their database tables using a simple and intuitive syntax rather than writing SQL queries directly., you may use the:
 
 ```js
-import { Schema , Blueprint , DB } from 'tspace-mysql'
+import { Schema , Blueprint , DB } from 'tspace-mysql';
+
+enum UserRole {
+  Admin   = 'admin',
+  User    = 'user',
+}
+
 (async () => {
     await new Schema().table('users', {
         id           : Blueprint.int().notNull().primary().autoIncrement(),
@@ -4439,6 +4445,7 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
         email_verify : Blueprint.tinyInt(),
         password     : Blueprint.varchar(255),
         json         : Blueprint.json(),
+        role         : Blueprint.enum(UserRole).default(UserRole.Admin)
         created_at   : Blueprint.null().timestamp(),
         updated_at   : Blueprint.null().timestamp(),
         deleted_at   : Blueprint.null().timestamp()
@@ -4471,6 +4478,10 @@ enum(...n)
 date()
 dateTime()
 timestamp ()
+raw({ 
+  type : 'DECIMAL(10, 2)', 
+  attribute : 'DEFAULT(1)'
+})
 
 /**
  * To add attributes of the schema to the database

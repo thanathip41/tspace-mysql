@@ -4,7 +4,13 @@ Blueprint is a tool used for defining database schemas programmatically.
 It allows developers to describe the structure of their database tables using a simple and intuitive syntax rather than writing SQL queries directly., you may use the:
 
 ```js
-import { Schema , Blueprint , DB } from 'tspace-mysql'
+import { Schema , Blueprint , DB } from 'tspace-mysql';
+
+enum UserRole {
+  Admin   = 'admin',
+  User    = 'user',
+}
+
 (async () => {
     await new Schema().table('users', {
         id           : Blueprint.int().notNull().primary().autoIncrement(),
@@ -15,6 +21,7 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
         email_verify : Blueprint.tinyInt(),
         password     : Blueprint.varchar(255),
         json         : Blueprint.json(),
+        role         : Blueprint.enum(UserRole).default(UserRole.Admin)
         created_at   : Blueprint.null().timestamp(),
         updated_at   : Blueprint.null().timestamp(),
         deleted_at   : Blueprint.null().timestamp()

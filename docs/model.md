@@ -1122,7 +1122,7 @@ class User extends Model {
   @Column(() => Blueprint.varchar(50).null())
   public password !: string
 
-  @Column(() => Blueprint.enum(...Object.values(UserRole)).default(UserRole.Admin))
+  @Column(() => Blueprint.enum(UserRole).default(UserRole.Admin))
   public role !: `${UserRole}`
 
   @Column(() => Blueprint.timestamp().null())
