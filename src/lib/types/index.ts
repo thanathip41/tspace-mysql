@@ -1,11 +1,10 @@
-import { Model } from "../core/Model";
-import { TCache as Cache } from '../core/Cache';
-import { CONSTANTS } from '../constants';
-import { Join } from "../core/Join";
-import { QueryBuilder } from "../core/Driver";
-import { T, TResult } from "../core";
+import { Model }            from "../core/Model";
+import { TCache as Cache }  from '../core/Cache';
+import { CONSTANTS }        from '../constants';
+import { Join }             from "../core/Join";
+import { QueryBuilder }     from "../core/Driver";
+import { T, TResult }       from "../core";
 import { TResultDecorator } from "./decorator";
-import Builder from "../core/Builder";
 
 export type TCache = Cache;
 
@@ -328,15 +327,10 @@ export type TSchemaKeys<T> = keyof {
 export type TRelationResults<T> = T extends Array<infer A> 
   ? TRelationResults<A>[] 
   : T extends { __isDefault: true } 
-    ? TDefault<
-        T extends { value: infer V } 
-          ? V extends Date ? Date  
-          : V extends string ? string   
-          : V extends number ? number 
-          : V extends boolean ? boolean 
-          : V 
-          : string
-      >
+    ? T extends infer V
+        ? TRemoveDefault<V>
+        : never
+      
     : T extends Date 
       ? T
       : T extends object 
@@ -436,13 +430,8 @@ export type TDeepOmit<T, Filter> = T extends infer ObjectType
     : never;
 
 
-export type TDeepExpand<T> = T extends TDefault<infer U>
-  ? TDefault<
-    U extends boolean ? boolean :
-    U extends number ? number :
-    U extends string ? string :
-    U
-  >
+export type TDeepExpand<T> = T extends TDefault<infer D>
+  ? D
   : T extends Date
     ? T
     : T extends Function
@@ -454,16 +443,6 @@ export type TDeepExpand<T> = T extends TDefault<infer U>
           : T extends object
             ? { [K in keyof T]: TDeepExpand<T[K]> }
             : T;
-
-// export type TResultResolved<M extends Model> = (
-//     unknown extends TResult<M>
-//         ? unknown extends TResultDecorator<M>
-//             ? Record<string, any>
-//             : {} extends TResultDecorator<M>
-//                 ? Record<string, any>
-//                 : TResultDecorator<M>
-//         : TResult<M>
-// );
 
 export type TResultResolved<M extends Model> = (
     unknown extends TResult<M>
@@ -556,28 +535,26 @@ export type TStateWhereCondition = {
 
 
 export type TDefault<T = any> = (
-    T extends string 
-        ? string 
-        : T extends number 
-            ? number 
-        : T extends boolean
-          ? boolean | number
-          : T
+    string extends  T ? string  :
+    boolean extends T ? boolean | number :
+    number extends  T ? number  :
+    Date extends    T ? Date :
+    `${T & string}` | null
 ) & { __isDefault: true }
 
 export type TRemoveDefault<T> = T extends TDefault<infer U> ? U : T;
 
-type CleanDefaultType<T> = T extends any
+type TCleanDefaultType<T> = T extends any
     ? NonNullable<T> extends Date
         ? T
         : NonNullable<T> extends Record<string, unknown>
         ? string
         : T extends { __isDefault: true }
-            ? (T extends string ? string : T extends number ? number : boolean) | null
+            ? TRemoveDefault<T> | null
             : T
     : never;
 
-type IsOptional<T> =
+type TIsOptional<T> =
     null extends T
         ? true
         : undefined extends T
@@ -592,27 +569,27 @@ type IsOptional<T> =
 
 export type TInsertInput<K, C> = {
     [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-        IsOptional<C[P]> extends true ? never : P]: CleanDefaultType<C[P]>;
+        TIsOptional<C[P]> extends true ? never : P]: TCleanDefaultType<C[P]>;
 } & {
     [P in Exclude<K & keyof C, "id" | "_id" | "uuid"> as
-        IsOptional<C[P]> extends true ? P : never]?: CleanDefaultType<C[P]>;
+        TIsOptional<C[P]> extends true ? P : never]?: TCleanDefaultType<C[P]>;
 } & {
-    [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: CleanDefaultType<C[P]>;
+    [P in Extract<K & keyof C, "id" | "_id" | "uuid">]?: TCleanDefaultType<C[P]>;
 };
 
 export type TUpdateInput<K, C> = {
     [P in Exclude<K & keyof C, "id" | "_id">]: {
-        [Q in P]-?: CleanDefaultType<C[Q]>;
+        [Q in P]-?: TCleanDefaultType<C[Q]>;
     } & {
-        [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: CleanDefaultType<C[Q]>;
+        [Q in Exclude<K & keyof C, "id" | "_id" | P>]?: TCleanDefaultType<C[Q]>;
     }
 }[Exclude<K & keyof C, "id" | "_id">];
 
 export type TInsertOrUpdateInput<K,C> = {
   [P in Extract<K, keyof C>]: {
-    [Q in P]-?: CleanDefaultType<C[Q]>;
+    [Q in P]-?: TCleanDefaultType<C[Q]>;
   } & {
-    [Q in Exclude<Extract<K, keyof C>, P>]?: CleanDefaultType<C[Q]>;
+    [Q in Exclude<Extract<K, keyof C>, P>]?: TCleanDefaultType<C[Q]>;
   }
 }[Extract<K, keyof C>];
 

@@ -1481,12 +1481,16 @@ class RepositoryFactory<
  * const users = await userRepository.findMany()
  *
  */
-export const Repository = <M extends Model<any, any>>(
+export const Repository = <
+  M extends Model<any, any>,
+  S extends Record<string, any> = T.SchemaModel<M> & Record<string, any>,
+  R = T.RelationModel<M>
+>(
   model: new () => M
-): RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M> => {
+): RepositoryFactory<S, R, M> => {
   return new RepositoryFactory<
-    T.SchemaModel<M>, 
-    T.RelationModel<M>, 
+    S, 
+    R, 
     M
   >(model);
 };

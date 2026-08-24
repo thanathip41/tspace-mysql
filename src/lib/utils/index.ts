@@ -1,4 +1,4 @@
-import { Blueprint } from ".."
+import { Blueprint, T } from ".."
 import { CONSTANTS } from "../constants"
 import { TStateWhereCondition } from "../types"
 
@@ -30,7 +30,7 @@ const timestamp = (dateString ?: string | Date) => {
         seconds
     ].join(':')}`
         
-    return `${ymd} ${his}`
+    return `${ymd} ${his}` as T.DateTime
 }
 
 const date = (value ?: Date) => {

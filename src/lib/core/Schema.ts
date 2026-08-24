@@ -1066,7 +1066,7 @@ class Schema {
 
     const isChangeDefault = ({defaultTable, defaultSchema} : {
       defaultTable  : string | null;
-      defaultSchema : string | number | null;
+      defaultSchema : string | number | boolean | null;
     }) => {
 
       if(defaultTable == defaultSchema) {

@@ -4218,8 +4218,8 @@ class Model<
    */
   public whereObject<
     K extends T.ColumnKeys<this>,
-    T extends T.ColumnOptions<this>,
-  >(columns: { [P in K & keyof T]: T[P] }): this {
+    CO extends T.ColumnOptions<this>,
+  >(columns: { [P in K & keyof CO]: CO[P] }): this {
     for (let column in columns) {
       const operator = "=";
 
@@ -6527,7 +6527,7 @@ class Model<
    */
   public insert<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
 
     this.$state.set("DATA", this._formatedInputData(data));
@@ -6548,7 +6548,7 @@ class Model<
    */
   public create<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K,C>): Model<TS, TR, "create"> {
     return this.insert(data) as Model<TS, TR, "create">
   }
@@ -6559,7 +6559,7 @@ class Model<
    * @param {array?} updateNotExists options for except update some records in your ${data}
    * @returns {this} this
    */
-  public update<K extends T.ColumnKeys<this>, C extends T.ColumnOptions<this>>(
+  public update<K extends T.ColumnKeys<this>, C extends T.InputOptions<this>>(
     data:  T.UpdateInput<K, C>,
     updateNotExists: T.ColumnKeys<this>[] = [],
   ): Model<TS, TR, "update"> {
@@ -6605,7 +6605,7 @@ class Model<
    */
   public updateMany<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(
     data: T.UpdateInput<K, C>, 
     updateNotExists: string[] = []): Model<TS, TR, "updateMany"> {
@@ -6652,7 +6652,7 @@ class Model<
    * @returns {this} this
    */
   public updateCases<
-    T extends T.ColumnOptions<this>,
+    T extends T.InputOptions<this>,
     K extends keyof T,
     U extends Model | unknown,
     M = U extends this ? this : U extends Model ? U : this,
@@ -6834,7 +6834,7 @@ class Model<
    */
   public updateNotExists<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.UpdateInput<K, C>): Model<TS, TR, "update"> {
     this.limit(1);
 
@@ -6869,7 +6869,7 @@ class Model<
    */
   public updateOrCreate<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     this.limit(1);
 
@@ -6896,7 +6896,7 @@ class Model<
    */
   public updateOrInsert<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
@@ -6908,7 +6908,7 @@ class Model<
    */
   public insertOrUpdate<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
@@ -6920,7 +6920,7 @@ class Model<
    */
   public createOrUpdate<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertOrUpdateInput<K, C>): Model<TS, TR, "createOrUpdate"> {
     return this.updateOrCreate(data) as Model<TS, TR, "createOrUpdate">
   }
@@ -6932,7 +6932,7 @@ class Model<
    */
   public createOrSelect<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -6956,7 +6956,7 @@ class Model<
    */
   public insertOrSelect<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K, C>): Model<TS, TR, "createOrSelect"> {
     return this.createOrSelect(data) as Model<TS, TR, "createOrSelect">
   }
@@ -6969,7 +6969,7 @@ class Model<
    */
   public createNotExists<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
     if (!Object.keys(data).length) {
       throw this._assertError("This method must require at least 1 argument.");
@@ -6994,7 +6994,7 @@ class Model<
    */
   public insertNotExists<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(data: T.InsertInput<K, C>): Model<TS,TR,"createNotExists"> {
     return this.createNotExists(data) as Model<TS,TR,"createNotExists">;
   }
@@ -7006,7 +7006,7 @@ class Model<
    */
   public createMultiple<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
   ): Model<TS, TR, "createMany"> {
@@ -7033,7 +7033,7 @@ class Model<
    */
   public createMany<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
   ): Model<TS, TR, "createMany"> {
@@ -7048,7 +7048,7 @@ class Model<
    */
   public insertMultiple<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
   ): Model<TS, TR, "createMany"> {
@@ -7063,7 +7063,7 @@ class Model<
    */
   public insertMany<
     K extends T.ColumnKeys<this>,
-    C extends T.ColumnOptions<this>,
+    C extends T.InputOptions<this>,
   >(
     data: T.InsertInput<K, C>[]
   ): Model<TS, TR, "createMany"> {
