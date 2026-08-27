@@ -1,46 +1,8 @@
-import type { T }       from "./UtilityTypes";
-import { Blueprint }    from "./Blueprint";
-import { DB }           from "./DB";;
-import { Model }        from "./Model";
-
-export type Job<T = any> = {
-  id      : number;
-  name    : string;
-  status  : 'pending' | 'active' |'completed' | 'failed'
-  payload : T;
-}
-
-type JobInternal = Job & {
-    __job : T.Result<Worker>;
-}
-
-type Handler = (job: Job) => any | Promise<any>;
-
-type State = {
-    handler     : Handler;
-    idle        : number;
-    sleeping    : boolean;
-    running     : number;
-    opts        : Required<QueueProcessOptions>
-}
-
-type QueueAddOptions = {
-  delayMs     ?: number  // default 0 
-  priority    ?: number // default 0
-  metadata    ?: Record<string, any> // default null
-  maxAttempts ?: number // default 3
-}
-
-type QueueProcessOptions = { 
-    interval    ?: number; 
-    concurrency ?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30;
-}
-
-type BufferedJob = {
-  jobData : T.Result<Worker>;
-  resolve : (value: any) => void;
-  reject  : (reason?: any) => void;
-}
+import type { T }       from "../UtilityTypes";
+import { Blueprint }    from "../Blueprint";
+import { DB }           from "../DB";;
+import { Model }        from "../Model";
+import { BufferedJob, Handler, JobInternal, QueueAddOptions, QueueProcessOptions, State } from "./types";
 
 const QUEUE_STATUS = {
     dispatch    : 'Dispatch',
@@ -99,8 +61,7 @@ const schema = {
     updated_at   : Blueprint.datetime().null()
 };
 
-type TS = T.Schema<typeof schema>
-class Worker extends Model<TS> {
+export class Worker extends Model<T.Schema<typeof schema>> {
 
     private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
     private INSPECT_EXEC      = false;
@@ -108,7 +69,7 @@ class Worker extends Model<TS> {
     private IS_FLUSHING       = false;
     private ACTIVE_JOBS       = 0;
 
-    private MAX_IDLE_RETRIES  = 5;
+    private MAX_IDLE_RETRIES  = 3;
     private BATCH_SIZE        = 1000;
     private MAX_WAIT_MS       = 50;
 
@@ -135,6 +96,11 @@ class Worker extends Model<TS> {
         running     : number;
         opts        : Required<QueueProcessOptions>
     }>();
+
+    private EVENT_SUBSCRIBERS = new Map<
+        string,
+        Set<string>
+    >();
 
     protected boot(): void {
         this.useUUID();
@@ -311,8 +277,12 @@ class Worker extends Model<TS> {
         return await new Worker().select('name').toArray('name');
     }
 
-    public async add(name: string, payload: any, opts: QueueAddOptions = {}) {
-        return new Promise<Promise<void>>((resolve, reject) => {
+    public async add(
+        name: string, 
+        payload: any, 
+        opts: QueueAddOptions = {}
+    ) {
+        return new Promise<void>((resolve, reject) => {
         
             const jobData = {
                 name,
@@ -414,6 +384,55 @@ class Worker extends Model<TS> {
         }
 
         return dispatch();
+    }
+
+    public async publish(
+        event: string,
+        payload: any,
+        opts: QueueAddOptions = {}
+    ): Promise<void> {
+
+        const subscribers = this.EVENT_SUBSCRIBERS.get(event);
+
+        if (!subscribers || subscribers.size === 0) {
+            return;
+        }
+
+        await Promise.all(
+            [...subscribers].map(name =>
+                this.add(name, payload, opts)
+            )
+        );
+    }
+
+    public async subscribe(
+        event: string,
+        name: string,
+        handler: Handler,
+        opts: QueueProcessOptions = {
+            interval: 1_000,
+            concurrency: 1
+        }
+    ): Promise<void> {
+
+        const jobName = `${event}.${name}`;
+
+        if (!this.EVENT_SUBSCRIBERS.has(event)) {
+            this.EVENT_SUBSCRIBERS.set(
+                event,
+                new Set()
+            );
+        }
+
+        this.EVENT_SUBSCRIBERS
+            .get(event)!
+            .add(jobName);
+
+        await this.process(
+            jobName,
+            handler,
+            opts
+        );
     }
 
     private async _runJob (name: string, job: JobInternal, state: State) {
@@ -792,277 +811,3 @@ class Worker extends Model<TS> {
         return  await new Promise(r => setTimeout(r,ms));
     }
 }
-
-/**
- * Queue facade class (static API wrapper)
- *
- * This class provides a singleton-style interface over the underlying Worker instance.
- * It must be initialized before use via `Queue.start()`.
- *
- * @example
- * ```ts
- * const sendEmail = (job) => console.log('send mail :' + job.payload.email)
- * 
- * await Queue.start({ inspect : true, flush : true // **remove all jobs });
- * 
- * // register
- * Queue.progress("send-email", async (job) => {
- *     return await sendEmail(job);
- * }, { concurrency : 3 });
- *
- * // add
- * Queue.add("send-email", { email: "test@gmail.com" });
- * 
- * ```
- */
-class Queue {
-    /**
-     * Internal Worker instance used for all queue operations.
-     * @type {Worker | null}
-     */
-    private static WORKER: Worker | null;
-
-    private static MESSAGE = {
-        INIT_ERROR: `Queue is not initialized. Please call 'await Queue.start()' before using it.`
-    };
-
-    /**
-     * The 'start' method is used to initialize the Queue system.
-     * Creates and prepares the underlying Worker instance.
-     * 
-     * @param {Object} [opts] - options (inspect, flush)
-     * @property {boolean?} opts.inspect queue work flow
-     * @property {boolean?} opts.flush  remove all queue
-     * @property {number?} opts.maxIdleRetries - Maximum idle time () when no jobs are available
-     * @property {boolean} [opts.poll.enabled] - Enable or disable worker job polling.
-     * @property {number} [opts.poll.timeout] - Polling interval in milliseconds.
-     * @returns {Promise<void>}
-     */
-    static async start(opts: { 
-        inspect          ?: boolean; 
-        flush            ?: boolean; 
-        hostname         ?: string;
-        maxIdleRetries   ?: number;
-        poll           ?: {
-            enabled ?: boolean;
-            timeout ?: number;
-        };
-    } = {}): Promise<void> {
-
-      this.WORKER = await new Worker().initialize(opts);
-
-      return;
-    }
-
-    /**
-     * The 'end' method is used to shutdown the Queue system.
-     *
-     * @returns {Promise<void>}
-     */
-    static async end(): Promise<void> {
-
-      if (this.WORKER == null) {
-        throw new Error(this.MESSAGE.INIT_ERROR);
-      }
-
-      await this.WORKER.shutdown();
-
-      this.WORKER = null;
-
-      return;
-    }
-
-    /**
-     * The 'flush' method is used to flush all jobs in the queue (dangerous operation).
-     *
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<void>}
-     */
-    static async flush(): Promise<void> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        await this.WORKER.flush();
-    }
-
-    /**
-     * The 'getJobOverallStats' method is used to get aggregated queue statistics.
-     * 
-     * @param {string} [name] - Optional queue name filter.
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
-     */
-    static async getJobOverallStats(name?: string): Promise<{
-      total     : number;
-      completed : number;
-      active    : number;
-      pending   : number;
-      failed    : number;
-    }> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.getJobOverallStats(name);
-    }
-
-    /**
-     * The 'getJobStats' method is used to Get jobs statistics grouped by name.
-     * 
-     * @param {string} [name] - Optional queue name filter.
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<any>}
-     */
-    static async getJobStats(name?: string): Promise<{
-      completed : number;
-      active    : number;
-      pending   : number;
-      failed    : number;
-    }[]> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.getJobStats(name);
-    }
-
-    /**
-     * The 'getJobs' method is used to Get jobs.
-     * 
-     * @param {string} [name] - Optional queue name filter.
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<T.Result<Worker>[]>}
-     */
-    static async getJobs(name?: string): Promise<T.Result<Worker>[]> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.getJobs(name);
-    }
-
-    /**
-     * Get all unique queue names.
-     *
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<string[]>}
-     */
-    static async getNames(): Promise<string[]> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.getNames();
-    }
-
-    /**
-     * Access raw Worker instance safely.
-     *
-     * @param {(worker: Worker) => any} cb - Callback with Worker instance.
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<Work>}
-     */
-    static async worker(cb: (worker: Worker) => any): Promise<Worker> {
-        
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await cb(this.WORKER);
-    }
-
-    /**
-     * Start a worker for processing jobs of a specific name.
-     *
-     * @param {string} name - Queue name to process.
-     * @param {Handler} handler - Job handler function.
-     * @param {QueueProcessOptions} [opts] - Job options (interval, concurrency)
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<void>}
-     * 
-     * @example
-     * const helloWorld = (job) => console.log('hello world :' + job.id);
-     * 
-     * Queue.progress("hello", async (job) => {
-     *  return await helloWorld(job)
-     * }, { concurrency : 3 });
-     */
-    static async process(
-        name    : string, 
-        handler : Handler, 
-        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
-    ): Promise<void> {
-
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.process(name, handler, opts);
-    }
-
-    /**
-     * Start a worker for processing jobs of a specific name.
-     *
-     * @param {string} name - Queue name to process.
-     * @param {Handler} handler - Job handler function.
-     * @param {QueueProcessOptions} [opts] - Job options (interval, concurrency)
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<void>}
-     * 
-     * @example
-     * const helloWorld = (job) => console.log('hello world :' + job.id);
-     * 
-     * Queue.on("hello", async (job) => {
-     *  return await helloWorld(job)
-     * }, { concurrency : 3 });
-     */
-    static async on(
-        name    : string, 
-        handler : Handler, 
-        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
-    ): Promise<void> {
-        return await this.process(name, handler, opts);
-    }
-
-    /**
-     * Add a new job into the queue.
-     *
-     * @param {string} name - Queue name / job type.
-     * @param {any} payload - Job payload data, send to process
-     * @param {QueueAddOptions} [opts] - Job options (delay, priority, retry, etc.)
-     * @throws {Error} If Queue is not initialized.
-     * @returns {Promise<T.Result<Worker>>}
-     * 
-     * @example
-     * ```ts
-     * Queue.add("send-email", { email: "test@gmail.com" });
-     * Queue.add("send-email", { email: "test2@gmail.com" }, {
-     *     metadata    : 'first priority',
-     *     priority    : 9999
-     *     delayMs     : 100 
-     *     maxAttempts : 1
-     * });
-     * ```
-     */
-    static async add(
-        name    : string, 
-        payload : any, 
-        opts    : QueueAddOptions = {}
-    ): Promise<void> {
-        
-        if (this.WORKER == null) {
-            throw new Error(this.MESSAGE.INIT_ERROR);
-        }
-
-        return await this.WORKER.add(name, payload, opts);
-    }
-}
-
-export { Queue }
-export default Queue
