@@ -33,7 +33,7 @@ type QueueAddOptions = {
 
 type QueueProcessOptions = { 
     interval    ?: number; 
-    concurrency ?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30; 
+    concurrency ?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30;
 }
 
 type BufferedJob = {
@@ -162,6 +162,9 @@ class Worker extends Model<TS> {
 
         await this.sync({ force : true, index: true }).catch(() => null);
 
+        // start jobs
+        await this._initializeWorkerJobs();
+
         if(opts.inspect) {
             this.INSPECT_EXEC = true;
             console.log(`\x1b[34mQueue:\x1b[0m \x1b[32mJob processing started\x1b[0m`);
@@ -256,7 +259,7 @@ class Worker extends Model<TS> {
         .when(name, (q) => q.where('name', 'LIKE' , `%${DB.escape(name!)}%`))
         .groupBy('name', 'status')
         .orderBy('name')
-        .get()
+        .findMany()
 
         const map = new Map<string, {
             name: string;
@@ -299,7 +302,7 @@ class Worker extends Model<TS> {
 
         const jobs = await new Worker()
         .when(name != null, (q) => q.where('name','LIKE',`%${DB.escape(name!)}%`))
-        .get();
+        .findMany();
       
         return jobs;
     }
@@ -313,12 +316,12 @@ class Worker extends Model<TS> {
         
             const jobData = {
                 name,
-                payload: payload == null ? null : this.safeJsonStringify(payload),
+                payload: payload == null ? null : this._safeJsonStringify(payload),
                 status: 'pending',
                 priority: opts.priority ?? 0,
                 attempts: 0,
                 max_attempts: opts.maxAttempts ?? 3,
-                metadata: opts.metadata ? this.safeJsonStringify(opts.metadata) : null,
+                metadata: opts.metadata ? this._safeJsonStringify(opts.metadata) : null,
                 delay_ms: opts.delayMs ?? 0,
                 available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
                 created_at: new Date(),
@@ -435,7 +438,7 @@ class Worker extends Model<TS> {
             .where('id', job.id)
             .update({
                 status: 'completed',
-                result: this.safeJsonStringify(result),
+                result: this._safeJsonStringify(result),
                 completed_at: this.$utils.timestamp(),
                 attempts : 0
             })
@@ -458,7 +461,7 @@ class Worker extends Model<TS> {
             .where('id',job.id)
             .update({
                 status : 'failed',
-                error : this.safeJsonStringify({
+                error : this._safeJsonStringify({
                     message: err.message,
                     name: err.name,
                     stack: err.stack,
@@ -489,7 +492,7 @@ class Worker extends Model<TS> {
                     .update({
                         status: 'completed',
                         attempts,
-                        result: this.safeJsonStringify(result),
+                        result: this._safeJsonStringify(result),
                         completed_at: this.$utils.timestamp(),
                     })
                     .void()
@@ -514,7 +517,7 @@ class Worker extends Model<TS> {
                         .update({
                             status: 'failed',
                             attempts,
-                            error: this.safeJsonStringify({
+                            error: this._safeJsonStringify({
                                 retry  : true,
                                 message: err?.message,
                                 name: err?.name,
@@ -562,7 +565,7 @@ class Worker extends Model<TS> {
         .latest('priority')
         .oldest('id')
         .limit(limit)
-        .get()
+        .findMany()
 
         if(!findJobs.length) {
             return [];
@@ -577,7 +580,7 @@ class Worker extends Model<TS> {
             .limit(limit)
             .forUpdate({ skipLocked : true })
             .bind(trx)
-            .get()
+            .findMany()
 
             if (!jobs.length) {
                 return [];
@@ -599,7 +602,7 @@ class Worker extends Model<TS> {
                 id      : job.id,
                 name    : job.name,
                 status  : job.status,
-                payload : this.safeJsonParse(job.payload),
+                payload : this._safeJsonParse(job.payload),
                 __job   : job
             }))
         })
@@ -686,48 +689,69 @@ class Worker extends Model<TS> {
             this.process(name, state.handler, state.opts);
         }
     }
+
     private async _pollWorkerJobs () {
 
-        const faileds = await new Worker()
+        const jobs = await this._getPendingOrFailedJobs();
+
+        for(const job of jobs) {
+            this._wakeWorker(job)
+        }
+
+        return;
+    }
+
+    private async _initializeWorkerJobs () {
+
+        const jobs = await this._getPendingOrFailedJobs();
+
+        await Promise.all(
+            jobs.map(job => this._wakeWorker(job))
+        );
+
+        return;
+    }
+
+    private async _getPendingOrFailedJobs () {
+
+        const jobsToProcess = await new Worker()
         .select('id')
         .whereIn('status',['pending','failed'])
         .where('available_at', '<=', this.$utils.timestamp())
-        .get();
+        .findMany();
 
         await new Worker()
         .updateMany({
             status : 'pending',
             attempts : 0
         })
-        .whereIn('id',faileds.map(f => f.id))
+        .whereIn('id',jobsToProcess.map(f => f.id))
         .void()
-        .save()
+        .save();
 
-        const names = await new Worker()
+        const jobs = await new Worker()
         .select('name')
-        .whereIn('status',['pending'])
+        .where('status','pending')
         .where('available_at', '<=', this.$utils.timestamp())
         .groupBy('name')
         .toArray('name');
 
         if (this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[32mPoll checked\x1b[0m (${names.length} pending)`);
-        }
+            console.log(`\x1b[34mQueue:\x1b[0m \x1b[32mPoll checked\x1b[0m (${jobs.length} jobs)`);
+        };
 
-        for(const name of names) {
-            this._wakeWorker(name)
-        }
-
-        return;
+        return jobs as string[];
     }
-    private safeJsonParse(payload:any){
+
+    private _safeJsonParse(payload:any){
         try {
             return JSON.parse(payload);
         } catch (err) {
             return payload;
         }
     }
-    private safeJsonStringify(payload: any) {
+
+    private _safeJsonStringify(payload: any) {
 
         if(payload == null) return null;
 
