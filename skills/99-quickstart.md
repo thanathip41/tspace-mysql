@@ -335,7 +335,7 @@ export class UserRepository {
   
   async findById(id: number) {
     return await this.repository.find(id, {
-      relations: ['posts']
+      relations: { posts: true }
     })
   }
   
@@ -410,14 +410,21 @@ export class PostRepository {
   
   async findById(id: number) {
     return await this.repository.find(id, {
-      relations: ['author', 'categories', 'comments']
+      relations: {
+        author: true,
+        categories: true,
+        comments: true
+      }
     })
   }
   
   async findBySlug(slug: string) {
     return await this.repository.findOne({
       where: { slug },
-      relations: ['author', 'categories']
+      relations: {
+        author: true,
+        categories: true
+      }
     })
   }
   
@@ -430,7 +437,10 @@ export class PostRepository {
       page,
       limit,
       where,
-      relations: ['author', 'categories'],
+      relations: {
+        author: true,
+        categories: true
+      },
       orderBy: [['publishedAt', 'desc']]
     })
   }
@@ -734,3 +744,17 @@ This complete example demonstrates:
 7. **Type Safety** - Full TypeScript support throughout
 
 The same patterns can be applied to any domain - e-commerce, SaaS, social media, etc.
+
+## Related Documents
+
+- `00-overview.md` - Library overview
+- `01-model-setup.md` - Model definitions
+- `02-query-builder.md` - Query builder
+- `03-relations.md` - Model relationships
+- `04-repository.md` - Repository pattern
+- `07-transactions.md` - Database transactions
+- `08-caching.md` - Caching strategies
+- `09-queue.md` - Queue system
+- `08-caching.md` - Caching strategies
+- `09-queue.md` - Queue system
+- `10-cli.md` - CLI tools

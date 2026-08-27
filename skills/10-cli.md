@@ -213,3 +213,4 @@ npx tspace-mysql query "SELECT * FROM users WHERE active = 1" --env=development
 - `00-overview.md` - Library overview
 - `01-model-setup.md` - Model definitions
 - `07-transactions.md` - Database transactions
+- `99-quickstart.md` - Complete example

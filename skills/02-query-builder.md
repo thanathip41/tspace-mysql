@@ -679,3 +679,4 @@ await trx.commit()
 - `03-relations.md` - Model relationships
 - `04-repository.md` - Repository pattern
 - `07-transactions.md` - Database transactions
+- `08-caching.md` - Caching strategies

@@ -13,7 +13,16 @@ import { Queue, DB } from 'tspace-mysql'
 
 // The Queue uses an internal Worker model
 // First, ensure database is connected
-await DB.initialize()
+await Queue.start({ 
+  inspect  : true,    // @default false, enable queue workflow inspection
+  flush    : false,   // @default false, true -> remove all jobs
+  hostname : 'pod1',  // @default null, worker hostname
+  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
+  poll : {            
+    enabled : true,   // @default false, enable periodic job checking
+    timeout : 10_000  // @default 60_000, polling interval
+  };
+}); 
 
 // Queue operations use the Worker model internally
 // The table is auto-created when needed

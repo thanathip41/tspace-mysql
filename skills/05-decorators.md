@@ -654,3 +654,4 @@ class User extends Model {
 - `01-model-setup.md` - Model definitions
 - `03-relations.md` - Model relationships
 - `06-type-safety.md` - TypeScript type system
+- `99-quickstart.md` - Complete example

@@ -397,7 +397,7 @@ class User extends Model<UserSchema> {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['posts', 'profile']
+  relations: { posts: true, profile: true }
 })
 ```
 
@@ -431,7 +431,7 @@ class User extends Model<UserSchema> { /* ... */ }
 const user = await User.findOne({
   select: { id: true, email: true },  // Type-safe column selection
   where: { id: 1 },                    // Type-safe where conditions
-  relations: ['posts']                 // Type-safe relation names
+  relations: { posts: true }           // Type-safe relation names
 })
 // user type: { id: number, email: string | null, posts: Post[] }
 ```
@@ -443,3 +443,4 @@ const user = await User.findOne({
 - `03-relations.md` - Model relationships
 - `05-decorators.md` - Decorator patterns
 - `06-type-safety.md` - TypeScript type system
+- `99-quickstart.md` - Complete example

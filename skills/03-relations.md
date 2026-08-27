@@ -45,7 +45,7 @@ class User extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['profile']
+  relations: { profile: true }
 })
 console.log(user?.profile?.bio)
 ```
@@ -84,7 +84,7 @@ class User extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['posts']
+  relations: { posts: true }
 })
 console.log(user?.posts) // Array of Post objects
 ```
@@ -122,7 +122,7 @@ class Post extends Model {
 
 // Usage
 const post = await Post.find(1, {
-  relations: ['author']
+  relations: { author: true }
 })
 console.log(post?.author?.name)
 ```
@@ -182,7 +182,7 @@ class Role extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['roles']
+  relations: { roles: true }
 })
 console.log(user?.roles) // Array of Role objects
 ```
@@ -191,21 +191,39 @@ console.log(user?.roles) // Array of Role objects
 
 ### With Relations (Eager Loading)
 
+**Only object syntax is supported:**
+
 ```typescript
-// Load single relation
+// ✅ CORRECT - Object syntax (type-safe)
 const user = await User.find(1, {
-  relations: ['posts']
+  relations: { posts: true }
 })
 
 // Load multiple relations
 const user = await User.find(1, {
-  relations: ['posts', 'profile', 'roles']
+  relations: { posts: true, profile: true, roles: true }
 })
 
 // Nested relations
 const user = await User.find(1, {
-  relations: ['posts.comments.author']
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    }
+  }
 })
+```
+
+**❌ WRONG - Array syntax is NOT supported:**
+
+```typescript
+// ❌ DON'T DO THIS - Array syntax doesn't work
 ```
 
 ### Relation Exists
@@ -242,7 +260,7 @@ Filter relations based on conditions.
 
 ```typescript
 const user = await User.find(1, {
-  relations: ['posts'],
+  relations: { posts: true },
   relationQuery: {
     posts: (query) => query.where('status', 'published').orderBy('created_at', 'desc')
   }
@@ -254,11 +272,27 @@ const user = await User.find(1, {
 ```typescript
 // Load user -> posts -> comments -> author
 const user = await User.find(1, {
-  relations: ['posts.comments.author']
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    }
+  }
 })
 
 // With conditions on nested relations
-const user = await User.find(1, {
+  relations: {
+    posts: {
+      relations: {
+        comments: true
+      }
+    }
+  },
   relations: ['posts.comments'],
   relationQuery: {
     posts: (q) => q.where('published', true),
@@ -342,7 +376,7 @@ class User extends Model<UserSchema, UserRelations> {
 // Full type inference
 const user = await User.find(1, {
   select: { id: true, name: true },
-  relations: ['posts']
+  relations: { posts: true }
 })
 // Type: { id: number, name: string | null, posts: Post[] }
 ```
@@ -377,7 +411,7 @@ By default, soft-deleted related records are excluded. Use `withTrashed` to incl
 
 ```typescript
 const user = await User.find(1, {
-  relations: ['posts'],
+  relations: { posts: true },
   relationQuery: {
     posts: (query) => query.withTrashed()  // Include soft-deleted posts
   }
@@ -536,7 +570,19 @@ class Role extends Model {
 
 // Get user with all relations
 const user = await User.find(1, {
-  relations: ['posts.comments.author', 'profile', 'roles'],
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    },
+    profile: true,
+    roles: true
+  },
   relationQuery: {
     posts: (q) => q.where('status', 'published').orderBy('created_at', 'desc')
   }
@@ -544,13 +590,13 @@ const user = await User.find(1, {
 
 // Get posts with author
 const posts = await Post.findMany({
-  relations: ['author'],
+  relations: { author: true },
   where: { status: 'published' }
 })
 
 // Get users with specific role
 const adminUsers = await User.findMany({
-  relations: ['roles'],
+  relations: { roles: true },
   whereQuery: (q) => q.whereJSON('roles', { key: 'name', value: 'admin' })
 })
 ```
@@ -562,3 +608,4 @@ const adminUsers = await User.findMany({
 - `02-query-builder.md` - Query builder usage
 - `04-repository.md` - Repository pattern
 - `06-type-safety.md` - TypeScript type system
+- `99-quickstart.md` - Complete example

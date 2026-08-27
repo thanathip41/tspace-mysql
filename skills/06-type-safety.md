@@ -701,7 +701,7 @@ async function getUser(id: number) {
   // Full type inference
   return await userRepository.find(id, {
     select: { id: true, email: true, name: true },
-    relations: ['posts']
+    relations: { posts: true }
   })
   // Return type: { id: number, email: string, name: string | null, posts: Post[] } | null
 }
@@ -791,3 +791,4 @@ class UserService extends BaseService<User> {
 - `03-relations.md` - Model relationships
 - `04-repository.md` - Repository pattern
 - `05-decorators.md` - Decorator patterns
+- `99-quickstart.md` - Complete example

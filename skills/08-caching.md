@@ -833,3 +833,4 @@ class CachedUserService {
 - `00-overview.md` - Library overview
 - `04-repository.md` - Repository pattern
 - `09-queue.md` - Queue system
+- `07-transactions.md` - Database transactions

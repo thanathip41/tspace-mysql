@@ -44,7 +44,7 @@ const user = await userRepository.find(1, {
 
 // Find with relations
 const user = await userRepository.find(1, {
-  relations: ['posts', 'profile']
+  relations: { posts: true, profile: true }
 })
 ```
 
@@ -92,7 +92,7 @@ const users = await userRepository.findMany({
 
 // Get with relations
 const users = await userRepository.findMany({
-  relations: ['posts']
+  relations: { posts: true }
 })
 ```
 
@@ -474,17 +474,27 @@ const users = await userRepository.findMany({
 ```typescript
 // Load relations
 const user = await userRepository.find(1, {
-  relations: ['posts', 'profile']
+  relations: { posts: true, profile: true }
 })
 
 // Nested relations
 const user = await userRepository.find(1, {
-  relations: ['posts.comments.author']
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    }
+  }
 })
 
 // Relation with conditions
 const user = await userRepository.find(1, {
-  relations: ['posts'],
+  relations: { posts: true },
   relationQuery: {
     posts: (query) => query.where('status', 'published')
   }
@@ -624,7 +634,7 @@ class UserService {
   
   async getUserById(id: number) {
     return await this.userRepository.find(id, {
-      relations: ['posts']
+      relations: { posts: true }
     })
   }
   
@@ -681,3 +691,5 @@ const users = await userService.getActiveUsers(1, 10)
 - `02-query-builder.md` - Query builder usage
 - `03-relations.md` - Model relationships
 - `07-transactions.md` - Database transactions
+- `08-caching.md` - Caching strategies
+- `99-quickstart.md` - Complete example

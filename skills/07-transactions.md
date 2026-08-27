@@ -482,4 +482,5 @@ class OrderService {
 - `00-overview.md` - Library overview
 - `02-query-builder.md` - Query builder usage
 - `04-repository.md` - Repository pattern
-- `11-race-condition.md` - Race condition handling
+- `08-caching.md` - Caching strategies
+- `09-queue.md` - Queue system
