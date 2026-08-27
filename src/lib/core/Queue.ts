@@ -162,7 +162,6 @@ class Worker extends Model<TS> {
 
         await this.sync({ force : true, index: true }).catch(() => null);
 
-        // start jobs
         await this._initializeWorkerJobs();
 
         if(opts.inspect) {
@@ -200,10 +199,10 @@ class Worker extends Model<TS> {
                console.log(`\x1b[34mQueue:\x1b[0m Currently processing ${this.ACTIVE_JOBS} job(s)`)
             }
                 
-            await new Promise(r => setTimeout(r, 200));
+            await this._sleep(200);
         }
 
-        await new Promise(r => setTimeout(r, 2000));
+        await this._sleep(2000);
 
         if (this.POLL.interval) {
             clearInterval(this.POLL.timeout);
@@ -298,6 +297,7 @@ class Worker extends Model<TS> {
 
         return Array.from(map.values());
     }
+
     public async getJobs(name?: string) {
 
         const jobs = await new Worker()
@@ -346,6 +346,7 @@ class Worker extends Model<TS> {
             concurrency : 1 
         } 
     ) {
+
         this.WORKER_STATE.set(name , {
             handler      : handler,
             idle         : 0,
@@ -429,10 +430,15 @@ class Worker extends Model<TS> {
             const startTime = +new Date();
 
             if(job.__job.delay_ms) {
-                await new Promise(r => setTimeout(r, job.__job.delay_ms));
+                await this._sleep(job.__job.delay_ms);
             }
 
-            const result = await handler(job);
+            const result = await handler({
+                id      : job.id,
+                name    : job.name,
+                status  : job.status,
+                payload : job.payload
+            });
 
             await new Worker()
             .where('id', job.id)
@@ -607,6 +613,7 @@ class Worker extends Model<TS> {
             }))
         })
     }
+
     private async _flushBuffer(name : string) {
 
         if (this.IS_FLUSHING || this.BUFFER.jobs.length === 0) return;
@@ -670,7 +677,8 @@ class Worker extends Model<TS> {
             }
         }
     }
-    private _wakeWorker(name: string) {
+
+    private async _wakeWorker(name: string) {
 
         const state = this.WORKER_STATE.get(name);
         if (!state || !state.sleeping || !state.handler) return;
@@ -686,8 +694,10 @@ class Worker extends Model<TS> {
         }
 
         if(isSleeping) {
-            this.process(name, state.handler, state.opts);
+            await this.process(name, state.handler, state.opts);
         }
+        
+        return;
     }
 
     private async _pollWorkerJobs () {
@@ -776,6 +786,10 @@ class Worker extends Model<TS> {
         } catch (err) {
             return payload
         }
+    }
+
+    private async _sleep (ms: number){
+        return  await new Promise(r => setTimeout(r,ms));
     }
 }
 
@@ -1020,7 +1034,7 @@ class Queue {
      * Add a new job into the queue.
      *
      * @param {string} name - Queue name / job type.
-     * @param {any} payload - Job payload data.
+     * @param {any} payload - Job payload data, send to process
      * @param {QueueAddOptions} [opts] - Job options (delay, priority, retry, etc.)
      * @throws {Error} If Queue is not initialized.
      * @returns {Promise<T.Result<Worker>>}
@@ -1028,6 +1042,12 @@ class Queue {
      * @example
      * ```ts
      * Queue.add("send-email", { email: "test@gmail.com" });
+     * Queue.add("send-email", { email: "test2@gmail.com" }, {
+     *     metadata    : 'first priority',
+     *     priority    : 9999
+     *     delayMs     : 100 
+     *     maxAttempts : 1
+     * });
      * ```
      */
     static async add(
