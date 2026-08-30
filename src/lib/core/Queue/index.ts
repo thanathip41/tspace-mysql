@@ -1,19 +1,56 @@
-import { T } from "..";
+import { T }      from "..";
 import { Worker } from "./worker";
-import type { EventJobName, EventName, Handler, JobName, QueueAddOptions, QueueProcessOptions } from "./types";
+import type { 
+    EventJobName, 
+    EventName, 
+    Handler, 
+    JobName, 
+    JobStatus, 
+    QueueAddOptions, 
+    QueueProcessOptions 
+} from "./types";
 
 
+/**
+ * Represents a job managed by the queue.
+ *
+ * @template T The type of the job payload.
+ */
 export type Job<T = any> = {
-  id      : number;
-  name    : string;
-  status  : 'pending' | 'active' |'completed' | 'failed'
-  payload : T;
-}
+    /** Unique identifier of the job. */
+    id: number;
 
-export interface QueueContract {
-    events: Record<string,string[]>;
-    jobs: string[];
-}
+    /** Name of the job. */
+    name: string;
+
+    /** Current status of the job. */
+    status: JobStatus;
+
+    /** Data associated with the job. */
+    payload: T;
+};
+
+/**
+ * Defines the type contract for queue events and jobs.
+ *
+ * This interface is intentionally empty and can be extended
+ * using TypeScript module augmentation to provide type-safe
+ * event and job names.
+ *
+ * @example
+ * ```ts
+ * declare module 'tspace-mysql' {
+ *     interface QueueContract {
+ *         events: {
+ *             'user.created': ['send-email', 'send-push'];
+ *         };
+ *
+ *         jobs: ['send-email', 'send-push'];
+ *     }
+ * }
+ * ```
+ */
+export interface QueueContract {}
 
 /**
  * Queue facade class (static API wrapper)

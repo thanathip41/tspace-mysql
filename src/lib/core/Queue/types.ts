@@ -33,23 +33,35 @@ export type BufferedJob = {
   reject  : (reason?: any) => void;
 }
 
+export type JobStatus = 'pending' | 'active' |'completed' | 'failed'
+
+type QueueEvents = QueueContract extends {
+    events: infer E;
+}
+    ? E
+    : never;
+
+type QueueJobs = QueueContract extends {
+    jobs: infer J;
+}
+    ? J
+    : never;
+
 export type EventName =
-    keyof QueueContract['events'] extends never
-        ? string
-        : keyof QueueContract['events'] & string;
+    QueueEvents extends Record<string, readonly string[]>
+        ? keyof QueueEvents & string
+        : string;
 
 
-export type EventJobName<
-    E extends EventName
-> =
-    keyof QueueContract['events'] extends never
-        ? string
-        : E extends keyof QueueContract['events']
-            ? QueueContract['events'][E][number]
-            : never;
+export type EventJobName<E extends EventName> =
+    QueueEvents extends Record<string, readonly string[]>
+        ? E extends keyof QueueEvents
+            ? QueueEvents[E][number]
+            : never
+        : string;
 
 
 export type JobName =
-    QueueContract['jobs'] extends readonly []
-        ? string
-        : QueueContract['jobs'][number];
+    QueueJobs extends readonly string[]
+        ? QueueJobs[number]
+        : string;

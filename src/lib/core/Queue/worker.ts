@@ -2,7 +2,14 @@ import type { T }       from "../UtilityTypes";
 import { Blueprint }    from "../Blueprint";
 import { DB }           from "../DB";;
 import { Model }        from "../Model";
-import { BufferedJob, Handler, JobInternal, QueueAddOptions, QueueProcessOptions, State } from "./types";
+import type { 
+    BufferedJob, 
+    Handler, 
+    JobInternal, 
+    QueueAddOptions, 
+    QueueProcessOptions, 
+    State 
+} from "./types";
 
 const QUEUE_STATUS = {
     dispatch    : 'Dispatch',
