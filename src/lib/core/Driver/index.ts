@@ -153,6 +153,18 @@ export abstract class BaseDriver extends EventEmitter {
             : ${message ?? ""} \x1b[0m
         `;
   }
+
+  protected _messageDatabaseCreated(sql : string): string {
+    return `
+    \x1b[1m\x1b[33m⚠ Database does not exist.\x1b[0m
+
+    \x1b[32m✓ Created it for you.\x1b[0m
+    Please try again.
+
+    \x1b[2mSQL:\x1b[0m
+    \x1b[36m${sql}\x1b[0m
+    `
+  }
 }
 export abstract class QueryBuilder {
   protected $constants = (name: keyof TConstant): any => {

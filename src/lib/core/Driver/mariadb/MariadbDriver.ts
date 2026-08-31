@@ -75,6 +75,8 @@ export class MariadbDriver extends BaseDriver {
 
         await db.end();
 
+        console.log(this._messageDatabaseCreated(sql));
+
         return
       }
 

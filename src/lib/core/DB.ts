@@ -54,7 +54,12 @@ class DB extends AbstractDB {
    * @returns {promise<void>}
    */
   public async initialize(): Promise<void> {
-    await this.query(`${this.$constants("SELECT")} 1`);
+    const sql = `${this.$constants("SELECT")} 1`
+    await this.query(sql)
+    .catch(async () => {
+      await new Promise(r => setTimeout(r, 3000));
+      await this.query(sql)
+    })
     return;
   }
 

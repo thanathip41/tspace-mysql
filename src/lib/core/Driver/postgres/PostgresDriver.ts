@@ -83,6 +83,8 @@ export class PostgresDriver extends BaseDriver {
         await db.query(sql);
         await db.end();
 
+        console.log(this._messageDatabaseCreated(sql));
+
         return
       }
 

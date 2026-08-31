@@ -73,7 +73,10 @@ export class MysqlDriver extends BaseDriver {
 
         const sql = new MysqlQueryBuilder({} as any).createDatabase(options.database);
 
-        db.query(sql,() => db.end());
+        db.query(sql,() => {
+          console.log(this._messageDatabaseCreated(sql));
+          db.end();
+        });
 
         return
       }
