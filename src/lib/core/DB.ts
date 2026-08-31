@@ -370,7 +370,7 @@ class DB extends AbstractDB {
    * @returns {string} string
    */
   public escape(value: string): string {
-    return this.$utils.escape(value, true);
+    return this.$utils.escape(value, { hard : true });
   }
 
   /**

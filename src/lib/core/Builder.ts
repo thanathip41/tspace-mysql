@@ -2538,12 +2538,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     const keyValue = Object.entries(columns).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+
+      value = this.$utils.escapeActions(value);
+
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -5227,12 +5224,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     this.$utils.transfromDateToDateString(data);
 
     const values = Object.entries(data).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+
+      value = this.$utils.escapeActions(value);
+
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -5256,12 +5250,8 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     );
 
     const values = Object.values(data).map((value: any) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+      
+      value = this.$utils.escapeActions(value);
 
       if (
         this.$utils.typeOf(value) === "object" ||
@@ -5294,12 +5284,8 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       this.$utils.transfromDateToDateString(objects);
 
       const vals = Object.values(objects).map((value) => {
-        if (
-          typeof value === "string" &&
-          !value.includes(this.$constants("RAW"))
-        ) {
-          value = this.$utils.escapeActions(value);
-        }
+       
+        value = this.$utils.escapeActions(value);
 
         if (
           this.$utils.typeOf(value) === "object" ||

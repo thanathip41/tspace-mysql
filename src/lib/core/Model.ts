@@ -6796,12 +6796,8 @@ class Model<
     }
 
     const keyValue = Object.entries(columns).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+      
+      value = this.$utils.escapeActions(value);
 
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
@@ -7160,6 +7156,8 @@ class Model<
     }
 
     const schemaModel = this.getSchemaModel();
+
+    await this.sync({ force : true, index: true , foreign : true }).catch(() => null);
 
     const fields =
       schemaModel == null
@@ -8464,12 +8462,8 @@ class Model<
     }
 
     const keyValue = Object.entries(objects).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+      value = this.$utils.escapeActions(value);
+
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -8530,12 +8524,8 @@ class Model<
     );
 
     const values = Object.values(data).map((value: any) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+
+      value = this.$utils.escapeActions(value);
 
       if (
         this.$utils.typeOf(value) === "object" ||
@@ -8618,12 +8608,8 @@ class Model<
       }
 
       const v: string[] = Object.values(objects).map((value: any) => {
-        if (
-          typeof value === "string" &&
-          !value.includes(this.$constants("RAW"))
-        ) {
-          value = this.$utils.escapeActions(value);
-        }
+        
+        value = this.$utils.escapeActions(value);
 
         if (
           this.$utils.typeOf(value) === "object" ||

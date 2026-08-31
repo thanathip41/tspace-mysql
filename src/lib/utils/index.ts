@@ -43,15 +43,20 @@ const date = (value ?: Date) => {
     return now
 }
 
-const escape = (v : any , hard = false) => {
+const escape = (v : any, opts : { hard : boolean } = { hard : false }) => {
+    
     if(typeof v !== 'string') {
         if (Number.isNaN(v)) return 'NaN';
         if (v === Infinity)  return 'Infinity';
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(checkValueHasRaw(v) && !hard) return v
-    return v.replace(/[\0\b\t\n\r\x1a\'\\]/g,"\\'")
+
+    if(checkValueHasRaw(v) && !opts.hard) {
+        return v;
+    }
+
+    return v.replace(/'/g, "''");
 }
 
 const escapeActions = (v : any) => {
@@ -61,8 +66,10 @@ const escapeActions = (v : any) => {
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(checkValueHasRaw(v)) return v
-    return v.replace(/[\0\b\r\x1a\'\\]/g,"''")
+    
+    if(checkValueHasRaw(v)) return v;
+
+    return v.replace(/'/g, "''");
 }
 
 const escapeXSS = (str : any) => {
