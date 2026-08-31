@@ -56,8 +56,10 @@ export type EventName =
 export type EventJobName<E extends EventName> =
     QueueEvents extends Record<string, readonly string[]>
         ? E extends keyof QueueEvents
-            ? QueueEvents[E][number]
-            : never
+            ? QueueEvents[E][number] extends never 
+                ? string 
+                : QueueEvents[E][number]
+            : string
         : string;
 
 
