@@ -65,5 +65,7 @@ export type EventJobName<E extends EventName> =
 
 export type JobName =
     QueueJobs extends readonly string[]
-        ? QueueJobs[number]
+        ? QueueJobs[number] extends never 
+            ? string
+            : QueueJobs[number]
         : string;
