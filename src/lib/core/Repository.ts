@@ -1451,7 +1451,7 @@ class RepositoryFactory<
     if (debug) instance.debug();
 
     if (hooks != null && Array.isArray(hooks)) {
-      hooks.forEach((hook) => instance.hook(hook));
+      hooks.forEach((hook) => instance.hook(hook as ((r:any) => void)));
     }
 
     if (audit != null && Object.keys(audit).length) {
