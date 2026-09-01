@@ -6797,7 +6797,7 @@ class Model<
 
     const keyValue = Object.entries(columns).map(([column, value]) => {
       
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
@@ -8462,7 +8462,7 @@ class Model<
     }
 
     const keyValue = Object.entries(objects).map(([column, value]) => {
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
@@ -8525,7 +8525,7 @@ class Model<
 
     const values = Object.values(data).map((value: any) => {
 
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       if (
         this.$utils.typeOf(value) === "object" ||
@@ -8609,7 +8609,7 @@ class Model<
 
       const v: string[] = Object.values(objects).map((value: any) => {
         
-        value = this.$utils.escapeActions(value);
+        value = this.$utils.escapePayload(value);
 
         if (
           this.$utils.typeOf(value) === "object" ||

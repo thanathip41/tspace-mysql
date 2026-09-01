@@ -59,7 +59,8 @@ const escape = (v : any, opts : { hard : boolean } = { hard : false }) => {
     return v.replace(/'/g, "''");
 }
 
-const escapeActions = (v : any) => {
+const escapePayload = (v : any) => {
+    
     if(typeof v !== 'string') {
         if (Number.isNaN(v)) return 'NaN';
         if (v === Infinity)  return 'Infinity';
@@ -635,7 +636,7 @@ const utils = {
     timestamp,
     date,
     escape,
-    escapeActions,
+    escapePayload,
     escapeXSS,
     generateUUID,
     transfromBooleanToNumber,

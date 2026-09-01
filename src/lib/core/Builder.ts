@@ -2539,7 +2539,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const keyValue = Object.entries(columns).map(([column, value]) => {
 
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
@@ -3530,7 +3530,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @param {Function} func function for callback result
    * @returns {this}
    */
-  public hook(func: Function): this {
+  public hook(func: (results: any) => void): this {
     if (typeof func !== "function")
       throw new Error(`this '${func}' is not a function`);
 
@@ -5225,7 +5225,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const values = Object.entries(data).map(([column, value]) => {
 
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
@@ -5251,7 +5251,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const values = Object.values(data).map((value: any) => {
       
-      value = this.$utils.escapeActions(value);
+      value = this.$utils.escapePayload(value);
 
       if (
         this.$utils.typeOf(value) === "object" ||
@@ -5285,7 +5285,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
       const vals = Object.values(objects).map((value) => {
        
-        value = this.$utils.escapeActions(value);
+        value = this.$utils.escapePayload(value);
 
         if (
           this.$utils.typeOf(value) === "object" ||
