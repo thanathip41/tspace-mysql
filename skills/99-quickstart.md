@@ -33,9 +33,9 @@ EOF
 
 ### User Model
 
-```typescript
+```js
 // src/models/User.ts
-import { Model, Blueprint, T, HasMany } from 'tspace-mysql'
+import { Model, Blueprint, type T, HasMany } from 'tspace-mysql'
 import { Post } from './Post'
 import { Comment } from './Comment'
 
@@ -72,9 +72,9 @@ export class User extends Model<UserSchema> {
 
 ### Post Model
 
-```typescript
+```js
 // src/models/Post.ts
-import { Model, Blueprint, T, BelongsTo, BelongsToMany, HasMany } from 'tspace-mysql'
+import { Model, Blueprint, type T } from 'tspace-mysql'
 import { User } from './User'
 import { Category } from './Category'
 import { PostCategory } from './PostCategory'
@@ -118,7 +118,7 @@ export class Post extends Model<PostSchema> {
   }
   
   // Custom method to publish a post
-  async publish() {
+  async publish(this :Post) {
     return await this.update({
       data: {
         status: 'published',
@@ -132,9 +132,9 @@ export class Post extends Model<PostSchema> {
 
 ### Category Model
 
-```typescript
+```js
 // src/models/Category.ts
-import { Model, Blueprint, T, BelongsToMany } from 'tspace-mysql'
+import { Model, Blueprint, type T } from 'tspace-mysql'
 import { Post } from './Post'
 import { PostCategory } from './PostCategory'
 
@@ -168,9 +168,9 @@ export class Category extends Model<CategorySchema> {
 
 ### PostCategory (Pivot) Model
 
-```typescript
+```js
 // src/models/PostCategory.ts
-import { Model, Blueprint, T } from 'tspace-mysql'
+import { Model, Blueprint, type T } from 'tspace-mysql'
 
 const postCategorySchema = {
   id: Blueprint.int().primary().autoIncrement(),
@@ -194,9 +194,9 @@ export class PostCategory extends Model<PostCategorySchema> {
 
 ### Comment Model
 
-```typescript
+```js
 // src/models/Comment.ts
-import { Model, Blueprint, T, BelongsTo } from 'tspace-mysql'
+import { Model, Blueprint, type T } from 'tspace-mysql'
 import { User } from './User'
 import { Post } from './Post'
 
@@ -228,104 +228,9 @@ export class Comment extends Model<CommentSchema> {
 }
 ```
 
-## Step 3: Database Migration
+## Step 3: Repository Layer
 
-```typescript
-// src/migrations/001-init.ts
-import { Schema, Blueprint } from 'tspace-mysql'
-
-export async function up(schema: Schema): Promise<void> {
-  // Users table
-  await schema.table('users', {
-    id: Blueprint.int().primary().autoIncrement(),
-    uuid: Blueprint.varchar(50).null().index(),
-    email: Blueprint.varchar(255).unique().notNull(),
-    name: Blueprint.varchar(255).notNull(),
-    password: Blueprint.varchar(255).notNull(),
-    role: Blueprint.enum('admin', 'editor', 'reader').default('reader'),
-    isVerified: Blueprint.boolean().default(false),
-    lastLoginAt: Blueprint.timestamp().null(),
-    created_at: Blueprint.timestamp().currentTimestamp(),
-    updated_at: Blueprint.timestamp().null(),
-    deleted_at: Blueprint.timestamp().null(),
-  }, {
-    foreign: true,
-    index: true,
-  })
-  
-  // Posts table
-  await schema.table('posts', {
-    id: Blueprint.int().primary().autoIncrement(),
-    uuid: Blueprint.varchar(50).null(),
-    authorId: Blueprint.int().foreign({ on: 'User', references: 'id' }).notNull(),
-    title: Blueprint.varchar(255).notNull(),
-    slug: Blueprint.varchar(255).unique().notNull(),
-    excerpt: Blueprint.varchar(500).null(),
-    content: Blueprint.longText().notNull(),
-    status: Blueprint.enum('draft', 'published', 'archived').default('draft'),
-    publishedAt: Blueprint.timestamp().null(),
-    viewCount: Blueprint.int().default(0),
-    featuredImage: Blueprint.varchar(500).null(),
-    created_at: Blueprint.timestamp().currentTimestamp(),
-    updated_at: Blueprint.timestamp().null(),
-    deleted_at: Blueprint.timestamp().null(),
-  }, {
-    foreign: true,
-    index: true,
-  })
-  
-  // Categories table
-  await schema.table('categories', {
-    id: Blueprint.int().primary().autoIncrement(),
-    name: Blueprint.varchar(100).notNull(),
-    slug: Blueprint.varchar(100).unique().notNull(),
-    description: Blueprint.text().null(),
-    parentId: Blueprint.int().foreign({ on: 'Category', references: 'id' }).null(),
-    created_at: Blueprint.timestamp().currentTimestamp(),
-  }, {
-    foreign: true,
-  })
-  
-  // Post-Category pivot table
-  await schema.table('post_categories', {
-    id: Blueprint.int().primary().autoIncrement(),
-    postId: Blueprint.int().foreign({ on: 'Post', references: 'id' }).notNull(),
-    categoryId: Blueprint.int().foreign({ on: 'Category', references: 'id' }).notNull(),
-    isPrimary: Blueprint.boolean().default(false),
-    created_at: Blueprint.timestamp().currentTimestamp(),
-    // Unique constraint for post-category pair
-  }, {
-    foreign: true,
-  })
-  
-  // Comments table
-  await schema.table('comments', {
-    id: Blueprint.int().primary().autoIncrement(),
-    postId: Blueprint.int().foreign({ on: 'Post', references: 'id' }).notNull(),
-    userId: Blueprint.int().foreign({ on: 'User', references: 'id' }).notNull(),
-    parentId: Blueprint.int().foreign({ on: 'Comment', references: 'id' }).null(),
-    content: Blueprint.text().notNull(),
-    status: Blueprint.enum('pending', 'approved', 'rejected').default('pending'),
-    created_at: Blueprint.timestamp().currentTimestamp(),
-    updated_at: Blueprint.timestamp().null(),
-  }, {
-    foreign: true,
-    index: true,
-  })
-}
-
-export async function down(schema: Schema): Promise<void> {
-  await schema.drop('comments')
-  await schema.drop('post_categories')
-  await schema.drop('categories')
-  await schema.drop('posts')
-  await schema.drop('users')
-}
-```
-
-## Step 4: Repository Layer
-
-```typescript
+```js
 // src/repositories/UserRepository.ts
 import { Repository, OP } from 'tspace-mysql'
 import { User } from '../models/User'
@@ -400,7 +305,7 @@ export class UserRepository {
 }
 ```
 
-```typescript
+```js
 // src/repositories/PostRepository.ts
 import { Repository, OP } from 'tspace-mysql'
 import { Post } from '../models/Post'
@@ -441,14 +346,18 @@ export class PostRepository {
         author: true,
         categories: true
       },
-      orderBy: [['publishedAt', 'desc']]
+      orderBy: {
+        publishedAt : 'desc'
+      }
     })
   }
   
   async findByAuthor(authorId: number) {
     return await this.repository.findMany({
       where: { authorId },
-      orderBy: [['created_at', 'desc']]
+      orderBy: {
+        publishedAt : 'desc'
+      }
     })
   }
   
@@ -476,15 +385,13 @@ export class PostRepository {
 }
 ```
 
-## Step 5: Service Layer
+## Step 4: Service Layer
 
-```typescript
+```js
 // src/services/UserService.ts
 import { UserRepository } from '../repositories/UserRepository'
 import { Queue } from 'tspace-mysql'
 import bcrypt from 'bcrypt'
-
-const welcomeEmailQueue = new Queue('welcome_emails')
 
 export class UserService {
   private userRepository = new UserRepository()
@@ -505,11 +412,13 @@ export class UserService {
       password: hashedPassword
     })
     
-    // Queue welcome email (async)
-    await welcomeEmailQueue.publish({
-      type: 'send-welcome-email',
-      data: { userId: user.id, email: user.email, name: user.name }
-    })
+    // Queue welcome email
+    Queue.add('send-welcome-email', { 
+        userId: user.id, 
+        email: user.email, 
+        name: user.name 
+      }
+    )
     
     return user
   }
@@ -547,7 +456,7 @@ export class UserService {
 }
 ```
 
-```typescript
+```js
 // src/services/PostService.ts
 import { PostRepository } from '../repositories/PostRepository'
 import { slugify } from '../utils/slugify'
@@ -562,6 +471,7 @@ export class PostService {
     excerpt?: string
     categoryIds?: number[]
   }) {
+    
     const post = await this.postRepository.create({
       title: data.title,
       slug: slugify(data.title),
@@ -606,9 +516,9 @@ export class PostService {
 }
 ```
 
-## Step 6: API Routes (Express Example)
+## Step 5: API Routes (Express Example)
 
-```typescript
+```js
 // src/routes/posts.ts
 import { Router } from 'express'
 import { PostService } from '../services/PostService'
@@ -623,7 +533,7 @@ router.get('/posts', async (req, res) => {
   const limit = parseInt(req.query.limit as string) || 10
   
   const result = await postService.getPublishedPosts(page, limit)
-  res.json(result)
+  return res.json(result)
 })
 
 // Get single post by slug
@@ -634,7 +544,7 @@ router.get('/posts/:slug', async (req, res) => {
     return res.status(404).json({ error: 'Post not found' })
   }
   
-  res.json(post)
+  return res.json(post)
 })
 
 // Create new post (authenticated)
@@ -644,9 +554,11 @@ router.post('/posts', authenticate, async (req, res) => {
       ...req.body,
       authorId: req.user.id
     })
-    res.status(201).json(post)
+
+    return res.status(201).json(post)
+  
   } catch (error: any) {
-    res.status(400).json({ error: error.message })
+    return res.status(400).json({ error: error.message })
   }
 })
 
@@ -654,22 +566,23 @@ router.post('/posts', authenticate, async (req, res) => {
 router.post('/posts/:id/publish', authenticate, async (req, res) => {
   try {
     const post = await postService.publish(parseInt(req.params.id))
-    res.json(post)
+    
+    return res.json(post)
   } catch (error: any) {
-    res.status(400).json({ error: error.message })
+    return res.status(400).json({ error: error.message })
   }
 })
 
 export default router
 ```
 
-## Step 7: Main Application
+## Step 6: Main Application
 
-```typescript
+```js
 // src/index.ts
 import 'reflect-metadata'
 import express from 'express'
-import { DB } from 'tspace-mysql'
+import { DB , Queue } from 'tspace-mysql'
 import postsRoutes from './routes/posts'
 
 const app = express()
@@ -679,8 +592,15 @@ const PORT = process.env.PORT || 3000
 app.use(express.json())
 
 // Initialize database connection
-DB.initialize().then(() => {
+DB.initialize().then(async () => {
   console.log('Database connected')
+  await Queue.start();
+ 
+  // Register procress for Queue
+  Queue.procress('send-welcome-email', (job) => {
+    // send email ...
+    SendMail(job.email)
+  })
 }).catch(console.error)
 
 // Routes
@@ -704,9 +624,6 @@ app.listen(PORT, () => {
 ## Step 8: Run the Application
 
 ```bash
-# Run migrations
-npx tspace-mysql migrate
-
 # Start the server
 npm run dev  # or ts-node src/index.ts
 ```

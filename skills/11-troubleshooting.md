@@ -7,7 +7,7 @@
 **Cause:** Missing reflect-metadata import
 
 **Solution:**
-```typescript
+```js
 // Add to the TOP of your entry file (main.ts, index.ts, app.ts)
 import 'reflect-metadata'
 
@@ -22,7 +22,7 @@ import { Model, DB } from 'tspace-mysql'
 **Cause:** Trying to instantiate Repository as a class
 
 **Solution:**
-```typescript
+```js
 // ❌ WRONG
 const repo = new Repository(User)
 
@@ -37,7 +37,7 @@ const repo = Repository(User)  // Call as function
 **Cause:** Using wrong method name
 
 **Solution:**
-```typescript
+```js
 // ❌ WRONG
 // ✅ CORRECT - Configure in .env file (automatic!)
 // .env
@@ -52,7 +52,7 @@ DB_CACHE=db   # Options: memory, db, redis
 **Cause:** Missing `await` keyword
 
 **Solution:**
-```typescript
+```js
 // ❌ WRONG - Missing await
 const user = userRepository.find(1)
 
@@ -73,7 +73,7 @@ const user = await userRepository.find(1)
 **Cause:** Relations not loaded or wrong syntax
 
 **Solution:**
-```typescript
+```js
 // ❌ WRONG - Array syntax doesn't work
 const user = await User.find(1, {
   relations: ['posts']  // WRONG!
@@ -120,7 +120,7 @@ npm run dev  # or restart your server
 ```
 
 3. **Use correct cache methods:**
-```typescript
+```js
 // ✅ CORRECT - Using Model.cache() for queries
 const users = await new User()
   .cache({
@@ -137,7 +137,7 @@ await Cache.delete('my:key')
 ```
 
 4. **Common cache mistakes:**
-```typescript
+```js
 // ❌ WRONG - Expires is in milliseconds, not seconds!
 await Cache.set('key', data, 3600)  // Only 3.6 seconds!
 
@@ -160,7 +160,7 @@ Cache.driver('redis')  // Don't do this!
 ```
 
 5. **Debug cache issues:**
-```typescript
+```js
 // Check if cache exists
 const exists = await Cache.exists('my:key')
 console.log('Cache exists:', exists)
@@ -195,7 +195,7 @@ npm install redis@5.6.0 --save
 **Cause:** Model schema not synced with database
 
 **Solution:**
-```typescript
+```js
 // Option 1: Sync model (development only)
 await new User().sync({
   force: false,  // Don't drop table
@@ -225,7 +225,7 @@ DB_PASSWORD=your_password
 DB_DATABASE=your_database
 ```
 3. Test connection:
-```typescript
+```js
 try {
   await DB.initialize()
   console.log('Connected!')
@@ -241,7 +241,7 @@ try {
 **Cause:** Trying to insert duplicate unique value
 
 **Solution:**
-```typescript
+```js
 // Check if exists first
 const exists = await userRepository.exists({
   where: { email: 'test@example.com' }
@@ -263,7 +263,7 @@ if (exists) {
 **Cause:** Referencing non-existent record
 
 **Solution:**
-```typescript
+```js
 // Ensure parent exists first
 const user = await User.find(userId)
 if (!user) {
@@ -286,7 +286,7 @@ await Post.create({
 **Cause:** Missing required field
 
 **Solution:**
-```typescript
+```js
 // Check schema for .notNull() fields
 const userSchema = {
   email: Blueprint.varchar(255).notNull(),  // Required!
@@ -309,7 +309,7 @@ await userRepository.create({
 **Cause:** Too many queries or long-running query
 
 **Solution:**
-```typescript
+```js
 // Use batch operations
 const users = [
   { email: 'a@b.com' },
@@ -386,7 +386,7 @@ Check `tsconfig.json`:
 **Solutions:**
 
 1. **Add Indexes**
-```typescript
+```js
 const userSchema = {
   email: Blueprint.varchar(255).notNull().index(),  // Add index
   status: Blueprint.varchar(50).index(),            // Add index
@@ -394,7 +394,7 @@ const userSchema = {
 ```
 
 2. **Select Only Needed Fields**
-```typescript
+```js
 // ❌ SLOW - Select all columns
 const users = await userRepository.findMany()
 
@@ -405,7 +405,7 @@ const users = await userRepository.findMany({
 ```
 
 3. **Use Pagination**
-```typescript
+```js
 // ❌ SLOW - Load all records
 const users = await userRepository.findMany()
 
@@ -417,7 +417,7 @@ const result = await userRepository.paginate({
 ```
 
 4. **Use Caching**
-```typescript
+```js
 // Cache frequently accessed data
 const users = await new User()
   .cache({
@@ -433,7 +433,7 @@ const users = await new User()
 ## Debugging Tips
 
 ### Enable Query Logging
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -451,7 +451,7 @@ class User extends Model {
 ```
 
 ### View Generated SQL
-```typescript
+```js
 // See the SQL without executing
 const sql = await new User()
   .where('status', 'active')
@@ -462,7 +462,7 @@ console.log(sql)
 ```
 
 ### Debug Relations
-```typescript
+```js
 // Check if relations are defined
 const user = await User.find(1, {
   relations: { posts: true }

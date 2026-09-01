@@ -31,7 +31,7 @@ npm install tspace-mysql --save
 
 ## Core Exports
 
-```typescript
+```js
 import {
   DB,           // Database connection and query builder
   Model,        // Base model class for ORM

@@ -6,7 +6,7 @@ The Repository pattern provides a clean separation between business logic and da
 
 ## Creating a Repository
 
-```typescript
+```js
 import { Repository, Model, Blueprint, T } from 'tspace-mysql'
 
 // Define model
@@ -33,7 +33,7 @@ const userRepository = Repository(User)
 
 ### Find by Primary Key
 
-```typescript
+```js
 // Find by ID
 const user = await userRepository.find(1)
 
@@ -50,7 +50,7 @@ const user = await userRepository.find(1, {
 
 ### Find One
 
-```typescript
+```js
 // Find first record
 const user = await userRepository.findOne()
 
@@ -73,7 +73,7 @@ const user = await userRepository.findOne({
 
 ### Find Many
 
-```typescript
+```js
 // Get all records
 const users = await userRepository.findMany()
 
@@ -98,7 +98,7 @@ const users = await userRepository.findMany({
 
 ### Paginate
 
-```typescript
+```js
 // Default pagination (15 per page)
 const result = await userRepository.paginate()
 
@@ -135,7 +135,7 @@ Result structure:
 
 ### Exists Check
 
-```typescript
+```js
 // Check if any record exists
 const exists = await userRepository.exists()
 
@@ -147,7 +147,7 @@ const exists = await userRepository.exists({
 
 ### Count
 
-```typescript
+```js
 // Count all records
 const total = await userRepository.count('id')
 
@@ -159,7 +159,7 @@ const activeCount = await userRepository.count('id', {
 
 ### Aggregate Functions
 
-```typescript
+```js
 // Sum
 const totalAmount = await userRepository.sum('amount')
 
@@ -177,7 +177,7 @@ const minScore = await userRepository.min('score')
 
 ### Create Single Record
 
-```typescript
+```js
 // Basic create
 const user = await userRepository.create({
   data: {
@@ -203,7 +203,7 @@ await userRepository.create({
 
 ### Create Multiple Records
 
-```typescript
+```js
 // Create many records
 const users = await userRepository.createMany({
   data: [
@@ -222,7 +222,7 @@ const users = await userRepository.createMany({
 
 ### Create or Update (Upsert)
 
-```typescript
+```js
 // Update if exists, create if not
 const user = await userRepository.createOrUpdate({
   data: { name: 'Updated Name', email: 'test@example.com' },
@@ -232,7 +232,7 @@ const user = await userRepository.createOrUpdate({
 
 ### Create If Not Exists
 
-```typescript
+```js
 // Insert only if not exists (ignores duplicates)
 const user = await userRepository.createNotExists({
   data: { name: 'John', email: 'john@example.com' },
@@ -243,7 +243,7 @@ const user = await userRepository.createNotExists({
 
 ### Create Or Select
 
-```typescript
+```js
 // Insert or return existing
 const user = await userRepository.createOrSelect({
   data: { name: 'John', email: 'john@example.com' },
@@ -256,7 +256,7 @@ const user = await userRepository.createOrSelect({
 
 ### Update Single Record
 
-```typescript
+```js
 // Update with where condition
 const user = await userRepository.update({
   data: { name: 'Updated Name' },
@@ -272,7 +272,7 @@ const user = await userRepository.update({
 
 ### Update Multiple Records
 
-```typescript
+```js
 // Update all matching records
 const users = await userRepository.updateMany({
   data: { status: 'active' },
@@ -291,7 +291,7 @@ const users = await userRepository.updateMany({
 
 ### Update Cases (Conditional Update)
 
-```typescript
+```js
 // Update different values based on conditions
 const result = await userRepository.updateCases({
   cases: [
@@ -320,7 +320,7 @@ WHERE `id` IN (1, 2)
 
 ### Delete Single Record
 
-```typescript
+```js
 // Delete by ID
 const deleted = await userRepository.delete(1)
 
@@ -332,7 +332,7 @@ const deleted = await userRepository.delete({
 
 ### Delete Multiple Records
 
-```typescript
+```js
 // Delete all matching records
 const deleted = await userRepository.deleteMany({
   where: { status: 'inactive' }
@@ -341,7 +341,7 @@ const deleted = await userRepository.deleteMany({
 
 ### Force Delete (Bypass Soft Delete)
 
-```typescript
+```js
 // Permanently delete even with soft delete enabled
 const deleted = await userRepository.forceDelete({
   where: { id: 1 }
@@ -352,7 +352,7 @@ const deleted = await userRepository.forceDelete({
 
 ### Select Columns
 
-```typescript
+```js
 const user = await userRepository.findOne({
   select: { id: true, name: true, email: true }
 })
@@ -361,7 +361,7 @@ const user = await userRepository.findOne({
 
 ### Except Columns
 
-```typescript
+```js
 const user = await userRepository.findOne({
   except: { password: true, deleted_at: true }
 })
@@ -370,7 +370,7 @@ const user = await userRepository.findOne({
 
 ### Order By
 
-```typescript
+```js
 const users = await userRepository.findMany({
   orderBy: [
     ['status', 'asc'],
@@ -381,7 +381,7 @@ const users = await userRepository.findMany({
 
 ### Group By
 
-```typescript
+```js
 const grouped = await userRepository.findMany({
   groupBy: ['status', 'role']
 })
@@ -389,7 +389,7 @@ const grouped = await userRepository.findMany({
 
 ### Having
 
-```typescript
+```js
 const result = await userRepository.findMany({
   groupBy: ['status'],
   having: 'COUNT(id) > 1'
@@ -398,7 +398,7 @@ const result = await userRepository.findMany({
 
 ### Limit and Offset
 
-```typescript
+```js
 const users = await userRepository.findMany({
   limit: 10,
   offset: 20
@@ -407,7 +407,7 @@ const users = await userRepository.findMany({
 
 ### Where Conditions
 
-```typescript
+```js
 import { OP } from 'tspace-mysql'
 
 const users = await userRepository.findMany({
@@ -423,7 +423,7 @@ const users = await userRepository.findMany({
 
 ### Where Raw
 
-```typescript
+```js
 const users = await userRepository.findMany({
   whereRaw: [
     'CONCAT(first_name, " ", last_name) LIKE ?',
@@ -434,7 +434,7 @@ const users = await userRepository.findMany({
 
 ### Conditional Query (when)
 
-```typescript
+```js
 const users = await userRepository.findMany({
   where: { status: 'active' },
   when: {
@@ -446,7 +446,7 @@ const users = await userRepository.findMany({
 
 ### Join Clauses
 
-```typescript
+```js
 // Inner join
 const users = await userRepository.findMany({
   join: [
@@ -471,7 +471,7 @@ const users = await userRepository.findMany({
 
 ### Relations
 
-```typescript
+```js
 // Load relations
 const user = await userRepository.find(1, {
   relations: { posts: true, profile: true }
@@ -513,7 +513,7 @@ const user = await userRepository.find(1, {
 
 ### Debug Mode
 
-```typescript
+```js
 // Log the generated SQL
 const user = await userRepository.findOne({
   where: { id: 1 },
@@ -525,7 +525,7 @@ const user = await userRepository.findOne({
 
 ### To String (Get SQL)
 
-```typescript
+```js
 // Get the SQL query without executing
 const sql = userRepository.toString({
   where: { id: 1 },
@@ -536,7 +536,7 @@ const sql = userRepository.toString({
 
 ### To JSON
 
-```typescript
+```js
 // Get results as JSON string
 const json = await userRepository.toJSON({
   where: { status: 'active' }
@@ -545,7 +545,7 @@ const json = await userRepository.toJSON({
 
 ### To Array
 
-```typescript
+```js
 // Get single column as array
 const emails = await userRepository.toArray('email', {
   where: { status: 'active' }
@@ -555,7 +555,7 @@ const emails = await userRepository.toArray('email', {
 
 ### Raw String Query
 
-```typescript
+```js
 import { sql } from 'tspace-mysql'
 
 const users = await userRepository.findMany({
@@ -567,7 +567,7 @@ const users = await userRepository.findMany({
 
 ### Generic Type Extension
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 // Add custom properties to result type
@@ -579,7 +579,7 @@ const user = await userRepository.find(1, {
 
 ## Transaction Support
 
-```typescript
+```js
 // Using repository with transaction
 const trx = await DB.beginTransaction()
 
@@ -604,7 +604,7 @@ try {
 
 ## Complete Example
 
-```typescript
+```js
 import { Repository, Model, Blueprint, T, DB, OP } from 'tspace-mysql'
 
 // Model definition

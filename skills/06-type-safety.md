@@ -6,7 +6,7 @@ tspace-mysql provides comprehensive TypeScript type safety for all database oper
 
 ## Importing Types
 
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 ```
 
@@ -16,7 +16,7 @@ import { Model, Blueprint, T } from 'tspace-mysql'
 
 Extract TypeScript type from a Blueprint schema:
 
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 const userSchema = {
@@ -49,7 +49,7 @@ class User extends Model<UserSchema> {
 
 Get schema type from a Model class:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model { /* ... */ }
@@ -62,7 +62,7 @@ type UserSchemaType = T.SchemaModel<User>
 
 Define relationship types:
 
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 class Post extends Model { /* ... */ }
@@ -85,7 +85,7 @@ type UserRelations = T.Relation<{
 
 Get relation type from a Model class:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model {
@@ -105,7 +105,7 @@ type UserRelationType = T.RelationModel<User>
 
 Get full result type from a Model:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model<UserSchema> { /* ... */ }
@@ -118,7 +118,7 @@ type UserResult = T.Result<User>
 
 Get filtered result type based on select/relation options:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model<UserSchema> { /* ... */ }
@@ -138,7 +138,7 @@ type UserSelected = T.ResultFiltered<
 
 Get pagination result type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model<UserSchema> { /* ... */ }
@@ -162,7 +162,7 @@ type UserPaginateResult = T.PaginateResult<User>
 
 Get filtered pagination result type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserPaginateFiltered = T.PaginateResultFiltered<
@@ -179,7 +179,7 @@ type UserPaginateFiltered = T.PaginateResultFiltered<
 
 Get all valid column keys for a model:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model<UserSchema> { /* ... */ }
@@ -192,7 +192,7 @@ type UserColumns = T.ColumnKeys<User>
 
 Get columns type with their value types:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserColumnTypes = T.Columns<User>
@@ -213,7 +213,7 @@ type UserColumnTypesWithQuery = T.Columns<User, { InputQuery: true }>
 
 Get specific column value type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type NameType = T.ColumnValue<User, 'name'>
@@ -224,7 +224,7 @@ type NameType = T.ColumnValue<User, 'name'>
 
 Get enum column keys:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 const userSchema = {
@@ -240,7 +240,7 @@ type UserEnumColumns = T.ColumnEnumKeys<User>
 
 Get enum columns with their values:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserEnumMap = T.ColumnEnumMap<User>
@@ -256,7 +256,7 @@ type UserEnumMap = T.ColumnEnumMap<User>
 
 Get all valid relation keys:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class User extends Model {
@@ -275,7 +275,7 @@ type UserRelationKeys = T.RelationKeys<User>
 
 Get full relations type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserRelations = T.Relations<User>
@@ -288,7 +288,7 @@ type UserRelations = T.Relations<User>
 
 Type for where conditions:
 
-```typescript
+```js
 import { T, OP } from 'tspace-mysql'
 
 type UserWhere = T.WhereOptions<User>
@@ -305,7 +305,7 @@ const where: UserWhere = {
 
 Type for select conditions:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserSelect = T.SelectOptions<User>
@@ -321,7 +321,7 @@ const select: UserSelect = {
 
 Type for except (omit) conditions:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserExcept = T.ExceptOptions<User>
@@ -336,7 +336,7 @@ const except: UserExcept = {
 
 Type for order by conditions:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserOrderBy = T.OrderByOptions<User>
@@ -351,7 +351,7 @@ const orderBy: UserOrderBy = [
 
 Type for group by conditions:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserGroupBy = T.GroupByOptions<User>
@@ -363,7 +363,7 @@ const groupBy: UserGroupBy = ['status', 'role']
 
 Type for relation options:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserRelationOpts = T.RelationOptions<User>
@@ -378,7 +378,7 @@ const relations: UserRelationOpts = {
 
 Full repository query options type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserQueryOptions = T.RepositoryOptions<User>
@@ -396,7 +396,7 @@ type UserQueryOptions = T.RepositoryOptions<User>
 
 Type for create operation:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserCreate = T.RepositoryCreate<User>
@@ -412,7 +412,7 @@ type UserCreate = T.RepositoryCreate<User>
 
 Type for create many operation:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserCreateMany = T.RepositoryCreateMultiple<User>
@@ -428,7 +428,7 @@ type UserCreateMany = T.RepositoryCreateMultiple<User>
 
 Type for update operation:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpdate = T.RepositoryUpdate<User>
@@ -445,7 +445,7 @@ type UserUpdate = T.RepositoryUpdate<User>
 
 Type for update many operation:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpdateMany = T.RepositoryUpdateMultiple<User>
@@ -455,7 +455,7 @@ type UserUpdateMany = T.RepositoryUpdateMultiple<User>
 
 Type for createOrUpdate, createNotExists, createOrSelect:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpsert = T.RepositoryCreateOrThings<User>
@@ -472,7 +472,7 @@ type UserUpsert = T.RepositoryCreateOrThings<User>
 
 Type for delete operation:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserDelete = T.RepositoryDelete<User>
@@ -484,7 +484,7 @@ type UserDelete = T.RepositoryDelete<User>
 
 Type for insert input with conflict checking:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 // Required columns for insert
@@ -495,7 +495,7 @@ type UserInsertInput = T.InsertInput<User, T.Columns<User>>
 
 Type for update input:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 // All columns are optional for update
@@ -506,7 +506,7 @@ type UserUpdateInput = T.UpdateInput<User, T.Columns<User>>
 
 Type for upsert input:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpsertInput = T.InsertOrUpdateInput<User, T.Columns<User>>
@@ -516,7 +516,7 @@ type UserUpsertInput = T.InsertOrUpdateInput<User, T.Columns<User>>
 
 Check for duplicate keys between two arrays:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 // Returns error type if there are conflicting keys
@@ -530,7 +530,7 @@ type ConflictCheck = T.NoConflict<['id', 'name'], ['name', 'email']>
 
 Type for insert result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserInsertResult = T.InsertResult<User>
@@ -541,7 +541,7 @@ type UserInsertResult = T.InsertResult<User>
 
 Type for insert many result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserInsertManyResult = T.InsertManyResult<User>
@@ -552,7 +552,7 @@ type UserInsertManyResult = T.InsertManyResult<User>
 
 Type for createNotExists result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserInsertNotExistsResult = T.InsertNotExistsResult<User>
@@ -563,7 +563,7 @@ type UserInsertNotExistsResult = T.InsertNotExistsResult<User>
 
 Type for update result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpdateResult = T.UpdateResult<User>
@@ -574,7 +574,7 @@ type UserUpdateResult = T.UpdateResult<User>
 
 Type for update many result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpdateManyResult = T.UpdateManyResult<User>
@@ -585,7 +585,7 @@ type UserUpdateManyResult = T.UpdateManyResult<User>
 
 Type for delete result:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserDeleteResult = T.DeleteResult
@@ -598,7 +598,7 @@ type UserDeleteResult = T.DeleteResult
 
 Generate Zod schema shape for create operations:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 import { z } from 'zod'
 
@@ -610,7 +610,7 @@ type UserCreateShape = T.ZodShapeCreate<User>
 
 Generate Zod schema shape for update operations:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserUpdateShape = T.ZodShapeUpdate<User>
@@ -621,7 +621,7 @@ type UserUpdateShape = T.ZodShapeUpdate<User>
 
 Convert Blueprint type to Zod type:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type NumberToZod = T.BlueprintToZod<number>
@@ -635,7 +635,7 @@ type StringToZod = T.BlueprintToZod<string>
 
 Raw query type with operators:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserRawQuery = T.Raw<User>
@@ -646,7 +646,7 @@ type UserRawQuery = T.Raw<User>
 
 Type for query modifier callbacks:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type UserQueryModifier = T.QueryModifier<User>
@@ -657,7 +657,7 @@ type UserQueryModifier = T.QueryModifier<User>
 
 Type for default values:
 
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 type DefaultBoolean = T.Default<boolean>
@@ -666,7 +666,7 @@ type DefaultBoolean = T.Default<boolean>
 
 ## Complete Type-Safe Example
 
-```typescript
+```js
 import { Model, Blueprint, T, Repository, OP } from 'tspace-mysql'
 
 // Schema definition
@@ -750,7 +750,7 @@ async function getUsers(page: number, limit: number) {
 
 ## Type-Safe Generic Service Pattern
 
-```typescript
+```js
 import { Model, T, Repository } from 'tspace-mysql'
 
 // Generic service with type safety

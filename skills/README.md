@@ -64,7 +64,7 @@ This folder contains comprehensive documentation for the **tspace-mysql** librar
 ## Key Concepts to Remember
 
 ### 1. Model Definition
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 const schema = {
@@ -82,7 +82,7 @@ class User extends Model<SchemaType> {
 ```
 
 ### 2. Repository Pattern
-```typescript
+```js
 import { Repository } from 'tspace-mysql'
 
 const repo = Repository(User)
@@ -99,7 +99,7 @@ DB_REDIS_PORT=6379
 ```
 
 Using cache with Model queries:
-```typescript
+```js
 import { Model } from 'tspace-mysql'
 
 // Cache a query result
@@ -116,7 +116,7 @@ await User.cache.delete('users:list', { namespace: true })
 ```
 
 ### 4. Queue API
-```typescript
+```js
 import { Queue } from 'tspace-mysql'
 
 // Add job
@@ -132,13 +132,21 @@ await queue.process('send-email', async (job) => {
 ```
 
 ### 5. Transactions
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Using transaction helper
 const result = await DB.transaction(async (conn) => {
+  
   await conn.query('INSERT INTO users (...) VALUES (...)')
   await conn.query('UPDATE accounts SET ...')
+
+  // Or
+  await new User()
+  .bind(conn) // don't forgot this
+  .insert({ ... })
+  .save()
+
   return userId
 })
 ```
@@ -146,19 +154,31 @@ const result = await DB.transaction(async (conn) => {
 ## Common Patterns
 
 ### Cache-Aside Pattern
-```typescript
+```js
 async function getCached(id: number) {
-  const cached = await Cache.get(`item:${id}`)
-  if (cached) return cached
+  // ❌
+  const cached = await Cache.get(`item:${id}`);
+
+  if (cached) return cached;
   
-  const item = await Model.find(id)
-  if (item) await Cache.set(`item:${id}`, item, 3600000)
-  return item
+  const user = await User.find(id);
+
+  if (user) await Cache.set(`item:${id}`, item, 3600000)
+  
+  return user;
+ 
+  // ✅
+  return await User.find(id , {
+    cache : {
+      key : `item:${id}`,
+      expires : 3600000
+    }
+  });
 }
 ```
 
 ### Repository with Relations
-```typescript
+```js
 const user = await repo.find(id, {
   relations: { posts: true, profile: true },
   select: { id: true, name: true, email: true }
@@ -166,7 +186,7 @@ const user = await repo.find(id, {
 ```
 
 ### Transaction with Model
-```typescript
+```js
 const trx = await DB.beginTransaction()
 try {
   await new User().bind(trx).create(data).save()
@@ -207,7 +227,7 @@ skills/
 When generating code with tspace-mysql:
 
 1. **Always import reflect-metadata** at entry point:
-   ```typescript
+   ```js
    import 'reflect-metadata'
    ```
 

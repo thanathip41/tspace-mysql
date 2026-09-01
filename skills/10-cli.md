@@ -8,7 +8,7 @@ tspace-mysql includes a Command Line Interface (CLI) for managing models, migrat
 
 Run `npx tspace-mysql lists` or `npx tspace-mysql help` to see all available commands.
 
-```
+```bash
 tspace-mysql make:model User --m --dir=app/Models  
 tspace-mysql make:migration users --dir=app/Models/Migrations
 tspace-mysql migrate --dir=App/Models/Migrations --type=js

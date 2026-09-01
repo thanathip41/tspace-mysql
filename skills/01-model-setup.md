@@ -8,7 +8,7 @@ The `Model` class is the foundation of tspace-mysql's ORM functionality. It prov
 
 ### Method 1: Using `useSchema` in Constructor
 
-```typescript
+```js
 import { Model, Blueprint, DB } from 'tspace-mysql'
 
 class User extends Model {
@@ -32,7 +32,7 @@ console.log(user?.name)
 
 ### Method 2: Using Decorators
 
-```typescript
+```js
 import { Model, Column, Table, Blueprint } from 'tspace-mysql'
 
 @Table('users')
@@ -53,7 +53,7 @@ class User extends Model {
 The `Blueprint` class defines column types and constraints:
 
 ### Numeric Types
-```typescript
+```js
 Blueprint.int()           // INT
 Blueprint.tinyInt()       // TINYINT
 Blueprint.bigInt()        // BIGINT
@@ -64,7 +64,7 @@ Blueprint.serial()        // SERIAL
 ```
 
 ### String Types
-```typescript
+```js
 Blueprint.varchar(255)    // VARCHAR(n)
 Blueprint.char(10)        // CHAR(n)
 Blueprint.text()          // TEXT
@@ -77,20 +77,20 @@ Blueprint.json()          // JSON
 ```
 
 ### Date/Time Types
-```typescript
+```js
 Blueprint.date()          // DATE
 Blueprint.dateTime()      // DATETIME
 Blueprint.timestamp()     // TIMESTAMP
 ```
 
 ### Special Types
-```typescript
+```js
 Blueprint.enum('admin', 'user')  // ENUM
 Blueprint.virtualColumn('SQL expression')  // Virtual/Computed column
 ```
 
 ### Column Modifiers
-```typescript
+```js
 Blueprint.int().primary()           // PRIMARY KEY
 Blueprint.int().autoIncrement()     // AUTO_INCREMENT
 Blueprint.varchar(50).null()        // NULL allowed
@@ -106,7 +106,7 @@ Blueprint.int().foreign({ on: User, references: 'id' })  // Foreign key
 ## Model Configuration Methods
 
 ### Table Name
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -118,7 +118,7 @@ class User extends Model {
 ```
 
 ### Pattern (Naming Convention)
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -129,7 +129,7 @@ class User extends Model {
 ```
 
 ### UUID Support
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -140,7 +140,7 @@ class User extends Model {
 ```
 
 ### Timestamps
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -151,7 +151,7 @@ class User extends Model {
 ```
 
 ### Soft Deletes
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -164,7 +164,7 @@ class User extends Model {
 ## Type Definitions
 
 ### Schema Type Extraction
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 const userSchema = {
@@ -186,7 +186,7 @@ class User extends Model<UserSchema> {
 ```
 
 ### With Relations
-```typescript
+```js
 import { T } from 'tspace-mysql'
 
 class Post extends Model {
@@ -212,7 +212,7 @@ class UserTyped extends Model<UserSchema, UserRelations> {
 ## Model Lifecycle Hooks
 
 ### Using Methods in boot()
-```typescript
+```js
 class User extends Model {
   boot() {
     this.useUUID()
@@ -227,7 +227,7 @@ class User extends Model {
 ```
 
 ### Using Decorators
-```typescript
+```js
 import { 
   Table, UUID, Timestamp, SoftDelete, 
   Observer, Pattern, Hooks,
@@ -261,7 +261,7 @@ class User extends Model {
 
 ## Observer Pattern
 
-```typescript
+```js
 class UserObserver {
   selected(results: unknown) {
     console.log('User selected:', results)
@@ -290,7 +290,7 @@ class User extends Model {
 
 ## Logger Configuration
 
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -308,7 +308,7 @@ class User extends Model {
 
 Apply query constraints to all queries:
 
-```typescript
+```js
 class User extends Model {
   boot() {
     super()
@@ -327,7 +327,7 @@ const users = await new User().findMany()
 
 ## Schema Synchronization
 
-```typescript
+```js
 // Sync model schema with database
 await new User().sync({
   force: true,      // Drop and recreate table
@@ -342,7 +342,7 @@ await new User().drop({ force: true })
 
 ## Complete Example
 
-```typescript
+```js
 import { Model, Blueprint, DB, T, HasMany, Observer } from 'tspace-mysql'
 
 // Observer class
@@ -404,7 +404,7 @@ const user = await User.find(1, {
 ## Common Patterns
 
 ### Static Repository Usage
-```typescript
+```js
 // Using static methods (Repository pattern internally)
 const users = await User.findMany({ where: { status: 1 } })
 const user = await User.findOne({ where: { email: 'test@example.com' } })
@@ -412,7 +412,7 @@ const created = await User.create({ data: { email: 'new@example.com', name: 'New
 ```
 
 ### Instance Query Builder
-```typescript
+```js
 // Using instance methods (Query Builder pattern)
 const users = await new User()
   .where('status', 1)
@@ -422,7 +422,7 @@ const users = await new User()
 ```
 
 ### Type-Safe Queries
-```typescript
+```js
 import type { T } from 'tspace-mysql'
 
 class User extends Model<UserSchema> { /* ... */ }

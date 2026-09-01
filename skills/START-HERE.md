@@ -20,7 +20,7 @@ DB_DATABASE=your_database
 ```
 
 ### Step 3: Import in Entry File
-```typescript
+```js
 // main.ts or index.ts
 import 'reflect-metadata'  // MUST be first!
 import { DB, Model, Blueprint, T, Repository } from 'tspace-mysql'
@@ -30,7 +30,7 @@ DB.initialize()
 ```
 
 ### Step 4: Create Your First Model
-```typescript
+```js
 const userSchema = {
   id: Blueprint.int().primary().autoIncrement(),
   email: Blueprint.varchar(255).notNull(),
@@ -50,7 +50,7 @@ class User extends Model<UserSchema> {
 ```
 
 ### Step 5: Use Repository for CRUD
-```typescript
+```js
 const userRepository = Repository(User)
 
 // Create
@@ -91,7 +91,7 @@ const users = await userRepository.findMany({
 ## ⚠️ Common Mistakes to Avoid
 
 ### 1. Missing reflect-metadata
-```typescript
+```js
 // ❌ WRONG - Will fail!
 import { Model } from 'tspace-mysql'
 
@@ -101,7 +101,7 @@ import { Model } from 'tspace-mysql'
 ```
 
 ### 2. Wrong Relations Syntax
-```typescript
+```js
 // ❌ WRONG - Array syntax doesn't work
 relations: ['posts', 'profile']
 
@@ -110,7 +110,7 @@ relations: { posts: true, profile: true }
 ```
 
 ### 3. Wrong Repository Usage
-```typescript
+```js
 // ❌ WRONG - Don't instantiate as class
 const repo = new Repository(User)
 
@@ -119,7 +119,7 @@ const repo = Repository(User)
 ```
 
 ### 4. Missing await
-```typescript
+```js
 // ❌ WRONG - Returns Promise, not value
 const user = userRepository.find(1)
 
@@ -128,7 +128,7 @@ const user = await userRepository.find(1)
 ```
 
 ### 5. Wrong Cache Method
-```typescript
+```js
 // ❌ WRONG - Don't set driver in code!
 Cache.provider('redis')
 Cache.driver('redis')
@@ -142,7 +142,7 @@ REDIS_URL=redis://localhost:6379
 ## 🎯 Quick Reference
 
 ### Model Methods
-```typescript
+```js
 User.find(1)                          // Find by ID
 User.findOne({ where: { email: '...' } })  // Find one
 User.findMany({ where: {...} })       // Find many
@@ -150,7 +150,7 @@ User.create({ data: {...} })          // Create
 ```
 
 ### Repository Methods
-```typescript
+```js
 repo.find(1)                          // Find by ID
 repo.findOne({ where: {...} })        // Find one
 repo.findMany({ where: {...} })       // Find many
@@ -161,7 +161,7 @@ repo.delete(1)                        // Delete
 ```
 
 ### Relations
-```typescript
+```js
 // Always use object syntax
 relations: { posts: true }
 relations: { posts: true, profile: true }
@@ -175,7 +175,7 @@ relations: {
 ```
 
 ### Cache
-```typescript
+```js
 // 1. Configure in .env (automatic - do this once!)
 // .env
 DB_CACHE=memory        # Default (memory, db, or redis)
@@ -200,7 +200,7 @@ await User.cache.delete('users:list', { namespace: true })
 ```
 
 ### Transactions
-```typescript
+```js
 // Auto-managed (recommended)
 const result = await DB.transaction(async (conn) => {
   await conn.query('INSERT ...')
