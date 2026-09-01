@@ -308,9 +308,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             this.BUFFER.jobs.push({ jobData, resolve, reject });
 
             if (this.BUFFER.jobs.length >= this.BATCH_SIZE) {
-                this._flushBuffer(name);
+                this._flushBuffer();
             } else if (!this.BUFFER.timeout) {
-                this.BUFFER.timeout = setTimeout(() => this._flushBuffer(name), this.MAX_WAIT_MS);
+                this.BUFFER.timeout = setTimeout(() => this._flushBuffer(), this.MAX_WAIT_MS);
             }
         });
     }
@@ -640,7 +640,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         })
     }
 
-    private async _flushBuffer(name : string) {
+    private async _flushBuffer() {
 
         if (this.IS_FLUSHING || this.BUFFER.jobs.length === 0) return;
 
@@ -661,26 +661,31 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             const jobsToInsert = currentBatch.map(b => b.jobData);
 
             const insertedJobds = await new Worker()
-            .select('id')
+            .select('id','name')
             .insertMany(jobsToInsert)
             .save() as T.InsertManyResult<Worker>
 
             if (this.INSPECT_EXEC) {
-                const ids = insertedJobds.map(v => v.id);
+               
+                const names = [...new Set(insertedJobds.map(job => job.name))];
 
-                const preview = [
-                    ...ids.slice(0, 3),
-                    "...",
-                    ...ids.slice(-2),
-                ].join(', ');
+                for(const name of names) {
 
-                if(ids.length === 1) {
-                    
-                    console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m job \x1b[38;5;208m${ids}\x1b[0m`);
-                } else {
-                    console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m jobs [\x1b[38;5;208m${preview}\x1b[0m] total=(\x1b[38;5;208m${ids.length}\x1b[0m)`);
+                    const ids = insertedJobds.filter(v => v.name === name).map(v => v.id);
+
+                    const preview = [
+                        ...ids.slice(0, 3),
+                        ...(ids.length > 3 ? ['...', ...ids.slice(-2)] : []),
+                    ].join(', ');
+
+                    if(ids.length === 1) {
+                        
+                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m job \x1b[38;5;208m${ids}\x1b[0m`);
+                    } else {
+                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m jobs [\x1b[38;5;208m${preview}\x1b[0m] total=(\x1b[38;5;208m${ids.length}\x1b[0m)`);
+                    }
+
                 }
-
             }
     
             for (let i = 0; i < currentBatch.length; i++) {
@@ -699,7 +704,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         } finally {
             if (this.BUFFER.jobs.length) {
-                this._flushBuffer(name);
+                this._flushBuffer();
             }
         }
     }
