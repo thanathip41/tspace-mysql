@@ -319,7 +319,9 @@ class Queue {
             throw new Error(this.MESSAGE.INIT_ERROR);
         }
 
-        return await this.WORKER.add(name, payload, opts);
+        await this.WORKER.add(name, payload, opts);
+
+        return;
     }
 
     /**

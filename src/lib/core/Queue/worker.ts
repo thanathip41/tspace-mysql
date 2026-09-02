@@ -222,7 +222,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             failed,
         }
     }
-
     public async getJobStats(name?: string) {
 
         const rows = await new Worker()
@@ -270,7 +269,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return Array.from(map.values());
     }
-
     public async getJobs(name?: string) {
 
         const jobs = await new Worker()
@@ -279,11 +277,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
       
         return jobs;
     }
-
     public async getNames() {
         return await new Worker().select('name').toArray('name');
     }
-
     public async add(
         name: string, 
         payload: any, 
@@ -314,7 +310,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             }
         });
     }
-
     public async process(
         name    : string, 
         handler : Handler, 
@@ -336,7 +331,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         })
 
         if(this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.dispatch}\x1b[0m`)
+            console.log([
+                '\x1b[34mQueue:\x1b[0m',
+                `\x1b[35m'${name}'\x1b[0m`,
+                `\x1b[32m${QUEUE_STATUS.dispatch}\x1b[0m`,
+            ].join(' '));
         }
 
         const dispatch = async () => {
@@ -348,9 +347,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if (!state) return;
 
             if (state.running >= state.opts.concurrency) {
-                const jitter = Math.floor(Math.random() * 2000) + 500
-                const delayMs = (state.opts.interval! ?? 0) + jitter
-                state.running--
+                const delayMs = opts.interval ?? 1000;
+                state.running--;
                 setTimeout(dispatch, delayMs);
                 return;
             }
@@ -366,16 +364,19 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     state.sleeping = true
 
                     if(this.INSPECT_EXEC) {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[90m${QUEUE_STATUS.idle} (no jobs available)\x1b[0m`)
+                        console.log([
+                            '\x1b[34mQueue:\x1b[0m',
+                            `\x1b[35m'${name}'\x1b[0m`,
+                            `\x1b[90m${QUEUE_STATUS.idle} (no jobs available)\x1b[0m`,
+                        ].join(' '));
                     }
 
-                    return
+                    return;
                 }
 
-                const jitter = Math.floor(Math.random() * 4000) + 1000
-                const delayMs = (opts.interval! ?? 0) + jitter;
-
+                const delayMs = opts.interval ?? 1000;
                 setTimeout(dispatch, delayMs);
+
                 return;
             }
 
@@ -392,7 +393,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return dispatch();
     }
-
     public async publish(
         event: string,
         payload: any,
@@ -411,7 +411,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             )
         );
     }
-
     public async subscribe(
         event: string,
         name: string,
@@ -441,25 +440,51 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             opts
         );
     }
-
     private async _runJob (name: string, job: JobInternal, state: State) {
+
         state.running++
         this.ACTIVE_JOBS++
-        const handler = state.handler;
+       
+        const startTime = +new Date();
+
+        if(job.__job.delay_ms) {
+
+            setTimeout(async () => {
+                await this._wakeWorker(name);
+                await this._executeJob({ name, job, state, startTime });
+                state.running--
+                this.ACTIVE_JOBS--
+            }, job.__job.delay_ms);
+
+            return;
+        }
+
+        await this._executeJob({ name, job, state, startTime });
+
+        state.running--
+        this.ACTIVE_JOBS--
+
+        return;
+    }
+    private async _executeJob ({ name, job, state, startTime } : {
+        name: string; 
+        job: JobInternal; 
+        state: State;
+        startTime: number;
+    }) {
+        
+        if (this.INSPECT_EXEC) {
+            console.log([
+                '\x1b[34mQueue:\x1b[0m',
+                `\x1b[35m'${name}'\x1b[0m`,
+                `\x1b[38;2;77;215;240m${QUEUE_STATUS.processing}\x1b[0m`,
+                `job \x1b[38;5;208m${job.id}\x1b[0m`,
+            ].join(' '));
+        }
 
         try {
 
-            if (this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[38;2;77;215;240m${QUEUE_STATUS.processing}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m`)
-            }
-
-            const startTime = +new Date();
-
-            if(job.__job.delay_ms) {
-                await this._sleep(job.__job.delay_ms);
-            }
-
-            const result = await handler({
+            const result = await state.handler({
                 id      : job.id,
                 name    : job.name,
                 status  : job.status,
@@ -480,13 +505,24 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             const endTime = +new Date();
 
             if (this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${endTime - startTime}ms)`);
+                console.log([
+                    '\x1b[34mQueue:\x1b[0m',
+                    `\x1b[35m'${name}'\x1b[0m`,
+                    `\x1b[32m${QUEUE_STATUS.completed}\x1b[0m`,
+                    `job \x1b[38;5;208m${job.id}\x1b[0m`,
+                    `(${endTime - startTime}ms)`,
+                ].join(' '));
             }
 
         } catch (err:any) {
 
             if(this.INSPECT_EXEC) {
-                console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.failed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m`)
+                console.log([
+                    '\x1b[34mQueue:\x1b[0m',
+                    `\x1b[35m'${name}'\x1b[0m`,
+                    `\x1b[31m${QUEUE_STATUS.failed}\x1b[0m`,
+                    `job \x1b[38;5;208m${job.id}\x1b[0m`,
+                ].join(' '));
             }
 
             await new Worker()
@@ -515,7 +551,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
                     const startTime = +new Date();
 
-                    const result = await handler(job);
+                    const result = await state.handler(job);
 
                     const endTime = +new Date();
 
@@ -531,7 +567,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     .save();
 
                     if (this.INSPECT_EXEC) {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.retry.completed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${endTime - startTime}ms ${attempts}/${maxAttempts})`);
+                        console.log([
+                            '\x1b[34mQueue:\x1b[0m',
+                            `\x1b[35m'${name}'\x1b[0m`,
+                            `\x1b[32m${QUEUE_STATUS.retry.completed}\x1b[0m`,
+                            'job',
+                            `\x1b[38;5;208m${job.id}\x1b[0m`,
+                            `(${endTime - startTime}ms ${attempts}/${maxAttempts})`,
+                        ].join(' '));
                     }
 
                     break;
@@ -539,7 +582,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 } catch (err: any) {
 
                     if (this.INSPECT_EXEC) {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.retry.attempts}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (${attempts}/${maxAttempts})`);
+                        console.log([
+                            '\x1b[34mQueue:\x1b[0m',
+                            `\x1b[35m'${name}'\x1b[0m`,
+                            `\x1b[31m${QUEUE_STATUS.retry.attempts}\x1b[0m`,
+                            'job',
+                            `\x1b[38;5;208m${job.id}\x1b[0m`,
+                            `(${attempts}/${maxAttempts})`,
+                        ].join(' '));
                     }
 
                     if (attempts >= maxAttempts) {
@@ -561,7 +611,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                         .save();
 
                         if (this.INSPECT_EXEC) {
-                            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[31m${QUEUE_STATUS.retry.failed}\x1b[0m job \x1b[38;5;208m${job.id}\x1b[0m (\x1b[33mmax attempts reached\x1b[0m)`);
+                            console.log([
+                                '\x1b[34mQueue:\x1b[0m',
+                                `\x1b[35m'${name}'\x1b[0m`,
+                                `\x1b[31m${QUEUE_STATUS.retry.failed}\x1b[0m`,
+                                'job',
+                                `\x1b[38;5;208m${job.id}\x1b[0m`,
+                                '(\x1b[33mmax attempts reached\x1b[0m)',
+                            ].join(' '));
                         }
 
                         break;
@@ -571,30 +628,25 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 }
             }
          
-        } finally {
-            state.running--
-            this.ACTIVE_JOBS--
         }
     }
-
     private async _dequeueMany(name: string, limit: number) {
 
         if (this.STOPPING) return [];
+
+        const now = this.$utils.timestamp();
     
         const findJobs = await new Worker()
         .select('id')
         .where('name', name)
         .whereQuery(query => {
             return query
-            .whereIn('status',['pending'])
-            .where('created_at', '<=', this.$utils.timestamp())
-            .orWhereQuery((q) => {
-                return q
-                .where('status', '=', 'active')
-                .where('locked_at', '<', this.$utils.timestamp(new Date(Date.now() - 60 * 1000)))
-            })
+            .where('status','pending')
+            .where('created_at', '<', now)
+            .whereNull('locked_at')
         })
         .latest('priority')
+        .oldest('delay_ms')
         .oldest('id')
         .limit(limit)
         .findMany()
@@ -608,6 +660,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             const jobs = await new Worker()
             .whereIn('id',findJobs.map(v => v.id))
             .latest('priority')
+            .oldest('delay_ms')
             .oldest('id')
             .limit(limit)
             .forUpdate({ skipLocked : true })
@@ -675,14 +728,26 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
                     const preview = [
                         ...ids.slice(0, 3),
-                        ...(ids.length > 3 ? ['...', ...ids.slice(-2)] : []),
+                        ...(ids.length > 3 ? ['...', ...ids.slice(Math.max(3, ids.length - 2))] : [])
                     ].join(', ');
 
                     if(ids.length === 1) {
-                        
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m job \x1b[38;5;208m${ids}\x1b[0m`);
+                        console.log([
+                            '\x1b[34mQueue:\x1b[0m',
+                            `\x1b[35m'${name}'\x1b[0m`,
+                            `\x1b[32m${QUEUE_STATUS.receive}\x1b[0m`,
+                            'job',
+                            `\x1b[38;5;208m${ids}\x1b[0m`,
+                        ].join(' '));
                     } else {
-                        console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[32m${QUEUE_STATUS.receive}\x1b[0m jobs [\x1b[38;5;208m${preview}\x1b[0m] total=(\x1b[38;5;208m${ids.length}\x1b[0m)`);
+                        console.log([
+                            '\x1b[34mQueue:\x1b[0m',
+                            `\x1b[35m'${name}'\x1b[0m`,
+                            `\x1b[32m${QUEUE_STATUS.receive}\x1b[0m`,
+                            'jobs',
+                            `[\x1b[38;5;208m${preview}\x1b[0m]`,
+                            `total=(\x1b[38;5;208m${ids.length}\x1b[0m)`,
+                        ].join(' '));
                     }
 
                 }
@@ -721,7 +786,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         state.idle = 0;
 
         if (this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[35m'${name}'\x1b[0m \x1b[36m${QUEUE_STATUS.wokeUp}\x1b[0m`);
+            console.log([
+                '\x1b[34mQueue:\x1b[0m',
+                `\x1b[35m'${name}'\x1b[0m`,
+                `\x1b[36m${QUEUE_STATUS.wokeUp}\x1b[0m`,
+            ].join(' '));
         }
 
         if(isSleeping) {
@@ -778,7 +847,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .toArray('name');
 
         if (this.INSPECT_EXEC) {
-            console.log(`\x1b[34mQueue:\x1b[0m \x1b[32mPoll checked\x1b[0m (${jobs.length} jobs)`);
+            console.log([
+                '\x1b[34mQueue:\x1b[0m',
+                '\x1b[32mPoll checked\x1b[0m',
+                `(${jobs.length} jobs)`,
+            ].join(' '));
         };
 
         return jobs as string[];

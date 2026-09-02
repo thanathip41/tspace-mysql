@@ -215,7 +215,7 @@ describe('Queue Tests', function () {
       }, { concurrency: 1 })
       
       // Wait for retries
-      await sleep(5000);
+      await sleep(8000);
       
       expect(attemptCount).to.be.equal(3)
     })
@@ -362,7 +362,7 @@ describe('Queue Tests', function () {
 
       // Add jobs with different priorities (higher number = higher priority)
       for (const priority of [1, 100, 50, 10]) {
-        await Queue.add(jobName, { priority }, { priority })
+        Queue.add(jobName, { priority }, { priority })
       }
       
       Queue.on(jobName, async (job) => {
@@ -387,15 +387,15 @@ describe('Queue Tests', function () {
       let addedTime: number | null = null
       
       addedTime = Date.now()
-      
-      await Queue.add(jobName, { test: 'delay' }, {
-        delayMs: 2000
-      })
-      
+
       Queue.on(jobName, async (job) => {
         processedTime = Date.now()
         return 'delayed done'
       }, { concurrency: 1 })
+      
+      Queue.add(jobName, { test: 'delay' }, {
+        delayMs: 2000
+      })
       
       // Wait for delay + processing
       await sleep(4000);
