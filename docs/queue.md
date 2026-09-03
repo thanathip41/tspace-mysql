@@ -30,7 +30,7 @@ await Queue.start({
   maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
   poll : {            
     enabled : true,   // @default false, enable periodic job checking
-    timeout : 10_000  // @default 60_000, polling interval
+    interval : 10_000  // @default 60_000, polling interval
   };
 });  
 

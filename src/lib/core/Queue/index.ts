@@ -103,8 +103,8 @@ class Queue {
         hostname         ?: string;
         maxIdleRetries   ?: number;
         poll           ?: {
-            enabled ?: boolean;
-            timeout ?: number;
+            enabled  ?: boolean;
+            interval ?: number;
         };
     } = {}): Promise<void> {
 

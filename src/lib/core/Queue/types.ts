@@ -1,5 +1,9 @@
-import { Job, QueueContract, T } from "..";
-import { Worker } from "./worker";
+import { Worker }  from "./worker";
+import type { T }  from "..";
+import type { 
+    Job, 
+    QueueContract 
+}  from ".";
 
 export type JobInternal = Job & {
     __job : T.Result<Worker>;

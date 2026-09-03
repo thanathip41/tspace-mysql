@@ -19,8 +19,8 @@ await Queue.start({
   hostname : 'pod1',  // @default null, worker hostname
   maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
   poll : {            
-    enabled : true,   // @default false, enable periodic job checking
-    timeout : 10_000  // @default 60_000, polling interval
+    enabled  : true,    // @default false, enable periodic job checking
+    interval : 10_000   // @default 60_000, polling interval
   };
 }); 
 

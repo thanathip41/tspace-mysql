@@ -67,7 +67,6 @@ const schema = {
     created_at   : Blueprint.datetime().null(),
     updated_at   : Blueprint.datetime().null()
 };
-
 export class Worker extends Model<T.Schema<typeof schema>> {
 
     private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
@@ -76,16 +75,16 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private IS_FLUSHING       = false;
     private ACTIVE_JOBS       = 0;
 
-    private MAX_IDLE_RETRIES  = 3;
+    private MAX_IDLE_RETRIES  = 5;
     private BATCH_SIZE        = 1000;
     private MAX_WAIT_MS       = 50;
 
     private POLL = {
-        interval : null,
-        timeout : 1000 * 60
+        timeout : null,
+        interval : 1000 * 60
     } as {
-        interval : NodeJS.Timeout | null,
-        timeout : number
+        timeout : NodeJS.Timeout | null,
+        interval : number
     }
 
     private BUFFER = {
@@ -122,8 +121,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         hostname         ?: string;
         maxIdleRetries   ?: number;
         poll           ?: {
-            enabled ?: boolean;
-            timeout ?: number;
+            enabled  ?: boolean;
+            interval ?: number;
         };
     } = {}) {
 
@@ -155,11 +154,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         }
 
         if (opts.poll?.enabled) {
-            this.POLL.timeout = opts.poll?.timeout ?? this.POLL.timeout;
+            this.POLL.interval = opts.poll?.interval ?? this.POLL.interval;
 
-            this.POLL.interval = setInterval(() => {
+            this.POLL.timeout = setInterval(() => {
                 this._pollWorkerJobs();
-            }, this.POLL.timeout);
+            }, this.POLL.interval);
         }
 
         return this;
@@ -181,9 +180,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         await this._sleep(2000);
 
-        if (this.POLL.interval) {
-            clearInterval(this.POLL.timeout);
-            this.POLL.interval = null;
+        if (this.POLL.timeout) {
+            clearInterval(this.POLL.interval);
+            this.POLL.timeout = null;
         }
 
         this.STOPPING = true;
