@@ -95,7 +95,8 @@ npm install -D typescript@5.9.3
 - [Query Builder](#query-builder)
   - [Table Name & Alias Name](#table-name--alias-name)
   - [Returning Results](#returning-results)
-  - [Query Statement](#query-statements)
+  - [Query Statements](#query-statements)
+  - [Stream Statements](#stream-statements)
   - [Select Statements](#select-statements)
   - [Raw Expressions](#raw-expressions)
   - [Ordering, Grouping, Limit and Offset](#ordering-grouping-limit-and-offset)
@@ -190,6 +191,8 @@ npm install -D typescript@5.9.3
   - [Repository Transactions](#repository-transactions)
   - [Repository Relations](#repository-relations)
 - [Queue](#queue)
+  - [Queue Events](#queue-events)
+  - [Queue Type-safe Events and Jobs](#queue-type-safe-events-and-jobs)
 - [View](#view)
 - [Stored Procedure](#stored-procedure)
 - [Blueprint](#blueprint)
@@ -530,6 +533,19 @@ const query = await DB.query(
   username : ['name1','name2']
 })
 // SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+
+const query = await DB.query(
+  "SELECT * FROM users WHERE id = ? AND email IS ? AND name IN ?", 
+  [1,null,['name1','name2']]
+)
+// SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+```
+
+## Stream Statements
+```js
+for await (const user of DB.stream("SELECT * FROM users")) {
+  console.log(user);
+}
 ```
 
 ## Select Statements
@@ -2988,22 +3004,27 @@ import { PostUser } from './PostUser'
 
 class UserObserve {
 
-    public selected(results) {
-      console.log({ results , selected : true })
-    }
-
-    public created(results) {
-        console.log({ results , created : true })
-    }
-
-    public updated(results) {
-      console.log({ results , updated : true })
-    }
-
-    public deleted(results) {
-      console.log({ results , deleted : true })
-    }
+  public selected(results) {
+    console.log({ results , selected : true })
   }
+
+  public created(results) {
+      console.log({ results , created : true })
+  }
+
+  public updated(results) {
+    console.log({ results , updated : true })
+  }
+
+  public deleted(results) {
+    console.log({ results , deleted : true })
+  }
+}
+
+enum UserRole {
+  Admin = 'admin',
+  User  = 'user',
+}
 
 @Pattern('camelCase')
 @Observer(UserObserve)
@@ -3038,6 +3059,9 @@ class User extends Model {
 
     @Column(() => Blueprint.varchar(50).null())
     public password !: string
+
+    @Column(() => Blueprint.enum(UserRole).default(UserRole.Admin))
+    public role !: `${UserRole}`
 
     @Column(() => Blueprint.timestamp().null())
     public createdAt!: Date
@@ -4184,9 +4208,14 @@ const fakeSendEmail = async (job: Job) => {
 
 // start the Queue
 await Queue.start({ 
-  inspect : true, 
-  flush : false, // flush = true -> remove all jobs
-  hostname: 'pod1'
+  inspect  : true,    // @default false, enable queue workflow inspection
+  flush    : false,   // @default false, true -> remove all jobs
+  hostname : 'pod1',  // @default null, worker hostname
+  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
+  poll : {            
+    enabled : true,   // @default false, enable periodic job checking
+    interval : 10_000  // @default 60_000, polling interval
+  };
 }); 
 
 const worker = 20;
@@ -4225,6 +4254,83 @@ for(let j = 1; j <= worker * 500; j++) {
 
 // if you want to end the Queue
 // await Queue.end()
+
+```
+### Queue Events
+
+Queue also supports an event-based publish/subscribe pattern.
+
+One event can have multiple subscribers.
+Use Queue.subscribe() to subscribe a job handler to an event
+```js
+// user.created
+//   │
+//   ├── email
+//   ├── notify
+//   └── analytics
+
+Queue.subscribe(
+  'user.created',
+  'email',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('Send e-mail : ' + job.payload.email)
+    return  'Done!';
+  },
+  { concurrency: 2 }
+);
+
+Queue.subscribe(
+  'user.created',
+  'notify',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('notify : ' + job.payload.email)
+    return  'Done!';
+  },
+  { concurrency: 3 }
+);
+```
+Use Queue.publish() to publish an event.
+```js
+for (let i = 1; i <= 5; i++) {
+  // will send to jobs ['email','notify'];
+  Queue.publish(
+    'user.created', 
+    { id : i , email : `user${i}@gmail.com` },
+    {
+      priority: i
+    }
+  );
+}
+
+```
+### Queue Type-safe Events and Jobs
+Queue optionally supports type-safe event and job names through `QueueContract`.
+
+The feature is optional.
+
+If the application does not define a contract, the Queue API can continue to accept normal string names.
+
+Create a `types.d.ts` file in your application:
+```js
+import { QueueContract } from 'tspace-mysql';
+
+declare module 'tspace-mysql' {
+    interface QueueContract {
+        events: {
+            'user.created': [
+                'email',
+                'notify',
+            ];
+        };
+
+        jobs: [
+            'resize-video',
+            'cleanup',
+        ];
+    }
+}
 
 ```
 
@@ -4415,7 +4521,13 @@ Blueprint is a tool used for defining database schemas programmatically.
 It allows developers to describe the structure of their database tables using a simple and intuitive syntax rather than writing SQL queries directly., you may use the:
 
 ```js
-import { Schema , Blueprint , DB } from 'tspace-mysql'
+import { Schema , Blueprint , DB } from 'tspace-mysql';
+
+enum UserRole {
+  Admin   = 'admin',
+  User    = 'user',
+}
+
 (async () => {
     await new Schema().table('users', {
         id           : Blueprint.int().notNull().primary().autoIncrement(),
@@ -4426,6 +4538,7 @@ import { Schema , Blueprint , DB } from 'tspace-mysql'
         email_verify : Blueprint.tinyInt(),
         password     : Blueprint.varchar(255),
         json         : Blueprint.json(),
+        role         : Blueprint.enum(UserRole).default(UserRole.Admin)
         created_at   : Blueprint.null().timestamp(),
         updated_at   : Blueprint.null().timestamp(),
         deleted_at   : Blueprint.null().timestamp()
@@ -4458,6 +4571,10 @@ enum(...n)
 date()
 dateTime()
 timestamp ()
+raw({ 
+  type : 'DECIMAL(10, 2)', 
+  attribute : 'DEFAULT(1)'
+})
 
 /**
  * To add attributes of the schema to the database

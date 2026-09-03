@@ -2538,12 +2538,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     const keyValue = Object.entries(columns).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+
+      value = this.$utils.escapePayload(value);
+
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -3533,7 +3530,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @param {Function} func function for callback result
    * @returns {this}
    */
-  public hook(func: Function): this {
+  public hook(func: (results: any) => void): this {
     if (typeof func !== "function")
       throw new Error(`this '${func}' is not a function`);
 
@@ -3964,21 +3961,25 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {promise<any[]>}
    */
   public async get(cb?: Function): Promise<any[]> {
-    if (this.$state.get("EXCEPTS")?.length)
-      this.select(...(await this.exceptColumns()));
 
+    if (this.$state.get("VOID")) return [];
+
+    if (this.$state.get("EXCEPTS")?.length) {
+      this.select(...(await this.exceptColumns()));
+    }
+      
     let sql: string = this._queryBuilder().select();
 
     if (cb) {
       const callbackSql = cb(sql);
-      if (callbackSql == null || callbackSql === "")
+      if (callbackSql == null || callbackSql === "") {
         throw new Error("Please provide a callback for execution");
+      }
+        
       sql = callbackSql;
     }
 
     const result: any[] = await this._queryStatement(sql);
-
-    if (this.$state.get("VOID")) return [];
 
     await this.$utils.hookHandle(this.$state.get("HOOKS"), result || []);
 
@@ -3997,20 +3998,21 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   /**
-   *
-   * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
+   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
    *
    * It retrieves multiple records from a database table based on the criteria specified in the query.
+   * The optional callback function can be used to modify the generated SQL query before execution.
    *
-   * It returns a JSON formatted
-   * @returns {promise<string>}
+   * @param {Function?} cb callback function return query sql
+   * @returns {AsyncIterable<any>}
    */
-  public async toJSON(): Promise<string> {
-    const sql: string = this._queryBuilder().select();
+  public async *toAsyncIterable(cb?: Function): AsyncIterable<any>  {
 
-    const result: any[] = await this._queryStatement(sql);
+    if (this.$state.get("VOID")) return yield* [];
 
-    return this._resultHandler(JSON.stringify(result));
+    const results = await this.get(cb);
+
+    return yield* results;
   }
 
   /**
@@ -5222,12 +5224,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     this.$utils.transfromDateToDateString(data);
 
     const values = Object.entries(data).map(([column, value]) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+
+      value = this.$utils.escapePayload(value);
+
       return `${this.bindColumn(column)} = ${
         value == null || value === this.$constants("NULL")
           ? this.$constants("NULL")
@@ -5251,12 +5250,8 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     );
 
     const values = Object.values(data).map((value: any) => {
-      if (
-        typeof value === "string" &&
-        !value.includes(this.$constants("RAW"))
-      ) {
-        value = this.$utils.escapeActions(value);
-      }
+      
+      value = this.$utils.escapePayload(value);
 
       if (
         this.$utils.typeOf(value) === "object" ||
@@ -5289,12 +5284,8 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       this.$utils.transfromDateToDateString(objects);
 
       const vals = Object.values(objects).map((value) => {
-        if (
-          typeof value === "string" &&
-          !value.includes(this.$constants("RAW"))
-        ) {
-          value = this.$utils.escapeActions(value);
-        }
+       
+        value = this.$utils.escapePayload(value);
 
         if (
           this.$utils.typeOf(value) === "object" ||
@@ -5453,12 +5444,18 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
           transaction : async () => {
             return await poolCluster.masters[0].connection()
           },
+          stream : async (sql: string) => {
+            return await  poolCluster.masters[0].stream(sql);
+          },
         };
       }
 
       let pool = Pool.connect();
 
       return {
+        stream : async (sql: string) => {
+          return await pool.stream(sql);
+        },
         transaction : async () => {
           return await pool.connection()
         },

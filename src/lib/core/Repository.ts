@@ -285,7 +285,7 @@ class RepositoryFactory<
    */
   async exists(
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     >
   ): Promise<boolean> {
     const instance = this._handlerRequest(options as any);
@@ -319,7 +319,7 @@ class RepositoryFactory<
    */
   public toString(
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): string {
  
@@ -329,44 +329,7 @@ class RepositoryFactory<
 
     return instance.toString();
   }
-
-  /**
-   * The 'toJSON' method is used to execute a database query and retrieve the result set that matches the query conditions.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   *
-   * It returns a JSON formatted.
-   * @type     {?object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {?boolean} options.debug
-   * @property {?number} options.page
-   * @returns {string} json
-   */
-  public async toJSON(
-    options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
-    > = {}
-  ): Promise<string> {
-    
-    const instance = this._handlerRequest(options as any);
-
-    if (instance == null) throw new Error("The instance is not initialized");
-    return await instance.toJSON();
-  }
-
+  
   /**
    * The 'toArray' method is used to execute a database query and retrieve the result set that matches the query conditions.
    *
@@ -396,7 +359,7 @@ class RepositoryFactory<
   async toArray<K extends T.ColumnKeys<M> | `${string}.${string}`>(
     column: K,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<(K extends keyof T.Result<M> ? T.Result<M>[K] : unknown)[]> {
     
@@ -405,6 +368,69 @@ class RepositoryFactory<
     if (instance == null) throw new Error("The instance is not initialized");
 
     return await instance.toArray(column);
+  }
+
+  /**
+   *
+   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
+   *
+   * It retrieves multiple records from a database table based on the criteria specified in the query.
+   * The optional callback function can be used to modify the generated SQL query before execution.
+   * @type     {?Object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<Object>[]}
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const users = await userRepository.toAsyncIterable({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   * 
+   *   await for(const user of users()) {
+   *     console.log(user);
+   *   }
+   *
+   */
+  async *toAsyncIterable<
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>> {
+    const instance = this._handlerRequest(options);
+
+    if (instance == null) throw new Error("The instance is not initialized");
+
+    const results : any[] = await instance.get();
+
+    return yield* results;
   }
 
   /**
@@ -434,7 +460,7 @@ class RepositoryFactory<
   async count(
     column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<number> {
    
@@ -471,7 +497,7 @@ class RepositoryFactory<
   async avg(
     column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<number> {
  
@@ -508,7 +534,7 @@ class RepositoryFactory<
   async sum(
     column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<number> {
     
@@ -546,7 +572,7 @@ class RepositoryFactory<
   async max(
     column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<number> {
    
@@ -584,7 +610,7 @@ class RepositoryFactory<
   async min(
     column: T.ColumnKeys<M> | `${string}.${string}`,
     options: Partial<
-      Omit<T.RepositoryOptions<M>, "relations" | "relationQuery">
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
     > = {}
   ): Promise<number> {
    
@@ -1425,7 +1451,7 @@ class RepositoryFactory<
     if (debug) instance.debug();
 
     if (hooks != null && Array.isArray(hooks)) {
-      hooks.forEach((hook) => instance.hook(hook));
+      hooks.forEach((hook) => instance.hook(hook as ((r:any) => void)));
     }
 
     if (audit != null && Object.keys(audit).length) {
@@ -1455,12 +1481,16 @@ class RepositoryFactory<
  * const users = await userRepository.findMany()
  *
  */
-export const Repository = <M extends Model<any, any>>(
+export const Repository = <
+  M extends Model<any, any>,
+  S extends Record<string, any> = T.SchemaModel<M> & Record<string, any>,
+  R = T.RelationModel<M>
+>(
   model: new () => M
-): RepositoryFactory<T.SchemaModel<M>, T.RelationModel<M>, M> => {
+): RepositoryFactory<S, R, M> => {
   return new RepositoryFactory<
-    T.SchemaModel<M>, 
-    T.RelationModel<M>, 
+    S, 
+    R, 
     M
   >(model);
 };

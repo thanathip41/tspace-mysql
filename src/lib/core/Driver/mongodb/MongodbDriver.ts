@@ -1,3 +1,4 @@
+import { Readable }            from "stream";
 import { BaseDriver }          from "..";
 import { MongodbQueryBuilder } from "./MongodbQueryBuilder";
 import type { 
@@ -98,6 +99,7 @@ export class MongodblDriver extends BaseDriver {
             query: async (collection: string) => this._query(collection),
             connection: () => this._connection(),
             end: () => this._end(),
+            stream: (sql:string) => this._stream(sql)
         };
     }
 
@@ -261,9 +263,12 @@ export class MongodblDriver extends BaseDriver {
     private async _end(): Promise<void> {
         if (!this.pool) return; 
         await this.pool.close(); 
-        this.pool = undefined;  
-        console.log("MongoDB connection closed");
+        this.pool = undefined;
     }
+
+    private async _stream (sql: string) : Promise<Readable> {
+        throw new Error("Method not implemented.")    
+    } 
 
     protected meta(results: any, pipeline: string): void {
         if (Array.isArray(results)) return;

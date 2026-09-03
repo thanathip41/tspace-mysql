@@ -8,12 +8,21 @@ tspace-mysql includes a built-in job queue system designed for background and as
 
 ### Creating and Initializing a Queue
 
-```typescript
-import { Queue, DB } from 'tspace-mysql'
+```js
+import { Queue } from 'tspace-mysql'
 
 // The Queue uses an internal Worker model
 // First, ensure database is connected
-await DB.initialize()
+await Queue.start({ 
+  inspect  : true,    // @default false, enable queue workflow inspection
+  flush    : false,   // @default false, true -> remove all jobs
+  hostname : 'pod1',  // @default null, worker hostname
+  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
+  poll : {            
+    enabled  : true,    // @default false, enable periodic job checking
+    interval : 10_000   // @default 60_000, polling interval
+  };
+}); 
 
 // Queue operations use the Worker model internally
 // The table is auto-created when needed
@@ -21,7 +30,7 @@ await DB.initialize()
 
 ### Queue Options
 
-```typescript
+```js
 // Options for adding jobs
 type QueueAddOptions = {
   delayMs     ?: number   // Delay in milliseconds (default: 0)
@@ -37,58 +46,10 @@ type QueueProcessOptions = {
 }
 ```
 
-## Adding Jobs
-
-### Basic Job Adding
-
-```typescript
-import { DB } from 'tspace-mysql'
-
-// Jobs are added using the Worker model internally
-// The queue name is the 'name' field in the job
-
-async function addJob(name: string, payload: any) {
-  // Using internal queue mechanism
-  // Jobs are buffered and flushed in batches for efficiency
-}
-```
-
-### Job with Options
-
-```typescript
-// Add job with delay (will be available after delayMs)
-await queue.add('send-email', {
-  to: 'user@example.com',
-  subject: 'Welcome!'
-}, {
-  priority: 10,        // Higher priority
-  delayMs: 5000,       // Available after 5 seconds
-  maxAttempts: 5       // Retry up to 5 times
-})
-```
-
-### Job with Metadata
-
-```typescript
-await queue.add('process-order', {
-  orderId: 123
-}, {
-  priority: 5,
-  metadata: {
-    userId: 456,
-    source: 'web'
-  }
-})
-```
-
 ## Processing Jobs
 
-### Basic Job Processor
 
-```typescript
-import { DB } from 'tspace-mysql'
-import { Worker } from './Worker' // Internal model
-
+```js
 // Define job handler
 async function processEmailJob(job: Job) {
   const { to, subject, body } = job.payload
@@ -99,16 +60,16 @@ async function processEmailJob(job: Job) {
   console.log(`Email sent to ${to}`)
 }
 
-// Start processing jobs for a specific queue name
+// Start processing jobs
 await queue.process('send-email', processEmailJob, {
-  interval: 1000,      // Check every 1 second
-  concurrency: 5       // Process 5 jobs concurrently
+  interval: 1000,
+  concurrency: 5
 })
 ```
 
 ### Multiple Job Types
 
-```typescript
+```js
 // Process different job types
 await queue.process('send-email', async (job) => {
   await sendEmail(job.payload.to, job.payload.subject, job.payload.body)
@@ -123,29 +84,137 @@ await queue.process('push-notification', async (job) => {
 }, { interval: 1000, concurrency: 10 })
 ```
 
-### Job Object Structure
+## Adding Jobs
 
-```typescript
-type Job<T = any> = {
-  id        : number
-  name      : string        // Queue/job name
-  status    : 'pending' | 'active' | 'completed' | 'failed'
-  payload   : T             // Job data
-  attempts  : number        // Current attempt count
-  max_attempts : number     // Maximum retry attempts
-  priority  : number        // Job priority
-  metadata  : Record<string, any> | null
-  result    : string | null // JSON stringified result
-  error     : string | null // JSON stringified error
-  available_at : Date       // When job becomes available
-  locked_by : string | null // Worker hostname
-  locked_at : Date | null   // When locked
-  created_at : Date
-  updated_at : Date
-  completed_at : Date | null
-}
+Now that you have processors running, you can add jobs from anywhere in your application:
+
+### Basic Job Adding
+
+```js
+import { Queue } from 'tspace-mysql'
+
+// Jobs are added using queue.add()
+// The first parameter is the job name (queue name)
+// The second parameter is the payload (job data)
+await queue.add('send-email', {
+  to: 'user@example.com',
+  subject: 'Welcome!'
+})
 ```
 
+### Job with Options
+
+```js
+// Add job with delay (will be available after delayMs)
+await queue.add('send-email', {
+  to: 'user@example.com',
+  subject: 'Welcome!'
+}, {
+  priority: 10,        // Higher priority
+  delayMs: 5000,       // Available after 5 seconds
+  maxAttempts: 5       // Retry up to 5 times
+})
+```
+
+### Job with Metadata
+
+```js
+await queue.add('process-order', {
+  orderId: 123
+}, {
+  priority: 5,
+  metadata: {
+    userId: 456,
+    source: 'web'
+  }
+})
+```
+
+### Complete Example: Setup Processor + Add Jobs
+
+```js
+import { Queue } from 'tspace-mysql'
+
+// 1. Initialize
+await Queue.start()
+
+// 2. Start processor (runs in background)
+await queue.process('send-email', async (job) => {
+  const { to, subject, body } = job.payload
+  await sendEmail(to, subject, body)
+  console.log(`Email sent to ${to}`)
+  return { success: true }
+}, {
+  interval: 1000,
+  concurrency: 5
+})
+
+// 3. Add jobs (can be done anywhere, anytime)
+await queue.add('send-email', {
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  body: 'Hello and welcome!'
+}, {
+  priority: 5
+})
+```
+
+### Queue Events
+
+Queue also supports an event-based publish/subscribe pattern. One event can have multiple subscribers.
+
+```
+// user.created
+//   │
+//   ├── email
+//   ├── notify
+//   └── analytics
+```
+
+#### Subscribing to Events
+
+Use `Queue.subscribe()` to subscribe a job handler to an event:
+
+```js
+// Subscribe 'email' handler to 'user.created' event
+Queue.subscribe(
+  'user.created',
+  'email',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('Send e-mail : ' + job.payload.email);
+    return 'Done!';
+  },
+  { concurrency: 2 }
+);
+
+// Subscribe 'notify' handler to 'user.created' event
+Queue.subscribe(
+  'user.created',
+  'notify',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('notify : ' + job.payload.email);
+    return 'Done!';
+  },
+  { concurrency: 3 }
+);
+```
+
+#### Publishing Events
+
+Use `Queue.publish()` to publish an event. All subscribed handlers will receive the job:
+
+```js
+// Publish 5 events - each will be processed by both 'email' and 'notify' handlers
+for (let i = 1; i <= 5; i++) {
+  Queue.publish(
+    'user.created',
+    { id: i, email: `user${i}@gmail.com` },
+    { priority: i }
+  );
+}
+```
 ## Job Lifecycle
 
 ### Job States
@@ -160,7 +229,7 @@ pending → active → completed
 
 The queue automatically retries failed jobs:
 
-```typescript
+```js
 // When a job fails:
 // 1. Status set to 'failed'
 // 2. Error stored in error field
@@ -170,7 +239,7 @@ The queue automatically retries failed jobs:
 
 ### Job Processing Flow
 
-```typescript
+```js
 await queue.process('my-job', async (job) => {
   // Job starts as 'pending'
   // Worker picks up job, status becomes 'active'
@@ -193,7 +262,7 @@ await queue.process('my-job', async (job) => {
 
 ### Getting Job Stats
 
-```typescript
+```js
 // Get overall stats for all jobs
 const stats = await queue.getJobOverallStats()
 // Returns: { total, completed, active, pending, failed }
@@ -208,7 +277,7 @@ const detailedStats = await queue.getJobStats()
 
 ### Getting Jobs
 
-```typescript
+```js
 // Get all jobs
 const allJobs = await queue.getJobs()
 
@@ -218,7 +287,7 @@ const emailJobs = await queue.getJobs('send-email')
 
 ### Get Job Names
 
-```typescript
+```js
 // Get all unique job names
 const names = await queue.getNames()
 // Returns: ['send-email', 'send-sms', ...]
@@ -226,14 +295,14 @@ const names = await queue.getNames()
 
 ### Flush Queue
 
-```typescript
+```js
 // Remove all jobs from queue
 await queue.flush()
 ```
 
 ### Shutdown
 
-```typescript
+```js
 // Graceful shutdown - waits for active jobs to complete
 await queue.shutdown()
 ```
@@ -242,7 +311,7 @@ await queue.shutdown()
 
 ### Delayed Jobs
 
-```typescript
+```js
 // Job available after 5 minutes
 await queue.add('send-reminder', {
   userId: 123
@@ -253,7 +322,7 @@ await queue.add('send-reminder', {
 
 ### Priority Jobs
 
-```typescript
+```js
 // Higher priority processed first
 await queue.add('send-alert', { message: 'Urgent!' }, {
   priority: 100
@@ -266,7 +335,7 @@ await queue.add('send-newsletter', { userId: 123 }, {
 
 ### Job Metadata
 
-```typescript
+```js
 // Store additional info with job
 await queue.add('process-payment', {
   orderId: 456,
@@ -282,7 +351,7 @@ await queue.add('process-payment', {
 
 ### Inspect Mode
 
-```typescript
+```js
 // Enable detailed logging
 await queue.initialize({
   inspect: true    // Log job processing details
@@ -296,7 +365,7 @@ await queue.initialize({
 
 ### Custom Hostname
 
-```typescript
+```js
 // For distributed systems, identify workers
 await queue.initialize({
   hostname: 'worker-1'
@@ -305,7 +374,7 @@ await queue.initialize({
 
 ### Connection Limits
 
-```typescript
+```js
 // Limit concurrent connections
 await queue.initialize({
   limitConnections: 20  // Default: calculated from max_connections / 3
@@ -314,8 +383,8 @@ await queue.initialize({
 
 ## Complete Example: Email Queue
 
-```typescript
-import { DB } from 'tspace-mysql'
+```js
+import { Queue } from 'tspace-mysql'
 
 // Email job payload type
 interface EmailPayload {
@@ -326,7 +395,7 @@ interface EmailPayload {
 }
 
 // Initialize database
-await DB.initialize()
+await Queue.start()
 
 // Start email processor
 await queue.process('send-email', async (job: Job<EmailPayload>) => {
@@ -351,61 +420,28 @@ await queue.process('send-email', async (job: Job<EmailPayload>) => {
 })
 
 // Add jobs
-async function queueWelcomeEmail(user: { email: string; name: string }) {
-  await queue.add('send-email', {
-    to: user.email,
-    subject: 'Welcome!',
-    body: `Hello ${user.name}, welcome!`
-  }, {
-    priority: 5
-  })
-}
+await queue.add('send-email', {
+  to: user.email,
+  subject: 'Welcome!',
+  body: `Hello ${user.name}, welcome!`
+}, {
+  priority: 5
+})
 
-async function queuePasswordReset(user: { email: string; token: string }) {
-  await queue.add('send-email', {
-    to: user.email,
-    subject: 'Password Reset',
-    body: `Reset link: https://example.com/reset/${user.token}`
-  }, {
-    priority: 10,  // Higher priority
-    maxAttempts: 5
-  })
-}
+await queue.add('send-email', {
+  to: user.email,
+  subject: 'Password Reset',
+  body: `Reset link: https://example.com/reset/${user.token}`
+}, {
+  priority: 10,  // Higher priority
+  maxAttempts: 5
+})
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   await queue.shutdown()
   process.exit(0)
 })
-```
-
-## Database Table Structure
-
-The Worker model uses this schema:
-
-```sql
-CREATE TABLE IF NOT EXISTS workers (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  uuid VARCHAR(36),
-  name VARCHAR(255) NOT NULL,
-  status ENUM('pending', 'active', 'completed', 'failed') NOT NULL DEFAULT 'pending',
-  priority INT DEFAULT 0,
-  payload MEDIUMTEXT,
-  result TEXT,
-  error TEXT,
-  metadata TEXT,
-  attempts INT DEFAULT 0,
-  max_attempts INT DEFAULT 3,
-  delay_ms INT DEFAULT 0,
-  locked_by TEXT,
-  locked_at TIMESTAMP,
-  available_at TIMESTAMP NOT NULL,
-  completed_at TIMESTAMP,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  INDEX idx_name_status (name, status),
-  INDEX idx_available (status, available_at, priority, id)
-)
 ```
 
 ## Job Status Values

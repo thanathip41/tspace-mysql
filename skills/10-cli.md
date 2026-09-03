@@ -8,7 +8,7 @@ tspace-mysql includes a Command Line Interface (CLI) for managing models, migrat
 
 Run `npx tspace-mysql lists` or `npx tspace-mysql help` to see all available commands.
 
-```
+```bash
 tspace-mysql make:model User --m --dir=app/Models  
 tspace-mysql make:migration users --dir=app/Models/Migrations
 tspace-mysql migrate --dir=App/Models/Migrations --type=js
@@ -213,3 +213,4 @@ npx tspace-mysql query "SELECT * FROM users WHERE active = 1" --env=development
 - `00-overview.md` - Library overview
 - `01-model-setup.md` - Model definitions
 - `07-transactions.md` - Database transactions
+- `99-quickstart.md` - Complete example

@@ -6,6 +6,8 @@ This folder contains comprehensive documentation for the **tspace-mysql** librar
 
 ## Quick Reference
 
+|---------------------|----------------|
+| **Get started quickly** | **`00-START-HERE.md`** |
 | When you need to... | Read this file |
 |---------------------|----------------|
 | Start learning the library | `00-overview.md` |
@@ -16,14 +18,15 @@ This folder contains comprehensive documentation for the **tspace-mysql** librar
 | Use decorators | `05-decorators.md` |
 | Understand types | `06-type-safety.md` |
 | Handle transactions | `07-transactions.md` |
-| Implement caching | `08-caching.md` |
 | Use job queues | `09-queue.md` |
+| **Fix common errors** | **`11-troubleshooting.md`** |
 | Run CLI commands | `10-cli.md` |
-| See complete example | `99-quickstart.md` |
+| **AI Agent Quick Reference** | **`101-ai-agents.md`** |
 
 ## Learning Path for LLMs
 
 ### Level 1: Basics (Required)
+0. **`00-START-HERE.md`** - Quick start (5 minutes) ⭐
 1. **`00-overview.md`** - Understand the library architecture
 2. **`01-model-setup.md`** - Learn to define models with Blueprint
 3. **`02-query-builder.md`** - Master basic CRUD operations
@@ -43,6 +46,10 @@ This folder contains comprehensive documentation for the **tspace-mysql** librar
 ### Level 4: Mastery
 12. **`99-quickstart.md`** - Complete real-world example
 
+### Level 5: Support
+13. **`11-troubleshooting.md`** - Fix common errors and issues
+
+
 ## Documentation Accuracy
 
 **All files are verified 100% accurate** against the tspace-mysql source code (v1.9.2+):
@@ -57,7 +64,7 @@ This folder contains comprehensive documentation for the **tspace-mysql** librar
 ## Key Concepts to Remember
 
 ### 1. Model Definition
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 const schema = {
@@ -75,7 +82,7 @@ class User extends Model<SchemaType> {
 ```
 
 ### 2. Repository Pattern
-```typescript
+```js
 import { Repository } from 'tspace-mysql'
 
 const repo = Repository(User)
@@ -92,7 +99,7 @@ DB_REDIS_PORT=6379
 ```
 
 Using cache with Model queries:
-```typescript
+```js
 import { Model } from 'tspace-mysql'
 
 // Cache a query result
@@ -109,7 +116,7 @@ await User.cache.delete('users:list', { namespace: true })
 ```
 
 ### 4. Queue API
-```typescript
+```js
 import { Queue } from 'tspace-mysql'
 
 // Add job
@@ -125,13 +132,21 @@ await queue.process('send-email', async (job) => {
 ```
 
 ### 5. Transactions
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Using transaction helper
 const result = await DB.transaction(async (conn) => {
+  
   await conn.query('INSERT INTO users (...) VALUES (...)')
   await conn.query('UPDATE accounts SET ...')
+
+  // Or
+  await new User()
+  .bind(conn) // don't forgot this
+  .insert({ ... })
+  .save()
+
   return userId
 })
 ```
@@ -139,27 +154,39 @@ const result = await DB.transaction(async (conn) => {
 ## Common Patterns
 
 ### Cache-Aside Pattern
-```typescript
+```js
 async function getCached(id: number) {
-  const cached = await Cache.get(`item:${id}`)
-  if (cached) return cached
+  // ❌
+  const cached = await Cache.get(`item:${id}`);
+
+  if (cached) return cached;
   
-  const item = await Model.find(id)
-  if (item) await Cache.set(`item:${id}`, item, 3600000)
-  return item
+  const user = await User.find(id);
+
+  if (user) await Cache.set(`item:${id}`, item, 3600000)
+  
+  return user;
+ 
+  // ✅
+  return await User.find(id , {
+    cache : {
+      key : `item:${id}`,
+      expires : 3600000
+    }
+  });
 }
 ```
 
 ### Repository with Relations
-```typescript
+```js
 const user = await repo.find(id, {
-  relations: ['posts', 'profile'],
+  relations: { posts: true, profile: true },
   select: { id: true, name: true, email: true }
 })
 ```
 
 ### Transaction with Model
-```typescript
+```js
 const trx = await DB.beginTransaction()
 try {
   await new User().bind(trx).create(data).save()
@@ -177,6 +204,7 @@ try {
 ```
 skills/
 ├── README.md              # This file - guide for LLMs
+├── 00-START-HERE.md       # Quick start guide (READ FIRST!)
 ├── 00-overview.md         # Library overview & architecture
 ├── 01-model-setup.md      # Model definitions & Blueprint
 ├── 02-query-builder.md    # Query building & execution
@@ -188,7 +216,10 @@ skills/
 ├── 08-caching.md          # Caching strategies
 ├── 09-queue.md            # Job queue system
 ├── 10-cli.md              # CLI tools
-└── 99-quickstart.md       # Complete example (Blog API)
+├── 11-troubleshooting.md  # Common errors & solutions
+├── 12-index.md            # Index & glossary
+├── 99-quickstart.md       # Complete example (Blog API)
+└── 12-index.md            # Index & glossary
 ```
 
 ## For LLM Code Generation
@@ -196,7 +227,7 @@ skills/
 When generating code with tspace-mysql:
 
 1. **Always import reflect-metadata** at entry point:
-   ```typescript
+   ```js
    import 'reflect-metadata'
    ```
 

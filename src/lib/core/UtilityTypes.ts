@@ -1,6 +1,8 @@
+import { z }            from "zod";
 import { Blueprint }    from "./Blueprint";
 import { Model }        from "./Model";
 import { Repository }   from "./Repository";
+
 import type { 
     TDeepExpand,
     TResultResolved,
@@ -24,6 +26,7 @@ import type {
 
 import type { 
     TColumnsDecorator, 
+    TInputColumnsDecorator, 
     TRelationsDecorator, 
 } from "../types/decorator";
 
@@ -44,7 +47,6 @@ import type {
     TRepositoryUpdateMultiple, 
     TRepositoryWhere 
 } from "../types/repository";
-import { z } from "zod";
 
 /**
  * The 'TSchema' type is used to specify the type of the schema.
@@ -276,6 +278,16 @@ export declare namespace T {
 
     type InsertOrUpdateInput<K, C> = TInsertOrUpdateInput<K, C>
 
+    type InputOptions<
+        M extends Model<any, any, any>
+    > = 
+        keyof TColumnsDecorator<M> extends never
+            ? {
+                [K in keyof TSchemaModel<M>]:
+                    TSchemaModel<M>[K] | TRawStringQuery
+            }
+            : TInputColumnsDecorator<M>
+
     type NoConflict<
         R extends readonly PropertyKey[],
         O extends readonly PropertyKey[]
@@ -502,9 +514,14 @@ export declare namespace T {
     type RepositoryCreateOrThings<M extends Model<any,any,any>,NR extends boolean | undefined = false> = TRepositoryCreateOrThings<M,NR>;
     type RepositoryDelete<M extends Model<any,any,any>>  = TRepositoryDelete<M>;
 
-    type RepositoryGenericTypeOptions = TRepositoryExtendType
-
-    type Default<T = any> = TDefault<T>
+    type RepositoryGenericTypeOptions = TRepositoryExtendType;
 
     type QueryModifier<M extends Model<any,any,any>> = (query : M) => M
+
+    type Default<T = any> = TDefault<T>;
+    
+    type DateTime =  
+    | Date
+    | `${number}-${number}-${number}`
+    | `${number}-${number}-${number}${" " | "T"}${number}:${number}:${number}${"" | "Z"}`;
 };

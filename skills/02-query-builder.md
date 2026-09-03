@@ -6,7 +6,7 @@ The `DB` class provides a fluent query builder for constructing and executing SQ
 
 ## Basic Usage
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Select all from table
@@ -22,14 +22,14 @@ const user = await new DB('users').where('email', 'test@example.com').findOne()
 ## Table Selection
 
 ### From / Table
-```typescript
+```js
 await new DB().from('users').findMany()
 await new DB().table('users').findMany()
 await new DB('users').findMany()  // Shorthand
 ```
 
 ### Alias
-```typescript
+```js
 await new DB('users').alias('u').find(1)
 // SELECT * FROM `users` AS `u` WHERE `u`.`id` = '1' LIMIT 1
 
@@ -38,7 +38,7 @@ await new DB().alias('u', new DB('users').select('*').limit(1).toString()).find(
 ```
 
 ### Subquery as Table
-```typescript
+```js
 await new DB()
   .fromRaw('u', new DB('users').select('*').limit(1).toString())
   .find(1)
@@ -47,7 +47,7 @@ await new DB()
 ## Select Statements
 
 ### Basic Select
-```typescript
+```js
 // Select specific columns
 await new DB('users').select('id', 'name', 'email').findMany()
 // SELECT `users`.`id`, `users`.`name`, `users`.`email` FROM `users`
@@ -57,14 +57,14 @@ await new DB('users').select('*').findMany()
 ```
 
 ### Select Except
-```typescript
+```js
 // Select all except specific columns
 await new DB('users').except('password', 'deleted_at').findMany()
 // SELECT all columns EXCEPT password, deleted_at
 ```
 
 ### Select Raw
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 await new DB('users').selectRaw('COUNT(id) as total').findOne()
@@ -74,7 +74,7 @@ await new DB('users').select(DB.raw('COUNT(id) as total')).findOne()
 ```
 
 ### Select Object (JSON)
-```typescript
+```js
 // Create JSON object from joined table
 const post = await new DB('posts')
   .join('posts.user_id', 'users.id')
@@ -96,7 +96,7 @@ LIMIT 1
 ```
 
 ### Select Array (JSON Array)
-```typescript
+```js
 const user = await new DB('users')
   .select('id', 'name', 'email')
   .join('users.id', 'posts.user_id')
@@ -122,7 +122,7 @@ LIMIT 1
 ```
 
 ### Distinct
-```typescript
+```js
 await new DB('users').distinct().select('email').findMany()
 // SELECT DISTINCT `users`.`email` FROM `users`
 ```
@@ -130,7 +130,7 @@ await new DB('users').distinct().select('email').findMany()
 ## Where Clauses
 
 ### Basic Where
-```typescript
+```js
 // Equality
 await new DB('users').where('id', 1).findMany()
 // WHERE `users`.`id` = '1'
@@ -147,7 +147,7 @@ await new DB('users')
 ```
 
 ### Where Operators (OP)
-```typescript
+```js
 import { OP } from 'tspace-mysql'
 
 await new DB('users').whereObject({
@@ -162,7 +162,7 @@ await new DB('users').whereObject({
 ```
 
 ### Where Object
-```typescript
+```js
 await new DB('users').whereObject({
   id: 1,
   status: 'active',
@@ -172,7 +172,7 @@ await new DB('users').whereObject({
 ```
 
 ### Or Where
-```typescript
+```js
 await new DB('users')
   .where('id', 1)
   .orWhere('email', 'test@example.com')
@@ -181,7 +181,7 @@ await new DB('users')
 ```
 
 ### Where In / Not In
-```typescript
+```js
 await new DB('users').whereIn('id', [1, 2, 3]).findMany()
 // WHERE `id` IN ('1','2','3')
 
@@ -190,7 +190,7 @@ await new DB('users').whereNotIn('id', [1, 2, 3]).findMany()
 ```
 
 ### Where Between / Not Between
-```typescript
+```js
 await new DB('users').whereBetween('age', [18, 65]).findMany()
 // WHERE `age` BETWEEN '18' AND '65'
 
@@ -198,7 +198,7 @@ await new DB('users').whereNotBetween('age', [18, 65]).findMany()
 ```
 
 ### Where Null / Not Null
-```typescript
+```js
 await new DB('users').whereNull('deleted_at').findMany()
 // WHERE `deleted_at` IS NULL
 
@@ -207,7 +207,7 @@ await new DB('users').whereNotNull('deleted_at').findMany()
 ```
 
 ### Where JSON
-```typescript
+```js
 await new DB('users')
   .whereJSON('metadata', { key: 'status', value: 'active' })
   .findMany()
@@ -215,7 +215,7 @@ await new DB('users')
 ```
 
 ### Where Exists / Not Exists
-```typescript
+```js
 const subQuery = new DB('posts').select('id').where('user_id', DB.raw('users.id')).toString()
 
 await new DB('users')
@@ -229,7 +229,7 @@ await new DB('users')
 ```
 
 ### Where Subquery
-```typescript
+```js
 await new DB('users')
   .whereSubQuery('id', new DB('posts').select('user_id').toString())
   .findMany()
@@ -237,7 +237,7 @@ await new DB('users')
 ```
 
 ### Conditional Where (when)
-```typescript
+```js
 const shouldFilter = true
 
 await new DB('users')
@@ -248,7 +248,7 @@ await new DB('users')
 ```
 
 ### Where Cases (CASE WHEN)
-```typescript
+```js
 await new DB('payments')
   .whereCases([
     { when: "payment_type = 'credit'", then: "status = 'approved'" },
@@ -268,7 +268,7 @@ WHERE (
 ```
 
 ### Logical Grouping (whereQuery)
-```typescript
+```js
 await new DB('users')
   .where('id', '>', 1)
   .whereQuery((query) => {
@@ -282,7 +282,7 @@ await new DB('users')
 ```
 
 ### Where Any / Where All
-```typescript
+```js
 // Match any of the columns
 await new DB('users')
   .whereAny(['name', 'email', 'username'], 'like', '%search%')
@@ -299,7 +299,7 @@ await new DB('users')
 ## Ordering
 
 ### Basic Order By
-```typescript
+```js
 await new DB('users').orderBy('id', 'asc').findMany()
 // ORDER BY `id` ASC
 
@@ -314,7 +314,7 @@ await new DB('users')
 ```
 
 ### Latest / Oldest
-```typescript
+```js
 await new DB('users').latest('created_at').findMany()
 // ORDER BY `created_at` DESC
 
@@ -323,7 +323,7 @@ await new DB('users').oldest('created_at').findMany()
 ```
 
 ### Random
-```typescript
+```js
 await new DB('users').random().findMany()
 // ORDER BY RAND()
 ```
@@ -331,7 +331,7 @@ await new DB('users').random().findMany()
 ## Grouping
 
 ### Group By
-```typescript
+```js
 await new DB('users').groupBy('status').findMany()
 // GROUP BY `status`
 
@@ -340,7 +340,7 @@ await new DB('users').groupBy('status', 'role').findMany()
 ```
 
 ### Having
-```typescript
+```js
 await new DB('users')
   .select(DB.raw('COUNT(id) as count'), 'status')
   .groupBy('status')
@@ -350,7 +350,7 @@ await new DB('users')
 ```
 
 ### Get Grouped Results (Map)
-```typescript
+```js
 const grouped = await new DB('posts').getGroupBy('user_id')
 // Returns Map<user_id, Post[]>
 
@@ -359,7 +359,7 @@ const user1Posts = grouped.get(1)
 
 ## Limit and Offset
 
-```typescript
+```js
 await new DB('users').limit(10).findMany()
 // LIMIT 10
 
@@ -374,7 +374,7 @@ await new DB('users').limit(-1).findMany()
 ## Joins
 
 ### Inner Join
-```typescript
+```js
 await new DB('posts')
   .join('posts.user_id', 'users.id')
   .findMany()
@@ -382,7 +382,7 @@ await new DB('posts')
 ```
 
 ### Left / Right Join
-```typescript
+```js
 await new DB('posts').leftJoin('posts.user_id', 'users.id').findMany()
 // LEFT JOIN `users` ON `posts`.`user_id` = `users`.`id`
 
@@ -391,13 +391,13 @@ await new DB('posts').rightJoin('posts.user_id', 'users.id').findMany()
 ```
 
 ### Cross Join
-```typescript
+```js
 await new DB('posts').crossJoin('categories').findMany()
 // CROSS JOIN `categories`
 ```
 
 ### Join with Callback (Complex)
-```typescript
+```js
 await new DB('posts')
   .join((join) => {
     return join
@@ -416,7 +416,7 @@ AND `users`.`id` = `posts`.`user_id`
 
 ## Pagination
 
-```typescript
+```js
 const result = await new DB('users').paginate({ page: 2, limit: 15 })
 
 /*
@@ -437,7 +437,7 @@ const result = await new DB('users').paginate({ page: 2, limit: 15 })
 
 ## Aggregate Functions
 
-```typescript
+```js
 const count = await new DB('users').count('id')
 const sum = await new DB('orders').sum('amount')
 const avg = await new DB('orders').avg('amount')
@@ -448,7 +448,7 @@ const min = await new DB('products').min('price')
 ## Insert Statements
 
 ### Single Insert
-```typescript
+```js
 const user = await new DB('users')
   .create({
     name: 'John Doe',
@@ -461,7 +461,7 @@ const user = await new DB('users')
 ```
 
 ### Multiple Insert
-```typescript
+```js
 const users = await new DB('users')
   .createMultiple([
     { name: 'User 1', email: 'user1@example.com' },
@@ -471,7 +471,7 @@ const users = await new DB('users')
 ```
 
 ### Insert or Ignore
-```typescript
+```js
 const user = await new DB('users')
   .createNotExists({ name: 'John', email: 'john@example.com' })
   .where({ email: 'john@example.com' })
@@ -480,7 +480,7 @@ const user = await new DB('users')
 ```
 
 ### Insert or Select (Upsert)
-```typescript
+```js
 const user = await new DB('users')
   .createOrSelect({ name: 'John', email: 'john@example.com' })
   .where({ email: 'john@example.com' })
@@ -489,7 +489,7 @@ const user = await new DB('users')
 ```
 
 ### Insert or Update
-```typescript
+```js
 const user = await new DB('users')
   .createOrUpdate({ name: 'John Updated', email: 'john@example.com' })
   .where({ email: 'john@example.com' })
@@ -500,7 +500,7 @@ const user = await new DB('users')
 ## Update Statements
 
 ### Single Update
-```typescript
+```js
 const user = await new DB('users')
   .where('id', 1)
   .update({ name: 'Updated Name' })
@@ -510,7 +510,7 @@ const user = await new DB('users')
 ```
 
 ### Multiple Update
-```typescript
+```js
 const users = await new DB('users')
   .where('status', 'inactive')
   .updateMany({ status: 'active' })
@@ -518,7 +518,7 @@ const users = await new DB('users')
 ```
 
 ### Update with Cases
-```typescript
+```js
 await new DB('users')
   .updateCases({
     cases: [
@@ -541,19 +541,19 @@ WHERE `id` IN (1, 2)
 ## Delete Statements
 
 ### Single Delete
-```typescript
+```js
 const deleted = await new DB('users').where('id', 1).delete()
 // Returns true if deleted, false otherwise
 ```
 
 ### Force Delete (Bypass Soft Delete)
-```typescript
+```js
 const deleted = await new DB('users').where('id', 1).forceDelete()
 // Permanently deletes even with soft delete enabled
 ```
 
 ### Disable Soft Delete for Query
-```typescript
+```js
 const deleted = await new DB('users')
   .where('id', 1)
   .disableSoftDelete()
@@ -563,7 +563,7 @@ const deleted = await new DB('users')
 ## Raw SQL
 
 ### Raw Expressions
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 await new DB('users')
@@ -572,14 +572,14 @@ await new DB('users')
 ```
 
 ### Raw Where
-```typescript
+```js
 await new DB('users')
   .whereRaw('CONCAT(first_name, " ", last_name) LIKE ?', ['%John%'])
   .findMany()
 ```
 
 ### Raw Query Execution
-```typescript
+```js
 const results = await DB.query(
   'SELECT * FROM users WHERE id = :id AND email = :email',
   { id: 1, email: 'test@example.com' }
@@ -588,7 +588,7 @@ const results = await DB.query(
 
 ## Freeze (Bypass Pattern Conversion)
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Freeze prevents column name transformation
@@ -600,19 +600,19 @@ await new DB('users')
 ## Utility Methods
 
 ### Exists Check
-```typescript
+```js
 const exists = await new DB('users').where('email', 'test@example.com').exists()
 // Returns boolean
 ```
 
 ### Count
-```typescript
+```js
 const count = await new DB('users').count('id')
 // Returns number
 ```
 
 ### To JSON / Array
-```typescript
+```js
 const json = await new DB('users').toJSON()
 // Returns JSON string
 
@@ -621,7 +621,7 @@ const array = await new DB('users').toArray('email')
 ```
 
 ### To SQL String (Debug)
-```typescript
+```js
 const sql = await new DB('users')
   .where('id', 1)
   .select('id', 'name')
@@ -630,14 +630,14 @@ const sql = await new DB('users')
 ```
 
 ### First or Error
-```typescript
+```js
 const user = await new DB('users').where('id', 1).firstOrError('User not found')
 // Throws error if not found
 ```
 
 ## Common Table Expressions (CTE)
 
-```typescript
+```js
 await new DB()
   .with('active_users', new DB('users').where('active', true).toString())
   .from('active_users')
@@ -650,7 +650,7 @@ await new DB()
 
 ## Union
 
-```typescript
+```js
 const query1 = new DB('users').select('id', 'name')
 const query2 = new DB('admins').select('id', 'name')
 
@@ -660,7 +660,7 @@ await new DB('users').union([query1.toString(), query2.toString()]).findMany()
 
 ## Raw SQL Query Execution
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Execute raw SQL
@@ -679,3 +679,4 @@ await trx.commit()
 - `03-relations.md` - Model relationships
 - `04-repository.md` - Repository pattern
 - `07-transactions.md` - Database transactions
+- `08-caching.md` - Caching strategies

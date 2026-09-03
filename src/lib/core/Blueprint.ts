@@ -1,5 +1,6 @@
 import { type T } from "./UtilityTypes";
-import { Model } from "./Model";
+import { Model }  from "./Model";
+import { DB }     from "./DB";
 
 type ExtendType =
   | NumberConstructor
@@ -36,7 +37,7 @@ type ResolveType<T> =
  *   })
  */
 class Blueprint<T = any> {
-  private _default: string | number | null = null;
+  private _default: string | number | boolean | null = null;
   private _enum :string[] = [];
   private _type: string = "INT";
   private _attributes: string[] = [];
@@ -607,16 +608,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static date(): Blueprint<Date | string> {
-    return new Blueprint<Date | string >().date();
+  public static date(): Blueprint<T.DateTime> {
+    return new Blueprint<T.DateTime>().date();
   }
 
   /**
    * Assign type 'DATE' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public date(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
+  public date(): Blueprint<T.DateTime> {
+    const instance = new Blueprint<T.DateTime>();
     instance._addAssignType(`DATE`);
     instance._valueType = Date;
 
@@ -628,16 +629,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static dateTime(): Blueprint<Date | string> {
-    return new Blueprint<Date | string >().dateTime();
+  public static dateTime(): Blueprint<T.DateTime> {
+    return new Blueprint<T.DateTime>().dateTime();
   }
 
   /**
    * Assign type 'DATETIME' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public dateTime(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
+  public dateTime(): Blueprint<T.DateTime> {
+    const instance = new Blueprint<T.DateTime>();
     instance._addAssignType(`DATETIME`);
     instance._valueType = Date;
     return instance;
@@ -648,16 +649,16 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static datetime(): Blueprint<Date | string> {
-    return new Blueprint<Date | string >().dateTime();
+  public static datetime(): Blueprint<T.DateTime> {
+    return new Blueprint<T.DateTime>().dateTime();
   }
 
   /**
    * Assign type 'DATETIME' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public datetime(): Blueprint<Date | string> {
-    return new Blueprint<Date | string >().dateTime();
+  public datetime(): Blueprint<T.DateTime> {
+    return new Blueprint<T.DateTime>().dateTime();
   }
 
   /**
@@ -665,18 +666,67 @@ class Blueprint<T = any> {
    * @static
    * @return {Blueprint<T>} Blueprint
    */
-  public static timestamp(): Blueprint<Date | string> {
-    return new Blueprint<Date | string >().timestamp();
+  public static timestamp(): Blueprint<T.DateTime> {
+    return new Blueprint<T.DateTime>().timestamp();
   }
 
   /**
    * Assign type 'TIMESTAMP' in table
    * @return {Blueprint<T>} Blueprint
    */
-  public timestamp(): Blueprint<Date | string> {
-    const instance = new Blueprint<Date | string>();
+  public timestamp(): Blueprint<T.DateTime> {
+    const instance = new Blueprint<T.DateTime>();
     instance._addAssignType(`TIMESTAMP`);
     instance._valueType = Date;
+    return instance;
+  }
+
+  /**
+   * Assign 'raw' in table
+   * @static
+   * @param {object} opts
+   * @property {string} opts.select
+   * @property {string | undefined} opts.where
+   * @return {Blueprint<T>} Blueprint
+   * @example
+   * const schema = {
+   *   raw   : Blueprint.raw({ type : 'DECIMAL(10, 2)' , attribute : 'DEFAULT(1)'}),
+   *   enums : Blueprint.raw({ type : `ENUM('pending', 'active', 'banned')` , attribute : `DEFAULT 'pending'`}),
+   * }
+   */
+  public static raw(opts : { 
+    type: string; 
+    attribute ?: string 
+  }): Blueprint<string> {
+    return new Blueprint<string>().raw(opts);
+  }
+
+  /**
+   * Assign 'raw' in table
+   * @param {object} opts
+   * @property {string} opts.select
+   * @property {string | undefined} opts.where
+   * @return {Blueprint<T>} Blueprint
+   * * @example
+   * const schema = {
+   *   raw   : Blueprint.raw({ type : 'DECIMAL(10, 2)' , attribute : 'DEFAULT(1)'}),
+   *   enums : Blueprint.raw({ type : `ENUM('pending', 'active', 'banned')` , attribute : `DEFAULT 'pending'`}),
+   * }
+   */
+  public raw(opts : { 
+    type      : string; 
+    attribute ?: string 
+  }): Blueprint<string> {
+    const instance = new Blueprint<string>();
+
+    instance._addAssignType(opts.type);
+
+    if(opts.attribute) {
+      instance._addAssignAttribute(opts.attribute);
+    }
+
+    instance._valueType = String;
+
     return instance;
   }
 
@@ -745,16 +795,15 @@ class Blueprint<T = any> {
    */
   public default<I extends T>(
     value: I
-  ): Blueprint<
-    string extends  T ? T.Default<string>  :
-    boolean extends T ? T.Default<boolean> :
-    number extends  T ? T.Default<number>  :
-    `${T & string}` | null
-  > {
+  ): Blueprint<T.Default<T>> {
 
     if (typeof value === 'boolean') {
-      this._addAssignAttribute(`DEFAULT ${value ? 1 : 0}`);
-      this._default = value ? 1 : 0
+      const defaultValue : boolean | number = DB.driver() === 'pg' 
+        ? value 
+        : value ? 1 : 0;
+
+      this._addAssignAttribute(`DEFAULT ${defaultValue}`);
+      this._default = defaultValue
       return this
     }
     

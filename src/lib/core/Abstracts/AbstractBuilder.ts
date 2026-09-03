@@ -39,12 +39,14 @@ abstract class AbstractBuilder {
         get : Function;
         queryBuilder : Function;
         transaction : Function;
+        stream : Function;
     } = {
         query: (sql :string) => {},
         set: (pool : any) => {},
         get: () => {},
         queryBuilder: () => {},
         transaction: () => {},
+        stream: (sql :string) => {},
     }
 
     abstract void () : this
@@ -119,7 +121,6 @@ abstract class AbstractBuilder {
     abstract getGroupBy (column : string,): Promise<Map<string | number , any[]>>
     abstract findGroupBy (column : string,): Promise<Map<string | number , any[]>>
     abstract toArray (column : string,): Promise<any[]>
-    abstract toJSON(): Promise<string>
     abstract toSQL(): string
     abstract toString(): string
     abstract count (column : string): Promise<number>

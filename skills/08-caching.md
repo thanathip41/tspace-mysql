@@ -52,7 +52,7 @@ REDIS_URL=redis://username:password@localhost:6379/0
 
 The primary way to use cache is with the `.cache()` method on Model queries:
 
-```typescript
+```js
 import { Model, Blueprint } from 'tspace-mysql'
 
 class User extends Model {
@@ -87,7 +87,7 @@ const users = await new User()
 
 ### Deleting Cache
 
-```typescript
+```js
 // Delete cache by key
 await User.cache.delete('users:list', { namespace: true })
 
@@ -99,7 +99,7 @@ await User.cache.delete('users:list')
 
 ### Cache-Aside Pattern
 
-```typescript
+```js
 async function getUsers() {
   // Check cache first
   const cached = await User.cache.get('users:list', { namespace: true })
@@ -119,7 +119,7 @@ async function getUsers() {
 
 ### Automatic Caching with Queries
 
-```typescript
+```js
 // The .cache() method automatically caches query results
 const user = await new User()
   .cache({
@@ -135,7 +135,7 @@ const user = await new User()
 
 ### Cache Invalidation
 
-```typescript
+```js
 // Invalidate cache after update
 async function updateUser(id: number, data: Partial<User>) {
   const user = await User.update({ data, where: { id } })
@@ -159,7 +159,7 @@ async function createUser(data: UserData) {
 
 ## Complete Example
 
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 const userSchema = {
@@ -230,7 +230,7 @@ class UserService {
 
 When `namespace: true` is passed, the key is automatically prefixed:
 
-```typescript
+```js
 // Without namespace
 await User.cache.delete('user:1')  // Key: 'user:1'
 
@@ -253,7 +253,7 @@ await User.cache.delete('user:1', { namespace: true })
 
 ### Cache-Aside (Lazy Loading) with Model.cache
 
-```typescript
+```js
 async function getUser(id: number) {
   const cacheKey = `user:${id}`
   
@@ -277,7 +277,7 @@ async function getUser(id: number) {
 
 ### Write-Through
 
-```typescript
+```js
 async function updateUser(id: number, data: Partial<User>) {
   const cacheKey = `user:${id}`
   
@@ -298,7 +298,7 @@ async function updateUser(id: number, data: Partial<User>) {
 
 ### Cache Invalidation on Model Operations
 
-```typescript
+```js
 // Invalidate on create
 async function createUser(data: UserData) {
   const user = await new User().create(data).save()
@@ -337,7 +337,7 @@ async function deleteUser(id: number) {
 
 Cache driver is set via environment variable `DB_CACHE`. You can also switch drivers at runtime:
 
-```typescript
+```js
 import { Cache } from 'tspace-mysql'
 
 // Switch driver at runtime (optional)
@@ -348,7 +348,7 @@ Cache.driver('redis')   // Redis
 
 ## Complete Example: Cached Repository
 
-```typescript
+```js
 import { Repository, Model, Blueprint, T } from 'tspace-mysql'
 
 const userSchema = {
@@ -437,7 +437,7 @@ class CachedUserService {
 
 The Model class uses cache internally for find operations:
 
-```typescript
+```js
 // Model has internal cache handling for find operations
 // When you call find(), it may check cache first based on configuration
 const user = await new User().find(1)  // May use cache internally
@@ -486,7 +486,7 @@ const user = await new User().find(1)  // May use cache internally
 
 ### Cache-Aside Pattern (Lazy Loading)
 
-```typescript
+```js
 async function getUser(id: number) {
   const cacheKey = `user:${id}`
   
@@ -510,7 +510,7 @@ async function getUser(id: number) {
 
 ### Write-Through Cache
 
-```typescript
+```js
 async function updateUser(id: number, data: Partial<User>) {
   const cacheKey = `user:${id}`
   
@@ -534,7 +534,7 @@ async function updateUser(id: number, data: Partial<User>) {
 
 ### Write-Behind Cache
 
-```typescript
+```js
 async function bulkUpdateUsers(updates: { id: number; data: Partial<User> }[]) {
   const results = []
   
@@ -559,7 +559,7 @@ async function bulkUpdateUsers(updates: { id: number; data: Partial<User> }[]) {
 
 ### Automatic Caching Helper
 
-```typescript
+```js
 async function getCachedUser(id: number, ttlMs: number = 3600000) {
   const cacheKey = `user:${id}`
   
@@ -576,7 +576,7 @@ async function getCachedUser(id: number, ttlMs: number = 3600000) {
 
 ### Cache Invalidation on Model Events
 
-```typescript
+```js
 import { Observer } from 'tspace-mysql'
 
 class UserObserver {
@@ -636,7 +636,7 @@ REDIS_URL=redis://username:password@localhost:6379/0
 
 ### Time-To-Live (TTL)
 
-```typescript
+```js
 // Short-lived cache (5 minutes)
 await User.cache.set('user:1', user, 5 * 60 * 1000, { namespace: true })
 
@@ -649,7 +649,7 @@ await User.cache.set('user:1', user, 24 * 60 * 60 * 1000, { namespace: true })
 
 ### Cache Stampede Prevention
 
-```typescript
+```js
 async function getUserWithLock(id: number) {
   const cacheKey = `user:${id}`
   
@@ -691,7 +691,7 @@ async function getUserWithLock(id: number) {
 
 ### Tag-Based Cache Invalidation
 
-```typescript
+```js
 class CacheManager {
   private static tags: Map<string, Set<string>> = new Map()
   
@@ -732,7 +732,7 @@ await CacheManager.invalidateTag('user')
 
 ## Complete Example: Cached Repository
 
-```typescript
+```js
 import { Repository, Model, Blueprint, T } from 'tspace-mysql'
 
 const userSchema = {
@@ -833,3 +833,4 @@ class CachedUserService {
 - `00-overview.md` - Library overview
 - `04-repository.md` - Repository pattern
 - `09-queue.md` - Queue system
+- `07-transactions.md` - Database transactions

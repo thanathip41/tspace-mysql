@@ -4,7 +4,9 @@ import type { T } from "../../core";
 import type {
   TConnection,
   TConnectionTransaction,
+  TFreezeStringQuery,
   TNestedBoolean,
+  TOperatorQuery,
   TRawStringQuery,
   TRelationKeys,
   TSchemaKeys,
@@ -142,6 +144,9 @@ export type TRepositoryWhere<
               : never
           : K extends keyof TColumnsDecorator<M>
             ? TColumnsDecorator<M>[K]
+              | TOperatorQuery
+              | TRawStringQuery
+              | TFreezeStringQuery
             : never;
       }>
   : Partial<{
@@ -172,7 +177,10 @@ export type TRepositoryWhere<
                 : never
             : never
         : K extends keyof T
-          ? T[K]
+          ? T[K] 
+            | TOperatorQuery
+            | TRawStringQuery
+            | TFreezeStringQuery
           : never;
     }>;
 

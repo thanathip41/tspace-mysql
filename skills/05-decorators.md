@@ -8,7 +8,7 @@ tspace-mysql provides a comprehensive set of decorators for configuring models, 
 
 Ensure `reflect-metadata` is imported in your main entry file:
 
-```typescript
+```js
 // main.ts or index.ts
 import 'reflect-metadata'
 ```
@@ -19,7 +19,7 @@ import 'reflect-metadata'
 
 Set explicit table name:
 
-```typescript
+```js
 import { Model, Table, Blueprint, Column } from 'tspace-mysql'
 
 @Table('users')
@@ -36,7 +36,7 @@ class User extends Model {
 
 Automatically use singular form of class name:
 
-```typescript
+```js
 @TableSingular()
 class Users extends Model {
   // Table name will be 'user' (singular)
@@ -47,7 +47,7 @@ class Users extends Model {
 
 Automatically use plural form of class name:
 
-```typescript
+```js
 @TablePlural()
 class User extends Model {
   // Table name will be 'users' (plural)
@@ -60,7 +60,7 @@ class User extends Model {
 
 Define a database column with Blueprint:
 
-```typescript
+```js
 import { Column, Blueprint } from 'tspace-mysql'
 
 class User extends Model {
@@ -91,7 +91,7 @@ class User extends Model {
 
 Add custom transform functions for serialization/deserialization:
 
-```typescript
+```js
 import { Transform } from 'tspace-mysql'
 
 class User extends Model {
@@ -115,7 +115,7 @@ class User extends Model {
 
 Add validation rules to columns:
 
-```typescript
+```js
 import { Validate } from 'tspace-mysql'
 
 class User extends Model {
@@ -165,7 +165,7 @@ class User extends Model {
 
 Define one-to-one relationship:
 
-```typescript
+```js
 import { HasOne } from 'tspace-mysql'
 
 class Profile extends Model {
@@ -195,7 +195,7 @@ class User extends Model {
 
 Define one-to-many relationship:
 
-```typescript
+```js
 import { HasMany } from 'tspace-mysql'
 
 class Post extends Model {
@@ -226,7 +226,7 @@ class User extends Model {
 
 Define inverse relationship (many-to-one):
 
-```typescript
+```js
 import { BelongsTo } from 'tspace-mysql'
 
 class User extends Model {
@@ -257,7 +257,7 @@ class Post extends Model {
 
 Define many-to-many relationship with pivot table:
 
-```typescript
+```js
 import { BelongsToMany } from 'tspace-mysql'
 
 class Role extends Model {
@@ -289,7 +289,7 @@ class User extends Model {
 
 Enable automatic UUID generation:
 
-```typescript
+```js
 import { UUID, Model, Column, Blueprint } from 'tspace-mysql'
 
 @UUID()  // Uses default 'uuid' column
@@ -313,7 +313,7 @@ class Product extends Model {
 
 Enable automatic timestamps:
 
-```typescript
+```js
 import { Timestamp } from 'tspace-mysql'
 
 @Timestamp()  // Uses createdAt, updatedAt
@@ -340,7 +340,7 @@ class Post extends Model {
 
 Enable soft delete functionality:
 
-```typescript
+```js
 import { SoftDelete } from 'tspace-mysql'
 
 @SoftDelete()  // Uses default 'deleted_at' column
@@ -361,7 +361,7 @@ class Post extends Model {
 
 Set naming convention pattern:
 
-```typescript
+```js
 import { Pattern } from 'tspace-mysql'
 
 @Pattern('snake_case')  // Convert camelCase to snake_case
@@ -387,7 +387,7 @@ class UserData extends Model {
 
 Shorthand for pattern decorators:
 
-```typescript
+```js
 import { CamelCase, SnakeCase } from 'tspace-mysql'
 
 @CamelCase()
@@ -407,7 +407,7 @@ class UserProfiles extends Model {
 
 Attach an observer class to handle model events:
 
-```typescript
+```js
 import { Observer, Model, Column, Blueprint } from 'tspace-mysql'
 
 // Observer class
@@ -445,7 +445,7 @@ class User extends Model {
 
 Execute before inserting a record:
 
-```typescript
+```js
 import { BeforeInsert, Model, Column, Blueprint } from 'tspace-mysql'
 import bcrypt from 'bcrypt'
 
@@ -464,7 +464,7 @@ class User extends Model {
 
 Execute before updating a record:
 
-```typescript
+```js
 import { BeforeUpdate } from 'tspace-mysql'
 
 class User extends Model {
@@ -487,7 +487,7 @@ class User extends Model {
 
 Execute before deleting a record:
 
-```typescript
+```js
 import { BeforeRemove } from 'tspace-mysql'
 
 class User extends Model {
@@ -503,7 +503,7 @@ class User extends Model {
 
 Execute after inserting a record:
 
-```typescript
+```js
 import { AfterInsert } from 'tspace-mysql'
 
 class User extends Model {
@@ -518,7 +518,7 @@ class User extends Model {
 
 Execute after updating a record:
 
-```typescript
+```js
 import { AfterUpdate } from 'tspace-mysql'
 
 class Order extends Model {
@@ -535,7 +535,7 @@ class Order extends Model {
 
 Execute after deleting a record:
 
-```typescript
+```js
 import { AfterRemove } from 'tspace-mysql'
 
 class Post extends Model {
@@ -550,7 +550,7 @@ class Post extends Model {
 
 Generic lifecycle hook decorator:
 
-```typescript
+```js
 import { Hooks } from 'tspace-mysql'
 
 class User extends Model {
@@ -563,7 +563,7 @@ class User extends Model {
 
 ## Complete Decorator Example
 
-```typescript
+```js
 import {
   Model, Table, UUID, Timestamp, SoftDelete, Pattern, Observer,
   Column, Blueprint, Validate, Transform,
@@ -654,3 +654,4 @@ class User extends Model {
 - `01-model-setup.md` - Model definitions
 - `03-relations.md` - Model relationships
 - `06-type-safety.md` - TypeScript type system
+- `99-quickstart.md` - Complete example

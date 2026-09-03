@@ -34,6 +34,13 @@ export type TColumnsDecorator<
       : T[K]
 };
 
+export type TInputColumnsDecorator<
+  T,
+> = {
+  [K in keyof T as T[K] extends string | number | null | boolean | Date | Record<string, unknown>
+  ? K : never]:T[K] | TRawStringQuery
+};
+
 export type TRelationsDecorator<T> = Pick<T, {
     [K in keyof T]: T[K] extends Model | Model[] ? K : never;
 }[keyof T]>;

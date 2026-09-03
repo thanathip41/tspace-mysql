@@ -1,4 +1,4 @@
-import { Blueprint } from ".."
+import { Blueprint, T } from ".."
 import { CONSTANTS } from "../constants"
 import { TStateWhereCondition } from "../types"
 
@@ -30,7 +30,7 @@ const timestamp = (dateString ?: string | Date) => {
         seconds
     ].join(':')}`
         
-    return `${ymd} ${his}`
+    return `${ymd} ${his}` as T.DateTime
 }
 
 const date = (value ?: Date) => {
@@ -43,26 +43,34 @@ const date = (value ?: Date) => {
     return now
 }
 
-const escape = (v : any , hard = false) => {
+const escape = (v : any, opts : { hard : boolean } = { hard : false }) => {
+    
     if(typeof v !== 'string') {
         if (Number.isNaN(v)) return 'NaN';
         if (v === Infinity)  return 'Infinity';
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(checkValueHasRaw(v) && !hard) return v
-    return v.replace(/[\0\b\t\n\r\x1a\'\\]/g,"\\'")
+
+    if(checkValueHasRaw(v) && !opts.hard) {
+        return v;
+    }
+
+    return v.replace(/'/g, "''");
 }
 
-const escapeActions = (v : any) => {
+const escapePayload = (v : any) => {
+    
     if(typeof v !== 'string') {
         if (Number.isNaN(v)) return 'NaN';
         if (v === Infinity)  return 'Infinity';
         if (v === -Infinity) return '-Infinity';
         return v;
     }
-    if(checkValueHasRaw(v)) return v
-    return v.replace(/[\0\b\r\x1a\'\\]/g,"''")
+    
+    if(checkValueHasRaw(v)) return v;
+
+    return v.replace(/'/g, "''");
 }
 
 const escapeXSS = (str : any) => {
@@ -570,8 +578,56 @@ const formatQueryValue = (v: any) : any => {
     return transfromValueHasRaw(v);
 };
 
-const bindingParameters = (sql: string, parameters: (boolean | number | string | any[] | null)[] = []) => {
+const bindingParameters = (
+    sql: string, 
+    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {},
+    opts : {
+        raw : boolean
+    } = { raw : true }
+) => {
+
+    if (!Object.keys(parameters).length) {
+      return sql;
+    }
+
     let bindSql = sql;
+
+    if(!Array.isArray(parameters)) {
+
+        for (const key in parameters) {
+            const parameter = parameters[key];
+
+            if (parameter === null) {
+                bindSql = bindSql.replace(`:${key}`, CONSTANTS.NULL);
+                continue;
+            }
+
+            if (parameter === true || parameter === false) {
+                bindSql = bindSql.replace(`:${key}`, `'${parameter === true ? 1 : 0}'`);
+                continue;
+            }
+
+            if(opts.raw) {
+                bindSql = bindSql.replace(
+                    `:${key}`,
+                    Array.isArray(parameter)
+                    ? `(${parameter.map((p) => p).join(",")})`
+                    : `${parameter}`,
+                );
+
+                continue;
+            }
+
+            bindSql = bindSql.replace(
+                `:${key}`,
+                Array.isArray(parameter)
+                ? `(${parameter.map((p) => `'${escape(p)}'`).join(",")})`
+                : `'${escape(parameter)}'`,
+            );
+        }
+
+        return bindSql;
+    }
 
     for (const parameter of parameters) {
       if (parameter === null) {
@@ -584,11 +640,22 @@ const bindingParameters = (sql: string, parameters: (boolean | number | string |
         continue;
       }
 
+      if(opts.raw) {
+        bindSql = bindSql.replace(
+            "?",
+            Array.isArray(parameter)
+            ? `(${parameter.map((p) => p).join(",")})`
+            : `${parameter}`,
+        );
+
+        continue;
+      }
+
       bindSql = bindSql.replace(
         "?",
         Array.isArray(parameter)
-          ? `(${parameter.map((p) => p).join(",")})`
-          : `${parameter}`,
+          ? `(${parameter.map((p) => `'${escape(p)}'`).join(",")})`
+          : `'${parameter}'`,
       );
     }
 
@@ -628,7 +695,7 @@ const utils = {
     timestamp,
     date,
     escape,
-    escapeActions,
+    escapePayload,
     escapeXSS,
     generateUUID,
     transfromBooleanToNumber,

@@ -24,10 +24,15 @@ const fakeSendEmail = async (job: Job) => {
 
 // start the Queue
 await Queue.start({ 
-  inspect : true, 
-  flush : false, // flush = true -> remove all jobs
-  hostname: 'pod1'
-}); 
+  inspect  : true,    // @default false, enable queue workflow inspection
+  flush    : false,   // @default false, true -> remove all jobs
+  hostname : 'pod1',  // @default null, worker hostname
+  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
+  poll : {            
+    enabled : true,   // @default false, enable periodic job checking
+    interval : 10_000  // @default 60_000, polling interval
+  };
+});  
 
 const worker = 20;
 
@@ -65,5 +70,84 @@ for(let j = 1; j <= worker * 500; j++) {
 
 // if you want to end the Queue
 // await Queue.end()
+
+```
+
+## Queue Events
+
+Queue also supports an event-based publish/subscribe pattern.
+
+One event can have multiple subscribers.
+Use Queue.subscribe() to subscribe a job handler to an event
+```js
+// user.created
+//   │
+//   ├── email
+//   ├── notify
+//   └── analytics
+
+Queue.subscribe(
+  'user.created',
+  'email',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('Send e-mail : ' + job.payload.email)
+    return  'Done!';
+  },
+  { concurrency: 2 }
+);
+
+Queue.subscribe(
+  'user.created',
+  'notify',
+  async (job) => {
+    await new Promise(r => setTimeout(r, 1000));
+    console.log('notify : ' + job.payload.email)
+    return  'Done!';
+  },
+  { concurrency: 3 }
+);
+```
+
+Use Queue.publish() to publish an event.
+```js
+for (let i = 1; i <= 5; i++) {
+  // will send to jobs ['email','notify'];
+  Queue.publish(
+    'user.created', 
+    { id : i , email : `user${i}@gmail.com` },
+    {
+      priority: i
+    }
+  );
+}
+
+```
+## Queue Type-safe Events and Jobs
+Queue optionally supports type-safe event and job names through `QueueContract`.
+
+The feature is optional.
+
+If the application does not define a contract, the Queue API can continue to accept normal string names.
+
+Create a `types.d.ts` file in your application:
+```js
+import { QueueContract } from 'tspace-mysql';
+
+declare module 'tspace-mysql' {
+    interface QueueContract {
+        events: {
+            'user.created': [
+                'email',
+                'notify',
+            ];
+        };
+
+        jobs: [
+            'resize-video',
+            'cleanup',
+        ];
+    }
+}
 
 ```

@@ -31,7 +31,7 @@ npm install tspace-mysql --save
 
 ## Core Exports
 
-```typescript
+```js
 import {
   DB,           // Database connection and query builder
   Model,        // Base model class for ORM
@@ -117,6 +117,28 @@ DB_DATE_STRINGS=false
 9. **Transactions**: ACID-compliant database transactions
 10. **Caching**: In-memory and Redis cache support
 11. **Queue System**: Background job processing
+12. **CLI Tools**: Command-line utilities for development
+
+## ⚡ Quick Tips
+
+### Performance Best Practices
+1. **Use indexes** on frequently queried columns
+2. **Select only needed fields** with `select: { id: true, email: true }`
+3. **Use pagination** for large datasets
+4. **Cache frequently accessed data** with `.cache()`
+5. **Use relations wisely** - only load what you need
+
+### Common Pitfalls to Avoid
+1. ❌ Missing `import 'reflect-metadata'`
+2. ❌ Using array syntax for relations: `['posts']`
+3. ❌ Forgetting `await` on async operations
+4. ❌ Using `new Repository(Model)` instead of `Repository(Model)`
+5. ❌ Using `Cache.provider()` instead of `Cache.driver()`
+
+### Getting Help
+- **Quick Start**: [`00-START-HERE.md`](./00-START-HERE.md)
+- **Common Errors**: [`11-troubleshooting.md`](./11-troubleshooting.md)
+- **Complete Example**: [`99-quickstart.md`](./99-quickstart.md)
 
 ## Related Skills Documents
 
@@ -130,3 +152,5 @@ DB_DATE_STRINGS=false
 - `08-caching.md` - Caching strategies
 - `09-queue.md` - Job queue system
 - `10-cli.md` - Command line tools
+- `99-quickstart.md` - Complete real-world example
+- `11-troubleshooting.md` - Common errors and solutions

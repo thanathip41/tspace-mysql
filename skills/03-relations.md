@@ -14,7 +14,7 @@ tspace-mysql supports four types of model relationships:
 
 The `HasOne` relationship indicates that each model instance has exactly one related instance.
 
-```typescript
+```js
 import { Model, Blueprint, HasOne, T } from 'tspace-mysql'
 
 class Profile extends Model {
@@ -45,7 +45,7 @@ class User extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['profile']
+  relations: { profile: true }
 })
 console.log(user?.profile?.bio)
 ```
@@ -54,7 +54,7 @@ console.log(user?.profile?.bio)
 
 The `HasMany` relationship indicates that each model instance can have many related instances.
 
-```typescript
+```js
 import { Model, Blueprint, HasMany, T } from 'tspace-mysql'
 
 class Post extends Model {
@@ -84,7 +84,7 @@ class User extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['posts']
+  relations: { posts: true }
 })
 console.log(user?.posts) // Array of Post objects
 ```
@@ -93,7 +93,7 @@ console.log(user?.posts) // Array of Post objects
 
 The `BelongsTo` relationship is the inverse of `HasMany`, indicating that the model belongs to another model.
 
-```typescript
+```js
 import { Model, Blueprint, BelongsTo, T } from 'tspace-mysql'
 
 class User extends Model {
@@ -122,7 +122,7 @@ class Post extends Model {
 
 // Usage
 const post = await Post.find(1, {
-  relations: ['author']
+  relations: { author: true }
 })
 console.log(post?.author?.name)
 ```
@@ -131,7 +131,7 @@ console.log(post?.author?.name)
 
 The `BelongsToMany` relationship requires a pivot table to connect two models.
 
-```typescript
+```js
 import { Model, Blueprint, BelongsToMany, T } from 'tspace-mysql'
 
 class Role extends Model {
@@ -182,7 +182,7 @@ class Role extends Model {
 
 // Usage
 const user = await User.find(1, {
-  relations: ['roles']
+  relations: { roles: true }
 })
 console.log(user?.roles) // Array of Role objects
 ```
@@ -191,28 +191,46 @@ console.log(user?.roles) // Array of Role objects
 
 ### With Relations (Eager Loading)
 
-```typescript
-// Load single relation
+**Only object syntax is supported:**
+
+```js
+// ✅ CORRECT - Object syntax (type-safe)
 const user = await User.find(1, {
-  relations: ['posts']
+  relations: { posts: true }
 })
 
 // Load multiple relations
 const user = await User.find(1, {
-  relations: ['posts', 'profile', 'roles']
+  relations: { posts: true, profile: true, roles: true }
 })
 
 // Nested relations
 const user = await User.find(1, {
-  relations: ['posts.comments.author']
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    }
+  }
 })
+```
+
+**❌ WRONG - Array syntax is NOT supported:**
+
+```js
+// ❌ DON'T DO THIS - Array syntax doesn't work
 ```
 
 ### Relation Exists
 
 Check if related records exist without loading them.
 
-```typescript
+```js
 // Check if user has any posts
 const hasPosts = await User.exists(1, {
   relationExists: ['posts']
@@ -229,7 +247,7 @@ const user = await User.findOne({
 
 Add count of related records to the result.
 
-```typescript
+```js
 const user = await User.find(1, {
   relationCount: ['posts', 'comments']
 })
@@ -240,9 +258,9 @@ const user = await User.find(1, {
 
 Filter relations based on conditions.
 
-```typescript
+```js
 const user = await User.find(1, {
-  relations: ['posts'],
+  relations: { posts: true },
   relationQuery: {
     posts: (query) => query.where('status', 'published').orderBy('created_at', 'desc')
   }
@@ -251,14 +269,30 @@ const user = await User.find(1, {
 
 ### Deeply Nested Relations
 
-```typescript
+```js
 // Load user -> posts -> comments -> author
 const user = await User.find(1, {
-  relations: ['posts.comments.author']
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    }
+  }
 })
 
 // With conditions on nested relations
-const user = await User.find(1, {
+  relations: {
+    posts: {
+      relations: {
+        comments: true
+      }
+    }
+  },
   relations: ['posts.comments'],
   relationQuery: {
     posts: (q) => q.where('published', true),
@@ -271,7 +305,7 @@ const user = await User.find(1, {
 
 ### Custom Foreign Keys
 
-```typescript
+```js
 class Post extends Model {
   constructor() {
     super()
@@ -287,7 +321,7 @@ class Post extends Model {
 
 ### Custom Pivot Table Configuration
 
-```typescript
+```js
 class User extends Model {
   constructor() {
     super()
@@ -306,7 +340,7 @@ class User extends Model {
 
 ### Using T.Relation Type
 
-```typescript
+```js
 import { Model, Blueprint, T } from 'tspace-mysql'
 
 class Post extends Model {
@@ -342,7 +376,7 @@ class User extends Model<UserSchema, UserRelations> {
 // Full type inference
 const user = await User.find(1, {
   select: { id: true, name: true },
-  relations: ['posts']
+  relations: { posts: true }
 })
 // Type: { id: number, name: string | null, posts: Post[] }
 ```
@@ -351,14 +385,14 @@ const user = await User.find(1, {
 
 ### Check Relation Exists
 
-```typescript
+```js
 const user = await new User().find(1)
 const hasPosts = await user?.relation('posts').exists()
 ```
 
 ### Load Relation on Existing Model
 
-```typescript
+```js
 const user = await new User().find(1)
 await user?.load('posts')
 console.log(user?.posts)
@@ -366,7 +400,7 @@ console.log(user?.posts)
 
 ### Load Multiple Relations
 
-```typescript
+```js
 const user = await new User().find(1)
 await user?.load(['posts', 'profile', 'roles'])
 ```
@@ -375,9 +409,9 @@ await user?.load(['posts', 'profile', 'roles'])
 
 By default, soft-deleted related records are excluded. Use `withTrashed` to include them.
 
-```typescript
+```js
 const user = await User.find(1, {
-  relations: ['posts'],
+  relations: { posts: true },
   relationQuery: {
     posts: (query) => query.withTrashed()  // Include soft-deleted posts
   }
@@ -388,7 +422,7 @@ const user = await User.find(1, {
 
 Check if related records have been soft-deleted.
 
-```typescript
+```js
 const user = await User.find(1, {
   relationTrashed: ['posts']  // Checks if any posts are soft-deleted
 })
@@ -398,7 +432,7 @@ const user = await User.find(1, {
 
 ### Attach Related Records
 
-```typescript
+```js
 // Attach a post to a user
 const user = await User.find(1)
 await user?.relation('posts').attach({
@@ -409,7 +443,7 @@ await user?.relation('posts').attach({
 
 ### Detach Related Records
 
-```typescript
+```js
 // Remove relation (without deleting)
 await user?.relation('posts').detach(postId)
 
@@ -419,7 +453,7 @@ await user?.relation('posts').detach()
 
 ### Sync Relations (BelongsToMany)
 
-```typescript
+```js
 // Sync role assignments (attaches missing, detaches removed)
 await user?.relation('roles').sync([1, 2, 3])
 
@@ -431,7 +465,7 @@ await user?.relation('roles').sync([1, 2, 3], {
 
 ### Toggle Relations
 
-```typescript
+```js
 // Toggle role assignment
 await user?.relation('roles').toggle([1, 2, 3])
 ```
@@ -440,7 +474,7 @@ await user?.relation('roles').toggle([1, 2, 3])
 
 Use join clauses directly in model queries.
 
-```typescript
+```js
 const users = await new User()
   .join('users.id', 'posts.user_id')
   .select('users.*', 'posts.title as post_title')
@@ -449,7 +483,7 @@ const users = await new User()
 
 ## Complete Example
 
-```typescript
+```js
 import { Model, Blueprint, T, HasMany, BelongsTo, BelongsToMany } from 'tspace-mysql'
 
 // User Model
@@ -536,7 +570,19 @@ class Role extends Model {
 
 // Get user with all relations
 const user = await User.find(1, {
-  relations: ['posts.comments.author', 'profile', 'roles'],
+  relations: {
+    posts: {
+      relations: {
+        comments: {
+          relations: {
+            author: true
+          }
+        }
+      }
+    },
+    profile: true,
+    roles: true
+  },
   relationQuery: {
     posts: (q) => q.where('status', 'published').orderBy('created_at', 'desc')
   }
@@ -544,13 +590,13 @@ const user = await User.find(1, {
 
 // Get posts with author
 const posts = await Post.findMany({
-  relations: ['author'],
+  relations: { author: true },
   where: { status: 'published' }
 })
 
 // Get users with specific role
 const adminUsers = await User.findMany({
-  relations: ['roles'],
+  relations: { roles: true },
   whereQuery: (q) => q.whereJSON('roles', { key: 'name', value: 'admin' })
 })
 ```
@@ -562,3 +608,4 @@ const adminUsers = await User.findMany({
 - `02-query-builder.md` - Query builder usage
 - `04-repository.md` - Repository pattern
 - `06-type-safety.md` - TypeScript type system
+- `99-quickstart.md` - Complete example

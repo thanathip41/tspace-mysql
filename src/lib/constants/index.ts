@@ -1,3 +1,11 @@
+const random = () => {
+    return [
+        Date.now(),
+        Math.random().toString(36).slice(2, 10).padEnd(8, '0'),
+        Math.floor(Math.random() * 10_000_000)
+    ].join('-')
+};
+
 const CONSTANTS = Object.freeze({
     SHOW : 'SHOW',
     DESCRIBE: 'DESCRIBE',
@@ -46,7 +54,7 @@ const CONSTANTS = Object.freeze({
     NOT : 'NOT',
     DUPLICATE : 'DUPLICATE',
     KEY :'KEY',
-    RAW : '$RAW:',
+    RAW : `$RAW(${random()}):`,
     OP : '$OP:',
     FREEZE : '$FREEZE:',
     VALUE : '$VALUE:',

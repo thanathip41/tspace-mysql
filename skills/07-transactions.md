@@ -8,7 +8,7 @@ tspace-mysql provides robust transaction support for maintaining data integrity.
 
 ### Using DB.beginTransaction()
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Start a transaction
@@ -36,7 +36,7 @@ try {
 
 The `transaction()` method automatically handles commit/rollback:
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 const result = await DB.transaction(async (conn) => {
@@ -56,7 +56,7 @@ console.log('Created user with ID:', result)
 
 ### Binding Model to Transaction
 
-```typescript
+```js
 import { Model, Blueprint, DB } from 'tspace-mysql'
 
 class User extends Model {
@@ -97,7 +97,7 @@ try {
 
 ### Using with() Method
 
-```typescript
+```js
 const trx = await DB.beginTransaction()
 
 try {
@@ -116,7 +116,7 @@ try {
 
 ## Transaction with Repository
 
-```typescript
+```js
 import { Repository, Model, Blueprint, DB } from 'tspace-mysql'
 
 class User extends Model { /* ... */ }
@@ -153,7 +153,7 @@ try {
 
 For clustered databases, you can specify which node to use:
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 // Transaction on specific node
@@ -173,7 +173,7 @@ Lock tables for read or write operations within a transaction:
 
 ### Write Lock
 
-```typescript
+```js
 import { Model, Blueprint } from 'tspace-mysql'
 
 class User extends Model { /* ... */ }
@@ -193,7 +193,7 @@ await User.lockTable('WRITE', async (query) => {
 
 ### Read Lock
 
-```typescript
+```js
 // Lock table for read (shared lock)
 await User.lockTable('READ', async (query) => {
   // Other sessions can read but must wait before writing
@@ -218,7 +218,7 @@ await User.lockTable('READ', async (query) => {
 
 ### Using Optimistic Locking
 
-```typescript
+```js
 import { Model, Blueprint } from 'tspace-mysql'
 
 class Account extends Model {
@@ -266,7 +266,7 @@ async function transfer(fromId: number, toId: number, amount: number) {
 
 ### Using Pessimistic Locking (SELECT FOR UPDATE)
 
-```typescript
+```js
 import { DB } from 'tspace-mysql'
 
 async function safeTransfer(fromId: number, toId: number, amount: number) {
@@ -301,7 +301,7 @@ async function safeTransfer(fromId: number, toId: number, amount: number) {
 
 ### Keep Transactions Short
 
-```typescript
+```js
 // ❌ Bad: Long-running transaction
 const trx = await DB.beginTransaction()
 await new User().bind(trx).create({...}).save()
@@ -317,7 +317,7 @@ await new Order().create({ user_id: user.id, ...}).save()
 
 ### Proper Error Handling
 
-```typescript
+```js
 async function safeTransaction() {
   const trx = await DB.beginTransaction()
   
@@ -335,7 +335,7 @@ async function safeTransaction() {
 
 ### Using the Helper Pattern
 
-```typescript
+```js
 // Recommended: Use transaction helper for automatic cleanup
 async function createUserWithProfile(data: UserData) {
   return await DB.transaction(async (conn) => {
@@ -369,7 +369,7 @@ tspace-mysql uses the default isolation level of the underlying database:
 
 To change isolation level:
 
-```typescript
+```js
 const trx = await DB.beginTransaction()
 await trx.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED')
 await trx.query('START TRANSACTION')
@@ -378,7 +378,7 @@ await trx.query('START TRANSACTION')
 
 ## Complete Example: E-commerce Order
 
-```typescript
+```js
 import { Model, Blueprint, DB, Repository } from 'tspace-mysql'
 
 // Models
@@ -482,4 +482,5 @@ class OrderService {
 - `00-overview.md` - Library overview
 - `02-query-builder.md` - Query builder usage
 - `04-repository.md` - Repository pattern
-- `11-race-condition.md` - Race condition handling
+- `08-caching.md` - Caching strategies
+- `09-queue.md` - Queue system
