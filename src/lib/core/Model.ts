@@ -525,11 +525,13 @@ class Model<
    * @example
    *  import { User } from '../Models/User'
    *
-   *  const users = await User.exists({
+   *  const users = await User.toArray('id',{
    *       where : {
    *           id: 1
    *       }
    *   })
+   * 
+   * // [1]
    *
    */
   static toArray<
@@ -598,6 +600,231 @@ class Model<
     options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
   ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>> {
     return yield* Repository<M>(this as any).toAsyncIterable(options);
+  }
+
+  /**
+   * The 'count' method is used to retrieve the total number of records that match the specified query conditions.
+   *
+   * It returns an integer representing the count of records.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const count = await User.count('id',{
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   * 
+   *  // 1
+   *
+   */
+  static count<
+    Self extends Model,
+    K extends T.ColumnKeys<M> | `${string}.${string}`,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    column: K,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
+    > = {}
+  ): Promise<number> {
+    return Repository<M>(this as any).count(column,options);
+  }
+
+  /**
+   * The 'sum' method is used to retrieve the total number of records that match the specified query conditions.
+   *
+   * It returns an integer representing the sum of records.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const sum = await User.sum('id')
+   * 
+   *
+   */
+  static sum<
+    Self extends Model,
+    K extends T.ColumnKeys<M> | `${string}.${string}`,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    column: K,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
+    > = {}
+  ): Promise<number> {
+    return Repository<M>(this as any).sum(column,options);
+  }
+
+  /**
+   * The 'avg' method is used to retrieve the total number of records that match the specified query conditions.
+   *
+   * It returns an integer representing the avg of records.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const avg = await User.avg('id')
+   * 
+   *
+   */
+  static avg<
+    Self extends Model,
+    K extends T.ColumnKeys<M> | `${string}.${string}`,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    column: K,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
+    > = {}
+  ): Promise<number> {
+    return Repository<M>(this as any).avg(column,options);
+  }
+
+  /**
+   * The 'max' method is used to retrieve the total number of records that match the specified query conditions.
+   *
+   * It returns an integer representing the max of records.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const max = await User.max('id')
+   * 
+   *
+   */
+  static max<
+    Self extends Model,
+    K extends T.ColumnKeys<M> | `${string}.${string}`,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    column: K,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
+    > = {}
+  ): Promise<number> {
+    return Repository<M>(this as any).max(column,options);
+  }
+
+  /**
+   * The 'min' method is used to retrieve the total number of records that match the specified query conditions.
+   *
+   * It returns an integer representing the min of records.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * 
+   * @example
+   *  import { User } from '../Models/User'
+   *
+   *  const min = await User.min('id')
+   * 
+   *
+   */
+  static min<
+    Self extends Model,
+    K extends T.ColumnKeys<M> | `${string}.${string}`,
+    M  extends Model= Self,
+  >(
+    this: new () => Self,
+    column: K,
+    options: Partial<
+      Omit<T.RepositoryOptions<M>, "relations" | "relationsExists" | "relationQuery">
+    > = {}
+  ): Promise<number> {
+    return Repository<M>(this as any).min(column,options);
   }
 
   /**
