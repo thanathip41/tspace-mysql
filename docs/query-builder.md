@@ -109,6 +109,19 @@ const query = await DB.query(
   username : ['name1','name2']
 })
 // SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+
+const query = await DB.query(
+  "SELECT * FROM users WHERE id = ? AND email IS ? AND name IN ?", 
+  [1,null,['name1','name2']]
+)
+// SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+```
+
+## Stream Statements
+```js
+for await (const user of DB.stream("SELECT * FROM users")) {
+  console.log(user);
+}
 ```
 
 ## Select Statements

@@ -95,7 +95,8 @@ npm install -D typescript@5.9.3
 - [Query Builder](#query-builder)
   - [Table Name & Alias Name](#table-name--alias-name)
   - [Returning Results](#returning-results)
-  - [Query Statement](#query-statements)
+  - [Query Statements](#query-statements)
+  - [Stream Statements](#stream-statements)
   - [Select Statements](#select-statements)
   - [Raw Expressions](#raw-expressions)
   - [Ordering, Grouping, Limit and Offset](#ordering-grouping-limit-and-offset)
@@ -532,6 +533,19 @@ const query = await DB.query(
   username : ['name1','name2']
 })
 // SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+
+const query = await DB.query(
+  "SELECT * FROM users WHERE id = ? AND email IS ? AND name IN ?", 
+  [1,null,['name1','name2']]
+)
+// SELECT * FROM users WHERE id = '1' AND email IS NULL AND username in ('name1','name2');
+```
+
+## Stream Statements
+```js
+for await (const user of DB.stream("SELECT * FROM users")) {
+  console.log(user);
+}
 ```
 
 ## Select Statements
