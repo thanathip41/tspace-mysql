@@ -5,6 +5,7 @@ import { Join }             from "../core/Join";
 import { QueryBuilder }     from "../core/Driver";
 import { T, TResult }       from "../core";
 import { TResultDecorator } from "./decorator";
+import { Stream } from "stream";
 
 export type TCache = Cache;
 
@@ -188,6 +189,7 @@ export type TPoolConnected = {
     query: (sql: string) => Promise<any[]>;
     connection: () => Promise<TConnection>;
     end: () => Promise<void>;
+    stream: (sql: string) => Promise<Stream.Readable>;
 };
 
 export type TModelOrObject = {
@@ -389,6 +391,7 @@ type TClusterPool = {
     queryBuilder: typeof QueryBuilder;
     query: (sql: string) => Promise<any[]>;
     connection: () => Promise<TConnection>;
+    stream: (sql: string) => Promise<Stream.Readable>;
 };
 export type TPoolCusterConnected = {
     database?: () => string

@@ -99,6 +99,14 @@ export class PoolConnection {
         return new MariadbDriver(options).disconnect(this.POOL);
       }
 
+      case "mongodb": {
+        return new MongodblDriver(options).disconnect(this.POOL);
+      }
+
+      case "sqlite": {
+        return new SqliteDriver(options).disconnect(this.POOL);
+      }
+
       default:
         throw new Error("No default driver specified");
     }

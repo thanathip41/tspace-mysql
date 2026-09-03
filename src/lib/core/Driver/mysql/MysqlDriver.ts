@@ -1,10 +1,13 @@
 import mysql2                from "mysql2";
+import { Readable }          from "stream";
 import { BaseDriver }        from "..";
 import { MysqlQueryBuilder } from "./MysqlQueryBuilder";
+
 import type { 
   TConnection, 
   TPoolEvent 
 } from "../../../types";
+
 
 type MysqlConnectionOptions = {
   host                    : string;
@@ -24,6 +27,7 @@ export class MysqlDriver extends BaseDriver {
     super();
     this.options = options;
   }
+
   public connect(this: MysqlDriver) {
     const options  = this.options as MysqlConnectionOptions;
 
@@ -104,7 +108,8 @@ export class MysqlDriver extends BaseDriver {
       queryBuilder: MysqlQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
-      end: () => this._end()
+      end: () => this._end(),
+      stream: (sql:string) => this._stream(sql)
     };
   }
 
@@ -133,6 +138,7 @@ export class MysqlDriver extends BaseDriver {
       });
     });
   }
+
   private async _connection(): Promise<TConnection> {
   
     const conn = await this.poolTrx.promise().getConnection();
@@ -254,6 +260,40 @@ export class MysqlDriver extends BaseDriver {
       });
     });
   }
+
+  private async _stream (sql: string) : Promise<Readable> {
+
+    const start: number = Date.now();
+
+    return new Promise((resolve , reject) => {
+      this.poolTrx.getConnection((err:any, conn:any) => {
+        if (err) reject(err);
+      
+        this._detectEventQuery({ start, sql });
+
+        const stream = conn
+        .query(sql)
+        .stream({
+          objectMode: true,
+          highWaterMark: 100
+        });
+
+        return resolve(stream)
+      });
+    })
+
+    //   this._detectEventQuery({ start, sql });
+
+    //   const stream = conn
+    //   .query(sql)
+    //   .stream({
+    //     objectMode: true,
+    //     highWaterMark: 100
+    //   });
+
+    //   return resolve(stream)
+    // });
+  } 
 
   protected meta(results: any, sql: string): void {
 

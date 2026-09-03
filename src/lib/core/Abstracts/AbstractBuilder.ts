@@ -39,12 +39,14 @@ abstract class AbstractBuilder {
         get : Function;
         queryBuilder : Function;
         transaction : Function;
+        stream : Function;
     } = {
         query: (sql :string) => {},
         set: (pool : any) => {},
         get: () => {},
         queryBuilder: () => {},
         transaction: () => {},
+        stream: (sql :string) => {},
     }
 
     abstract void () : this

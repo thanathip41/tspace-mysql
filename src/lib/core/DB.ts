@@ -114,53 +114,202 @@ class DB extends AbstractDB {
    *
    * @param {string} sql
    * @param {Record<string,any>} parameters
-   * @returns {promise<any[]>}
+   * @returns {Promise<T>}
+   * 
+   * @example
+   * Execute a query without parameters:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users'
+   * );
+   * ```
+   *
+   * @example
+   * Execute a query with named parameters:
+   * ```ts
+   * const user = await db.query(
+   *   'SELECT * FROM users WHERE id = :id',
+   *   { id: 1 }
+   * );
+   * ```
+   *
+   * @example
+   * Execute a query with multiple parameters:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users WHERE status = :status AND age >= :age',
+   *   {
+   *     status: 'active',
+   *     age: 18,
+   *   }
+   * );
+   * ```
+   *
+   * @example
+   * Use an array parameter:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users WHERE id IN :ids',
+   *   {
+   *     ids: [1, 2, 3],
+   *   }
+   * );
+   * ```
+   * 
+   * @example
+   * Positional parameters using `?` placeholders:
+   * ```ts
+   * const users = await db.query<User[]>(
+   *   'SELECT * FROM users WHERE id = ? AND status = ?',
+   *   [1, 'active']
+   * );
+   * ```
    */
-  public async query(sql: string, parameters: Record<string, any> = {}): Promise<any> {
+  public async query<T = any>(
+    sql: string,
+    parameters?: (boolean | number | string | any[] | null)[]
+  ): Promise<T>;
+
+  public async query<T = any>(
+    sql: string,
+    parameters?: Record<string, any>
+  ): Promise<T>;
+
+  public async query<T = any>(
+    sql: string,
+    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {}
+  ): Promise<T> {
+    
     if (!Object.keys(parameters).length) {
       return await this.rawQuery(sql);
     }
 
-    let bindSql = sql;
+    const boundSql = this.$utils
+    .bindingParameters(
+      sql,
+      parameters,
+      { raw : false }
+    );
 
-    for (const key in parameters) {
-      const parameter = parameters[key];
-
-      if (parameter === null) {
-        bindSql = bindSql.replace(`:${key}`, this.$constants("NULL"));
-        continue;
-      }
-
-      if (parameter === true || parameter === false) {
-        bindSql = bindSql.replace(`:${key}`, `'${parameter === true ? 1 : 0}'`);
-        continue;
-      }
-
-      bindSql = bindSql.replace(
-        `:${key}`,
-        Array.isArray(parameter)
-          ? `(${parameter.map((p) => `'${this.escape(p)}'`).join(",")})`
-          : `'${this.escape(parameter)}'`,
-      );
-    }
-
-    return await this.rawQuery(bindSql);
+    return await this.rawQuery(boundSql);
   }
 
   /**
    * The 'query' method is used to execute sql statement
    *
+   * @static
    * @param {string} sql
    * @param {Record<string,any>} parameters
-   * @returns {promise<any[]>}
+   * @returns {Promise<T>}
+   * 
+   * @example
+   * Execute a query without parameters:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users'
+   * );
+   * ```
+   *
+   * @example
+   * Execute a query with named parameters:
+   * ```ts
+   * const user = await db.query(
+   *   'SELECT * FROM users WHERE id = :id',
+   *   { id: 1 }
+   * );
+   * ```
+   *
+   * @example
+   * Execute a query with multiple parameters:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users WHERE status = :status AND age >= :age',
+   *   {
+   *     status: 'active',
+   *     age: 18,
+   *   }
+   * );
+   * ```
+   *
+   * @example
+   * Use an array parameter:
+   * ```ts
+   * const users = await db.query(
+   *   'SELECT * FROM users WHERE id IN :ids',
+   *   {
+   *     ids: [1, 2, 3],
+   *   }
+   * );
+   * ```
+   * 
+   * @example
+   * Positional parameters using `?` placeholders:
+   * ```ts
+   * const users = await db.query<User[]>(
+   *   'SELECT * FROM users WHERE id = ? AND status = ?',
+   *   [1, 'active']
+   * );
+   * ```
    */
-  public static async query(
+  public static async query<T = any>(
     sql: string,
-    parameters: Record<string, any> = {},
-  ): Promise<any[]> {
+    parameters?: (boolean | number | string | any[] | null)[]
+  ): Promise<T>;
+
+  public static async query<T = any>(
+    sql: string,
+    parameters?: Record<string, any>
+  ): Promise<T>;
+
+  public static async query<T = any>(
+    sql: string,
+    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {}
+  ): Promise<T> {
     return await new this().query(sql, parameters);
   }
 
+  /**
+   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
+   *
+   * @param {string} sql - The SQL statement to execute.
+   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
+   * 
+   * @example
+   * ```ts
+   * import { DB } from "tspace-mysql";
+   * 
+   * for await (const row of DB.stream('SELECT * FROM users')) {
+   *   console.log(row);
+   * }
+ * ```
+   */
+  public async *stream<T = any>(
+    sql: string
+  ): AsyncGenerator<T> {
+    yield* await this.$pool.stream(sql);
+  }
+
+  /**
+   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
+   *
+   * @static
+   * @param {string} sql - The SQL statement to execute.
+   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
+   * 
+   * @example
+   * ```ts
+   * import { DB } from "tspace-mysql";
+   * 
+   * for await (const row of DB.stream('SELECT * FROM users')) {
+   *   console.log(row);
+   * }
+   */
+  public static async *stream<T = any>(
+    sql: string
+  ): AsyncGenerator<T> {
+    yield* new this().stream(sql);
+  }
+  
   /**
    * The 'from' method is used to define the from table name.
    * @param {string} table table name

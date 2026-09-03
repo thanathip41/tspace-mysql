@@ -1,3 +1,4 @@
+import { Readable }             from "stream";
 import { BaseDriver }           from "..";
 import { MariadbQueryBuilder }  from "./MariadbQueryBuilder";
 import type { 
@@ -40,7 +41,7 @@ export class MariadbDriver extends BaseDriver {
       minimumIdle      : options.connectionLimit ?? 20,
       acquireTimeout   : 1000 * 20,
       idleTimeout      : 1000 * 60,
-      queryTimeout     : 1000 * 90,
+      queryTimeout     : 1000 * 60 * 5,
 
       pipelining       : true,
       bigIntAsNumber   : true,
@@ -98,7 +99,8 @@ export class MariadbDriver extends BaseDriver {
       queryBuilder: MariadbQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
-      end: () => this._end()
+      end: () => this._end(),
+      stream: (sql:string) => this._stream(sql)
     };
   }
 
@@ -236,6 +238,25 @@ export class MariadbDriver extends BaseDriver {
   private async _end(): Promise<void> {
     await this.pool.end()
     this.pool = undefined;
+  }
+
+  private async _stream(sql: string): Promise<Readable> {
+    const connection = await this.poolTrx.getConnection();
+
+    const stream = connection.queryStream(sql);
+
+    const release = () => {
+      connection.release();
+    };
+
+    stream.once('end', release);
+
+    stream.once('error', (error:any) => {
+      release();
+      console.error(error);
+    });
+
+    return stream;
   }
   
   protected meta (results : any, sql : string) : void {

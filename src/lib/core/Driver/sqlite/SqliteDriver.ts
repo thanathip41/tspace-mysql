@@ -1,5 +1,6 @@
 import pathSystem             from "path";
 import fsSystem               from "fs";
+import { Readable }           from "stream";
 import { BaseDriver }         from "..";
 import { SqliteQueryBuilder } from "./SqliteQueryBuilder";
 import type { 
@@ -40,7 +41,9 @@ export class SqliteDriver extends BaseDriver {
       queryBuilder: SqliteQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
-      end: () => this._end()
+      end: () => this._end(),
+      stream: (sql:string) => this._stream(sql)
+
     };
   }
 
@@ -225,6 +228,18 @@ export class SqliteDriver extends BaseDriver {
         return resolve();
       });
     });
+  }
+
+  private async _stream<T>(sql: string): Promise<Readable> {
+    const statement = this.pool.prepare(sql);
+
+    return Readable.from(
+      statement.iterate() as Iterable<T>,
+      {
+        objectMode: true,
+        highWaterMark: 100,
+      },
+    );
   }
 
   protected meta(results: any, sql: string): void {

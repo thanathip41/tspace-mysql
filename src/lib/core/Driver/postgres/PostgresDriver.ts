@@ -1,3 +1,4 @@
+import { Readable }             from "stream";
 import { BaseDriver }           from "..";
 import { PostgresQueryBuilder } from "./PostgresQueryBuilder";
 import type { 
@@ -52,15 +53,17 @@ export class PostgresDriver extends BaseDriver {
       allowExitOnIdle         : false,
       
       idleTimeoutMillis       : 1000 * 60,
-      statement_timeout       : 1000 * 60,
-      query_timeout           : 1000 * 90,
+      statement_timeout       : 1000 * 60 * 5,
+      query_timeout           : 1000 * 60 * 5,
     }
 
     this.pool = new pg.Pool(configs);
 
     this.poolTrx = new pg.Pool({
       ...configs,
-      connectionLimit : Math.min(10, Math.round(configs.max * 0.5))
+      max : Math.min(10, Math.round(configs.max * 0.5)),
+      statement_timeout : 0,
+      query_timeout : 0
     });
 
     this.pool.connect(async (err: any) => {
@@ -102,7 +105,8 @@ export class PostgresDriver extends BaseDriver {
       queryBuilder: PostgresQueryBuilder,
       query: (sql: string) => this._query(sql),
       connection: () => this._connection(),
-      end: () => this._end()
+      end: () => this._end(),
+      stream: (sql:string) => this._stream(sql)
     };
   }
 
@@ -243,6 +247,27 @@ export class PostgresDriver extends BaseDriver {
         return resolve();
       });
     });
+  }
+
+  private async _stream(sql: string): Promise<Readable> {
+
+    const client = await this.poolTrx.connect();
+
+    const QueryStream = this.import('pg-query-stream');
+
+    const query = new QueryStream(sql);
+
+    const stream = client.query(query);
+
+    stream.on('end', () => {
+      client.release();
+    });
+
+    stream.on('error', () => {
+      client.release();
+    });
+
+    return stream;
   }
 
   protected meta(results: any, sql: string): void {

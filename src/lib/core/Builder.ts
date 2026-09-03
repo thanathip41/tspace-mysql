@@ -5444,12 +5444,18 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
           transaction : async () => {
             return await poolCluster.masters[0].connection()
           },
+          stream : async (sql: string) => {
+            return await  poolCluster.masters[0].stream(sql);
+          },
         };
       }
 
       let pool = Pool.connect();
 
       return {
+        stream : async (sql: string) => {
+          return await pool.stream(sql);
+        },
         transaction : async () => {
           return await pool.connection()
         },

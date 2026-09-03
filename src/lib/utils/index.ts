@@ -578,8 +578,51 @@ const formatQueryValue = (v: any) : any => {
     return transfromValueHasRaw(v);
 };
 
-const bindingParameters = (sql: string, parameters: (boolean | number | string | any[] | null)[] = []) => {
+const bindingParameters = (
+    sql: string, 
+    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {},
+    opts : {
+        raw : boolean
+    } = { raw : true }
+) => {
     let bindSql = sql;
+
+    if(!Array.isArray(parameters)) {
+
+        for (const key in parameters) {
+            const parameter = parameters[key];
+
+            if (parameter === null) {
+                bindSql = bindSql.replace(`:${key}`, CONSTANTS.NULL);
+                continue;
+            }
+
+            if (parameter === true || parameter === false) {
+                bindSql = bindSql.replace(`:${key}`, `'${parameter === true ? 1 : 0}'`);
+                continue;
+            }
+
+            if(opts.raw) {
+                bindSql = bindSql.replace(
+                    `:${key}`,
+                    Array.isArray(parameter)
+                    ? `(${parameter.map((p) => p).join(",")})`
+                    : `${parameter}`,
+                );
+
+                continue;
+            }
+
+            bindSql = bindSql.replace(
+                `:${key}`,
+                Array.isArray(parameter)
+                ? `(${parameter.map((p) => `'${escape(p)}'`).join(",")})`
+                : `'${escape(parameter)}'`,
+            );
+        }
+
+        return bindSql;
+    }
 
     for (const parameter of parameters) {
       if (parameter === null) {
@@ -592,11 +635,22 @@ const bindingParameters = (sql: string, parameters: (boolean | number | string |
         continue;
       }
 
+      if(opts.raw) {
+        bindSql = bindSql.replace(
+            "?",
+            Array.isArray(parameter)
+            ? `(${parameter.map((p) => p).join(",")})`
+            : `${parameter}`,
+        );
+
+        continue;
+      }
+
       bindSql = bindSql.replace(
         "?",
         Array.isArray(parameter)
-          ? `(${parameter.map((p) => p).join(",")})`
-          : `${parameter}`,
+          ? `(${parameter.map((p) => `'${escape(p)}'`).join(",")})`
+          : `'${parameter}'`,
       );
     }
 
