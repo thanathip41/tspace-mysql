@@ -169,7 +169,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         while (this.ACTIVE_JOBS > 0) {
             if(this.INSPECT_EXEC) {
-               console.log(`\x1b[34mQueue:\x1b[0m Currently processing ${this.ACTIVE_JOBS} job(s)`)
+                console.log([
+                    `\x1b[34mQueue:\x1b[0m`,
+                    `\x1b[38;2;77;215;240mCurrently processing\x1b[0m`,
+                    `${this.ACTIVE_JOBS} job(s)`
+                ].join(' '));
             }
                 
             await this._sleep(200);
