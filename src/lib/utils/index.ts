@@ -585,6 +585,11 @@ const bindingParameters = (
         raw : boolean
     } = { raw : true }
 ) => {
+
+    if (!Object.keys(parameters).length) {
+      return sql;
+    }
+
     let bindSql = sql;
 
     if(!Array.isArray(parameters)) {

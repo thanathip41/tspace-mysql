@@ -167,22 +167,10 @@ class DB extends AbstractDB {
    */
   public async query<T = any>(
     sql: string,
-    parameters?: (boolean | number | string | any[] | null)[]
-  ): Promise<T>;
-
-  public async query<T = any>(
-    sql: string,
-    parameters?: Record<string, any>
-  ): Promise<T>;
-
-  public async query<T = any>(
-    sql: string,
-    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {}
+    parameters: 
+      | (boolean | number | string | any[] | null)[]
+      | Record<string, any> = {}
   ): Promise<T> {
-    
-    if (!Object.keys(parameters).length) {
-      return await this.rawQuery(sql);
-    }
 
     const boundSql = this.$utils
     .bindingParameters(
@@ -253,19 +241,11 @@ class DB extends AbstractDB {
    */
   public static async query<T = any>(
     sql: string,
-    parameters?: (boolean | number | string | any[] | null)[]
-  ): Promise<T>;
-
-  public static async query<T = any>(
-    sql: string,
-    parameters?: Record<string, any>
-  ): Promise<T>;
-
-  public static async query<T = any>(
-    sql: string,
-    parameters: (boolean | number | string | any[] | null)[] | Record<string, any> = {}
+    parameters: 
+      | (boolean | number | string | any[] | null)[]
+      | Record<string, any> = {}
   ): Promise<T> {
-    return await new this().query(sql, parameters);
+    return await new this().query(sql,parameters);
   }
 
   /**
@@ -281,12 +261,23 @@ class DB extends AbstractDB {
    * for await (const row of DB.stream('SELECT * FROM users')) {
    *   console.log(row);
    * }
- * ```
+   * ```
    */
   public async *stream<T = any>(
-    sql: string
+    sql: string,
+    parameters:
+    | (boolean | number | string | any[] | null)[]
+    | Record<string, any> = {}
   ): AsyncGenerator<T> {
-    yield* await this.$pool.stream(sql);
+
+    const boundSql = this.$utils
+    .bindingParameters(
+      sql,
+      parameters,
+      { raw : false }
+    );
+
+    yield* await this.$pool.stream(boundSql);
   }
 
   /**
@@ -305,11 +296,14 @@ class DB extends AbstractDB {
    * }
    */
   public static async *stream<T = any>(
-    sql: string
+    sql: string,
+    parameters:
+      | (boolean | number | string | any[] | null)[]
+      | Record<string, any> = {}
   ): AsyncGenerator<T> {
-    yield* new this().stream(sql);
+    yield* new this().stream(sql,parameters);
   }
-  
+
   /**
    * The 'from' method is used to define the from table name.
    * @param {string} table table name
@@ -574,16 +568,14 @@ class DB extends AbstractDB {
    */
   public raw(
     sql: string,
-    parameters: (boolean | number | string | any[] | null)[] = [],
+    parameters: 
+      | (boolean | number | string | any[] | null)[]
+      | Record<string, any> = {}
   ): TRawStringQuery {
 
-    if (!parameters.length) {
-      return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
-    }
+    const boundSql = this.$utils.bindingParameters(sql,parameters);
 
-    sql = this.$utils.bindingParameters(sql,parameters);
-
-    return `${this.$constants("RAW")}${sql}` as TRawStringQuery;
+    return `${this.$constants("RAW")}${boundSql}` as TRawStringQuery;
   }
 
   /**
@@ -610,7 +602,9 @@ class DB extends AbstractDB {
    */
   public static raw(
     sql: string,
-    parameters: (boolean | number | string | any[] | null)[] = [],
+    parameters: 
+      | (boolean | number | string | any[] | null)[]
+      | Record<string, any> = {}
   ): TRawStringQuery {
     return `${new this().raw(sql, parameters)}` as TRawStringQuery;
   }
