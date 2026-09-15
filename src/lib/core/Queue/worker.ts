@@ -75,7 +75,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private IS_FLUSHING       = false;
     private ACTIVE_JOBS       = 0;
 
-    private MAX_IDLE_RETRIES  = 5;
+    private MAX_IDLE_RETRIES  = 8;
     private BATCH_SIZE        = 1000;
     private MAX_WAIT_MS       = 50;
 
@@ -801,8 +801,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         const isSleeping = state.sleeping;
 
-        state.sleeping = false;
+        if(!isSleeping) return;
 
+        state.sleeping = false;
         state.idle = 0;
 
         if (this.INSPECT_EXEC) {
@@ -813,9 +814,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             ].join(' '));
         }
 
-        if(isSleeping) {
-            await this.process(name, state.handler, state.opts);
-        }
+        await this.process(name, state.handler, state.opts);
         
         return;
     }
