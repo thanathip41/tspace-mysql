@@ -225,6 +225,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             failed,
         }
     }
+    
     public async getJobStats(name?: string) {
 
         const rows = await new Worker()
@@ -272,6 +273,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return Array.from(map.values());
     }
+    
     public async getJobs(name?: string) {
 
         const jobs = await new Worker()
@@ -313,6 +315,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             }
         });
     }
+
     public async process(
         name    : string, 
         handler : Handler, 
@@ -396,6 +399,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return dispatch();
     }
+
     public async publish(
         event: string,
         payload: any,
@@ -414,6 +418,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             )
         );
     }
+
     public async subscribe(
         event: string,
         name: string,
@@ -443,26 +448,38 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             opts
         );
     }
+
     private async _runJob (name: string, job: JobInternal, state: State) {
 
         state.running++
         this.ACTIVE_JOBS++
        
-        const startTime = +new Date();
-
         if(job.__job.delay_ms) {
 
             setTimeout(async () => {
                 await this._wakeWorker(name);
-                await this._executeJob({ name, job, state, startTime });
+
+                await this._executeJob({ 
+                    name, 
+                    job, 
+                    state, 
+                    startTime: +new Date()
+                });
+
                 state.running--
                 this.ACTIVE_JOBS--
+
             }, job.__job.delay_ms);
 
             return;
         }
 
-        await this._executeJob({ name, job, state, startTime });
+        await this._executeJob({ 
+            name, 
+            job, 
+            state, 
+            startTime: +new Date()
+        });
 
         state.running--
         this.ACTIVE_JOBS--
