@@ -5394,18 +5394,20 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
         return {
           query: async (sql: string) => {
+  
             const first = sql.trim().split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+          
+            const isRowLock = Object.values(
+              this.$constants("ROW_LEVEL_LOCK")
+            ).some(lock => sql.toUpperCase().includes(lock));
+
+            // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
+            // so they are not considered read-only queries and should be handled as write/locking operations.
             const isReaded = [
                 this.$constants("SELECT"),
                 this.$constants("SHOW"),
                 this.$constants("DESCRIBE")
-              ].includes(first) &&
-              (!sql
-                .toUpperCase()
-                .includes(this.$constants("ROW_LEVEL_LOCK").update) ||
-                !sql
-                  .toUpperCase()
-                  .includes(this.$constants("ROW_LEVEL_LOCK").share));
+              ].includes(first) && !isRowLock
 
             if (isReaded) {
               const length = poolCluster?.slaves?.length ?? 0;
