@@ -113,10 +113,11 @@ export class MysqlDriver extends BaseDriver {
     };
   }
 
-  public disconnect(pool:any): void {
-    if(pool == null) return;
-    pool?.end(() => {
-      pool = undefined;
+  public async disconnect(pool: any): Promise<void> {
+    if (pool == null) return;
+
+    await new Promise<void>((resolve, reject) => {
+      pool.end((err:any) => err ? reject(err) : resolve());
     });
   }
 

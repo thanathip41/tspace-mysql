@@ -47,10 +47,11 @@ export class SqliteDriver extends BaseDriver {
     };
   }
 
-  public disconnect(pool:any): void {
-    if(pool == null) return;
-    pool?.end(() => {
-      pool = undefined;
+  public async disconnect(db: any): Promise<void> {
+    if (db == null) return;
+
+    await new Promise<void>((resolve, reject) => {
+      db.close((err:any) => err ? reject(err) : resolve());
     });
   }
 

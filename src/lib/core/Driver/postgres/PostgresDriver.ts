@@ -110,11 +110,12 @@ export class PostgresDriver extends BaseDriver {
     };
   }
 
-  public disconnect(pool:any): void {
+  public async disconnect(pool:any): Promise<void> {
     if(pool == null) return;
-    pool?.end(() => {
-      pool = undefined;
-    });
+
+    await pool.end();
+
+    return;
   }
 
   private _query(sql: string): Promise<any[]> {

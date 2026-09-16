@@ -81,30 +81,30 @@ export class PoolConnection {
     return this.POOL;
   }
 
-  public disconnect(): void {
+  public async disconnect(): Promise<void>{
     const options = Object.fromEntries(this.OPTIONS);
 
     switch (this._driver()) {
       case "mysql":
       case "mysql2": {
-        return new MysqlDriver(options).disconnect(this.POOL);
+        return await new MysqlDriver(options).disconnect(this.POOL);
       }
 
       case "pg":
       case "postgres": {
-        return new PostgresDriver(options).disconnect(this.POOL);
+        return await new PostgresDriver(options).disconnect(this.POOL);
       }
 
       case "mariadb": {
-        return new MariadbDriver(options).disconnect(this.POOL);
+        return await new MariadbDriver(options).disconnect(this.POOL);
       }
 
       case "mongodb": {
-        return new MongodblDriver(options).disconnect(this.POOL);
+        return await new MongodblDriver(options).disconnect(this.POOL);
       }
 
       case "sqlite": {
-        return new SqliteDriver(options).disconnect(this.POOL);
+        return await new SqliteDriver(options).disconnect(this.POOL);
       }
 
       default:

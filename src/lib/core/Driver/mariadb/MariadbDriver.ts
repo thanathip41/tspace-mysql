@@ -104,11 +104,12 @@ export class MariadbDriver extends BaseDriver {
     };
   }
 
-  public disconnect(pool:any): void {
-    if(pool == null) return;
-    pool?.end(() => {
-      pool = undefined;
-    });
+  public async disconnect(pool: any): Promise<void> {
+    if (pool == null) return;
+
+    await pool.end();
+
+    return;
   }
 
   private async _query(sql: string): Promise<any[]> {

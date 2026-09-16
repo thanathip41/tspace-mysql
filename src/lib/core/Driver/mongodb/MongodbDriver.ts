@@ -103,11 +103,12 @@ export class MongodblDriver extends BaseDriver {
         };
     }
 
-    public disconnect(pool: any): void {
-        if (pool == null) return;
-        pool?.end(() => {
-        pool = undefined;
-        });
+    public async disconnect(client: any): Promise<void> {
+        if (client == null) return;
+
+        await client.close();
+
+        return;
     }
 
     private async _query(pipeline: string): Promise<any> {

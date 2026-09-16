@@ -19,7 +19,7 @@ export abstract class BaseDriver extends EventEmitter {
   protected MESSAGE_TRX_CLOSED = "The transaction has either been closed";
   protected MESSAGE_TRX_TIMEOUT = `The transaction has been open for more than ${this.TRX_TIMEOUT} seconds. It will be rollbacked automatically.`;
   protected abstract connect(): TPoolConnected;
-  protected abstract disconnect(pool: any): void;
+  protected abstract disconnect(pool: any): Promise<void>;
   protected abstract meta(results: any, sql: string): void;
   protected abstract returning(results: any): any;
 
