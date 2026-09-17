@@ -61,7 +61,7 @@ export class PostgresDriver extends BaseDriver {
 
     this.poolTrx = new pg.Pool({
       ...configs,
-      max : Math.min(10, Math.round(configs.max * 0.5)),
+      max : Math.round(configs.max * 0.75),
       statement_timeout : 0,
       query_timeout : 0
     });

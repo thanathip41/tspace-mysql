@@ -52,7 +52,7 @@ export class MariadbDriver extends BaseDriver {
 
     this.poolTrx = mariadb.createPool({
       ...configs,
-      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
+      connectionLimit : Math.round(configs.connectionLimit * 0.75)
     });
 
     this.pool.getConnection().catch(async (err:any) => {

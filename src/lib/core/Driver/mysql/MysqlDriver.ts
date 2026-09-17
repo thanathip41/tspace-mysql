@@ -60,7 +60,7 @@ export class MysqlDriver extends BaseDriver {
 
     this.poolTrx = mysql2.createPool({
       ...configs,
-      connectionLimit : Math.min(10, Math.round(configs.connectionLimit * 0.5))
+      connectionLimit : Math.round(configs.connectionLimit * 0.75)
     });
 
     this.pool.getConnection((err : any) : void => {
