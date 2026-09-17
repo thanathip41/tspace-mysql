@@ -482,7 +482,8 @@ type IsStrict<T> =
   T extends object ? (
     T extends { select: any } ? true : 
     T extends { except: any } ? false :
-    (keyof Omit<T, 'relations' | 'except'> extends never ? false : true)
+    // (keyof Omit<T, 'relations' | 'except'> extends never ? false : true)
+    false
   ) : false;
 
 
@@ -518,7 +519,14 @@ export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Da
                 } & 
                 (
                     (IsStrict<S1> extends true ? true : IsStrict<S2> extends true ? true : false) extends true
-                    ? {} 
+                    ? {
+                        // @Draf not work with select
+                        // [K in Exclude<
+                        //     NonObjectKeys<IncomingResult>,
+                        //     null
+                        // > as string extends K ? never : K
+                        // ]: IncomingResult[K]
+                    }
                     : {
                         [K in Exclude<NonObjectKeys<IncomingResult>, GetExceptKeys<F1> | GetExceptKeys<F2>>]-?: IncomingResult[K] 
                     }
