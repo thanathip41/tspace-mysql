@@ -116,9 +116,7 @@ export class MysqlDriver extends BaseDriver {
   public async disconnect(pool: any): Promise<void> {
     if (pool == null) return;
 
-    await new Promise<void>((resolve, reject) => {
-      pool.end((err:any) => err ? reject(err) : resolve());
-    });
+    await pool.end();
   }
 
   private _query(sql: string): Promise<any[]> {

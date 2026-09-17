@@ -104,9 +104,10 @@ export class MongodblDriver extends BaseDriver {
     }
 
     public async disconnect(client: any): Promise<void> {
+        
         if (client == null) return;
 
-        await client.close();
+        await client.end();
 
         return;
     }

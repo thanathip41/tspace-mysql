@@ -47,12 +47,10 @@ export class SqliteDriver extends BaseDriver {
     };
   }
 
-  public async disconnect(db: any): Promise<void> {
-    if (db == null) return;
-
-    await new Promise<void>((resolve, reject) => {
-      db.close((err:any) => err ? reject(err) : resolve());
-    });
+  public async disconnect(pool: any): Promise<void> {
+    if (pool == null) return;
+    await pool.end();
+    return;
   }
 
   private _query(sql: string): Promise<any[]> {
@@ -223,7 +221,7 @@ export class SqliteDriver extends BaseDriver {
 
   private async _end(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      return this.pool.end((err:any) => {
+      return this.pool.close((err:any) => {
         if(err) return reject(err);
         this.pool = undefined;
         return resolve();
