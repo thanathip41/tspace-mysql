@@ -1069,6 +1069,11 @@ class Schema {
       defaultSchema : string | number | boolean | null;
     }) => {
 
+      if(typeof defaultTable === 'string' && typeof defaultSchema === 'string') {
+        const normalize = (text: string) => text.replace(/^'|'$/g, "");
+        return normalize(defaultTable) !== normalize(defaultSchema);
+      }
+
       if(defaultTable == defaultSchema) {
         return false;
       }
@@ -1104,7 +1109,7 @@ class Schema {
         isChangedDefault
       ].some(v => v) ? key : null
     })
-    .filter((d) => d != null)
+    .filter(Boolean)
 
     if(!wasChangedColumns.length) return;
 
