@@ -4202,6 +4202,14 @@ class Model<
     V extends T.ColumnValue<this, K>
   >(
     column: K,
+    value: V[]
+  ): this;
+
+  public where<
+    K extends T.ColumnKeys<this>,
+    V extends T.ColumnValue<this, K>
+  >(
+    column: K,
     operator: "=" | "<" | ">" | "!=" | "<>" | "<=" | ">=" | "LIKE" | "like" ,
     value: V
   ): this;
