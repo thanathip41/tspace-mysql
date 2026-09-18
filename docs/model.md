@@ -1436,10 +1436,11 @@ class Post extends Model {
       id: Blueprint.int().notNull().primary().autoIncrement(),
       uuid: Blueprint.varchar(50).null(),
       user_id: Blueprint.int().notNull().foreign({
-        references: "id",
-        on: User,
-        onDelete: "CASCADE",
-        onUpdate: "CASCADE",
+        on: () => User, // or "users"
+        // Optionals
+        references: "id", // default "id"
+        onDelete: "CASCADE", // default "CASCADE"
+        onUpdate: "CASCADE", // default "CASCADE"
       }),
       title: Blueprint.varchar(255).null(),
       created_at: Blueprint.timestamp().null(),

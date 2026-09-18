@@ -7501,10 +7501,10 @@ class Model<
    * @returns {Promise<void>}
    */
   public async sync({
-    force = false,
+    force   = false,
     foreign = false,
     changed = false,
-    index = false,
+    index   = false,
   } = {}): Promise<void> {
     return await new Schema()["syncExecute"]({
       models: [this],

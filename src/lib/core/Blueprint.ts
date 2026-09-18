@@ -1,4 +1,4 @@
-import { type T } from "./UtilityTypes";
+import type { T } from "./UtilityTypes";
 import { Model }  from "./Model";
 import { DB }     from "./DB";
 
@@ -872,7 +872,7 @@ class Blueprint<T = any> {
     onUpdate,
   }: {
     references?: string;
-    on: (new () => Model) | string;
+    on: (() => new () => Model) | string;
     onDelete?: "CASCADE" | "NO ACTION" | "RESTRICT" | "SET NULL";
     onUpdate?: "CASCADE" | "NO ACTION" | "RESTRICT" | "SET NULL";
   }): Blueprint<T> {

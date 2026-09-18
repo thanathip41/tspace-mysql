@@ -1,12 +1,12 @@
 import { z }            from "zod";
 import { Builder }      from "./Builder";
 import { Model }        from "./Model";
-import { Package }         from "./Package";;
+import { Package }      from "./Package";;
 import { Blueprint }    from "./Blueprint";
 import { QueryBuilder } from "./Driver";
-import { T }            from "./UtilityTypes";
 import { AlterTable }   from "./Contracts/AlterTable";
-import DB from "./DB";
+import { DB }           from "./DB";
+import type { T }       from "./UtilityTypes";
 class Schema {
   private $db: Builder = new Builder();
 
@@ -137,7 +137,7 @@ class Schema {
    *          this.useSchema ({
    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
    *               uuid        : new Blueprint().varchar(50).null(),
-   *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
+   *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on :() => User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
    *               title       : new Blueprint().varchar(255).null(),
    *               created_at  : new Blueprint().timestamp().null(),
    *               updated_at  : new Blueprint().timestamp().null(),
@@ -157,11 +157,19 @@ class Schema {
       foreign = false,
       changed = false,
       index = false,
-    } = {}
+    }
   ): Promise<void> {
     const directories = Package.fs.readdirSync(pathFolders, {
       withFileTypes: true,
     });
+
+    const opts = {
+      force, 
+      log, 
+      foreign, 
+      changed, 
+      index
+    }
 
     const files: any[] = await Promise.all(
       directories.map((directory) => {
@@ -171,8 +179,10 @@ class Schema {
           directory.name.toLocaleLowerCase().includes("migrations")
         )
           return null;
+
+        
         return directory.isDirectory()
-          ? Schema.sync(newDir, { force, log, changed })
+          ? Schema.sync(newDir, opts)
           : newDir;
       })
     );
@@ -189,7 +199,7 @@ class Schema {
 
     if (!models.length) return;
 
-    await this.syncExecute({ models, force, log, foreign, changed, index });
+    await this.syncExecute({ models, ...opts });
 
     return;
   }
@@ -241,7 +251,7 @@ class Schema {
    *          this.useSchema ({
    *               id          : new Blueprint().int().notNull().primary().autoIncrement(),
    *               uuid        : new Blueprint().varchar(50).null(),
-   *               user_id     : new Blueprint().int().notNull().foreign({ references : 'id' , on : User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
+   *               user_id     : new Blueprint().int().notNull().foreign({ on : () => User , onDelete : 'CASCADE' , onUpdate : 'CASCADE' }),
    *               title       : new Blueprint().varchar(255).null(),
    *               created_at  : new Blueprint().timestamp().null(),
    *               updated_at  : new Blueprint().timestamp().null(),
@@ -722,7 +732,9 @@ class Schema {
       if (foreign.on == null) continue;
 
       const onReference =
-        typeof foreign.on === "string" ? foreign.on : new foreign.on();
+        typeof foreign.on === "string" 
+        ? foreign.on 
+        : new (foreign.on());
 
       const table =
         typeof onReference === "string"
