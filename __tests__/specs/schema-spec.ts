@@ -44,7 +44,7 @@ export class Post extends Model {
         this.useSchema({
             id          : Blueprint.int().notNull().primary().autoIncrement(),
             uuid        : Blueprint.varchar(50).null(),
-            userId      : Blueprint.int().null().foreign({ on: User }),
+            userId      : Blueprint.int().null().foreign({ on: () => User }),
             title       : Blueprint.varchar(100).notNull(),
             subtitle    : Blueprint.varchar(100).null(),
             description : Blueprint.varchar(255).null(),
@@ -66,8 +66,8 @@ export class PostUser extends Model {
         this.useSchema( { 
             id          : Blueprint.int().notNull().primary().autoIncrement(),
             uuid        : Blueprint.varchar(50).null(),
-            userId      : Blueprint.int().notNull().foreign({ on: User }),
-            postId      : Blueprint.int().notNull().foreign({ on: Post }),
+            userId      : Blueprint.int().notNull().foreign({ on: () => User }),
+            postId      : Blueprint.int().notNull().foreign({ on: () => Post }),
             createdAt   : Blueprint.timestamp().null(),
             updatedAt   : Blueprint.timestamp().null(),
             deletedAt   : Blueprint.timestamp().null()
