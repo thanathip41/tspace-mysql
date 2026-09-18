@@ -544,7 +544,7 @@ export type TStateWhereCondition = {
 
 export type TDefault<T = any> = (
     string extends  T ? string  :
-    boolean extends T ? boolean | number :
+    boolean extends T ? Boolean | number :
     number extends  T ? number  :
     Date extends    T ? Date :
     `${T & string}` | null
