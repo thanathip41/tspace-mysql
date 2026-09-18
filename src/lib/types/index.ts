@@ -519,16 +519,13 @@ export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Da
                 } & 
                 (
                     (IsStrict<S1> extends true ? true : IsStrict<S2> extends true ? true : false) extends true
-                    ? {
-                        // @Draf not work with select
-                        // [K in Exclude<
-                        //     NonObjectKeys<IncomingResult>,
-                        //     null
-                        // > as string extends K ? never : K
-                        // ]: IncomingResult[K]
-                    }
+                    ? {}
                     : {
-                        [K in Exclude<NonObjectKeys<IncomingResult>, GetExceptKeys<F1> | GetExceptKeys<F2>>]-?: IncomingResult[K] 
+                        [K in Exclude<
+                            NonObjectKeys<IncomingResult>,
+                           GetExceptKeys<F1> | GetExceptKeys<F2>
+                        > as string extends K ? never : K
+                        ]: IncomingResult[K]
                     }
                 )
 
