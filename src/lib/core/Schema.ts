@@ -731,10 +731,31 @@ class Schema {
 
       if (foreign.on == null) continue;
 
-      const onReference =
-        typeof foreign.on === "string" 
-        ? foreign.on 
-        : new (foreign.on());
+      let onReference: string | Model;
+
+      if (typeof foreign.on === 'string') {
+        onReference = foreign.on;
+
+      } else {
+
+        const reference = foreign.on;
+
+        const isModel = reference?.prototype instanceof Model;
+
+        if (isModel) {
+          const refModel = new reference();
+
+          console.log(
+            `\x1b[31mERROR: Invalid foreign.on configuration on Blueprint in Model '${model.constructor.name}'.\n` +
+            `expected a function returning a Model class for column '${key}', e.g.  Blueprint.foreign({ on: () => ${refModel.constructor.name} })\x1b[0m`
+          );
+
+          return;
+        }
+        
+        onReference = new (reference());
+        
+      }
 
       const table =
         typeof onReference === "string"
@@ -810,7 +831,12 @@ class Schema {
           })
         );
       } catch (e: any) {
-        const schemaModelOn = await onReference.getSchemaModel();
+
+        if(typeof onReference === "string") {
+          return;
+        }
+
+        const schemaModelOn = onReference.getSchemaModel();
 
         if (!schemaModelOn) continue;
 
