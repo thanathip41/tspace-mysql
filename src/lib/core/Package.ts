@@ -17,7 +17,8 @@ class Package {
                 existsSync : (v : string) => fs.existsSync(v),
                 writeFileSync: (path: string , data : string , options : Record<string,any> = {}) => fs.writeFileSync(path, data, options),
                 readdirSync : (path : string , options = { withFileTypes: false }) : any[] => fs.readdirSync(path, options ),
-                readFileSync : (path : string , encoding : string) => fs.readFileSync(path, encoding)
+                readFileSync : (path : string , encoding : string) => fs.readFileSync(path, encoding),
+                createWriteStream: (path: string , options : Record<string,any> = {}) => fs.createWriteStream(path, options),
             }
 
         } catch (err) {

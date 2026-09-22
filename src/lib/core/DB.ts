@@ -1037,7 +1037,24 @@ class DB extends AbstractDB {
       }
     }
 
-    Package.fs.writeFileSync(filePath, sql.join("\n"));
+    const stream = Package.fs.createWriteStream(filePath, {
+      encoding: "utf8",
+    });
+
+    for (let i = 0; i < sql.length; i++) {
+      stream.write(sql[i]);
+
+      if (i < sql.length - 1) {
+        stream.write("\n");
+      }
+    }
+
+    stream.end();
+
+    await new Promise<void>((resolve, reject) => {
+      stream.once("finish", resolve);
+      stream.once("error", reject);
+    });
 
     return;
   }
@@ -1080,7 +1097,7 @@ class DB extends AbstractDB {
       const schema = await this.showSchema(table);
 
       const str: string[] = [];
-      const pageSize = 100;
+      const pageSize = 1000;
       let offset = 0;
 
       while (true) {
