@@ -684,6 +684,58 @@ const shallowClone = (value:any) => {
     return value;
 }
 
+const sqlFormatted = (sql: string) => {
+    const statements = sql
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+    const formattedStatements = statements.map((stmt) => {
+    if (stmt.includes("(")) {
+        const firstParen = stmt.indexOf("(");
+        const lastParen = stmt.lastIndexOf(")");
+        if (firstParen === -1 || lastParen === -1) return stmt + ";";
+
+        const prefix = stmt.slice(0, firstParen).trim();
+        let columnsPart = stmt.slice(firstParen + 1, lastParen).trim();
+
+        const colArray: string[] = [];
+        let parenCount = 0;
+        let start = 0;
+
+        for (let i = 0; i < columnsPart.length; i++) {
+        const char = columnsPart[i];
+        if (char === "(") parenCount++;
+        if (char === ")") parenCount--;
+        if (char === "," && parenCount === 0) {
+            colArray.push(columnsPart.slice(start, i).trim());
+            start = i + 1;
+        }
+        }
+        colArray.push(columnsPart.slice(start).trim());
+
+        const seen = new Set<string>();
+        const uniqueColumns = colArray.filter((col) => {
+        const colNameMatch = col.match(/"([\w]+)"/) || col.match(/([\w]+)/);
+        const colName = colNameMatch ? colNameMatch[1] : col;
+        if (seen.has(colName)) return false;
+        seen.add(colName);
+        return true;
+        });
+
+        const formattedColumns = uniqueColumns
+        .map((c) => "    " + c)
+        .join(",\n");
+
+        return `${prefix} (\n${formattedColumns}\n)`;
+    } else {
+        return stmt;
+    }
+    });
+
+    return formattedStatements.join(";\n\n");
+};
+
 const utils = {
     typeOf,
     isDate,
@@ -719,7 +771,8 @@ const utils = {
     nestConditions,
     formatQueryValue,
     bindingParameters,
-    shallowClone
+    shallowClone,
+    sqlFormatted
 }
 
 export type TUtils = typeof utils

@@ -1,4 +1,3 @@
-import { format }       from "sql-formatter";
 import { AbstractDB }   from "./Abstracts/AbstractDB";
 import { StateManager } from "./StateManager";
 import { Package }      from "../core/Package";
@@ -866,105 +865,6 @@ class DB extends AbstractDB {
   }
 
   /**
-   * The 'removeProperties' method is used to removed some properties.
-   *
-   * @param {Array | Record} data
-   * @param {string[]} propertiesToRemoves
-   * @returns {Array | Record} this
-   */
-  public removeProperties(
-    data: any[] | Record<string, any>,
-    propertiesToRemoves: string[],
-  ): Array<any> | Record<string, any> {
-    const setNestedProperty = (obj: any, path: string, value: any) => {
-      const segments = path.split(".");
-      let currentObj = obj;
-
-      for (let i = 0; i < segments.length - 1; i++) {
-        const segment = segments[i];
-
-        if (!currentObj.hasOwnProperty(segment)) {
-          currentObj[segment] = {};
-        }
-
-        currentObj = currentObj[segment];
-      }
-
-      const lastSegment = segments[segments.length - 1];
-      currentObj[lastSegment] = value;
-    };
-
-    const remove = (
-      obj: Record<string, any>,
-      propertiesToRemoves: string[],
-    ) => {
-      const temp = JSON.parse(JSON.stringify(obj));
-
-      for (const property of propertiesToRemoves) {
-        if (property == null) continue;
-
-        const properties = property.split(".");
-        let current = temp;
-        let afterProp = "";
-        const props: string[] = [];
-        for (let i = 0; i < properties.length - 1; i++) {
-          const prop = properties[i];
-
-          if (current[prop] == null) continue;
-
-          props.push(prop);
-
-          if (typeof current[prop] === "object" && current[prop] != null) {
-            current = current[prop];
-            afterProp = prop;
-            continue;
-          }
-
-          delete current[prop];
-          afterProp = prop;
-        }
-
-        const lastProp = properties[properties.length - 1];
-
-        if (Array.isArray(current)) {
-          setNestedProperty(
-            temp,
-            props.join("."),
-            this.removeProperties(current, [afterProp, lastProp]),
-          );
-          continue;
-        }
-
-        if (current[lastProp] == null) continue;
-
-        delete current[lastProp];
-      }
-
-      return temp;
-    };
-
-    if (Array.isArray(data)) {
-      return data.map((obj) => remove(obj, propertiesToRemoves));
-    }
-
-    return remove(data, propertiesToRemoves);
-  }
-
-  /**
-   * The 'removeProperties' method is used to removed some properties.
-   *
-   * @param {Array | Record} data
-   * @param {string[]} propertiesToRemoves
-   * @returns {Array | Record} this
-   */
-  public static removeProperties(
-    data: any[] | Record<string, any>,
-    propertiesToRemoves: string[],
-  ): Array<any> | Record<string, any> {
-    return new this().removeProperties(data, propertiesToRemoves);
-  }
-
-  /**
    *
    * This 'backup' method is used to backup database intro new database same server or to another server
    * @type     {Object} backup
@@ -977,26 +877,73 @@ class DB extends AbstractDB {
    * @returns {Promise<void>}
    */
   public async backup({ database, to }: TBackup): Promise<void> {
+    
     const tables = await this.getTables();
 
-    const backup = await this._backup({ tables, database, to });
+    const qb = this._queryBuilder();
 
-    const creating = async ({
-      table,
-      values,
-    }: {
-      table: () => Promise<void>;
-      values: () => Promise<void>;
-    }) => {
-      try {
-        await table();
-        await values();
-      } catch (e) {}
-    };
+    const db = await new DB()
+    .query(qb.getDatabase(database));
 
-    await Promise.all(
-      backup.map((b) => creating({ table: b.table, values: b.values })),
-    );
+    if (Object.values(db[0] ?? []).length) {
+      throw new Error(`This database : '${database}' is already exists`);
+    }
+
+    await new DB()
+    .query(qb.createDatabase(database));
+
+    const connTarget = new DB().getConnection({
+      ...(to ?? this.$credentials),
+      database,
+    });
+
+    for (const table of tables) {
+
+      const schema = await new DB()
+        .debug(this.$state.get("DEBUG"))
+        .showSchema(table);
+
+      await new DB()
+      .debug(this.$state.get("DEBUG"))
+      .bind(connTarget)
+      .query(
+        qb.createTable({
+          database,
+          table,
+          schema,
+        }),
+      );
+
+      const pageSize = 1000;
+      let offset = 0;
+
+      while (true) {
+
+        const values = await new DB(table)
+          .debug(this.$state.get("DEBUG"))
+          .limit(pageSize)
+          .offset(offset)
+          .get();
+
+        if (!values.length) {
+          break;
+        }
+
+        await new DB(table)
+          .debug(this.$state.get("DEBUG"))
+          .createMultiple([...values])
+          .bind(connTarget)
+          .void()
+          .save();
+
+        offset += values.length;
+
+        if (values.length < pageSize) {
+          break;
+        }
+      }
+
+    }
 
     return;
   }
@@ -1033,65 +980,14 @@ class DB extends AbstractDB {
    */
   public async backupToFile({
     filePath,
-    database = `dump_${+new Date()}`,
-    connection,
+    database = `dump_${+new Date()}`
   }: TBackupToFile): Promise<void> {
-    await this.$utils.wait(1000 * 5);
+   
     const tables = await this.getTables();
 
-    const sqlFormatted = (sql: string) => {
-      const statements = sql
-        .split(";")
-        .map((s) => s.trim())
-        .filter(Boolean);
+    const backupSQL = await this._backupToSQL({ tables, database })
 
-      const formattedStatements = statements.map((stmt) => {
-        if (stmt.includes("(")) {
-          const firstParen = stmt.indexOf("(");
-          const lastParen = stmt.lastIndexOf(")");
-          if (firstParen === -1 || lastParen === -1) return stmt + ";";
-
-          const prefix = stmt.slice(0, firstParen).trim();
-          let columnsPart = stmt.slice(firstParen + 1, lastParen).trim();
-
-          const colArray: string[] = [];
-          let parenCount = 0;
-          let start = 0;
-
-          for (let i = 0; i < columnsPart.length; i++) {
-            const char = columnsPart[i];
-            if (char === "(") parenCount++;
-            if (char === ")") parenCount--;
-            if (char === "," && parenCount === 0) {
-              colArray.push(columnsPart.slice(start, i).trim());
-              start = i + 1;
-            }
-          }
-          colArray.push(columnsPart.slice(start).trim());
-
-          const seen = new Set<string>();
-          const uniqueColumns = colArray.filter((col) => {
-            const colNameMatch = col.match(/"([\w]+)"/) || col.match(/([\w]+)/);
-            const colName = colNameMatch ? colNameMatch[1] : col;
-            if (seen.has(colName)) return false;
-            seen.add(colName);
-            return true;
-          });
-
-          const formattedColumns = uniqueColumns
-            .map((c) => "    " + c)
-            .join(",\n");
-
-          return `${prefix} (\n${formattedColumns}\n)`;
-        } else {
-          return stmt;
-        }
-      });
-
-      return formattedStatements.join(";\n\n");
-    };
-
-    const backup = (await this._backupToString({ tables, database })).map(
+    const backupMap = backupSQL.map(
       (b) => {
         return {
           table:
@@ -1099,7 +995,7 @@ class DB extends AbstractDB {
               `\n--`,
               `-- Table structure for table '${b.name}'`,
               `--\n`,
-              `${sqlFormatted(b.table())}`,
+              `${this.$utils.sqlFormatted(b.table())}`,
             ].join("\n") + ";",
 
           values: b.values().length
@@ -1109,42 +1005,39 @@ class DB extends AbstractDB {
                 `--\n`,
                 `${b
                   .values()
-                  .map((v) => `${v}`)
-                  .join(",\n")}`,
+                  .map((v) => v)
+                  .join("\n")}`,
               ].join("\n")
             : "",
         };
       },
     );
 
-    if (connection != null && Object.keys(connection)?.length)
-      this.connection(connection);
-
+    const qb = this._queryBuilder();
+      
     let sql: string[] = [
       `--`,
       `-- tspace-mysql SQL Dump`,
       `-- https://www.npmjs.com/package/tspace-mysql`,
       `--`,
-      `-- Host: mysql-db`,
+      `-- Driver: '${this.$driver}'`,
       `-- Generation Time: ${new Date()}\n`,
-      `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
-      `START TRANSACTION;`,
       `--`,
       `-- Database: '${database}'`,
       `--\n`,
-      `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} ${database};`,
-      `USE ${database};`,
+      `${qb.createDatabase(database)};`,
+      `USE \`${database}\`;`,
       `-- --------------------------------------------------------`,
-    ];
+    ].map(v => qb.format(v));
 
-    for (const b of backup) {
+    for (const b of backupMap) {
       sql = [...sql, b.table];
       if (b.values) {
         sql = [...sql, b.values];
       }
     }
 
-    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
+    Package.fs.writeFileSync(filePath, sql.join("\n"));
 
     return;
   }
@@ -1163,334 +1056,14 @@ class DB extends AbstractDB {
    * @property {string} backup.connection.password
    * @returns {Promise<void>}
    */
-
   public static async backupToFile({
     filePath,
     database,
-    connection,
   }: TBackupToFile): Promise<void> {
-    return new this().backupToFile({ filePath, database, connection });
+    return new this().backupToFile({ filePath, database });
   }
 
-  /**
-   *
-   * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string} backup.database
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public async backupSchemaToFile({
-    filePath,
-    database = `dump_${+new Date()}`,
-    connection,
-  }: TBackupToFile): Promise<void> {
-    if (connection != null && Object.keys(connection)?.length)
-      this.connection(connection);
-
-    await this.$utils.wait(1000 * 3);
-
-    const tables = await this.getTables();
-
-    const backup = (await this._backupToString({ tables, database })).map(
-      (b) => {
-        return {
-          table:
-            format(b.table(), {
-              language: "spark",
-              tabWidth: 2,
-              linesBetweenQueries: 1,
-            }) + "\n",
-        };
-      },
-    );
-
-    let sql: string[] = [
-      `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";`,
-      `START TRANSACTION;`,
-      `SET time_zone = "+00:00";`,
-      `${this.$constants("CREATE_DATABASE_NOT_EXISTS")} \`${database}\`;`,
-      `USE \`${database}\`;`,
-    ];
-
-    for (const b of backup) sql = [...sql, b.table];
-
-    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
-
-    return;
-  }
-
-  /**
-   *
-   * This 'backupSchemaToFile' method is used to backup database intro new ${file}.sql
-   *
-   * @type {Object}  backup
-   * @property {string} backup.database
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public static async backupSchemaToFile({
-    filePath,
-    database,
-    connection,
-  }: TBackupToFile): Promise<void> {
-    return new this().backupSchemaToFile({ filePath, database, connection });
-  }
-
-  /**
-   *
-   * This 'backupTableToFile' method is used to backup database intro new ${file}.sql
-   *
-   * @type {Object}  backup
-   * @property {string} backup.database
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public async backupTableToFile({
-    filePath,
-    table,
-    connection,
-  }: TBackupTableToFile): Promise<void> {
-    if (connection != null && Object.keys(connection)?.length)
-      this.connection(connection);
-
-    /**
-     *
-     * wait for the connection to new db connected
-     */
-    await this.$utils.wait(1000 * 5);
-
-    const schemas = await this.showSchema(table);
-
-    const createTableSQL: string[] = [
-      `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-      `\`${table}\``,
-      `(${schemas.join(",")})`,
-      `${this.$constants("ENGINE")};`,
-    ];
-
-    const values = await this.showValues(table);
-
-    let valueSQL: string[] = [];
-
-    if (values.length) {
-      const columns = await this.showColumns(table);
-      valueSQL = [
-        `${this.$constants("INSERT")}`,
-        `\`${table}\``,
-        `(${columns.map((column) => `\`${column}\``).join(",")})`,
-        `${this.$constants("VALUES")} ${values.join(",")};`,
-      ];
-    }
-
-    const sql = [
-      format(createTableSQL.join(" "), {
-        language: "mysql",
-        tabWidth: 2,
-        linesBetweenQueries: 1,
-      }) + "\n",
-      valueSQL.join(" "),
-    ];
-
-    Package.fs.writeFileSync(filePath, [...sql, "COMMIT;"].join("\n"));
-
-    return;
-  }
-
-  /**
-   *
-   * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string} backup.table
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public static async backupTableToFile({
-    filePath,
-    table,
-    connection,
-  }: TBackupTableToFile): Promise<void> {
-    return new this().backupTableToFile({ filePath, table, connection });
-  }
-
-  /**
-   *
-   * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string} backup.database
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public async backupTableSchemaToFile({
-    filePath,
-    table,
-    connection,
-  }: TBackupTableToFile): Promise<void> {
-    const schemas = await this.showSchema(table);
-    const createTableSQL: string[] = [
-      `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-      `\`${table}\``,
-      `(${schemas.join(",")})`,
-      `${this.$constants("ENGINE")};`,
-    ];
-
-    const sql = [createTableSQL.join(" ")];
-
-    if (connection != null && Object.keys(connection)?.length)
-      this.connection(connection);
-
-    await this.$utils.wait(1000 * 5);
-
-    Package.fs.writeFileSync(
-      filePath,
-      format(sql.join("\n"), {
-        language: "spark",
-        tabWidth: 2,
-        linesBetweenQueries: 1,
-      }),
-    );
-
-    return;
-  }
-
-  /**
-   *
-   * This 'backupTableSchemaToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string} backup.table
-   * @property {string} backup.filePath
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
-   * @returns {Promise<void>}
-   */
-  public static async backupTableSchemaToFile({
-    filePath,
-    table,
-    connection,
-  }: TBackupTableToFile): Promise<void> {
-    return new this().backupTableSchemaToFile({ filePath, table, connection });
-  }
-
-  private async _backup({
-    tables,
-    database,
-    to,
-  }: {
-    tables: string[];
-    database: string;
-    to?: {
-      driver?: TDriver;
-      host: string;
-      port: number;
-      username: string;
-      password: string;
-    };
-  }) {
-    const backup: Array<{
-      table: () => Promise<void>;
-      values: () => Promise<void>;
-      name: string;
-    }> = [];
-
-    const conn = await new DB().getConnection({ ...(to ?? this.$credentials) });
-
-    const db = await new DB()
-      .bind(conn)
-      .query(this._queryBuilder().getDatabase(database));
-
-    if (Object.values(db[0] ?? []).length) {
-      throw new Error(`This database : '${database}' is already exists`);
-    }
-
-    await new DB()
-      .bind(conn)
-      .query(`${this.$constants("CREATE_DATABASE")} \`${database}\``);
-
-    const connWithDatabase = await new DB().getConnection({
-      ...(to ?? this.$credentials),
-      database,
-    });
-
-    for (const table of tables) {
-      const schema = await new DB()
-        .debug(this.$state.get("DEBUG"))
-        .showSchema(table);
-      const values = await new DB(table).debug(this.$state.get("DEBUG")).get();
-
-      backup.push({
-        name: table == null ? "" : table,
-        table: async () => {
-          await new DB()
-            .debug(this.$state.get("DEBUG"))
-            .bind(connWithDatabase)
-            .query(
-              this._queryBuilder().createTable({ database, table, schema }),
-            );
-
-          return;
-        },
-        values: async () => {
-          if (!values.length) return;
-
-          const chunked = this.$utils.chunkArray([...values], 1000);
-          const promises: Function[] = [];
-
-          for (const data of chunked) {
-            promises.push(() => {
-              return new DB(table)
-                .debug(this.$state.get("DEBUG"))
-                .createMultiple([...data])
-                .bind(connWithDatabase)
-                .void()
-                .save();
-            });
-          }
-
-          await Promise.all(promises.map((v) => v()));
-
-          return;
-        },
-      });
-    }
-
-    return backup;
-  }
-
-  private async _backupToString({
+  private async _backupToSQL({
     tables,
     database,
   }: {
@@ -1505,33 +1078,46 @@ class DB extends AbstractDB {
 
     for (const table of tables) {
       const schema = await this.showSchema(table);
-      const values = await this.table(table).get();
-      // const values :any[]  = []
+
+      const str: string[] = [];
+      const pageSize = 100;
+      let offset = 0;
+
+      while (true) {
+        const values = await this.table(table)
+          .limit(pageSize)
+          .offset(offset)
+          .get();
+
+        if (!values.length) break;
+
+        const sql = this.table(table)
+          .createMultiple([...values])
+          .toString();
+
+        str.push(`${sql};`);
+
+        offset += pageSize;
+
+        if (values.length < pageSize) {
+          break;
+        }
+      }
 
       backup.push({
-        name: table == null ? "" : table,
+        name: table ?? "",
+
         table: () => {
-          return this._queryBuilder().createTable({ database, table, schema });
+          const createTable = this._queryBuilder().createTable({
+            database,
+            table,
+            schema
+          });
+
+          return `${createTable}`
         },
-        values: () => {
-          if (!values.length) return [];
 
-          const chunked = this.$utils.chunkArray(
-            [...values],
-            values.length > 500 ? 500 : 10,
-          );
-          const str: string[] = [];
-
-          for (const data of chunked) {
-            const sql = this.table(table)
-              .createMultiple([...data])
-              .toString();
-
-            str.push(sql);
-          }
-
-          return str;
-        },
+        values: () => str,
       });
     }
 

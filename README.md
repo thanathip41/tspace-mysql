@@ -4711,9 +4711,7 @@ tspace-mysql query "SELECT * FROM users"
 The command will dump the database or table into a file.
 
 ```sh
-tspace-mysql dump:db --dir=<folder for dump> --values // backup with values in the tables
-
-tspace-mysql dump:table "table_name" --dir=<folder for dump> --values // backup with values in the table
+tspace-mysql dump:db --dir=<folder for dump>  // backup 
 
 ```
 

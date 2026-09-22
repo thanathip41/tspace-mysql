@@ -8,8 +8,6 @@ import migrationModel from './migrations/make-model'
 import migrationDB from './migrations/make-db'
 import query from './query'
 import dumpDB from './dump/db'
-import dumpTable from './dump/table'
-
 
 const help = () => {
 console.log(`
@@ -40,7 +38,6 @@ const commands : Record< string , Function >= {
     'generate:models'   : generateModel,
     'gen:models'        : generateModel,
     'dump:db'           : dumpDB,
-    'dump:table'        : dumpTable,
     'migrations:models' : migrationModel,
     'migrations:db'     : migrationDB,
     'help'              : () => help(),

@@ -104,14 +104,6 @@ export type TBackup = {
 export type TBackupToFile = {
     database?: string;
     filePath: string;
-    table?: string;
-    connection?: {
-        host: string;
-        port: number;
-        database: string;
-        username: string;
-        password: string;
-    };
 };
 
 export type TBackupTableToFile = {
@@ -127,7 +119,6 @@ export type TBackupTableToFile = {
 };
 
 export type TConnectionOptions = {
-    [key: string]: any;
     driver?: TDriver;
     host: string;
     port: number;
