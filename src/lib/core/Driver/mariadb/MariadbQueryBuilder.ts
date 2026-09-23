@@ -222,6 +222,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
       const sql = [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
         `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
+        `(${schema.join(", ")})`,
         `${this.$constants("ENGINE")}`,
       ];
 

@@ -19,6 +19,9 @@ class Package {
                 readdirSync : (path : string , options = { withFileTypes: false }) : any[] => fs.readdirSync(path, options ),
                 readFileSync : (path : string , encoding : string) => fs.readFileSync(path, encoding),
                 createWriteStream: (path: string , options : Record<string,any> = {}) => fs.createWriteStream(path, options),
+                promises: {
+                    mkdir: (path: string,options: Record<string, any> = {}) => fs.promises.mkdir(path, options),
+                },
             }
 
         } catch (err) {
@@ -37,7 +40,8 @@ class Package {
                     return paths == null || !paths.length 
                     ? path.resolve()
                     : path.resolve(...paths)
-                }
+                },
+                dirname : (p: string) => path.dirname(p),
             }
 
         } catch (err) {

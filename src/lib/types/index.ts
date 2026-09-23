@@ -92,6 +92,7 @@ export type TSave =
 
 export type TBackup = {
     database: string;
+    excludes ?: string[];
     to?: {
         driver?: TDriver;
         host: string;
@@ -104,6 +105,7 @@ export type TBackup = {
 export type TBackupToFile = {
     database?: string;
     filePath: string;
+    excludes ?: string[];
 };
 
 export type TBackupTableToFile = {

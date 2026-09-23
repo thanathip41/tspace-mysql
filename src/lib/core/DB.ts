@@ -869,6 +869,7 @@ class DB extends AbstractDB {
    * This 'backup' method is used to backup database intro new database same server or to another server
    * @type     {Object} backup
    * @property {string} backup.database clone current 'db' in connection to this database
+   * @property {string[]} backup.excludes
    * @type     {object?} backup.to
    * @property {string} backup.to.host
    * @property {number} backup.to.port
@@ -876,9 +877,7 @@ class DB extends AbstractDB {
    * @property {string} backup.to.password
    * @returns {Promise<void>}
    */
-  public async backup({ database, to }: TBackup): Promise<void> {
-    
-    const tables = await this.getTables();
+  public async backup({ database , excludes , to }: TBackup): Promise<void> {
 
     const qb = this._queryBuilder();
 
@@ -888,6 +887,10 @@ class DB extends AbstractDB {
     if (Object.values(db[0] ?? []).length) {
       throw new Error(`This database : '${database}' is already exists`);
     }
+
+    const raws = await this.getTables();
+
+    const tables = raws.filter(r => !excludes?.includes(r));
 
     await new DB()
     .query(qb.createDatabase(database));
@@ -953,6 +956,7 @@ class DB extends AbstractDB {
    * This 'backup' method is used to backup database intro new database same server or to another server
    * @type     {Object} backup
    * @property {string} backup.database clone current 'db' in connection to this database
+   * @property {string[]} backup.excludes
    * @type     {object?} backup.to
    * @property {string} backup.to.host
    * @property {number} backup.to.port
@@ -960,8 +964,8 @@ class DB extends AbstractDB {
    * @property {string} backup.to.password
    * @returns {Promise<void>}
    */
-  public static async backup({ database, to }: TBackup): Promise<void> {
-    return new this().backup({ database, to });
+  public static async backup({ database, excludes , to }: TBackup): Promise<void> {
+    return new this().backup({ database, excludes, to });
   }
 
   /**
@@ -970,6 +974,7 @@ class DB extends AbstractDB {
    * @type {Object}  backup
    * @property {string} backup.database
    * @property {string} backup.filePath
+   * @property {string[]} backup.excludes
    * @type     {object?} backup.connection
    * @property {string} backup.connection.host
    * @property {number} backup.connection.port
@@ -980,10 +985,13 @@ class DB extends AbstractDB {
    */
   public async backupToFile({
     filePath,
+    excludes,
     database = `dump_${+new Date()}`
   }: TBackupToFile): Promise<void> {
    
-    const tables = await this.getTables();
+    const raws = await this.getTables();
+
+    const tables = raws.filter(r => !excludes?.includes(r));
 
     const backupSQL = await this._backupToSQL({ tables, database })
 
@@ -1037,6 +1045,11 @@ class DB extends AbstractDB {
       }
     }
 
+    await Package.fs.promises.mkdir(
+      Package.path.dirname(filePath),
+      { recursive: true },
+    );
+
     const stream = Package.fs.createWriteStream(filePath, {
       encoding: "utf8",
     });
@@ -1065,6 +1078,7 @@ class DB extends AbstractDB {
    * @type {Object}  backup
    * @property {string} backup.database
    * @property {string} backup.filePath
+   * @property {string[]} backup.excludes
    * @type     {object?} backup.connection
    * @property {string} backup.connection.host
    * @property {number} backup.connection.port
@@ -1076,8 +1090,9 @@ class DB extends AbstractDB {
   public static async backupToFile({
     filePath,
     database,
+    excludes
   }: TBackupToFile): Promise<void> {
-    return new this().backupToFile({ filePath, database });
+    return new this().backupToFile({ filePath, database, excludes });
   }
 
   private async _backupToSQL({
