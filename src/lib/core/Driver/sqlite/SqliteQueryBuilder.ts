@@ -145,54 +145,143 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }
 
   public getSchema({ database, table }: { database: string; table: string }) {
+    const safeTable = table.replace(/["`]/g, "");
+
     const sql = [`
       SELECT
         ti.name AS "Field",
 
-        CASE 
+        CASE
           WHEN ti.pk = 1 THEN 'PRI'
-          WHEN il."unique" = 1 THEN 'UNI'
+          WHEN EXISTS (
+            SELECT 1
+            FROM pragma_index_list(m.name) AS il
+            JOIN pragma_index_info(il.name) AS ii
+              ON ii.name = ti.name
+            WHERE il."unique" = 1
+          ) THEN 'UNI'
           ELSE NULL
         END AS "Key",
 
         ti.type AS "Type",
 
-        CASE 
+        CASE
           WHEN ti."notnull" = 0 THEN 'YES'
           ELSE 'NO'
         END AS "Nullable",
 
-        CASE 
-          WHEN ti.dflt_value = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP'
+        CASE
+          WHEN ti.dflt_value = 'CURRENT_TIMESTAMP'
+            THEN 'IS_CONST:CURRENT_TIMESTAMP'
           ELSE ti.dflt_value
         END AS "Default",
 
         NULL AS "Extra",
 
-        CASE 
-          WHEN ti.type LIKE '%(%' 
-            THEN substr(ti.type, instr(ti.type, '(') + 1, instr(ti.type, ')') - instr(ti.type, '(') - 1)
+        CASE
+          WHEN ti.type LIKE '%(%'
+            THEN substr(
+              ti.type,
+              instr(ti.type, '(') + 1,
+              instr(ti.type, ')') - instr(ti.type, '(') - 1
+            )
           ELSE NULL
-        END AS "TypeValue"
+        END AS "TypeValue",
+
+        m.sql AS "TableSQL"
 
       FROM sqlite_master AS m
       JOIN pragma_table_info(m.name) AS ti
 
-      LEFT JOIN pragma_index_list(m.name) AS il
-        ON il."unique" = 1
-
-      LEFT JOIN pragma_index_info(il.name) AS ii
-        ON ii.name = ti.name
-
       WHERE m.type = 'table'
-        AND m.name = '${table.replace(/["`]/g, "")}'
-
-      GROUP BY ti.cid
+        AND m.name = '${safeTable}'
 
       ORDER BY ti.cid
     `];
 
     return this.format(sql);
+  }
+
+  public mapSchema(schema: {
+    Field: string;
+    Key: "PRI" | "UNI" | "";
+    Type: string;
+    Nullable: "YES" | "NO";
+    Default: string | null;
+    Extra: string | null;
+    Check?: string | null;
+    TableSQL: string;
+  }[]) {
+    const tableSQL = schema[0]?.TableSQL;
+
+    if (!tableSQL) {
+      return [];
+    }
+
+    const start = tableSQL.indexOf("(");
+    const end = tableSQL.lastIndexOf(")");
+
+    if (start === -1 || end === -1) {
+      return [];
+    }
+
+    const content = tableSQL.slice(start + 1, end);
+
+    const columns: string[] = [];
+
+    let current = "";
+    let depth = 0;
+    let quote: string | null = null;
+
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+
+      if (quote) {
+        current += char;
+
+        if (char === quote) {
+          if (content[i + 1] === quote) {
+            current += content[++i];
+          } else {
+            quote = null;
+          }
+        }
+
+        continue;
+      }
+
+      if (char === "'" || char === '"' || char === "`") {
+        quote = char;
+        current += char;
+        continue;
+      }
+
+      if (char === "(") {
+        depth++;
+        current += char;
+        continue;
+      }
+
+      if (char === ")") {
+        depth--;
+        current += char;
+        continue;
+      }
+
+      if (char === "," && depth === 0) {
+        columns.push(current.trim());
+        current = "";
+        continue;
+      }
+
+      current += char;
+    }
+
+    if (current.trim()) {
+      columns.push(current.trim());
+    }
+
+    return columns;
   }
 
   public getTables(database: string) {
@@ -220,7 +309,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }
 
   public createDatabase(database: string) {
-    throw new Error("Method not implemented.");
+    // throw new Error("Method not implemented.");
     return '';
   }
 
@@ -238,7 +327,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
     if (Array.isArray(schema)) {
       const sql = [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-        `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
+        `\`${table.replace(/`/g, "")}\``,
         `(${schema.join(", ")})`
       ];
 

@@ -169,52 +169,204 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
-  public getSchema({ database, table }: { database: string; table: string }) {
+  public getSchema({
+    database,
+    table,
+  }: {
+    database: string;
+    table: string;
+  }) {
+    const safeTable = table.replace(/`/g, "");
+    const safeDatabase = database.replace(/`/g, "");
+
     const sql = [
-      `SELECT 
-        COLUMN_NAME as "Field", 
-        CASE
-            WHEN column_default LIKE 'nextval(%' THEN 'PRI'
+      `
+        SELECT
+          c.COLUMN_NAME AS "Field",
+
+          CASE
+            WHEN c.column_default LIKE 'nextval(%'
+            THEN 'PRI'
             ELSE NULL
-        END AS "Key",
+          END AS "Key",
 
-        CASE
-          WHEN DATA_TYPE = 'USER-DEFINED' THEN
-          'enum(' ||
+          CASE
+            WHEN c.DATA_TYPE = 'USER-DEFINED' THEN
+              'enum(' ||
+              (
+                SELECT string_agg(
+                  quote_literal(e.enumlabel),
+                  ','
+                  ORDER BY e.enumsortorder
+                )
+                FROM PG_TYPE t
+                JOIN PG_ENUM e
+                  ON t.oid = e.enumtypid
+                WHERE t.typname = c.udt_name
+              ) ||
+              ')'
+
+            WHEN c.DATA_TYPE = 'character varying'
+              AND c.CHARACTER_MAXIMUM_LENGTH IS NOT NULL
+            THEN
+              c.DATA_TYPE || '(' || c.CHARACTER_MAXIMUM_LENGTH || ')'
+
+            ELSE c.DATA_TYPE
+          END AS "Type",
+
+          c.IS_NULLABLE AS "Nullable",
+
+          CASE
+            WHEN c.COLUMN_DEFAULT LIKE 'nextval(%'
+            THEN NULL
+
+            WHEN c.COLUMN_DEFAULT = 'CURRENT_TIMESTAMP'
+            THEN 'IS_CONST:CURRENT_TIMESTAMP'
+
+            ELSE c.COLUMN_DEFAULT
+          END AS "Default",
+
+          CASE
+            WHEN c.COLUMN_DEFAULT LIKE 'nextval(%'
+            THEN 'AUTO_INCREMENT'
+            ELSE NULL
+          END AS "Extra",
+
           (
-            SELECT string_agg(quote_literal(e.enumlabel), ',')
-            FROM PG_TYPE t
-            JOIN PG_ENUM e ON t.oid = e.enumtypid
-            WHERE t.typname = udt_name
-          )
-          || ')'
+            SELECT pg_get_constraintdef(con.oid)
+            FROM pg_constraint con
+            JOIN pg_class tbl
+              ON tbl.oid = con.conrelid
+            WHERE tbl.relname = c.TABLE_NAME
+              AND con.contype = 'c'
+              AND c.COLUMN_NAME = ANY (
+                SELECT att.attname
+                FROM pg_attribute att
+                WHERE att.attrelid = tbl.oid
+                  AND att.attnum = ANY(con.conkey)
+              )
+            LIMIT 1
+          ) AS "Check"
 
-          WHEN 
-            DATA_TYPE = 'character varying' AND CHARACTER_MAXIMUM_LENGTH IS NOT NULL
-            THEN DATA_TYPE || '(' || CHARACTER_MAXIMUM_LENGTH || ')'
-          ELSE DATA_TYPE
-        END AS "Type",
+        FROM INFORMATION_SCHEMA.COLUMNS c
 
-        IS_NULLABLE as "Nullable",
+        WHERE c.TABLE_NAME = '${safeTable}'
+          AND c.TABLE_CATALOG = '${safeDatabase}'
 
-        CASE
-          WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN NULL
-          WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP'
-          ELSE COLUMN_DEFAULT
-        END AS "Default",
-
-        CASE
-          WHEN COLUMN_DEFAULT LIKE 'nextval(%' THEN 'AUTO_INCREMENT'
-          ELSE NULL
-        END AS "Extra"
-      FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = '${table.replace(/\`/g, "")}'
-          AND TABLE_CATALOG = '${database.replace(/\`/g, "")}'
-        ORDER BY ORDINAL_POSITION
-        `,
+        ORDER BY c.ORDINAL_POSITION
+      `,
     ];
 
     return this.format(sql);
+  }
+
+  public mapSchema(schema: {
+    Field    : string;
+    Key      : 'PRI' | 'UNI' | '';
+    Type     : string;
+    Nullable : 'YES' | 'NO';
+    Default  : string | null;
+    Extra    : string | null;
+    Check    : string | null;
+  }[]) {
+    const normalizeDefault = (value: string): string => {
+      if (value.includes("IS_CONST:")) {
+        return value.replace("IS_CONST:", "");
+      }
+
+      const castedString = value.match(/^'(.*)'::[\w\s.]+$/);
+
+      if (castedString) {
+        return `'${castedString[1].replace(/'/g, "''")}'`;
+      }
+
+      return value;
+    };
+
+    const formated = schema.map((r) => {
+  const str: string[] = [];
+
+  str.push(`\`${r.Field}\``);
+
+  let checkValues: string[] = [];
+
+  // 1. Native / normalized ENUM
+  if (r.Type.startsWith("enum(")) {
+    const enumContent = r.Type.match(/^enum\((.*)\)$/)?.[1] ?? "";
+
+    checkValues =
+      enumContent.match(/'(?:''|[^'])*'/g)?.map((value) =>
+        value
+          .slice(1, -1)
+          .replace(/''/g, "'"),
+      ) ?? [];
+  }
+
+  // 2. PostgreSQL VARCHAR + CHECK
+  if (checkValues.length === 0 && r.Check) {
+    checkValues =
+      r.Check
+        .match(/'((?:''|[^'])*)'::character varying/g)
+        ?.map((value) =>
+          value
+            .replace(/^'|'::character varying$/g, "")
+            .replace(/''/g, "'"),
+        ) ?? [];
+  }
+
+  // 3. Convert ENUM -> VARCHAR
+  if (checkValues.length > 0) {
+    const maxLength = Math.max(
+      ...checkValues.map((value) => value.length),
+      1,
+    );
+
+    str.push(`character varying(${maxLength})`);
+  } else {
+    str.push(r.Type);
+  }
+
+  if (r.Nullable === "YES") {
+    str.push("NULL");
+  }
+
+  if (r.Nullable === "NO") {
+    str.push("NOT NULL");
+  }
+
+  if (r.Key === "PRI") {
+    str.push("PRIMARY KEY");
+  }
+
+  if (r.Key === "UNI") {
+    str.push("UNIQUE");
+  }
+
+  if (r.Default !== null && r.Default !== undefined) {
+    const defaultValue = normalizeDefault(String(r.Default));
+
+    if (!/^NULL(?:::.*)?$/.test(defaultValue)) {
+      str.push(`DEFAULT ${defaultValue}`);
+    }
+  }
+
+  if (r.Extra) {
+    str.push(r.Extra.toUpperCase());
+  }
+
+  // Re-create portable CHECK
+  if (checkValues.length > 0) {
+    const values = checkValues
+      .map((value) => `'${value.replace(/'/g, "''")}'`)
+      .join(", ");
+
+    str.push(`CHECK (\`${r.Field}\` IN (${values}))`);
+  }
+
+  return str.join(" ");
+});
+
+    return formated;
   }
 
   public getTables(database: string) {
@@ -299,7 +451,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     if (Array.isArray(schema)) {
       const sql = [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-        `\`${database.replace(/`/g, "")}\`.\`${table.replace(/`/g, "")}\``,
+        `\`${table.replace(/`/g, "")}\``,
         `(${schema.join(", ")})`,
       ];
 

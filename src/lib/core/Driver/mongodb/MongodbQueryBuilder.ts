@@ -346,6 +346,19 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
+  public mapSchema (schema : {
+    Field    : string;
+    Key      : 'PRI' | '';
+    Type     : string;
+    Nullable : 'YES' | 'NO';
+    Default  : string | null;
+    Extra    : string | null;
+  }[]) {
+
+    throw new Error("Method not implemented.");
+    return [];
+  }
+
   public getTables(database: string) {
     throw new Error("Method not implemented.");
     return '';

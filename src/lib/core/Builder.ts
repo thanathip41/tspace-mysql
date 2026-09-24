@@ -2868,54 +2868,19 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
-    const sql = this._queryBuilder().getSchema({
+
+    const qb = this._queryBuilder();
+
+    const sql = qb.getSchema({
       database: this.$database,
-      table,
+      table : this.$utils.escape(table),
     });
 
-    const raws: any[] = await this._queryStatement(sql);
+    const raws: any[] = await this.rawQuery(sql);
 
     if (options.raw) return raws;
 
-    const schema = raws.map((r: Record<string, any>) => {
-      const schema: string[] = [];
-
-      schema.push(`\`${r.Field}\``);
-
-      schema.push(`${r.Type}`);
-
-      if (r.Nullable === "YES") {
-        schema.push(`NULL`);
-      }
-
-      if (r.Nullable === "NO") {
-        schema.push(`NOT NULL`);
-      }
-
-      if (r.Key === "PRI") {
-        schema.push(`PRIMARY KEY`);
-      }
-
-      if (r.Key === "UNI") {
-        schema.push(`UNIQUE`);
-      }
-
-      if (r.Default) {
-        if (r.Default.includes("IS_CONST:")) {
-          schema.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
-        } else {
-          schema.push(`DEFAULT '${r.Default}'`);
-        }
-      }
-
-      if (r.Extra) {
-        schema.push(`${r.Extra.toUpperCase()}`);
-      }
-
-      return schema.join(" ");
-    });
-
-    return schema;
+    return qb.mapSchema(raws);
   }
 
   /**
@@ -2941,13 +2906,18 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     Default  : string | null;
     Extra    : string | null;
   }[]> {
-     const tableName = this.$state.get("TABLE_NAME")
+     const table = this.$state.get("TABLE_NAME")
 
-    if(tableName == null) {
+    if(table == null) {
       throw new Error('Unknown table name')
     }
 
-    return await this.showSchema(tableName, { raw: true });
+    const sql = this._queryBuilder().getSchema({
+      database: this.$database,
+      table,
+    });
+
+    return await this.rawQuery(sql);
   }
 
   /**

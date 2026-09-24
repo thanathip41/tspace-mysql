@@ -188,6 +188,58 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public mapSchema (schema : {
+    Field    : string;
+    Key      : 'PRI' | '';
+    Type     : string;
+    Nullable : 'YES' | 'NO';
+    Default  : string | null;
+    Extra    : string | null;
+  }[]) {
+
+    const formated = schema.map((r: Record<string, any>) => {
+      const str: string[] = [];
+
+      str.push(`\`${r.Field}\``);
+
+      str.push(`${r.Type}`);
+
+      if (r.Nullable === "YES") {
+        str.push(`NULL`);
+      }
+
+      if (r.Nullable === "NO") {
+        str.push(`NOT NULL`);
+      }
+
+      if (r.Key === "PRI") {
+        str.push(`PRIMARY KEY`);
+      }
+
+      if (r.Key === "UNI") {
+        str.push(`UNIQUE`);
+      }
+
+      if (r.Default) {
+        if (r.Default.includes("IS_CONST:")) {
+          str.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
+        } 
+        
+        else if(!r.Default.includes('NULL')) {
+          str.push(`DEFAULT '${r.Default}'`);
+        }
+      }
+
+      if (r.Extra) {
+        str.push(`${r.Extra.toUpperCase()}`);
+      }
+
+      return str.join(" ");
+    });
+
+    return formated;
+  }
+
   public getTables(database: string) {
     const sql = [
       `

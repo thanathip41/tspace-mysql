@@ -202,6 +202,15 @@ export abstract class QueryBuilder {
     table: string;
   }): string;
 
+  public abstract mapSchema(schema : {
+    Field    : string;
+    Key      : 'PRI' | 'UNI' | '';
+    Type     : string;
+    Nullable : 'YES' | 'NO';
+    Default  : string | null;
+    Extra    : string | null;
+  }[]): string[];
+
   public abstract getTables(database: string): string;
 
   public abstract hasTable({
