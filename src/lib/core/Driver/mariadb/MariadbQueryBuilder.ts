@@ -152,17 +152,36 @@ export class MariadbQueryBuilder extends QueryBuilder {
 
   public getSchema({ database, table }: { database: string; table: string }) {
     const sql = [
-      `
-        SELECT 
-          COLUMN_NAME as "Field", 
-          DATA_TYPE as "Type",
-          IS_NULLABLE as "Nullable",
-          COLUMN_DEFAULT as "Default"
-        FROM 
-          INFORMATION_SCHEMA.COLUMNS
-        WHERE 
-          table_name = '${table.replace(/\`/g, "")}'
-          AND table_schema = '${database}'
+    `
+      SELECT 
+        COLUMN_NAME AS "Field", 
+        CASE 
+          WHEN COLUMN_KEY = '' THEN NULL 
+          ELSE COLUMN_KEY
+        END AS "Key",
+        COALESCE(NULLIF(COLUMN_TYPE, ''), DATA_TYPE) AS "Type",
+        IS_NULLABLE AS "Nullable",
+        CASE 
+          WHEN COLUMN_DEFAULT = 'CURRENT_TIMESTAMP' THEN 'IS_CONST:CURRENT_TIMESTAMP' 
+          ELSE COLUMN_DEFAULT 
+        END AS "Default",
+        CASE 
+          WHEN EXTRA = 'DEFAULT_GENERATED' OR EXTRA = '' THEN NULL 
+          ELSE EXTRA 
+        END AS "Extra",
+        CASE WHEN DATA_TYPE = 'enum' 
+          THEN REPLACE(SUBSTRING(COLUMN_TYPE, 6, LENGTH(COLUMN_TYPE)-6), '''', '') 
+            WHEN COLUMN_TYPE LIKE '%(%)%' 
+              THEN SUBSTRING_INDEX(SUBSTRING_INDEX(COLUMN_TYPE, '(', -1), ')', 1) 
+          ELSE NULL 
+        END AS "TypeValue"
+      FROM 
+        INFORMATION_SCHEMA.COLUMNS
+      WHERE 
+        TABLE_NAME    = '${table.replace(/\`/g, "")}'
+        AND TABLE_SCHEMA  = '${database}'
+      ORDER BY 
+        ORDINAL_POSITION
       `,
     ];
 
