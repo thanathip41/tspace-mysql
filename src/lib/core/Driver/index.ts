@@ -223,6 +223,8 @@ export abstract class QueryBuilder {
 
   public abstract createDatabase(database : string): string;
 
+  public abstract useDatabase(database : string): string;
+
   public abstract createTable({
     database,
     table,

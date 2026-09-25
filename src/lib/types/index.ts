@@ -102,11 +102,21 @@ export type TBackup = {
     };
 };
 
-export type TBackupToFile = {
-    database?: string;
-    filePath: string;
-    excludes ?: string[];
-};
+export type TBackupToFile =
+  | {
+      filePath: string;
+      only?: string[];
+      excludes?: never;
+      database?: string;
+      value?: boolean;
+    }
+  | {
+      filePath: string;
+      only?: never;
+      excludes?: string[];
+      database?: string;
+      value?: boolean;
+    };
 
 export type TBackupTableToFile = {
     filePath: string;

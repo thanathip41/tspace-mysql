@@ -972,9 +972,10 @@ class DB extends AbstractDB {
    *
    * This 'backupToFile' method is used to backup database intro new ${file}.sql
    * @type {Object}  backup
-   * @property {string} backup.database
+   * @property {string?} backup.database
    * @property {string} backup.filePath
    * @property {string[]} backup.excludes
+   * @property {boolean?} backup.value
    * @type     {object?} backup.connection
    * @property {string} backup.connection.host
    * @property {number} backup.connection.port
@@ -986,18 +987,21 @@ class DB extends AbstractDB {
   public async backupToFile({
     filePath,
     excludes,
-    database = `dump_${+new Date()}`
+    only,
+    database = `dump_${+new Date()}`,
+    value = false
   }: TBackupToFile): Promise<void> {
    
-    const raws = await this.getTables();
+    const raws = only ? only : await this.getTables();
 
     const tables = raws.filter(r => !excludes?.includes(r));
 
-    const backupSQL = await this._backupToSQL({ tables, database })
+    const backupSQL = await this._backupToSQL({ tables, database , value })
 
     const backupMap = backupSQL.map(
       (b) => {
         return {
+          name : b.name,
           table:
             [
               `\n--`,
@@ -1034,16 +1038,10 @@ class DB extends AbstractDB {
       `-- Database: '${database}'`,
       `--\n`,
       `${qb.createDatabase(database)};`,
-      `USE \`${database}\`;`,
+      `${qb.useDatabase(database)};`,
+      `--\n`,
       `-- --------------------------------------------------------`,
     ].map(v => qb.format(v));
-
-    for (const b of backupMap) {
-      sql = [...sql, b.table];
-      if (b.values) {
-        sql = [...sql, b.values];
-      }
-    }
 
     await Package.fs.promises.mkdir(
       Package.path.dirname(filePath),
@@ -1054,20 +1052,51 @@ class DB extends AbstractDB {
       encoding: "utf8",
     });
 
-    for (let i = 0; i < sql.length; i++) {
-      stream.write(sql[i]);
-
-      if (i < sql.length - 1) {
-        stream.write("\n");
+    const write = async (data: string): Promise<void> => {
+      if (stream.write(data)) {
+        return;
       }
+
+      await new Promise<void>((resolve) => {
+        stream.once("drain", resolve);
+      });
+    };
+
+    try {
+
+      stream.write(sql.join('\n'));
+      stream.write("\n");
+
+      for (let i = 0; i < backupMap.length; i++) {
+        const b = backupMap[i];
+
+        await write(b.table);
+
+        if (b.values) {
+          await write("\n");
+          await write(b.values);
+        }
+
+        await write("\n");
+
+        const progress = Math.round(
+          ((i + 1) / backupMap.length) * 100,
+        );
+
+        console.log(`[${progress}%] write table: ${b.name}`);
+      }
+
+      stream.end();
+
+      await new Promise<void>((resolve) => {
+        stream.once("finish", resolve);
+      });
+
+    } catch (error) {
+      stream.destroy();
+      throw error;
     }
-
-    stream.end();
-
-    await new Promise<void>((resolve, reject) => {
-      stream.once("finish", resolve);
-      stream.once("error", reject);
-    });
+   
 
     return;
   }
@@ -1076,9 +1105,10 @@ class DB extends AbstractDB {
    *
    * This 'backupToFile' method is used to backup database intro new ${file}.sql
    * @type {Object}  backup
-   * @property {string} backup.database
+   * @property {string?} backup.database
    * @property {string} backup.filePath
    * @property {string[]} backup.excludes
+   * @property {boolean?} backup.value
    * @type     {object?} backup.connection
    * @property {string} backup.connection.host
    * @property {number} backup.connection.port
@@ -1090,17 +1120,26 @@ class DB extends AbstractDB {
   public static async backupToFile({
     filePath,
     database,
-    excludes
+    excludes,
+    only,
+    value
   }: TBackupToFile): Promise<void> {
-    return new this().backupToFile({ filePath, database, excludes });
+
+    if(excludes) {
+      return new this().backupToFile({ filePath, database, excludes , value });
+    };
+
+    return new this().backupToFile({ filePath, database, only , value });
   }
 
   private async _backupToSQL({
     tables,
     database,
+    value
   }: {
     tables: string[];
     database: string;
+    value : boolean;
   }) {
     const backup: Array<{
       table: () => string;
@@ -1111,8 +1150,28 @@ class DB extends AbstractDB {
     for (const table of tables) {
       const schema = await this.showSchema(table);
 
+      if(!value) {
+          backup.push({
+          name: table ?? "",
+
+          table: () => {
+            const createTable = this._queryBuilder().createTable({
+              database,
+              table,
+              schema
+            });
+
+            return `${createTable}`
+          },
+
+          values: () => [],
+        });
+
+        continue;
+      }
+
       const str: string[] = [];
-      const pageSize = 1000;
+      const pageSize = 100;
       let offset = 0;
 
       while (true) {

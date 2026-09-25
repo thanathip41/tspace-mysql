@@ -437,6 +437,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public useDatabase(database: string) {
+    return `-- postgres does not support 'USE DATABASE'`
+  }
+
   public createTable({
     database,
     table,

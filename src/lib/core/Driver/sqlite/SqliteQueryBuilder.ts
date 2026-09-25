@@ -309,8 +309,11 @@ export class SqliteQueryBuilder extends QueryBuilder {
   }
 
   public createDatabase(database: string) {
-    // throw new Error("Method not implemented.");
-    return '';
+    return `-- SQLite does not support 'CREATE DATABASE'`;
+  }
+
+  public useDatabase(database: string) {
+    return `-- SQLite does not support 'USE DATABASE'`
   }
 
   public createTable({

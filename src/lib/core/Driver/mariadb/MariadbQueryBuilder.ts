@@ -224,9 +224,16 @@ export class MariadbQueryBuilder extends QueryBuilder {
         if (r.Default.includes("IS_CONST:")) {
           str.push(`DEFAULT ${String(r.Default).replace("IS_CONST:", "")}`);
         } 
-        
-        else if(!r.Default.includes('NULL')) {
-          str.push(`DEFAULT '${r.Default}'`);
+
+        else if (r.Default.includes('0000-00-00 00:00:00')) {
+          str.push(`DEFAULT CURRENT_TIMESTAMP()`);
+        }
+
+        else if(
+          !r.Default.includes('current_timestamp()') && 
+          !r.Default.includes('NULL')
+        ) {
+          str.push(`DEFAULT '${r.Default.replace(/^'|'$/g, "")}'`);
         }
       }
 
@@ -275,6 +282,11 @@ export class MariadbQueryBuilder extends QueryBuilder {
 
   public createDatabase(database: string) {
     const sql = `CREATE DATABASE IF NOT EXISTS \`${database}\``;
+    return this.format(sql);
+  }
+
+  public useDatabase(database: string) {
+    const sql = `USE \`${database}\``;
     return this.format(sql);
   }
 
