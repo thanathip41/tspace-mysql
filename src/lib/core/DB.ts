@@ -917,7 +917,7 @@ class DB extends AbstractDB {
         }),
       );
 
-      const pageSize = 1000;
+      const pageSize = 100;
       let offset = 0;
 
       while (true) {
@@ -996,38 +996,9 @@ class DB extends AbstractDB {
 
     const tables = raws.filter(r => !excludes?.includes(r));
 
-    const backupSQL = await this._backupToSQL({ tables, database , value })
-
-    const backupMap = backupSQL.map(
-      (b) => {
-        return {
-          name : b.name,
-          table:
-            [
-              `\n--`,
-              `-- Table structure for table '${b.name}'`,
-              `--\n`,
-              `${this.$utils.sqlFormatted(b.table())}`,
-            ].join("\n") + ";",
-
-          values: b.values().length
-            ? [
-                `\n--`,
-                `-- Dumping data for table '${b.name}'`,
-                `--\n`,
-                `${b
-                  .values()
-                  .map((v) => v)
-                  .join("\n")}`,
-              ].join("\n")
-            : "",
-        };
-      },
-    );
-
     const qb = this._queryBuilder();
       
-    let sql: string[] = [
+    const headers: string = [
       `--`,
       `-- tspace-mysql SQL Dump`,
       `-- https://www.npmjs.com/package/tspace-mysql`,
@@ -1041,7 +1012,7 @@ class DB extends AbstractDB {
       `${qb.useDatabase(database)};`,
       `--\n`,
       `-- --------------------------------------------------------`,
-    ].map(v => qb.format(v));
+    ].map(v => qb.format(v)).join('\n');
 
     await Package.fs.promises.mkdir(
       Package.path.dirname(filePath),
@@ -1062,29 +1033,150 @@ class DB extends AbstractDB {
       });
     };
 
+    const formatCreateTable = (table : string, createTable : string) => {
+      return [
+        `\n--`,
+        `-- Table structure for table '${table}'`,
+        `--\n`,
+        `${this.$utils.sqlFormatted(createTable)}`,
+      ].join("\n") + ";"
+    }
+
+    const formatInsertValues = (
+      value: string,
+      maxChunkSize = 1024 * 1024
+    ): string => {
+
+      if (!value.length) return "";
+
+      const result: string[] = [];
+
+      let buffer = "";
+
+      const line = String(value) + "\n";
+
+      if (buffer.length + line.length > maxChunkSize) {
+        if (buffer) {
+          result.push(buffer);
+          buffer = "";
+        }
+      }
+
+      buffer += line;
+
+      if (buffer) {
+        result.push(buffer);
+      }
+
+      return result.join("");
+    };
+
     try {
 
-      stream.write(sql.join('\n'));
+      stream.write(headers);
       stream.write("\n");
 
-      for (let i = 0; i < backupMap.length; i++) {
-        const b = backupMap[i];
+      const startTime = Date.now();
+      let totalRows = 0;
 
-        await write(b.table);
+      for (let i = 0; i < tables.length; i++) {
+        const table = tables[i];
+        const tableStartTime = Date.now();
 
-        if (b.values) {
-          await write("\n");
-          await write(b.values);
+        const progress = Math.round(((i + 1) / tables.length) * 100);
+
+        console.log(
+          `\n[${String(progress).padStart(3, " ")}%] ` +
+          `[${i + 1}/${tables.length}] ${table}`
+        );
+
+        const schema = await this.showSchema(table);
+
+        const createTable = this._queryBuilder().createTable({
+          database,
+          table,
+          schema
+        });
+
+        await write(formatCreateTable(table, createTable));
+        await write("\n");
+
+        console.log(`       ├─ schema ✓`);
+
+        if (!value) {
+          console.log(
+            `       └─ done in ${((Date.now() - tableStartTime) / 1000).toFixed(2)}s`
+          );
+
+          continue;
+        }
+
+       
+        const pageSize = 100;
+        let offset = 0;
+        let page = 0;
+        let tableRows = 0;
+
+        const hearder =  `\n--\n` +
+        `-- Dumping data for table '${table}'\n` +
+        `--\n`
+
+        await write(hearder);
+        
+        while (true) {
+          const values = await this.table(table)
+            .limit(pageSize)
+            .offset(offset)
+            .get();
+
+          if (!values.length) {
+            break;
+          }
+
+          const sql = this.table(table)
+            .createMultiple([...values])
+            .toString();
+
+          await write(formatInsertValues(sql));
+
+          tableRows += values.length;
+          totalRows += values.length;
+         
+          offset += pageSize;
+          page++;
+
+          if (values.length < pageSize) {
+            break;
+          }
+
+          console.log(
+            `       ├─ page ${page} | rows: ${tableRows.toLocaleString()}`
+          );
         }
 
         await write("\n");
 
-        const progress = Math.round(
-          ((i + 1) / backupMap.length) * 100,
+        const elapsed = ((Date.now() - tableStartTime) / 1000).toFixed(2);
+
+        console.log(
+          `       ├─ rows: ${tableRows.toLocaleString()}`
         );
 
-        console.log(`[${progress}%] write table: ${b.name}`);
+        console.log(
+          `       ├─ pages: ${page}`
+        );
+
+        console.log(
+          `       └─ done in ${elapsed}s`
+        );
       }
+
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+      console.log(
+        `\n[DONE] Dump completed: ${tables.length} tables, ` +
+        `${totalRows.toLocaleString()} rows, ${totalTime}s`
+      );
 
       stream.end();
 
@@ -1097,7 +1189,6 @@ class DB extends AbstractDB {
       throw error;
     }
    
-
     return;
   }
 
@@ -1130,89 +1221,6 @@ class DB extends AbstractDB {
     };
 
     return new this().backupToFile({ filePath, database, only , value });
-  }
-
-  private async _backupToSQL({
-    tables,
-    database,
-    value
-  }: {
-    tables: string[];
-    database: string;
-    value : boolean;
-  }) {
-    const backup: Array<{
-      table: () => string;
-      values: () => string[];
-      name: string;
-    }> = [];
-
-    for (const table of tables) {
-      const schema = await this.showSchema(table);
-
-      if(!value) {
-          backup.push({
-          name: table ?? "",
-
-          table: () => {
-            const createTable = this._queryBuilder().createTable({
-              database,
-              table,
-              schema
-            });
-
-            return `${createTable}`
-          },
-
-          values: () => [],
-        });
-
-        continue;
-      }
-
-      const str: string[] = [];
-      const pageSize = 100;
-      let offset = 0;
-
-      while (true) {
-        const values = await this.table(table)
-          .limit(pageSize)
-          .offset(offset)
-          .get();
-
-        if (!values.length) break;
-
-        const sql = this.table(table)
-          .createMultiple([...values])
-          .toString();
-
-        str.push(`${sql};`);
-
-        offset += pageSize;
-
-        if (values.length < pageSize) {
-          break;
-        }
-      }
-
-      backup.push({
-        name: table ?? "",
-
-        table: () => {
-          const createTable = this._queryBuilder().createTable({
-            database,
-            table,
-            schema
-          });
-
-          return `${createTable}`
-        },
-
-        values: () => str,
-      });
-    }
-
-    return backup;
   }
 
   private _initialDB() {
