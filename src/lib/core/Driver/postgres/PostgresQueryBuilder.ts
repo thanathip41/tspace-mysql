@@ -269,6 +269,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     Extra    : string | null;
     Check    : string | null;
   }[]) {
+
     const normalizeDefault = (value: string): string => {
       if (value.includes("IS_CONST:")) {
         return value.replace("IS_CONST:", "");
@@ -283,90 +284,89 @@ export class PostgresQueryBuilder extends QueryBuilder {
       return value;
     };
 
-    const formated = schema.map((r) => {
-  const str: string[] = [];
+    return schema.map((r) => {
+      const str: string[] = [];
 
-  str.push(`\`${r.Field}\``);
+      str.push(`\`${r.Field}\``);
 
-  let checkValues: string[] = [];
+      let checkValues: string[] = [];
 
-  // 1. Native / normalized ENUM
-  if (r.Type.startsWith("enum(")) {
-    const enumContent = r.Type.match(/^enum\((.*)\)$/)?.[1] ?? "";
+      if (r.Type.startsWith("enum(")) {
+        const enumContent = r.Type.match(/^enum\((.*)\)$/)?.[1] ?? "";
 
-    checkValues =
-      enumContent.match(/'(?:''|[^'])*'/g)?.map((value) =>
-        value
-          .slice(1, -1)
-          .replace(/''/g, "'"),
-      ) ?? [];
-  }
+        checkValues =
+          enumContent.match(/'(?:''|[^'])*'/g)?.map((value) =>
+            value
+              .slice(1, -1)
+              .replace(/''/g, "'"),
+          ) ?? [];
+      }
 
-  // 2. PostgreSQL VARCHAR + CHECK
-  if (checkValues.length === 0 && r.Check) {
-    checkValues =
-      r.Check
-        .match(/'((?:''|[^'])*)'::character varying/g)
-        ?.map((value) =>
-          value
-            .replace(/^'|'::character varying$/g, "")
-            .replace(/''/g, "'"),
-        ) ?? [];
-  }
+      if (checkValues.length === 0 && r.Check) {
+        checkValues =
+          r.Check
+            .match(/'((?:''|[^'])*)'::character varying/g)
+            ?.map((value) =>
+              value
+                .replace(/^'|'::character varying$/g, "")
+                .replace(/''/g, "'"),
+            ) ?? [];
+      }
 
-  // 3. Convert ENUM -> VARCHAR
-  if (checkValues.length > 0) {
-    const maxLength = Math.max(
-      ...checkValues.map((value) => value.length),
-      1,
-    );
+      if (checkValues.length > 0) {
+        const maxLength = Math.max(
+          ...checkValues.map((value) => value.length),
+          1,
+        );
 
-    str.push(`character varying(${maxLength})`);
-  } else {
-    str.push(r.Type);
-  }
+        str.push(`character varying(${maxLength})`);
+      } else {
+        if(r.Key === 'PRI') {
+           str.push('serial');
+        } else {
+           str.push(r.Type);
+        }
+       
+      }
 
-  if (r.Nullable === "YES") {
-    str.push("NULL");
-  }
+      if (r.Nullable === "YES") {
+        str.push("NULL");
+      }
 
-  if (r.Nullable === "NO") {
-    str.push("NOT NULL");
-  }
+      if (r.Nullable === "NO") {
+        str.push("NOT NULL");
+      }
 
-  if (r.Key === "PRI") {
-    str.push("PRIMARY KEY");
-  }
+      if (r.Key === "PRI") {
+        str.push("PRIMARY KEY");
+      }
 
-  if (r.Key === "UNI") {
-    str.push("UNIQUE");
-  }
+      if (r.Key === "UNI") {
+        str.push("UNIQUE");
+      }
 
-  if (r.Default !== null && r.Default !== undefined) {
-    const defaultValue = normalizeDefault(String(r.Default));
+      if (r.Default !== null && r.Default !== undefined) {
+        const defaultValue = normalizeDefault(String(r.Default));
 
-    if (!/^NULL(?:::.*)?$/.test(defaultValue)) {
-      str.push(`DEFAULT ${defaultValue}`);
-    }
-  }
+        if (!/^NULL(?:::.*)?$/.test(defaultValue)) {
+          str.push(`DEFAULT ${defaultValue}`);
+        }
+      }
 
-  if (r.Extra) {
-    str.push(r.Extra.toUpperCase());
-  }
+      if (r.Extra && r.Key !== 'PRI') {
+        str.push(r.Extra.toUpperCase());
+      }
 
-  // Re-create portable CHECK
-  if (checkValues.length > 0) {
-    const values = checkValues
-      .map((value) => `'${value.replace(/'/g, "''")}'`)
-      .join(", ");
+      if (checkValues.length > 0) {
+        const values = checkValues
+          .map((value) => `'${value.replace(/'/g, "''")}'`)
+          .join(", ");
 
-    str.push(`CHECK (\`${r.Field}\` IN (${values}))`);
-  }
+        str.push(`CHECK (\`${r.Field}\` IN (${values}))`);
+      }
 
-  return str.join(" ");
-});
-
-    return formated;
+      return str.join(" ");
+    });
   }
 
   public getTables(database: string) {
@@ -641,24 +641,31 @@ export class PostgresQueryBuilder extends QueryBuilder {
     const sql = [
       `
         SELECT
-          ccu.TABLE_NAME     AS "RefTable",
-          ccu.COLUMN_NAME    AS "RefColumn",
-          kcu.COLUMN_NAME    AS "Column",
-          tc.CONSTRAINT_NAME AS "Constraint"
-        FROM 
+          ccu.TABLE_NAME      AS "RefTable",
+          ccu.COLUMN_NAME     AS "RefColumn",
+          kcu.COLUMN_NAME     AS "Column",
+          tc.CONSTRAINT_NAME  AS "Constraint",
+          rc.DELETE_RULE      AS "OnDelete",
+          rc.UPDATE_RULE      AS "OnUpdate"
+        FROM
           INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
-        JOIN 
+        JOIN
           INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
-          ON tc.CONSTRAINT_NAME  = kcu.CONSTRAINT_NAME
-          AND tc.TABLE_SCHEMA    = kcu.TABLE_SCHEMA
-        JOIN 
+          ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+          AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+          AND tc.TABLE_NAME = kcu.TABLE_NAME
+        JOIN
           INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
           ON ccu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
-          AND ccu.TABLE_SCHEMA   = tc.TABLE_SCHEMA
-        WHERE 
-          tc.CONSTRAINT_TYPE     = 'FOREIGN KEY'
-          AND CURRENT_DATABASE() = '${database.replace(/\`/g, "")}'
-          AND tc.TABLE_NAME      = '${table.replace(/\`/g, "")}'
+          AND ccu.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+        JOIN
+          INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc
+          ON rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+          AND rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+        WHERE
+          tc.CONSTRAINT_TYPE   = 'FOREIGN KEY'
+          AND tc.TABLE_CATALOG = '${database.replace(/`/g, "")}'
+          AND tc.TABLE_NAME    = '${table.replace(/`/g, "")}'
       `,
     ];
 
@@ -777,6 +784,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         t.RELKIND              = 'r'
         AND kcu.TABLE_CATALOG  = '${database.replace(/\`/g, "")}'
         AND t.RELNAME          = '${table.replace(/\`/g, "")}'
+        AND ix.indisprimary    = false;
       `,
     ];
 

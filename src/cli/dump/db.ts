@@ -5,6 +5,7 @@ export default (cmd : { [x: string]: any }) => {
     dir,
     cwd,
     fs,
+    values,
     env
   } = cmd
 
@@ -29,9 +30,10 @@ export default (cmd : { [x: string]: any }) => {
     const directory = `${cwd}/${dir}/dump_${+new Date()}.sql`
     new DB()
     .loadEnv(env)
-    .backupToFile({
+    .dump({
         filePath : directory,
-        database : database
+        database : database,
+        value    : Boolean(values === true || values === 'true')
     })
     .then(r =>  console.log(`dump database file successfully`))
     .catch(err => console.log(err))

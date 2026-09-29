@@ -90,19 +90,35 @@ export type TSave =
 | "INSERT" | "INSERT_MULTIPLE" | "INSERT_NOT_EXISTS" | "INSERT_OR_SELECT"
 | "UPDATE"  | "UPDATE_OR_INSERT"
 
-export type TBackup = {
-    database: string;
-    excludes ?: string[];
-    to?: {
-        driver?: TDriver;
-        host: string;
-        port: number;
-        username: string;
-        password: string;
-    };
-};
+export type TClone =  
+    | {
+        database: string;
+        excludes ?: string[];
+        only ?: never;
+        value?: boolean;
+        to?: {
+            driver?: TDriver;
+            host: string;
+            port: number;
+            username: string;
+            password: string;
+        };
+    }
+    | {
+        database: string;
+        only ?: string[];
+        excludes ?: never;
+        value?: boolean;
+        to?: {
+            driver?: TDriver;
+            host: string;
+            port: number;
+            username: string;
+            password: string;
+        };
+    }
 
-export type TBackupToFile =
+export type TDump = (
   | {
       filePath: string;
       only?: string[];
@@ -115,20 +131,9 @@ export type TBackupToFile =
       only?: never;
       excludes?: string[];
       database?: string;
-      value?: boolean;
-    };
-
-export type TBackupTableToFile = {
-    filePath: string;
-    table: string;
-    connection?: {
-        host: string;
-        port: number;
-        database: string;
-        username: string;
-        password: string;
-    };
-};
+      value?: boolean
+   }
+)
 
 export type TConnectionOptions = {
     driver?: TDriver;

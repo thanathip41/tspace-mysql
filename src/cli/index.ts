@@ -19,7 +19,6 @@ console.log(`
     tspace-mysql generate:models --dir=app/Models --env=development
     tspace-mysql generate:models --dir=app/Models --env=development --decorators
     tspace-mysql dump:db "database" --dir=app/db --v --env=development
-    tspace-mysql dump:table "table" --dir=app/table --v --env=development
     tspace-mysql migrations:models --dir=migrations --models=src/models --generate
     tspace-mysql migrations:models --dir=migrations --models=src/models --push
     tspace-mysql migrations:db --dir=migrations --generate --db=new-db

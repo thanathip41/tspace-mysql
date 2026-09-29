@@ -8,9 +8,8 @@ import Pool, {
 
 import type {
   TConstant,
-  TBackup,
-  TBackupTableToFile,
-  TBackupToFile,
+  TClone,
+  TDump,
   TPoolConnected,
   TConnectionOptions,
   TConnectionTransaction,
@@ -865,34 +864,46 @@ class DB extends AbstractDB {
   }
 
   /**
+   * This'clone' method is used to clone the current database into a new database
+   * on the same server or another server.
    *
-   * This 'backup' method is used to backup database intro new database same server or to another server
-   * @type     {Object} backup
-   * @property {string} backup.database clone current 'db' in connection to this database
-   * @property {string[]} backup.excludes
-   * @type     {object?} backup.to
-   * @property {string} backup.to.host
-   * @property {number} backup.to.port
-   * @property {string} backup.to.username
-   * @property {string} backup.to.password
+   * @property {string} database - Target database name.
+   * @property {string[]} excludes - Tables to exclude from the clone.
+   * @property {object} to - Target server connection.
+   * @property {string} to.host - Target server host.
+   * @property {number} to.port - Target server port.
+   * @property {string} to.username - Target server username.
+   * @property {string} to.password - Target server password.
    * @returns {Promise<void>}
    */
-  public async backup({ database , excludes , to }: TBackup): Promise<void> {
+  public async clone({ 
+    database, 
+    excludes,
+    only,
+    value, 
+    to 
+  }: TClone): Promise<void> {
 
     const qb = this._queryBuilder();
 
     const db = await new DB()
+    .debug(this.$state.get("DEBUG"))
     .query(qb.getDatabase(database));
 
     if (Object.values(db[0] ?? []).length) {
       throw new Error(`This database : '${database}' is already exists`);
     }
 
-    const raws = await this.getTables();
+    const raws = only 
+      ? only 
+      : await new DB()
+        .debug(this.$state.get("DEBUG"))
+        .getTables();
 
     const tables = raws.filter(r => !excludes?.includes(r));
 
     await new DB()
+    .debug(this.$state.get("DEBUG"))
     .query(qb.createDatabase(database));
 
     const connTarget = new DB().getConnection({
@@ -900,11 +911,14 @@ class DB extends AbstractDB {
       database,
     });
 
+    const createFks : string[] = [];
+    const createIndexs : string[] = [];
+
     for (const table of tables) {
 
       const schema = await new DB()
-        .debug(this.$state.get("DEBUG"))
-        .showSchema(table);
+      .debug(this.$state.get("DEBUG"))
+      .showSchema(table);
 
       await new DB()
       .debug(this.$state.get("DEBUG"))
@@ -916,6 +930,38 @@ class DB extends AbstractDB {
           schema,
         }),
       );
+
+      const fks = await new DB()
+      .debug(this.$state.get("DEBUG"))
+      .getFKs(table);
+
+      for(const fk of fks) {
+        createFks.push(qb.addFK({
+          table : table,
+          tableRef : fk.RefTable,
+          constraint : fk.Constraint,
+          key : fk.Column,
+          foreign : {
+            references : fk.RefColumn,
+            onDelete : fk.OnDelete,
+            onUpdate : fk.OnUpdate,
+          }
+        }))
+      }
+
+      const indexs = await new DB()
+      .debug(this.$state.get("DEBUG"))
+      .getIndexes(table);
+
+      for(const index of indexs) {
+        createIndexs.push(qb.addIndex({
+          table: table,
+          name: index.IndexName,
+          columns: [index.Column]
+        }))
+      }
+
+      if(!value) continue;
 
       const pageSize = 100;
       let offset = 0;
@@ -948,49 +994,74 @@ class DB extends AbstractDB {
 
     }
 
+    if(createFks.length) {
+      for(const createFk of createFks) {
+        await new DB()
+        .debug(this.$state.get("DEBUG"))
+        .bind(connTarget)
+        .query(createFk);
+      }
+    }
+
+    if(createIndexs.length) {
+      for(const createIndex of createIndexs) {
+        await new DB()
+        .debug(this.$state.get("DEBUG"))
+        .bind(connTarget)
+        .query(createIndex);
+      }
+    }
+
     return;
   }
 
-  /**
+   /**
+   * This'clone' method is used to clone the current database into a new database
+   * on the same server or another server.
    *
-   * This 'backup' method is used to backup database intro new database same server or to another server
-   * @type     {Object} backup
-   * @property {string} backup.database clone current 'db' in connection to this database
-   * @property {string[]} backup.excludes
-   * @type     {object?} backup.to
-   * @property {string} backup.to.host
-   * @property {number} backup.to.port
-   * @property {string} backup.to.username
-   * @property {string} backup.to.password
+   * @property {string} database - Target database name.
+   * @property {string[]} excludes - Tables to exclude from the clone.
+   * @property {object} to - Target server connection.
+   * @property {string} to.host - Target server host.
+   * @property {number} to.port - Target server port.
+   * @property {string} to.username - Target server username.
+   * @property {string} to.password - Target server password.
    * @returns {Promise<void>}
    */
-  public static async backup({ database, excludes , to }: TBackup): Promise<void> {
-    return new this().backup({ database, excludes, to });
+  public static async clone({ database, only, excludes, value , to }: TClone): Promise<void> {
+    if(excludes) {
+       return new this().clone({ database, excludes, value, to });
+    };
+
+    return new this().clone({ database, only, value, to });
   }
 
   /**
    *
-   * This 'backupToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string?} backup.database
-   * @property {string} backup.filePath
-   * @property {string[]} backup.excludes
-   * @property {boolean?} backup.value
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
+   * This 'dump' method is used to Dumps a database into a SQL file
+   * @type {Object}  opt
+   * @property {string?} opt.database
+   * @property {string} opt.filePath
+   * @property {string[]} opt.excludes
+   * @property {boolean?} opt.value
    * @returns {Promise<void>}
    */
-  public async backupToFile({
+  public async dump({
     filePath,
     excludes,
     only,
     database = `dump_${+new Date()}`,
     value = false
-  }: TBackupToFile): Promise<void> {
+  }: TDump): Promise<void> {
+
+    if (!filePath.toLowerCase().endsWith(".sql")) {
+      filePath += ".sql";
+    }
+
+    await Package.fs.promises.mkdir(
+      Package.path.dirname(filePath),
+      { recursive: true },
+    );
    
     const raws = only ? only : await this.getTables();
 
@@ -1013,11 +1084,6 @@ class DB extends AbstractDB {
       `--\n`,
       `-- --------------------------------------------------------`,
     ].map(v => qb.format(v)).join('\n');
-
-    await Package.fs.promises.mkdir(
-      Package.path.dirname(filePath),
-      { recursive: true },
-    );
 
     const stream = Package.fs.createWriteStream(filePath, {
       encoding: "utf8",
@@ -1076,12 +1142,42 @@ class DB extends AbstractDB {
       stream.write(headers);
       stream.write("\n");
 
+      const createFks : string[] = [];
+      const createIndexs : string[] = [];
       const startTime = Date.now();
       let totalRows = 0;
+      
 
       for (let i = 0; i < tables.length; i++) {
+        const qb = this._queryBuilder();
         const table = tables[i];
         const tableStartTime = Date.now();
+
+        const fks = await this.getFKs(table);
+
+        for(const fk of fks) {
+          createFks.push(qb.addFK({
+            table : table,
+            tableRef : fk.RefTable,
+            constraint : fk.Constraint,
+            key : fk.Column,
+            foreign : {
+              references : fk.RefColumn,
+              onDelete : fk.OnDelete,
+              onUpdate : fk.OnUpdate,
+            }
+          }))
+        }
+
+        const indexs = await this.getIndexes(table);
+
+        for(const index of indexs) {
+          createIndexs.push(qb.addIndex({
+            table: table,
+            name: index.IndexName,
+            columns: [index.Column]
+          }))
+        }
 
         const progress = Math.round(((i + 1) / tables.length) * 100);
 
@@ -1092,7 +1188,7 @@ class DB extends AbstractDB {
 
         const schema = await this.showSchema(table);
 
-        const createTable = this._queryBuilder().createTable({
+        const createTable = qb.createTable({
           database,
           table,
           schema
@@ -1130,6 +1226,8 @@ class DB extends AbstractDB {
             .get();
 
           if (!values.length) {
+
+            await write(`\n-- Empty data in table '${table}'`);
             break;
           }
 
@@ -1137,7 +1235,7 @@ class DB extends AbstractDB {
             .createMultiple([...values])
             .toString();
 
-          await write(formatInsertValues(sql));
+          await write(formatInsertValues(sql + ";"));
 
           tableRows += values.length;
           totalRows += values.length;
@@ -1171,6 +1269,40 @@ class DB extends AbstractDB {
         );
       }
 
+      if (createFks.length) {
+        const header =
+          `\n--\n` +
+          `-- Foreign key constraints\n` +
+          `--\n`;
+
+        await write(header);
+
+        for (const createFk of createFks) {
+          await write(createFk + ";\n");
+        }
+      }
+
+      if (createIndexs.length) {
+        const header =
+          `\n--\n` +
+          `-- Index key constraints\n` +
+          `--\n`;
+
+        await write(header);
+
+        for (const createIndex of createIndexs) {
+          await write(createIndex + ";\n");
+        }
+      }
+
+      const tail = [
+        `--`,
+        `--`,
+        `-- --------------------------------------------------------`,
+      ].join('\n');
+
+      await write("\n"+ tail);
+    
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
       console.log(
@@ -1188,39 +1320,34 @@ class DB extends AbstractDB {
       stream.destroy();
       throw error;
     }
+
+    
    
     return;
   }
 
   /**
-   *
-   * This 'backupToFile' method is used to backup database intro new ${file}.sql
-   * @type {Object}  backup
-   * @property {string?} backup.database
-   * @property {string} backup.filePath
-   * @property {string[]} backup.excludes
-   * @property {boolean?} backup.value
-   * @type     {object?} backup.connection
-   * @property {string} backup.connection.host
-   * @property {number} backup.connection.port
-   * @property {number} backup.connection.database
-   * @property {string} backup.connection.username
-   * @property {string} backup.connection.password
+   * This 'dump' method is used to Dumps a database into a SQL file
+   * @type {Object}  opt
+   * @property {string?} opt.database
+   * @property {string} opt.filePath
+   * @property {string[]} opt.excludes
+   * @property {boolean?} opt.value
    * @returns {Promise<void>}
    */
-  public static async backupToFile({
+  public static async dump({
     filePath,
     database,
     excludes,
     only,
-    value
-  }: TBackupToFile): Promise<void> {
+    value,
+  }: TDump): Promise<void> {
 
     if(excludes) {
-      return new this().backupToFile({ filePath, database, excludes , value });
+      return new this().dump({ filePath, database, excludes , value});
     };
 
-    return new this().backupToFile({ filePath, database, only , value });
+    return new this().dump({ filePath, database, only , value });
   }
 
   private _initialDB() {

@@ -424,16 +424,22 @@ export class MariadbQueryBuilder extends QueryBuilder {
     const sql = [
       `
         SELECT 
-          REFERENCED_TABLE_NAME  AS "RefTable",
-          REFERENCED_COLUMN_NAME AS "RefColumn",
-          COLUMN_NAME            AS "Column",
-          CONSTRAINT_NAME        As "Constraint"
+            kcu.REFERENCED_TABLE_NAME  AS "RefTable",
+            kcu.REFERENCED_COLUMN_NAME AS "RefColumn",
+            kcu.COLUMN_NAME            AS "Column",
+            kcu.CONSTRAINT_NAME        AS "Constraint",
+            rc.DELETE_RULE             AS "OnDelete",
+            rc.UPDATE_RULE             AS "OnUpdate"
         FROM 
-          INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+          INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
+        JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc
+          ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+          AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+          AND rc.TABLE_NAME = kcu.TABLE_NAME
         WHERE 
-          REFERENCED_TABLE_NAME IS NOT NULL
-          AND TABLE_SCHEMA  = '${database.replace(/`/g, "")}'
-          AND TABLE_NAME    = '${table.replace(/`/g, "")}'
+          kcu.REFERENCED_TABLE_NAME IS NOT NULL
+          AND kcu.TABLE_SCHEMA  = '${database.replace(/`/g, "")}'
+          AND kcu.TABLE_NAME    = '${table.replace(/`/g, "")}'
         `,
     ];
 
@@ -536,6 +542,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
         k.REFERENCED_TABLE_NAME IS NULL
         AND s.TABLE_SCHEMA   = '${database.replace(/`/g, "")}'
         AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
+        AND s.INDEX_NAME <> 'PRIMARY'
       `,
     ];
 

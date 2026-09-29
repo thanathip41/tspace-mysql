@@ -123,7 +123,7 @@ export default (cmd : { [x: string]: any }) => {
         const directory = `${cwd}/${dir}/${filename ?? 'migrations.sql' }`
         new DB()
         .loadEnv(env)
-        .backupToFile({
+        .dump({
             filePath : directory
         })
         .then(_ => console.log(`Migrations are migrating successfully`))

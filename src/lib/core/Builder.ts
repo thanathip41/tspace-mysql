@@ -2938,6 +2938,8 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     RefTable  : string;
     RefColumn : string;
     Column    : string;
+    OnDelete  : string;
+    OnUpdate  : string;
   }[]> {
   
     const fks = await this.rawQuery(
