@@ -754,37 +754,62 @@ export class PostgresQueryBuilder extends QueryBuilder {
     const sql = [
       `
       SELECT
-        DISTINCT ON (a.ATTNAME, i.RELNAME)
-        a.ATTNAME AS "Column",
         i.RELNAME AS "IndexName",
+
+        STRING_AGG(
+          a.ATTNAME,
+          ',' ORDER BY seq.NUMBER
+        ) AS "Column",
+
         UPPER(am.AMNAME) AS "IndexType",
-        CASE WHEN a.ATTNOTNULL = false THEN 'YES' ELSE 'NO' END AS "Nullable",
-        CASE WHEN ix.INDISUNIQUE = true THEN 'YES' ELSE 'NO' END AS "Unique"
-      FROM 
-        INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-      JOIN 
-        PG_CLASS t ON t.RELNAME = kcu.TABLE_NAME
-      JOIN
-        PG_NAMESPACE n ON t.RELNAMESPACE = n.OID
-      JOIN
-        PG_INDEX ix ON t.OID = ix.INDRELID
-      JOIN
-        PG_CLASS i ON i.OID = ix.INDEXRELID
-      JOIN
-        PG_AM am ON i.RELAM = am.OID
-      JOIN
-        LATERAL (
-          SELECT
-            UNNEST(ix.INDKEY) AS ATTR_NUM,
-            GENERATE_SERIES(1, ARRAY_LENGTH(ix.INDKEY, 1)) AS NUMBER
-        ) AS seq ON TRUE
-      JOIN
-        PG_ATTRIBUTE a ON a.ATTRELID = t.OID AND a.ATTNUM = seq.ATTR_NUM
-      WHERE 
-        t.RELKIND              = 'r'
-        AND kcu.TABLE_CATALOG  = '${database.replace(/\`/g, "")}'
-        AND t.RELNAME          = '${table.replace(/\`/g, "")}'
-        AND ix.indisprimary    = false;
+
+        CASE
+          WHEN BOOL_OR(NOT a.ATTNOTNULL) THEN 'YES'
+          ELSE 'NO'
+        END AS "Nullable",
+
+        CASE
+          WHEN ix.INDISUNIQUE THEN 'YES'
+          ELSE 'NO'
+        END AS "Unique"
+
+      FROM PG_CLASS t
+
+      JOIN PG_NAMESPACE n
+        ON n.OID = t.RELNAMESPACE
+
+      JOIN PG_INDEX ix
+        ON ix.INDRELID = t.OID
+
+      JOIN PG_CLASS i
+        ON i.OID = ix.INDEXRELID
+
+      JOIN PG_AM am
+        ON am.OID = i.RELAM
+
+      JOIN LATERAL (
+        SELECT
+          UNNEST(ix.INDKEY) AS ATTR_NUM,
+          GENERATE_SERIES(
+            1,
+            ARRAY_LENGTH(ix.INDKEY, 1)
+          ) AS NUMBER
+      ) seq
+        ON TRUE
+
+      JOIN PG_ATTRIBUTE a
+        ON a.ATTRELID = t.OID
+        AND a.ATTNUM = seq.ATTR_NUM
+
+      WHERE
+        t.RELKIND           = 'r'
+        AND t.RELNAME       = '${table.replace(/`/g, "")}'
+        AND ix.INDISPRIMARY = false
+
+      GROUP BY
+        i.RELNAME,
+        am.AMNAME,
+        ix.INDISUNIQUE;
       `,
     ];
 

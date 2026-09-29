@@ -1172,10 +1172,11 @@ class DB extends AbstractDB {
         const indexs = await this.getIndexes(table);
 
         for(const index of indexs) {
+        
           createIndexs.push(qb.addIndex({
             table: table,
             name: index.IndexName,
-            columns: [index.Column]
+            columns: index.Column.split(',')
           }))
         }
 
@@ -1212,13 +1213,8 @@ class DB extends AbstractDB {
         let offset = 0;
         let page = 0;
         let tableRows = 0;
+        let wasWritten = false;
 
-        const hearder =  `\n--\n` +
-        `-- Dumping data for table '${table}'\n` +
-        `--\n`
-
-        await write(hearder);
-        
         while (true) {
           const values = await this.table(table)
             .limit(pageSize)
@@ -1226,9 +1222,15 @@ class DB extends AbstractDB {
             .get();
 
           if (!values.length) {
-
-            await write(`\n-- Empty data in table '${table}'`);
             break;
+          }
+
+          if(!wasWritten) {
+            const hearder =  `\n--\n` +
+            `-- Dumping data for table '${table}'\n` +
+            `--\n`
+            await write(hearder);
+            wasWritten = true;
           }
 
           const sql = this.table(table)

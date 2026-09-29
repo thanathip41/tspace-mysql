@@ -534,19 +534,43 @@ export class SqliteQueryBuilder extends QueryBuilder {
   public getIndexes({ database, table }: { database: string; table: string }) {
     const sql = [`
       SELECT
-        ii.name AS "Column",
+
+        GROUP_CONCAT(
+          ii.name
+          ORDER BY ii.seq
+        ) AS "Column",
+
         il.name AS "IndexName",
         il.origin AS "IndexType",
-        CASE WHEN ti."notnull" = 0 THEN 'YES' ELSE 'NO' END AS "Nullable",
-        CASE WHEN il."unique" = 1 THEN 'YES' ELSE 'NO' END AS "Unique"
-      FROM sqlite_master AS m
-      JOIN pragma_index_list(m.name) AS il
-      JOIN pragma_index_info(il.name) AS ii
-      LEFT JOIN pragma_table_info(m.name) AS ti
+
+        CASE
+          WHEN MIN(ti."notnull") = 0 THEN 'YES'
+          ELSE 'NO'
+        END AS "Nullable",
+        CASE
+          WHEN il."unique" = 1 THEN 'YES'
+          ELSE 'NO'
+        END AS "Unique"
+
+      FROM 
+        sqlite_master AS m
+
+      JOIN 
+        pragma_index_list(m.name) AS il
+      JOIN 
+        pragma_index_info(il.name) AS ii
+      LEFT JOIN 
+        pragma_table_info(m.name) AS ti
         ON ti.name = ii.name
+
       WHERE m.type = 'table'
         AND m.name = '${table.replace(/["`]/g, "")}'
         AND il.origin != 'pk'
+
+      GROUP BY
+        il.name,
+        il.origin,
+        il."unique";
     `];
 
     return this.format(sql);

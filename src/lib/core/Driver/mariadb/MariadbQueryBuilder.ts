@@ -525,24 +525,43 @@ export class MariadbQueryBuilder extends QueryBuilder {
     const sql = [
       `
       SELECT 
-        s.COLUMN_NAME AS "Column",
-        s.INDEX_NAME  AS "IndexName",
-        s.INDEX_TYPE  AS "IndexType",
-        CASE WHEN s.NULLABLE = 'YES' THEN 'YES' ELSE 'NO' END AS "Nullable",
-        CASE WHEN s.NON_UNIQUE = 0 THEN 'YES' ELSE 'NO' END AS "Unique"
-      FROM 
-        INFORMATION_SCHEMA.STATISTICS s
-      LEFT JOIN 
-        INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
-          ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
-          AND s.TABLE_NAME = k.TABLE_NAME
-          AND s.COLUMN_NAME = k.COLUMN_NAME
-          AND k.REFERENCED_TABLE_NAME IS NOT NULL
+        GROUP_CONCAT(
+          s.COLUMN_NAME
+          ORDER BY s.SEQ_IN_INDEX
+          SEPARATOR ','
+        ) AS "Column",
+
+        s.INDEX_NAME AS "IndexName",
+        s.INDEX_TYPE AS "IndexType",
+
+        CASE
+          WHEN MIN(s.NULLABLE = 'YES') = 1 THEN 'YES'
+          ELSE 'NO'
+        END AS "Nullable",
+
+        CASE
+          WHEN s.NON_UNIQUE = 0 THEN 'YES'
+          ELSE 'NO'
+        END AS "Unique"
+
+      FROM INFORMATION_SCHEMA.STATISTICS s
+
+      LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+        ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
+        AND s.TABLE_NAME = k.TABLE_NAME
+        AND s.COLUMN_NAME = k.COLUMN_NAME
+        AND k.REFERENCED_TABLE_NAME IS NOT NULL
+
       WHERE 
         k.REFERENCED_TABLE_NAME IS NULL
-        AND s.TABLE_SCHEMA   = '${database.replace(/`/g, "")}'
+        AND s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
         AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
         AND s.INDEX_NAME <> 'PRIMARY'
+
+      GROUP BY
+        s.INDEX_NAME,
+        s.INDEX_TYPE,
+        s.NON_UNIQUE
       `,
     ];
 
