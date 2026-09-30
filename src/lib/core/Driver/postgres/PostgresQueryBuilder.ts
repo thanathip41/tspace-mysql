@@ -809,7 +809,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
       GROUP BY
         i.RELNAME,
         am.AMNAME,
-        ix.INDISUNIQUE;
+        ix.INDISUNIQUE
       `,
     ];
 

@@ -570,7 +570,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
       GROUP BY
         il.name,
         il.origin,
-        il."unique";
+        il."unique"
     `];
 
     return this.format(sql);
