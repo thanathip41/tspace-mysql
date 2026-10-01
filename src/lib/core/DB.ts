@@ -1103,7 +1103,7 @@ class DB extends AbstractDB {
       return [
         `\n--`,
         `-- Table structure for table '${table}'`,
-        `--\n`,
+        `--`,
         `${this.$utils.sqlFormatted(createTable)}`,
       ].join("\n") + ";"
     }
