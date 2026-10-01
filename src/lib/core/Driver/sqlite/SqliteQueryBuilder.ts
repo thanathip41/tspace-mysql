@@ -885,6 +885,10 @@ export class SqliteQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public explain (sql : string) {
+    return this.format(`EXPLAIN QUERY PLAN ${sql}`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

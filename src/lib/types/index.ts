@@ -5,7 +5,7 @@ import { Join }             from "../core/Join";
 import { QueryBuilder }     from "../core/Driver";
 import { T, TResult }       from "../core";
 import { TResultDecorator } from "./decorator";
-import { Stream } from "stream";
+import { Stream }           from "stream";
 
 export type TCache = Cache;
 
@@ -678,3 +678,19 @@ export type TSaveModelResult<
 export type TAnyKeys = {
     [customKey : string]: unknown;
 }
+
+export type TExplainIssue = {
+  type: string;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+};
+
+export type TExplain<K = any> = {
+  sql: string;
+  plan: K[];
+  analysis: {
+    status: 'ok' | 'warning' | 'critical';
+    issues: TExplainIssue[];
+    recommendations: string[];
+  };
+};

@@ -413,6 +413,8 @@ export abstract class QueryBuilder {
 
   public abstract unlockTable(): string | null;
 
+  public abstract explain (sql : string) : string;
+
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
   protected abstract bindOrderBy(values: string[]): string | null;

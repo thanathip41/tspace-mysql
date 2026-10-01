@@ -6,11 +6,13 @@ import { Join }            from "./Join";
 import { CONSTANTS }       from "../constants";
 import { QueryBuilder }    from "./Driver";
 import { Config }          from "../config";
+
 import { 
   Pool, 
   PoolConnection, 
   loadOptionsEnv 
 } from "./Pool";
+
 import type {
   TPagination,
   TConnectionOptions,
@@ -22,6 +24,8 @@ import type {
   TSaveBuilderResult,
   TAction,
   TCursorPagination,
+  TExplain,
+  TExplainIssue,
 } from "../types";
 
 class Builder<TA extends TAction = null> extends AbstractBuilder {
@@ -4068,6 +4072,102 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    */
   public async findMany(cb?: Function): Promise<any[]> {
     return await this.get(cb);
+  }
+
+  /**
+   * The 'explain' method is used to analyze the query execution plan
+   * without executing the query itself.
+   *
+   * It retrieves the execution plan from the database and analyzes it
+   * for potential performance issues such as full table scans, filesorts,
+   * and temporary tables.
+   *
+   * @returns {Promise<TExplain>} query execution plan and analysis
+   */
+  public async explain(): Promise<TExplain> {
+    
+    const sql = this.toSQL();
+
+    const qb = this._queryBuilder();
+
+    const plan = await this.rawQuery(qb.explain(sql));
+
+    const issues: TExplainIssue[] = [];
+
+    const recommendations: string[] = [];
+
+    for (const row of plan) {
+      const text = JSON.stringify(row).toLowerCase();
+
+      if (
+        text.includes('all') ||
+        text.includes('full scan') ||
+        text.includes('seq scan')
+      ) {
+        issues.push({
+          type: 'full_scan',
+          severity: 'warning',
+          message: 'A full table scan was detected.',
+        });
+
+        recommendations.push(
+          'Consider adding an appropriate index for the query conditions.',
+        );
+      }
+
+      if (typeof row.rows === 'number' && row.rows >= 100000) {
+        issues.push({
+          type: 'large_scan',
+          severity: 'warning',
+          message: `The query is estimated to scan ${row.rows} rows.`,
+        });
+
+        recommendations.push(
+          'Consider optimizing the query or adding an appropriate index.',
+        );
+      }
+
+      if (text.includes('filesort')) {
+        issues.push({
+          type: 'filesort',
+          severity: 'warning',
+          message: 'A filesort operation was detected.',
+        });
+
+        recommendations.push(
+          'Consider an index that supports the WHERE and ORDER BY conditions.',
+        );
+      }
+
+      if (text.includes('temporary')) {
+        issues.push({
+          type: 'temporary_table',
+          severity: 'warning',
+          message: 'A temporary table was used.',
+        });
+
+        recommendations.push(
+          'Review GROUP BY, ORDER BY, DISTINCT, and JOIN conditions.',
+        );
+      }
+    }
+
+    const status =
+      issues.some(issue => issue.severity === 'critical')
+        ? 'critical'
+        : issues.some(issue => issue.severity === 'warning')
+          ? 'warning'
+          : 'ok';
+
+    return {
+      sql,
+      plan,
+      analysis: {
+        status,
+        issues,
+        recommendations: [...new Set(recommendations)],
+      },
+    };
   }
 
   /**

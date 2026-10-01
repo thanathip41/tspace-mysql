@@ -657,6 +657,11 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
+  public explain (sql : string) {
+    throw new Error("Method not implemented.");
+    return '';
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

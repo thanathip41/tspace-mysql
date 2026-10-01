@@ -863,6 +863,10 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public explain (sql : string) {
+    return this.format(`EXPLAIN ${sql}`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

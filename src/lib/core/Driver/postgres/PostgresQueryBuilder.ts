@@ -1150,6 +1150,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return null;
   }
 
+  public explain (sql : string) {
+    return this.format(`EXPLAIN ${sql}`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
