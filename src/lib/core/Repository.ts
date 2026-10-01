@@ -250,6 +250,178 @@ class RepositoryFactory<
   }
 
   /**
+   *
+   * The 'pagination' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const users = await userRepository.paginate({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   *
+   *  const users = await userRepository.paginate({ page : 1 , limit : 2 })
+   */
+  async pagination<
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await this.paginate(options);
+  }
+
+  /**
+   *
+   * The 'cursorPaginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.cursor
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const users = await userRepository.cursorPaginate({
+   *       select : { id: true, name: true },
+   *       cursor : "ey...", 
+   *       limit : 2
+   *   })
+   *
+   *  const users = await userRepository.cursorPaginate({ cursor : "ey..." , limit : 2 })
+   */
+  async cursorPaginate<
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS, G> & { cursor?: string; distinct?: boolean }> = {}
+  ): Promise<T.CursorPaginateResultFiltered<M, S, SR, E, SRS, G>> {
+
+    const instance = this._handlerRequest(options as any);
+
+    if (instance == null) throw new Error("The instance is not initialized");
+
+    return (await instance.cursorPaginate({  
+      limit    : options.limit,
+      cursor   : options.cursor,
+      distinct : options.distinct
+    })) as unknown as Promise<T.CursorPaginateResultFiltered<M, S, SR, E, SRS, G>>;
+  }
+
+  /**
+   *
+   * The 'cursorPagination' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const users = await userRepository.cursorPagination({
+   *       select : { id: true, name: true },
+   *       cursor : "ey...", 
+   *       limit : 2
+   *   })
+   *
+   *  const users = await userRepository.cursorPagination({ cursor : "ey..." , limit : 2 })
+   */
+  async cursorPagination<
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS, G> & { cursor?: string; distinct?: boolean }> = {}
+  ): Promise<T.CursorPaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await this.cursorPaginate(options);
+  }
+
+  /**
    * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
    *
    * It returns a boolean value indicating whether there are any matching records.

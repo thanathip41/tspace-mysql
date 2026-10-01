@@ -68,7 +68,7 @@ abstract class AbstractBuilder {
     abstract whereIn (column: string , arrayValues:any[]): this
     abstract orWhereIn (column: string , arrayValues:any[]): this
     abstract whereNotIn (column: string , arrayValues: any[]): this
-    // abstract whereSubQuery (column: string , subQuery: string): this
+    abstract whereSubQuery (column: string , subQuery: string): this
     abstract whereNotSubQuery (column: string , subQuery: string): this
     abstract orWhereSubQuery (column: string , subQuery: string): this
     abstract whereBetween (column: string , arrayValue: [any,any]): this

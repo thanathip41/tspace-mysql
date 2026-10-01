@@ -410,6 +410,168 @@ class Model<
   }
 
   /**
+   *
+   * The 'pagination' method is used to perform pagination on a set of database query results obtained through the Query Builder.
+   *
+   * It allows you to split a large set of query results into smaller, more manageable pages,
+   * making it easier to display data in a web application and improve user experience.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @property {?number} options.page
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   *  const users = await User.paginate({
+   *       limit:15,
+   *       page: 1,
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   */
+  static async pagination<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: Omit<Partial<T.RepositoryOptions<M, S, SR, E, SRS, G>> & { page?: number },'offset'> = {}
+  ): Promise<T.PaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await Repository<M>(this as any).pagination(options);
+  }
+
+  /**
+   *
+   * The 'cursorPagination' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   *  const users = await User.cursorPagination({
+   *       limit  :15,
+   *       cursor : "ey....",
+   *       select : { id: true, name: true }
+   *   })
+   */
+  static async cursorPagination<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS, G> & { cursor?: string;distinct?: boolean }> = {}
+  ): Promise<T.CursorPaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await Repository<M>(this as any).cursorPagination(options);
+  }
+
+  /**
+   *
+   * The 'cursorPaginate' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {promise<{ meta , data[]}>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   *  const users = await User.cursorPaginate({
+   *       limit  : 15,
+   *       cursor : "ey....",
+   *       select : { id: true, name: true }
+   *   })
+   */
+  static async cursorPaginate<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: Partial<T.RepositoryOptions<M, S, SR, E, SRS, G> & { cursor?: string; distinct?: boolean }> = {}
+  ): Promise<T.CursorPaginateResultFiltered<M, S, SR, E, SRS, G>> {
+    return await Repository<M>(this as any).cursorPaginate(options);
+  }
+
+  /**
    * The 'exists' method is used to determine if any records exist in the database table that match the query conditions.
    *
    * It returns a boolean value indicating whether there are any matching records.
@@ -6606,6 +6768,98 @@ class Model<
     return await this.get(cb);
   }
 
+   /**
+   * @override
+   * @param {Function} callback callback function that receives each retrieved record
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records to retrieve per query
+   * @param {number?} opts.offset number of records to skip before processing
+   * @param {number?} opts.delayMs delay in milliseconds between each batch
+   * @returns {Promise<void>}
+   */
+  public async lazy<K>(
+    callback: (result: T.Result<this, K>) => Promise<void> | void,
+    opts: {
+      limit   ?: number;
+      offset  ?: number;
+      delayMs ?: number;
+    } = {},
+  ): Promise<void> {
+    const limit = opts.limit ?? 100;
+    const delayMs = opts.delayMs ?? 0;
+    let offset = opts.offset ?? 0;
+
+    while (true) {
+      const results = await this
+      .limit(limit)
+      .offset(offset)
+      .get();
+
+      if (results.length === 0) {
+        break;
+      }
+
+      for(const result of results) {
+        await callback(result as T.Result<this, K>);
+      }
+    
+      if (results.length < limit) {
+        break;
+      }
+
+      offset += results.length;
+
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  /**
+   * @override
+   * @param {Function} callback callback function that receives each retrieved record
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records to retrieve per query
+   * @param {number?} opts.offset number of records to skip before processing
+   * @param {number?} opts.delayMs delay in milliseconds between each batch
+   * @returns {Promise<void>}
+   */
+  public async chunk<K>(
+    callback: (results: T.Result<this, K>[]) => Promise<void> | void,
+    opts: {
+      limit   ?: number;
+      offset  ?: number;
+      delayMs ?: number;
+    } = {},
+  ): Promise<void> {
+    const limit = opts.limit ?? 100;
+    const delayMs = opts.delayMs ?? 0;
+    let offset = opts.offset ?? 0;
+
+    while (true) {
+      const results = await this
+      .limit(limit)
+      .offset(offset)
+      .get();
+
+      if (results.length === 0) {
+        break;
+      }
+
+      await callback(results as T.Result<this, K>[]);
+    
+      if (results.length < limit) {
+        break;
+      }
+
+      offset += results.length;
+
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
   /**
    * @override
    * @param    {object?}  opts by default page = 1 , limit = 15
@@ -6614,22 +6868,17 @@ class Model<
    * @property {boolean?} opts.distinct
    * @returns  {promise<Pagination>} Pagination
    */
-  public async pagination<K>(opts?: {
+  public async pagination<K>(opts: {
     limit    ?: number;
     page     ?: number;
     distinct ?: boolean;
-  }): Promise<T.PaginateResult<this, K>> {
+  } = {}): Promise<T.PaginateResult<this, K>> {
     
-    let limit = 15;
-    let page = 1;
+    const limit = this.$utils.softNumber(opts.limit ?? 15);
+    const page  = this.$utils.softNumber(opts.page ?? 1);
 
     if(opts?.distinct) {
       this.distinct();
-    }
-
-    if (opts != null) {
-      limit = this.$utils.softNumber(opts?.limit || limit);
-      page = this.$utils.softNumber(opts?.page || page);
     }
 
     await this._prepareQueryPipeline();
@@ -6664,12 +6913,114 @@ class Model<
    * @property {boolean?} opts.distinct
    * @returns   {promise<Pagination>} Pagination
    */
-  public async paginate<K>(opts?: {
+  public async paginate<K>(opts: {
     limit    ?: number;
     page     ?: number;
     distinct ?: boolean;
-  }): Promise<T.PaginateResult<this, K>> {
+  } = {}): Promise<T.PaginateResult<this, K>> {
     return await this.pagination(opts);
+  }
+
+  /**
+   * The 'cursorPagination' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   *
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records per page, default is 15
+   * @param {string?} opts.cursor cursor used to retrieve the next page
+   * @param {boolean?} opts.distinct whether to retrieve distinct records
+   * @returns {Promise<T.CursorPaginateResult>}
+   */
+  public async cursorPagination<K>(
+    opts: {
+      limit?: number;
+      cursor?: string;
+      distinct?: boolean;
+    } = {}
+  ): Promise<T.CursorPaginateResult<this, K>> {
+
+    const limit = this.$utils.softNumber(opts.limit ?? 15);
+
+    if (opts.distinct) {
+      this.distinct();
+    }
+
+    let cursor: {
+      [key: string]: string;
+    } | null = null;
+
+    if (opts.cursor) {
+      try {
+        cursor = JSON.parse(
+          Buffer.from(opts.cursor, 'base64').toString('utf8'),
+        );
+      } catch {
+        throw new Error('Invalid cursor');
+      }
+    };
+
+    const primaryKey = this.$state.get('PRIMARY_KEY');
+
+    const results = await this
+    .when(cursor != null, q => q.where(primaryKey, '>', cursor![primaryKey] as any))
+    .orderBy(primaryKey,'ASC')
+    .limit(limit + 1)
+    .get() as unknown as any[];
+
+    const hasNextPage = results.length > limit;
+
+    if (hasNextPage) {
+      results.pop();
+    }
+
+    const lastResult = results[results.length - 1];
+
+    const nextCursor = hasNextPage && lastResult
+      ? Buffer.from(
+          JSON.stringify({ 
+            [primaryKey]: lastResult[primaryKey],
+            timestamp : +new Date()
+          }),
+        ).toString('base64')
+      : null;
+
+    return {
+      meta: {
+        limit : limit,
+        count : results.length,
+        next  : {
+          cursor : nextCursor,
+          has    : hasNextPage,
+        }
+      },
+      data: results,
+    };
+  }
+
+  /**
+   * The 'cursorPaginate' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   *
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records per page, default is 15
+   * @param {string?} opts.cursor cursor used to retrieve the next page
+   * @param {boolean?} opts.distinct whether to retrieve distinct records
+   * @returns {Promise<T.CursorPaginateResult>}
+   */
+  public async cursorPaginate<K>(
+    opts: {
+      limit?: number;
+      cursor?: string;
+      distinct?: boolean;
+    } = {}
+  ): Promise<T.CursorPaginateResult<this, K>> {
+    return await this.cursorPagination(opts);
   }
 
   /**

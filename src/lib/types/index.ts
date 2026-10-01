@@ -86,6 +86,18 @@ export type TPagination<K = any> = {
     data: K[];
 };
 
+export type TCursorPagination<T = any> = {
+  meta: {
+    limit : number;
+    count : number;
+    next  : {
+        cursor : string | null;
+        has    : boolean;
+    }
+  };
+  data: T[];
+}
+
 export type TSave = 
 | "INSERT" | "INSERT_MULTIPLE" | "INSERT_NOT_EXISTS" | "INSERT_OR_SELECT"
 | "UPDATE"  | "UPDATE_OR_INSERT"

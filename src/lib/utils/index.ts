@@ -379,17 +379,17 @@ const wait = (ms : number) => {
 
 const softNumber = (n : any) : number =>  {
 
-    const number = Number(n)
+    const number = Number(n);
 
     if(number === -1) {
         return 2 ** 31 - 1; // int 32 bit
-    }
+    };
 
     if(Number.isNaN(number)) {
-        return -1
-    }
+        return 0
+    };
 
-    return Number.parseInt(`${number}`)
+    return Number.parseInt(`${number}`);
 }
 
 const checkValueHasRaw = (value: unknown) => {

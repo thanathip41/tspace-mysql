@@ -21,7 +21,8 @@ import type {
     TInsertOrUpdateInput,
     TDefault,
     TRemoveDefault,
-    TAnyKeys
+    TAnyKeys,
+    TCursorPagination
 } from "../types";
 
 import type { 
@@ -250,6 +251,15 @@ export declare namespace T {
         SRS = undefined
     > = TDeepExpand<TPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
 
+    type CursorPaginateResultFiltered<
+        M extends Model<any,any,any>,
+        K = {}, 
+        S = undefined, 
+        SR = undefined,
+        E = undefined,
+        SRS = undefined
+    > = TDeepExpand<TCursorPagination<ResultFiltered<M, K, S, SR, E,SRS>>>
+
     type Result<M extends Model<any,any,any>, K = {}> = 
     TDeepExpand<
         TResultResolved<M> 
@@ -259,6 +269,8 @@ export declare namespace T {
    
 
     type PaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
+
+    type CursorPaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TCursorPagination<Result<M,K>>>
     
     type InsertResult<M extends Model<any,any,any>> = TDeepExpand<TResultResolved<M>>;
 

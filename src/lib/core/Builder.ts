@@ -21,6 +21,7 @@ import type {
   TConstant,
   TSaveBuilderResult,
   TAction,
+  TCursorPagination,
 } from "../types";
 
 class Builder<TA extends TAction = null> extends AbstractBuilder {
@@ -3728,21 +3729,19 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async pagination(opts?: {
-    limit    ?: number;
-    page     ?: number;
-    distinct ?: boolean;
-  }): Promise<TPagination> {
-    let limit = 15;
-    let page = 1;
+  public async pagination(
+    opts: {
+      limit    ?: number;
+      page     ?: number;
+      distinct ?: boolean;
+    } = {}
+  ): Promise<TPagination> {
+
+    const limit = this.$utils.softNumber(opts.limit ?? 15);
+    const page  = this.$utils.softNumber(opts.page ?? 1);
 
     if(opts?.distinct) {
       this.distinct();
-    }
-
-    if (opts != null) {
-      limit = opts?.limit || limit;
-      page = opts?.page || page;
     }
 
     const currentPage: number = page;
@@ -3750,12 +3749,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     const prevPage: number = currentPage - 1 === 0 ? 1 : currentPage - 1;
     const offset: number = (page - 1) * limit;
 
-    this.limit(limit);
-    this.offset(offset);
-
-    let sql: string = this._queryBuilder().select();
-
-    const result: any[] = await this._queryStatement(sql);
+    const result = await this
+    .limit(limit)
+    .offset(offset)
+    .get();
 
     if (!result.length)
       return {
@@ -3819,12 +3816,116 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @property {boolean?} opts.distinct
    * @returns {promise<Pagination>}
    */
-  public async paginate(opts?: {
-    limit    ?: number;
-    page     ?: number;
-    distinct ?: boolean;
-  }): Promise<TPagination> {
+  public async paginate(
+    opts: {
+      limit    ?: number;
+      page     ?: number;
+      distinct ?: boolean;
+    } = {}
+  ): Promise<TPagination> {
     return await this.pagination(opts);
+  }
+
+  /**
+   * The 'cursorPagination' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   *
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records per page, default is 15
+   * @param {string?} opts.cursor cursor used to retrieve the next page
+   * @param {boolean?} opts.distinct whether to retrieve distinct records
+   * @returns {Promise<TCursorPagination>}
+   */
+  public async cursorPagination(
+    opts: {
+      limit    ?: number;
+      cursor   ?: string;
+      distinct ?: boolean;
+    } = {}
+  ): Promise<TCursorPagination> {
+
+    const limit = this.$utils.softNumber(opts.limit ?? 15);
+
+    if (opts.distinct) {
+      this.distinct();
+    }
+
+    let cursor: {
+      [key: string]: string;
+    } | null = null;
+
+    if (opts.cursor) {
+      try {
+        cursor = JSON.parse(
+          Buffer.from(opts.cursor, 'base64').toString('utf8'),
+        );
+      } catch {
+        throw new Error('Invalid cursor');
+      }
+    };
+
+    const primaryKey = this.$state.get('PRIMARY_KEY');
+
+    const results = await this
+    .when(cursor != null, q => q.where(primaryKey, '>', cursor![primaryKey]))
+    .orderBy(primaryKey,'ASC')
+    .limit(limit + 1)
+    .get();
+
+    const hasNextPage = results.length > limit;
+
+    if (hasNextPage) {
+      results.pop();
+    }
+
+    const lastResult = results[results.length - 1];
+
+    const nextCursor = hasNextPage && lastResult
+      ? Buffer.from(
+          JSON.stringify({ 
+            [primaryKey]: lastResult[primaryKey],
+            timestamp : +new Date()
+          }),
+        ).toString('base64')
+      : null;
+
+    return {
+      meta: {
+        limit : limit,
+        count : results.length,
+        next  : {
+          cursor : nextCursor,
+          has    : hasNextPage,
+        }
+      },
+      data: results,
+    };
+  }
+
+  /**
+   * The 'cursorPaginate' method is used to perform cursor-based pagination
+   * on a set of database query results obtained through the Query Builder.
+   *
+   * It uses cursor-based pagination instead of offset pagination, making it
+   * more efficient when navigating through large datasets.
+   *
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records per page, default is 15
+   * @param {string?} opts.cursor cursor used to retrieve the next page
+   * @param {boolean?} opts.distinct whether to retrieve distinct records
+   * @returns {Promise<TCursorPagination>}
+   */
+  public async cursorPaginate(
+    opts: {
+      limit    ?: number;
+      cursor   ?: string;
+      distinct ?: boolean;
+    } = {}
+  ): Promise<TCursorPagination> {
+    return await this.cursorPagination(opts);
   }
 
   /**
@@ -3967,6 +4068,116 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    */
   public async findMany(cb?: Function): Promise<any[]> {
     return await this.get(cb);
+  }
+
+  /**
+   * The 'lazy' method is used to retrieve and process records incrementally
+   * without loading the entire result set into memory at once.
+   *
+   * It retrieves records in batches based on the specified limit and invokes
+   * the callback for each record. The process continues until all records
+   * have been retrieved and processed.
+   *
+   * The optional delayMs can be used to add a delay between each batch query,
+   * which can help reduce database load when processing a large number of records.
+   *
+   * @param {Function} callback callback function that receives each retrieved record
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records to retrieve per query
+   * @param {number?} opts.offset number of records to skip before processing
+   * @param {number?} opts.delayMs delay in milliseconds between each batch
+   * @returns {Promise<void>}
+   */
+  public async lazy(
+    callback: (result: any) => Promise<void> | void,
+    opts: {
+      limit   ?: number;
+      offset  ?: number;
+      delayMs ?: number;
+    } = {}
+  ): Promise<void> {
+    const limit = opts.limit ?? 100;
+    const delayMs = opts.delayMs ?? 0;
+    let offset = opts.offset ?? 0;
+
+    while (true) {
+      const results = await this
+      .limit(limit)
+      .offset(offset)
+      .get();
+
+      if (results.length === 0) {
+        break;
+      }
+
+      for(const result of results) {
+        await callback(result);
+      }
+    
+      if (results.length < limit) {
+        break;
+      }
+
+      offset += results.length;
+
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  /**
+   * The 'chunk' method is used to retrieve records from the database in chunks
+   * and process each chunk through a callback function.
+   *
+   * It retrieves records in batches based on the specified limit and invokes
+   * the callback with each batch of records. The process continues until all
+   * records have been retrieved and processed.
+   *
+   * The optional delayMs can be used to add a delay between each batch query,
+   * which can help reduce database load when processing a large number of records.
+   *
+   * @param {Function} callback callback function that receives the retrieved records
+   * @param {Object?} opts query opts
+   * @param {number?} opts.limit number of records to retrieve per chunk
+   * @param {number?} opts.offset number of records to skip before processing
+   * @param {number?} opts.delayMs delay in milliseconds between each batch
+   * @returns {Promise<void>}
+   */
+  public async chunk(
+    callback: (results: any[]) => Promise<void> | void,
+    opts: {
+      limit   ?: number;
+      offset  ?: number;
+      delayMs ?: number;
+    } = {}
+  ): Promise<void> {
+    const limit = opts.limit ?? 100;
+    const delayMs = opts.delayMs ?? 0;
+    let offset = opts.offset ?? 0;
+
+    while (true) {
+      const results = await this
+      .limit(limit)
+      .offset(offset)
+      .get();
+
+      if (results.length === 0) {
+        break;
+      }
+
+      await callback(results);
+
+      if (results.length < limit) {
+        break;
+      }
+
+      offset += results.length;
+
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
 
   /**
