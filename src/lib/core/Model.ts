@@ -6862,6 +6862,21 @@ class Model<
 
   /**
    * @override
+   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
+   * 
+   * @example
+   * ```ts
+   * for await (const row of new User().stream()) {
+   *   console.log(row);
+   * }
+   * ```
+   */
+  public async *stream<K>(): AsyncGenerator<T.Result<this, K>> {
+    yield* await this.$pool.stream(this.toString());
+  }
+
+  /**
+   * @override
    * @param    {object?}  opts by default page = 1 , limit = 15
    * @property {number?}  opts.limit
    * @property {number?}  opts.page

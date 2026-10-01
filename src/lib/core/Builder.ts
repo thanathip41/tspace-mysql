@@ -4281,6 +4281,24 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   /**
+   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
+   *
+   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
+   * 
+   * @example
+   * ```ts
+   * import { DB } from "tspace-mysql";
+   * 
+   * for await (const row of new DB('users').stream()) {
+   *   console.log(row);
+   * }
+   * ```
+   */
+  public async *stream(): AsyncGenerator<any> {
+    yield* await this.$pool.stream(this.toString());
+  }
+
+  /**
    * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
    *
    * It retrieves multiple records from a database table based on the criteria specified in the query.

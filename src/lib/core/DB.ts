@@ -245,63 +245,7 @@ class DB extends AbstractDB {
   ): Promise<T> {
     return await new this().query(sql,parameters);
   }
-
-  /**
-   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
-   *
-   * @param {string} sql - The SQL statement to execute.
-   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
-   * 
-   * @example
-   * ```ts
-   * import { DB } from "tspace-mysql";
-   * 
-   * for await (const row of DB.stream('SELECT * FROM users')) {
-   *   console.log(row);
-   * }
-   * ```
-   */
-  public async *stream<T = any>(
-    sql: string,
-    parameters:
-    | (boolean | number | string | any[] | null)[]
-    | Record<string, any> = {}
-  ): AsyncGenerator<T> {
-
-    const boundSql = this.$utils
-    .bindingParameters(
-      sql,
-      parameters,
-      { raw : false }
-    );
-
-    yield* await this.$pool.stream(boundSql);
-  }
-
-  /**
-   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
-   *
-   * @static
-   * @param {string} sql - The SQL statement to execute.
-   * @returns {AsyncGenerator<T>} An async generator that yields result rows.
-   * 
-   * @example
-   * ```ts
-   * import { DB } from "tspace-mysql";
-   * 
-   * for await (const row of DB.stream('SELECT * FROM users')) {
-   *   console.log(row);
-   * }
-   */
-  public static async *stream<T = any>(
-    sql: string,
-    parameters:
-      | (boolean | number | string | any[] | null)[]
-      | Record<string, any> = {}
-  ): AsyncGenerator<T> {
-    yield* new this().stream(sql,parameters);
-  }
-
+  
   /**
    * The 'from' method is used to define the from table name.
    * @param {string} table table name
