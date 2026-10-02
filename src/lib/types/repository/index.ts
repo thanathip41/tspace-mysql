@@ -1,18 +1,23 @@
-import { Model } from "../../core/Model";
+import { Model }  from "../../core/Model";
 import type { T } from "../../core";
 
 import type {
   TConnection,
   TConnectionTransaction,
   TFreezeStringQuery,
+  TInsertInput,
   TNestedBoolean,
   TOperatorQuery,
   TRawStringQuery,
   TRelationKeys,
   TSchemaKeys,
+  TUpdateInput,
 } from "..";
 
-import type { TColumnsDecorator, TRelationsDecorator } from "../decorator";
+import type { 
+  TColumnsDecorator, 
+  TRelationsDecorator 
+} from "../decorator";
 
 export type TRepositorySelect<
   T = unknown,
@@ -479,16 +484,9 @@ export type TRepositoryCreate<
   M extends Model<any, any> = Model<any, any>,
   NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>
+  C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
-  data: {
-    [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-      ? any
-      : P
-    ]: Extract<C[P], Date> extends never 
-      ? Extract<C[P], Record<string, unknown>> extends never ?  C[P] : string 
-      : any;
-  };
+  data : TInsertInput<K,C>
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
   noReturn?: NR;
@@ -498,17 +496,9 @@ export type TRepositoryCreateMultiple<
   M extends Model<any, any> = Model<any, any>,
   NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
+  C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
-  data: {
-    [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-      ? any
-      : undefined extends C[P]
-        ? never
-        : P]: Extract<C[P], Date> extends never 
-          ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
-          : any;
-  }[];
+  data: TInsertInput<K,C>[];
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
   noReturn?: NR;
@@ -518,17 +508,9 @@ export type TRepositoryCreateOrThings<
   M extends Model<any, any> = Model<any, any>,
   NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
+  C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
-  data: {
-    [P in Exclude<K & keyof C, "id" | "uuid"> as null extends C[P]
-      ? any
-      : undefined extends C[P]
-        ? never
-        : P]: Extract<C[P], Date> extends never 
-          ? Extract<C[P], Record<string,unknown>> extends never ?  C[P] : string 
-          : any;
-  };
+  data: TInsertInput<K,C>[];
   where: T.WhereOptions<M>;
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
@@ -539,18 +521,9 @@ export type TRepositoryUpdate<
   M extends Model<any, any> = Model<any, any>,
   NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
+  C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
-  data: Partial<
-    {
-      [P in K & keyof C]:
-        Extract<C[P], Date> extends never
-          ? Extract<C[P], Record<string, unknown>> extends never
-            ? C[P]
-            : string
-          : any
-    }
-  >
+  data: TUpdateInput<K,C>[];
   where: T.WhereOptions<M>;
   debug?: boolean;
   transaction?: TConnection | TConnectionTransaction;
@@ -561,7 +534,7 @@ export type TRepositoryUpdateMultiple<
   M extends Model<any, any> = Model<any, any>,
   NR extends boolean | undefined = false,
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
-  C extends T.ColumnOptions<M> = T.ColumnOptions<M>,
+  C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
   cases: {
     condition: ((query: M) => M) | Partial<
