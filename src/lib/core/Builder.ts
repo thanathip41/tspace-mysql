@@ -4081,18 +4081,20 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * It retrieves the execution plan from the database and analyzes it
    * for potential performance issues such as full table scans, filesorts,
    * and temporary tables.
-   *
+   * @param {string?} sql query for explain
    * @returns {Promise<TExplain>} query execution plan and analysis
    */
-  public async explain(): Promise<TExplain> {
+  public async explain(sql ?: string): Promise<TExplain> {
     
-    const sql = this.toSQL();
+    if(!sql) {
+      sql = this.toSQL();
+    }
+      
+    const LARGE_SCAN_ROWS = 10_000;
 
     const qb = this._queryBuilder();
 
-    let plan = await this.rawQuery(qb.explain(sql));
-
-    if(!Array.isArray(plan)) plan = [];
+    const plan = await this.rawQuery(qb.explain(sql)).catch(() => []);
 
     const issues: TExplainIssue[] = [];
 
@@ -4105,19 +4107,24 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         .filter(value => typeof value === 'string')
         .join(' ');
 
-      
       const type = String(row.type ?? '').toLowerCase();
       const possibleKeys = row.possible_keys;
       const key = row.key;
 
+      const rows =
+      /^\d+(?:\.\d+)?$/.test(String(row.rows))
+        ? Number(row.rows)
+        : Number(
+            textRow.match(/\brows=(\d+(?:\.\d+)?)/i)?.[1] ?? 0,
+          );
+
+
       const hasPossibleIndex =
-        possibleKeys !== null &&
-        possibleKeys !== undefined &&
+        possibleKeys != null &&
         String(possibleKeys).trim() !== '';
 
       const hasUsedIndex =
-        key !== null &&
-        key !== undefined &&
+        key != null &&
         String(key).trim() !== '';
 
       const hasFullScan =
@@ -4127,23 +4134,14 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       if (hasFullScan) {
         issues.push({
           type: 'FULL_SCAN',
-          severity: 'warning',
-          message: 'A full table scan was detected.',
+          severity: rows > LARGE_SCAN_ROWS ? 'warning' : 'info',
+          message: `A full table scan was detected (${rows.toLocaleString()} rows).`,
         });
 
         recommendations.push(
           'Consider adding an appropriate index for the query conditions.',
         );
       }
-
-      const rows =
-        /^\d+(?:\.\d+)?$/.test(String(row.rows))
-          ? Number(row.rows)
-          : Number(
-              textRow.match(/\brows=(\d+(?:\.\d+)?)/i)?.[1] ?? 0,
-            );
-
-      const LARGE_SCAN_ROWS = 10_000;
 
       if (Number.isFinite(rows) && rows >= LARGE_SCAN_ROWS) {
         issues.push({
