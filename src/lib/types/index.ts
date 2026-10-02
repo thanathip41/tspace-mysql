@@ -417,8 +417,8 @@ export type TPoolCusterConnected = {
     database?: () => string
     query?: Function | null;
     queryBuilder?: QueryBuilder | null;
-    masters: TClusterPool[];
-    slaves: TClusterPool[];
+    primary: TClusterPool;
+    replicas: TClusterPool[];
 };
 
 export type TIsEnum<T> = T extends { __isDefault: true } 

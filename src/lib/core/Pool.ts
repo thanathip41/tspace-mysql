@@ -119,63 +119,60 @@ export class PoolConnection {
 
     const options = Object.fromEntries(this.OPTIONS);
 
-    const parseList = (value: string) =>
-      String(value)
+    const parseList = (value: string) => {
+      return String(value)
         .split(",")
         .map((v) => v.trim());
-    const getValue = (arr: any[], index: number) =>
-      arr[index] != null ? arr[index] : arr[arr.length - 1];
+    }
+      
 
-    const hostList = parseList(options.host);
-    const hosts: string[] = [];
-    const types: ("master" | "slave")[] = [];
+    const getValue = (arr: any[], index: number = 0) => {
+      return arr[index] != null 
+        ? arr[index] 
+        : arr[arr.length - 1];
+    }
+      
+    const hosts: string[]     = parseList(options.host);
+    const usernames: string[] = parseList(options.user);
+    const passwords: string[] = parseList(options.password);
+    const ports: number[]     = parseList(options.port).map((v) => +v);
 
-    hostList.forEach((h, i) => {
-      let type: "master" | "slave" = i === 0 ? "master" : "slave";
-      let host = h;
-
-      if (h.includes("@")) {
-        const [_t, _h] = h.split("@");
-        type = _t === "master" ? "master" : "slave";
-        host = _h;
-      }
-
-      hosts.push(host);
-      types.push(type);
-    });
-
-    const usernames = parseList(options.user);
-    const passwords = parseList(options.password);
-    const ports: number[] = parseList(options.port).map((v) => +v);
-
-    type TOptions = {
-      host: string;
-      port: number;
-      username: string;
-      password: string;
+    
+    const primaryOptions = {
+      host:  getValue(hosts),
+      port: getValue(ports),
+      username: getValue(usernames),
+      password: getValue(passwords),
+    } 
+    const primary = {
+      pool: {
+        type: 'primary',
+        node: 1,
+        host: primaryOptions.host,
+        port: primaryOptions.port,
+        username: primaryOptions.username,
+      },
+      ...new PoolConnection().connect({
+        ...options,
+        ...primaryOptions,
+      }),
     };
 
-    const writerOptions: {
-      host: string;
-      port: number;
-      username: string;
-      password: string;
-    }[] = hosts
-      .map((host, i) => {
-        if (types[i] !== "master") return null;
-        return {
-          host,
-          port: getValue(ports, i),
-          username: getValue(usernames, i),
-          password: getValue(passwords, i),
-        };
-      })
-      .filter(Boolean) as TOptions[];
+    const readerOptions = hosts.slice(1).map((host, i) => {
+      const node = i + 1;
 
-    const writers = writerOptions.map((opt, i) => {
+      return {
+        host,
+        port: getValue(ports, node),
+        username: getValue(usernames, node),
+        password: getValue(passwords, node),
+      };
+    });
+
+    const replicas = readerOptions.map((opt, i) => {
       return {
         pool: {
-          type: "master",
+          type: "replica",
           node: +i + 1,
           host: opt.host,
           port: opt.port,
@@ -188,49 +185,21 @@ export class PoolConnection {
       };
     });
 
-    const readerOptions = hosts
-      .map((host, i) => {
-        if (types[i] !== "slave") return null;
-        return {
-          host,
-          port: getValue(ports, i),
-          username: getValue(usernames, i),
-          password: getValue(passwords, i),
-        };
-      })
-      .filter(Boolean) as TOptions[];
-
-    const readers = readerOptions.map((opt, i) => {
-      return {
-        pool: {
-          type: "slave",
-          node: +i + 1,
-          host: opt.host,
-          port: opt.port,
-          username: opt.username,
-        },
-        ...new PoolConnection().connect({
-          ...options,
-          ...opt,
-        }),
-      };
-    });
-
-    if (!writers.length) {
+    if (!primary) {
       throw new Error(
-        "[DB_CLUSTER] Cluster mode requires at least one writer node. Please check your configuration."
+        "[DB_CLUSTER] Cluster mode requires at least one primary node. Please check your configuration."
       );
     }
 
-    if (!readers.length) {
+    if (!replicas.length) {
       throw new Error(
-        "[DB_CLUSTER] Cluster mode requires at least one reader node. Please check your configuration."
+        "[DB_CLUSTER] Cluster mode requires at least one replicas node. Please check your configuration."
       );
     }
 
     this.CLUSTER = {
-      masters: writers,
-      slaves: readers,
+      primary  : primary,
+      replicas : replicas,
     };
 
     return this.CLUSTER;
@@ -247,7 +216,7 @@ export class PoolConnection {
         user: String(Config.USERNAME),
         password: String(Config.PASSWORD),
         // ------------------ custom ----------------------------
-        driver: String(Config.DRIVER ?? "mysql2"),
+        driver: String(Config.DRIVER ?? "mysql"),
         cluster: Boolean(Config.CLUSTER ?? false),
       }),
     );

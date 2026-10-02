@@ -45,7 +45,8 @@ const STATE_DEFAULT = {
     mode : null as "FOR_UPDATE" | "FOR_SHARE" | null,
     skipLocked : false as boolean | null,
     nowait : false as boolean | null
-  }
+  },
+  NODE : null as { type : 'primary' | 'replica' , node?: number  } | null
 } as const
 
 const STATE_DB = {

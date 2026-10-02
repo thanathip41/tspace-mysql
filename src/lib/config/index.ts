@@ -21,6 +21,16 @@ const resolveEnvPath = (customEnv?: string): string => {
   return env;
 };
 
+const isCluster = (host: string | null): boolean => {
+    if (host == null) return false;
+
+    return host
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean)
+        .length > 1;
+};
+
 dotenv.config({ path: resolveEnvPath() });
 
 const ENV = process.env;
@@ -38,7 +48,7 @@ const rawEnv = {
   DATE_STRINGS: ENV.DB_DATE_STRINGS ?? false,
 
   // options
-  CLUSTER: ENV.DB_CLUSTER ?? false,
+  CLUSTER: isCluster(ENV.DB_HOST ?? "localhost"),
   DRIVER: ENV.DB_DRIVER ?? "mysql",
   CACHE: ENV.DB_CACHE as "memory" | "db" | "redis",
   CONNECTION_ERROR: ENV.DB_CONNECTION_ERROR ?? false,
@@ -90,7 +100,7 @@ export const loadOptionsEnv = (customEnv?: string) => {
   const ENV = process.env;
 
   const rawEnv = {
-    cluster: ENV.DB_CLUSTER ?? false,
+    cluster: isCluster(ENV.DB_HOST ?? "localhost"),
     driver: ENV.DB_DRIVER ?? "mysql",
     host: ENV.DB_HOST,
     port: ENV.DB_PORT || 3306,

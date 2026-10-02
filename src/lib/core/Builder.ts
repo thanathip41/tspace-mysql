@@ -5,7 +5,6 @@ import { StateManager }    from "./StateManager";
 import { Join }            from "./Join";
 import { CONSTANTS }       from "../constants";
 import { QueryBuilder }    from "./Driver";
-import { Config }          from "../config";
 
 import { 
   Pool, 
@@ -66,6 +65,54 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    */
   public database(): string {
     return this.$database;
+  }
+
+  /**
+   * The 'useNode' method is used to selects the database node used to execute the query.
+   *
+   * - `primary`: Uses the primary database node.
+   * - `replica`: Uses a replica node. If `node` is provided, the specified
+   *   replica is used; otherwise, a replica is selected randomly.
+   *
+   * @param type - The database node type to use.
+   * @param options - Node selection options.
+   * @param options.node - 1-based replica node number. Only applicable when
+   *   `type` is `replica`.
+   *
+   * @throws {Error} If node selection is requested outside cluster mode.
+   * @throws {Error} If a replica node is requested but no replicas are available.
+   *
+   * @example
+   * // Use the primary node
+   * query.useNode('primary');
+   *
+   * @example
+   * // Use a random replica
+   * query.useNode('replica');
+   *
+   * @example
+   * // Use replica node 2
+   * query.useNode('replica', { node: 2 });
+   */
+  public useNode(type: 'primary'): this;
+  public useNode(type: 'replica', options?: {
+    node?: number;
+  }): this;
+  public useNode(
+    type: 'primary' | 'replica',
+    options: { node?: number } = {},
+  ): this {
+    if (!this.$cluster) {
+      throw new Error('.useNode() is only available in cluster mode');
+    }
+
+    if (type === 'primary' && options.node !== undefined) {
+      throw new Error('The primary node cannot be specified');
+    }
+
+    this.$state.set('NODE', { type ,  node : options.node })
+
+    return this;
   }
 
   /**
@@ -5753,7 +5800,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     this.$utils = utils;
 
     this.$pool = (() => {
-      if (Config.CLUSTER) {
+      if (this.$cluster) {
         let poolCluster = Pool.clusterConnect();
 
         if (poolCluster == null) {
@@ -5771,6 +5818,31 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
               this.$constants("ROW_LEVEL_LOCK")
             ).some(lock => sql.toUpperCase().includes(lock));
 
+            const node = this.$state.get('NODE');
+
+            if(node) {
+              if(node.type === 'primary') {
+                return poolCluster.query != null
+                ? poolCluster.query(sql)
+                : poolCluster?.primary.query(sql);
+              }
+
+              if (node.type === 'replica') {
+                if (node.node != null) {
+                  return poolCluster?.query != null
+                    ? poolCluster.query(sql)
+                    : poolCluster?.replicas[node.node - 1].query(sql);
+                }
+
+              const length = poolCluster?.replicas.length ?? 0;
+              const random = Math.floor(Math.random() * length);
+
+              return poolCluster?.query != null
+                ? poolCluster.query(sql)
+                : poolCluster?.replicas[random].query(sql);
+              }
+            }
+
             // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
             // so they are not considered read-only queries and should be handled as write/locking operations.
             const isReaded = [
@@ -5780,20 +5852,17 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
               ].includes(first) && !isRowLock
 
             if (isReaded) {
-              const length = poolCluster?.slaves?.length ?? 0;
+              const length = poolCluster?.replicas.length ?? 0;
               const random = Math.floor(Math.random() * length);
 
               return poolCluster?.query != null
                 ? poolCluster.query(sql)
-                : poolCluster?.slaves[random].query(sql);
+                : poolCluster?.replicas[random].query(sql);
             }
-
-            const length = poolCluster?.masters?.length ?? 0;
-            const random = Math.floor(Math.random() * length);
 
             return poolCluster.query != null
               ? poolCluster.query(sql)
-              : poolCluster?.masters[random].query(sql);
+              : poolCluster?.primary.query(sql);
           },
           get: () => poolCluster,
           set: (conn: TPoolCusterConnected) => {
@@ -5809,15 +5878,15 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
              *
              * queryBuilder can use every nodes
              */
-            return poolCluster?.masters == null
+            return poolCluster?.primary == null
               ? poolCluster?.queryBuilder
-              : poolCluster?.masters[0]?.queryBuilder;
+              : poolCluster?.primary?.queryBuilder;
           },
           transaction : async () => {
-            return await poolCluster.masters[0].connection()
+            return await poolCluster.primary.connection()
           },
           stream : async (sql: string) => {
-            return await  poolCluster.masters[0].stream(sql);
+            return await  poolCluster.primary.stream(sql);
           },
         };
       }
