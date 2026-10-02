@@ -4090,7 +4090,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const qb = this._queryBuilder();
 
-    const plan = await this.rawQuery(qb.explain(sql));
+    let plan = await this.rawQuery(qb.explain(sql));
+
+    if(!Array.isArray(plan)) plan = [];
 
     const issues: TExplainIssue[] = [];
 
@@ -4099,13 +4101,32 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     for (const row of plan) {
       const text = JSON.stringify(row).toLowerCase();
 
-      if (
-        text.includes('all') ||
-        text.includes('full scan') ||
-        text.includes('seq scan')
-      ) {
+      const textRow = Object.values(row)
+        .filter(value => typeof value === 'string')
+        .join(' ');
+
+      
+      const type = String(row.type ?? '').toLowerCase();
+      const possibleKeys = row.possible_keys;
+      const key = row.key;
+
+      const hasPossibleIndex =
+        possibleKeys !== null &&
+        possibleKeys !== undefined &&
+        String(possibleKeys).trim() !== '';
+
+      const hasUsedIndex =
+        key !== null &&
+        key !== undefined &&
+        String(key).trim() !== '';
+
+      const hasFullScan =
+        type === 'all' &&
+        !hasPossibleIndex;
+
+      if (hasFullScan) {
         issues.push({
-          type: 'full_scan',
+          type: 'FULL_SCAN',
           severity: 'warning',
           message: 'A full table scan was detected.',
         });
@@ -4115,11 +4136,20 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         );
       }
 
-      if (typeof row.rows === 'number' && row.rows >= 100000) {
+      const rows =
+        /^\d+(?:\.\d+)?$/.test(String(row.rows))
+          ? Number(row.rows)
+          : Number(
+              textRow.match(/\brows=(\d+(?:\.\d+)?)/i)?.[1] ?? 0,
+            );
+
+      const LARGE_SCAN_ROWS = 10_000;
+
+      if (Number.isFinite(rows) && rows >= LARGE_SCAN_ROWS) {
         issues.push({
-          type: 'large_scan',
+          type: 'LARGE_SCAN',
           severity: 'warning',
-          message: `The query is estimated to scan ${row.rows} rows.`,
+          message: `The query is estimated to scan ${rows} rows.`,
         });
 
         recommendations.push(
@@ -4127,11 +4157,14 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         );
       }
 
-      if (text.includes('filesort')) {
+      if (
+        text.includes('filesort') ||
+        text.includes('sort')
+      ) {
         issues.push({
-          type: 'filesort',
+          type: 'FILE_SORT',
           severity: 'warning',
-          message: 'A filesort operation was detected.',
+          message: 'A sort operation was detected.',
         });
 
         recommendations.push(
@@ -4139,15 +4172,53 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         );
       }
 
-      if (text.includes('temporary')) {
+      if (
+        text.includes('temporary') ||
+        text.includes('temp table')
+      ) {
         issues.push({
-          type: 'temporary_table',
+          type: 'TEMPORARY_TABLE',
           severity: 'warning',
           message: 'A temporary table was used.',
         });
 
         recommendations.push(
           'Review GROUP BY, ORDER BY, DISTINCT, and JOIN conditions.',
+        );
+      }
+
+      const hasNoIndex =
+        type === 'all' &&
+        !hasPossibleIndex &&
+        !hasUsedIndex;
+
+      if (hasNoIndex) {
+        issues.push({
+          type: 'NO_INDEX',
+          severity: 'warning',
+          message: 'No index was used for this operation.',
+        });
+
+        recommendations.push(
+          'Consider adding an index for the query conditions.',
+        );
+      }
+
+      if (
+        hasFullScan &&
+        (
+          text.includes('filter:') ||
+          text.includes('using where')
+        )
+      ) {
+        issues.push({
+          type: 'FILTER_AFTER_SCAN',
+          severity: 'warning',
+          message: 'Rows are filtered after scanning the table.',
+        });
+
+        recommendations.push(
+          'Consider an index that can apply the filter earlier.',
         );
       }
     }

@@ -65,7 +65,7 @@ export class SqliteDriver extends BaseDriver {
 
         const command = this._detectQueryType(sql);
 
-        if(command === 'SELECT') {
+        if(command === "SELECT" || command === "EXPLAIN") {
           results = this.pool.prepare(sql).all();
         } else if (command === 'UNKNOWN') {
           results = this.pool.exec(sql);

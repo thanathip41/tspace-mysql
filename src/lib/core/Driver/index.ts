@@ -64,11 +64,13 @@ export abstract class BaseDriver extends EventEmitter {
     const updateRegex = /^\s*UPDATE\b/i;
     const insertRegex = /^\s*INSERT\b/i;
     const deleteRegex = /^\s*DELETE\b/i;
+    const explainRegex = /^\s*EXPLAIN\b/i;
 
     if (selectRegex.test(query)) return "SELECT";
     if (updateRegex.test(query)) return "UPDATE";
     if (insertRegex.test(query)) return "INSERT";
     if (deleteRegex.test(query)) return "DELETE";
+    if(explainRegex.test(query)) return "EXPLAIN";
 
     return "UNKNOWN";
   }

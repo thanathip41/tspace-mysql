@@ -680,7 +680,13 @@ export type TAnyKeys = {
 }
 
 export type TExplainIssue = {
-  type: string;
+  type: 
+    | 'FULL_SCAN'         // Seq Scan / ALL / SCAN
+    | 'LARGE_SCAN'        // estimated rows >= threshold
+    | 'NO_INDEX'          // query has no usable index
+    | 'FILE_SORT'         // filesort / explicit expensive sort
+    | 'FILTER_AFTER_SCAN' // filtered after scanning the table.
+    | 'TEMPORARY_TABLE'   // temporary table
   severity: 'info' | 'warning' | 'critical';
   message: string;
 };

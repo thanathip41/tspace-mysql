@@ -34,12 +34,12 @@ const rawEnv = {
   DATABASE         : ENV.DB_DATABASE,
   CONNECTION_LIMIT : ENV.DB_CONNECTION_LIMIT ?? 10,
 
-  // for mysql2 only
+  // for mysql only
   DATE_STRINGS: ENV.DB_DATE_STRINGS ?? false,
 
   // options
   CLUSTER: ENV.DB_CLUSTER ?? false,
-  DRIVER: ENV.DB_DRIVER ?? "mysql2",
+  DRIVER: ENV.DB_DRIVER ?? "mysql",
   CACHE: ENV.DB_CACHE as "memory" | "db" | "redis",
   CONNECTION_ERROR: ENV.DB_CONNECTION_ERROR ?? false,
   CONNECTION_SUCCESS: ENV.DB_CONNECTION_SUCCESS ?? false,
@@ -91,7 +91,7 @@ export const loadOptionsEnv = (customEnv?: string) => {
 
   const rawEnv = {
     cluster: ENV.DB_CLUSTER ?? false,
-    driver: ENV.DB_DRIVER ?? "mysql2",
+    driver: ENV.DB_DRIVER ?? "mysql",
     host: ENV.DB_HOST,
     port: ENV.DB_PORT || 3306,
     username: ENV.DB_USERNAME,

@@ -868,7 +868,7 @@ export class MariadbQueryBuilder extends QueryBuilder {
   }
 
   public explain (sql : string) {
-    return this.format(`EXPLAIN ${sql}`);
+    return this.format(`EXPLAIN (${sql})`);
   }
 
   protected bindJoin(values: string[]) {
