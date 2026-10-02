@@ -129,6 +129,7 @@ npm install -D typescript@5.9.3
   - [Unset Statements](#unset-statements)
   - [Common Table Expressions](#common-table-expressions)
   - [Union](#union)
+  - [Explain](#explain)
   - [More Methods](#more-methods)
 - [Database Transactions](#database-transactions)
 - [Race Condition](#race-condition)
@@ -511,6 +512,10 @@ const users = await new DB("users").toRawSQL(); // sql query string
 
 const users = await new DB("users").pagination(); // Object of pagination
 
+const users = await new DB("users").cursorPagination(); // object of cursor pagination
+
+const users = await new DB("users").stream() // object AsyncGenerator
+
 const users = await new DB("users").makeSelectStatement() // query string for select statement
 
 const users = await new DB("users").makeInsertStatement() // query string for insert statement
@@ -542,8 +547,30 @@ const query = await DB.query(
 ```
 
 ## Stream Statements
+stream() returns an AsyncGenerator, 
+allowing records to be processed one at a time without loading the entire result set into memory.
+
+Using `for await...of`:
 ```js
-for await (const user of DB.stream("SELECT * FROM users")) {
+const stream = new DB('users').stream();
+
+for await (const user of stream) {
+  console.log(user);
+}
+```
+
+Using `.next()` for manual iteration:
+```js
+const stream = new DB('users').stream();
+while (true) {
+  const result = await stream.next();
+
+  if (result.done) {
+      break;
+  }
+
+  const user = result.value;
+
   console.log(user);
 }
 ```
@@ -966,12 +993,13 @@ console.log(userHasPosts)
 
 ## Paginating
 
+Using `Simple pagination`:
 ```js
-const users = await new DB("users").paginate();
+await new DB("users").pagination();
 // SELECT * FROM `users` LIMIT 15 OFFSET 0;
 // SELECT COUNT(*) AS total FROM `users`;
 
-const pageTwoUsers = await new DB("users").paginate({ page: 2, limit: 5 });
+await new DB("users").pagination({ page: 2, limit: 5 });
 
 /*
   SELECT * FROM `users` LIMIT 5 OFFSET 5;
@@ -982,16 +1010,45 @@ const pageTwoUsers = await new DB("users").paginate({ page: 2, limit: 5 });
     meta: {
       total: n,
       limit: 5,
-      total_page: 5,
-      current_page: 2,
-      last_page: n,
-      next_page: 3,
-      prev_page: 1
+      page : {
+        total: 5,
+        current: 2,
+        last: n,
+        next: 3,
+        prev: 1
+      }
+     
     },
     data: [...your data here]
   }
 
 */
+```
+
+Using `Cursor pagination`:
+```js
+await new DB("users").cursorPagination();
+// SELECT * FROM `users` ORDER BY `users`.`id` ASC LIMIT 16;
+
+await new DB("users").cursorPagination({ limit: 5 });
+// SELECT * FROM `users` ORDER BY `users`.`id` ASC LIMIT 6;
+
+await new DB("users").cursorPagination({ limit: 5, cursor : "eyJp..." });
+// SELECT * FROM `users` WHERE `users`.`id` > 5  ORDER BY `users`.`id` ASC LIMIT 6;
+
+/*
+  the results are returned
+  {
+    meta: {
+      limit: 5,
+      count: 5,
+      next: {
+        cursor: 'eyJp...',
+        has: true
+      }
+    },
+    data: [...your data here]
+  }
 ```
 
 ## Insert Statements
@@ -1323,6 +1380,54 @@ const users = await new DB('users')
 
 ```
 
+### Explain
+```js
+const { analysis } = await new DB('users')
+.select('*')
+.where('email','explain@gmail.com')
+.explain()
+
+// EXPLAIN (SELECT * FROM `users` WHERE `users`.`email` = 'explain@gmail.com');
+// returned analysis
+{
+  "status": "warning",
+  "issues": [
+    {
+      "type": "FULL_SCAN",
+      "severity": "warning",
+      "message": "A full table scan was detected."
+    },
+    {
+      "type": "NO_INDEX",
+      "severity": "warning",
+      "message": "No index was used for this operation."
+    },
+    {
+      "type": "FILTER_AFTER_SCAN",
+      "severity": "warning",
+      "message": "Rows are filtered after scanning the table."
+    }
+  ],
+  "recommendations": [
+    "Consider adding an appropriate index for the query conditions.",
+    "Consider adding an index for the query conditions.",
+    "Consider an index that can apply the filter earlier."
+  ]
+}
+
+// when you add index to email
+// returned analysis
+{
+  "status": "ok",
+  "issues": [],
+  "recommendations": []
+}
+
+// send sql to analysis
+const { analysis } = await new DB()
+.explain("SELECT * FROM `users` WHERE `users`.`email` LIKE '%explain@gmail.com%'")
+
+```
 ## More Methods
 
 ```js
