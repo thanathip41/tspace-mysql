@@ -5822,47 +5822,43 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
             if(node) {
               if(node.type === 'primary') {
-                return poolCluster.query != null
-                ? poolCluster.query(sql)
-                : poolCluster?.primary.query(sql);
+                return poolCluster.primary.query(sql);
               }
 
               if (node.type === 'replica') {
-                if (node.node != null) {
-                  return poolCluster?.query != null
-                    ? poolCluster.query(sql)
-                    : poolCluster?.replicas[node.node - 1].query(sql);
+                const length = poolCluster.replicas.length;
+                const random = Math.floor(Math.random() * length);
+
+                const pool = poolCluster
+                .replicas[node.node != null 
+                  ? node.node - 1 
+                  : random
+                ]
+
+                if(pool == null) {
+                  throw new Error(`Replica node '${node.node ?? random + 1}' not found`);
                 }
 
-              const length = poolCluster?.replicas.length ?? 0;
-              const random = Math.floor(Math.random() * length);
-
-              return poolCluster?.query != null
-                ? poolCluster.query(sql)
-                : poolCluster?.replicas[random].query(sql);
+                return pool.query(sql);
               }
             }
 
             // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
             // so they are not considered read-only queries and should be handled as write/locking operations.
             const isReaded = [
-                this.$constants("SELECT"),
-                this.$constants("SHOW"),
-                this.$constants("DESCRIBE")
-              ].includes(first) && !isRowLock
+              this.$constants("SELECT"),
+              this.$constants("SHOW"),
+              this.$constants("DESCRIBE")
+            ].includes(first) && !isRowLock
 
             if (isReaded) {
-              const length = poolCluster?.replicas.length ?? 0;
+              const length = poolCluster.replicas.length ?? 0;
               const random = Math.floor(Math.random() * length);
 
-              return poolCluster?.query != null
-                ? poolCluster.query(sql)
-                : poolCluster?.replicas[random].query(sql);
+              return poolCluster.replicas[random].query(sql);
             }
 
-            return poolCluster.query != null
-              ? poolCluster.query(sql)
-              : poolCluster?.primary.query(sql);
+            return poolCluster.primary.query(sql);
           },
           get: () => poolCluster,
           set: (conn: TPoolCusterConnected) => {
@@ -5874,19 +5870,38 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
             return;
           },
           queryBuilder: () => {
-            /**
-             *
-             * queryBuilder can use every nodes
-             */
-            return poolCluster?.primary == null
-              ? poolCluster?.queryBuilder
-              : poolCluster?.primary?.queryBuilder;
+            return poolCluster.primary.queryBuilder;
           },
           transaction : async () => {
             return await poolCluster.primary.connection()
           },
           stream : async (sql: string) => {
-            return await  poolCluster.primary.stream(sql);
+
+            const node = this.$state.get('NODE');
+
+            if(node) {
+
+              if(node.type === 'primary') {
+                return poolCluster.primary.query(sql);
+              }
+
+              if (node.type === 'replica') {
+                const length = poolCluster.replicas.length;
+                const random = Math.floor(Math.random() * length);
+
+                return poolCluster
+                .replicas[node.node != null 
+                  ? node.node - 1 
+                  : random
+                ]
+                .query(sql);
+              }
+            }
+
+            const length = poolCluster.replicas.length ?? 0;
+            const random = Math.floor(Math.random() * length);
+
+            return await poolCluster.replicas[random].stream(sql);
           },
         };
       }
@@ -5894,9 +5909,6 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       let pool = Pool.connect();
 
       return {
-        stream : async (sql: string) => {
-          return await pool.stream(sql);
-        },
         transaction : async () => {
           return await pool.connection()
         },
@@ -5912,6 +5924,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
           return;
         },
         queryBuilder: () => pool.queryBuilder,
+        stream : async (sql: string) => {
+          return await pool.stream(sql);
+        },
       };
     })();
 
