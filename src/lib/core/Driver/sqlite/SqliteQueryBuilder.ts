@@ -537,7 +537,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
 
         GROUP_CONCAT(
           ii.name
-          ORDER BY ii.seq
+          ORDER BY ii.seqno
         ) AS "Column",
 
         il.name AS "IndexName",

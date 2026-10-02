@@ -1097,7 +1097,7 @@ class DB extends AbstractDB {
         const table = tables[i];
         const tableStartTime = Date.now();
 
-        const fks = await this.getFKs(table);
+        const fks = await this.getFKs(table).catch(_ => []);
 
         for(const fk of fks) {
           createFks.push(qb.addFK({
@@ -1113,7 +1113,7 @@ class DB extends AbstractDB {
           }))
         }
 
-        const indexs = await this.getIndexes(table);
+        const indexs = await this.getIndexes(table).catch(_ => []);
 
         for(const index of indexs) {
         
