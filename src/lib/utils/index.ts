@@ -221,7 +221,11 @@ const camelCase = (data : any) => {
 }
 
 
-const consoleDebug  = (sql ?: string , retry = false) => {
+const consoleDebug  = (
+    sql ?: string , 
+    retry = false , 
+    node ?: { type : 'primary' | 'replica' , node?: number  } | null
+) => {
     if(typeof sql !== "string" || sql == null) return;
 
     const colors = {
@@ -255,12 +259,16 @@ const consoleDebug  = (sql ?: string , retry = false) => {
         );
     }
 
-    if(retry) { 
-        console.log(`\n\x1b[31mRETRY QUERY:\x1b[0m ${colorSQL(sql.trim())};`)
-        return 
-    } 
+    const prefix = retry ? 'RETRY QUERY' : 'QUERY';
+    const color = retry ? 31 : 34;
 
-    console.log(`\n\x1b[34mQUERY:\x1b[0m ${colorSQL(sql.trim())};`)
+    const target = (node
+    ? `(${node.type}${node.type === 'replica' ? `:${node.node}` : ''})`
+    : '');
+
+    console.log(
+    `\n\x1b[${color}m${prefix}${target}:\x1b[0m ${colorSQL(sql.trim())};`
+    );
 }
 
 const consoleExec  = (startTime : number , endTime : number) => {

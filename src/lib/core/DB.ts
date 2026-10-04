@@ -645,18 +645,6 @@ class DB extends AbstractDB {
    * @property {function} connection.rollback - rollback transaction of query
    */
   public async beginTransaction(): Promise<TConnectionTransaction> {
-    if (this.$cluster) {
-      const cluster = new PoolConnection().clusterConnect();
-
-      const primary = cluster.primary;
-
-      if (!primary) {
-        throw new Error("No Primary available in cluster");
-      }
-
-      return await primary.connection();
-    }
-
     return await this.$pool.transaction();
   }
 
@@ -690,14 +678,14 @@ class DB extends AbstractDB {
    * - Rollback if any error occurs
    *
    * @template T
-   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
+   * @param {(conn: TConnectionTransaction) => Promise<T>} handler - Async function that receives the transaction connection.
    * All queries inside this handler MUST use the provided `conn` instance.
    *
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  public async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
-    const trx = await this.$pool.transaction();
+  public async transaction<T>(handler: (conn: TConnectionTransaction) => Promise<T>): Promise<T> {
+    const trx = await this.beginTransaction();
     
     try {
       await trx.startTransaction();
@@ -721,13 +709,13 @@ class DB extends AbstractDB {
    * - Rollback if any error occurs
    *
    * @template T
-   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
+   * @param {(conn: TConnectionTransaction) => Promise<T>} handler - Async function that receives the transaction connection.
    * All queries inside this handler MUST use the provided `conn` instance.
    *
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  public static async transaction<T>(handler: (conn: TConnection) => Promise<T>): Promise<T> {
+  public static async transaction<T>(handler: (conn: TConnectionTransaction) => Promise<T>): Promise<T> {
     return await new this().transaction(handler);
   }
 

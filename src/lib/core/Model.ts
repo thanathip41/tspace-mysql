@@ -2873,17 +2873,19 @@ class Model<
     sql: string,
     { retry = false } = {},
   ): Promise<any[]> {
+
     try {
    
       const getResults = async (sql: string) => {
         if (this.$state.get("DEBUG")) {
+
           const startTime = +new Date();
         
           const results = await this.$pool.query(sql);
 
           const endTime = +new Date();
 
-          this.$utils.consoleDebug(sql, retry);
+          this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
 
           this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
 
@@ -2912,7 +2914,10 @@ class Model<
 
       return result == null ? await getResults(sql) : result;
     } catch (error: any) {
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry);
+
+      if (this.$state.get("DEBUG")) {
+        this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
+      }
 
       if (this.$state.get("JOIN")?.length) throw error;
 
@@ -2935,6 +2940,8 @@ class Model<
     sql: string,
     { retry = false } = {},
   ): Promise<any> {
+    const node = this.$state.get("NODE");
+
     try {
      
       const getResults = async (sql: string) => {
@@ -2945,7 +2952,7 @@ class Model<
 
           const endTime = +new Date();
 
-          this.$utils.consoleDebug(sql, retry);
+          this.$utils.consoleDebug(sql, retry, node);
 
           this.$utils.consoleExec(startTime, endTime);
 
@@ -2977,7 +2984,7 @@ class Model<
       
       const retryCount = Number(this.$state.get("RETRY"));
 
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry);
+      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry, node);
 
       if (this.$state.get("JOIN")?.length) throw error;
 
