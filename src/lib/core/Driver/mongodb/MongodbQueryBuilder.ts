@@ -677,6 +677,11 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return ''
   }
 
+  public deleteSession  (name : string) {
+    throw new Error("Method not implemented.")
+    return ''
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

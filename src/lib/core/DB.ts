@@ -1311,7 +1311,6 @@ class DB extends AbstractDB {
     }
     
     const self = this;
-   
     const qb   = this._queryBuilder();
 
     return {
@@ -1327,15 +1326,28 @@ class DB extends AbstractDB {
           return null;
         }
 
-        return raw[0][name] ?? null;
+        const session = (raw[0][name] ?? null) as string | null;
+
+        return session === '' ? null : session;
       },
+
       async set (name: string , value : string) {
         if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
           throw new Error(`Invalid session variable name: ${name}`);
         }
         await self.query(qb.setSession(self.escape(name), self.escape(value)));
         return;
-      }
+      },
+
+      async delete (name : string) {
+
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+          throw new Error(`Invalid session variable name: ${name}`);
+        }
+
+        await self.query(qb.deleteSession(self.escape(name)));
+        return;
+      },
     }
   }
 

@@ -916,6 +916,13 @@ export class SqliteQueryBuilder extends QueryBuilder {
     `)
   }
 
+  public deleteSession  (name : string) {
+    return this.format(`
+      DELETE FROM ${this.tableSession()}
+      WHERE key = '${name}'
+    `);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

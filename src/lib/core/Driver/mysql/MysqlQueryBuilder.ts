@@ -879,6 +879,10 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(`SET ${this.nameSession(name)} = '${value}'`);
   }
 
+  public deleteSession  (name : string) {
+    return this.format(`SET ${this.nameSession(name)} = NULL`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

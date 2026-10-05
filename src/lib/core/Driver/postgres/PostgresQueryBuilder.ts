@@ -1166,6 +1166,10 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(`SET ${this.nameSession(name)} = '${value}'`);
   }
 
+  public deleteSession  (name : string) {
+    return this.format(`RESET ${this.nameSession(name)}`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 
