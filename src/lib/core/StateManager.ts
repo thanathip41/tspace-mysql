@@ -46,7 +46,8 @@ const STATE_DEFAULT = {
     skipLocked : false as boolean | null,
     nowait : false as boolean | null
   },
-  NODE : null as { type : 'primary' | 'replica' , node?: number  } | null
+  NODE : null as { type : 'primary' | 'replica' , node?: number  } | null,
+  BIND : null as boolean | null 
 } as const
 
 const STATE_DB = {

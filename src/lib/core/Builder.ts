@@ -106,6 +106,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       throw new Error('.useNode() is only available in cluster mode');
     }
 
+    if(this.$state.get('BIND')) {
+      throw new Error('.useNode() and .bind() cannot be used together');
+    }
+
     if (type === 'primary' && options.node !== undefined) {
       throw new Error('The primary node cannot be specified');
     }
@@ -3606,8 +3610,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       ...others,
     });
 
+    this.$state.set('BIND', true);
     this.$pool.set(pool.connect());
-
+    
     return this;
   }
 
@@ -3649,7 +3654,15 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {this} this
    */
   public bind(connection: TPoolConnected | TConnectionTransaction): this {
+
+    if(this.$state.get('NODE')) {
+      throw new Error('.useNode() and .bind() cannot be used together');
+    }
+
+    this.$state.set('BIND', true);
+
     this.$pool.set(connection);
+
     return this;
   }
 
