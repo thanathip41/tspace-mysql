@@ -355,6 +355,61 @@ class Model<
 
   /**
    *
+   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @static
+   * @type     {?object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {?string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {AsyncGenerator<T>}
+   *
+   * @example
+   * import { User } from '../Models/User'
+   *
+   * const stream = User.stream({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   * 
+   * for await (const user of stream) console.log(user);
+   *
+   */
+  static async *stream<
+    Self extends Model,
+    M  extends Model= Self,
+    S  extends T.SelectOptions<M>   | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E  extends T.ExceptOptions<M>   | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    this: new () => Self,
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>>  {
+    yield* Repository<M>(this as any).stream(options);
+  }
+
+  /**
+   *
    * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
@@ -6812,7 +6867,7 @@ class Model<
   public async *stream<K>(): AsyncGenerator<T.Result<this, K>> {
 
     if(this.$state.get('VOID')) {
-      yield* []
+      return yield* [];
     }
 
     const sql = this.toString();
@@ -6830,10 +6885,10 @@ class Model<
 
       this.$utils.consoleExec(startTime, endTime);
 
-      yield* results;
+      return yield* results;
     }
     
-    yield* await this.$pool.stream(sql);
+    return yield* await this.$pool.stream(sql);
   }
 
   /**

@@ -4425,7 +4425,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   public async *stream(): AsyncGenerator<any> {
 
     if(this.$state.get('VOID')) {
-      yield* []
+      return yield* []
     }
 
     const sql = this.toString();
@@ -4441,10 +4441,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
       this.$utils.consoleExec(startTime, endTime);
 
-      yield* results;
+      return yield* results;
     }
     
-    yield* await this.$pool.stream(sql);
+    return yield* await this.$pool.stream(sql);
   }
 
   /**

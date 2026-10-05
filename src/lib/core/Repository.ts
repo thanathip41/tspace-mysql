@@ -188,6 +188,67 @@ class RepositoryFactory<
 
   /**
    *
+   * The 'stream' method is used to executes a SQL statement and asynchronously yields result rows.
+   *
+   * It allows you to retrieve a single record from a database table that meets the specified criteria.
+   * @type     {?Object}  options
+   * @property {?object} options.select
+   * @property {?object} options.except
+   * @property {?object[]} options.orderBy
+   * @property {?string[]} options.groupBy
+   * @property {?string} options.having
+   * @property {?number} options.limit
+   * @property {?number} options.offset
+   * @property {?object} options.where
+   * @property {?string[]} options.whereRaw
+   * @property {?object} options.whereQuery
+   * @property {?{condition,callback}} options.when
+   * @property {?{localKey , referenceKey}[]} options.join
+   * @property {?{localKey , referenceKey}[]} options.rightJoin
+   * @property {?{localKey , referenceKey}[]} options.leftJoin
+   * @property {string[]} options.relations
+   * @property {string[]} options.relationExists
+   * @property {?{condition,callback}} options.relationQuery
+   * @property {?boolean} options.debug
+   * @returns {AsyncGenerator<T>}
+   *
+   * @example
+   * import { Repository } from 'tspace-mysql'
+   * import { User } from '../Models/User'
+   *
+   * const userRepository =  Repository(User)
+   *
+   *  const stream = userRepository.stream({
+   *       select : { id: true, name: true },
+   *       where : {
+   *           id: 1
+   *       }
+   *   })
+   * 
+   * for await (const user of stream) console.log(user);
+   *
+   */
+  async *stream<
+    S extends T.SelectOptions<M> | undefined = undefined,
+    SR extends T.RelationOptions<M> | undefined = undefined,
+    E extends T.ExceptOptions<M> | undefined = undefined,
+    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
+    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
+  >(
+    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
+  ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>> {
+    const instance = this._handlerRequest(options);
+
+    if (instance == null) {
+      throw new Error("The instance is not initialized");
+    }
+
+    yield* instance.stream() as AsyncIterable<
+      T.ResultFiltered<M, S, SR, E, SRS, G>
+    >;
+  }
+  /**
+   *
    * The 'paginate' method is used to perform pagination on a set of database query results obtained through the Query Builder.
    *
    * It allows you to split a large set of query results into smaller, more manageable pages,
