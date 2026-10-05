@@ -662,6 +662,21 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return '';
   }
 
+  public nameSession (name : string) {
+    throw new Error("Method not implemented.");
+    return ''
+  }
+
+  public getSession  (name : string) {
+    throw new Error("Method not implemented.");
+    return ''
+  }
+
+  public setSession  (name : string , value : string) {
+    throw new Error("Method not implemented.");
+    return ''
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

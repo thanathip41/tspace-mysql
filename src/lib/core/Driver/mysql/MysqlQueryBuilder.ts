@@ -867,6 +867,18 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(`EXPLAIN (${sql})`);
   }
 
+  public nameSession (name : string) {
+    return this.format(`@${name}`);
+  }
+
+  public getSession  (name : string) {
+    return this.format(`SELECT ${this.nameSession(name)} AS ${name}`);
+  }
+
+  public setSession  (name : string , value : string) {
+    return this.format(`SET ${this.nameSession(name)} = '${value}'`);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

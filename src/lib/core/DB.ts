@@ -64,7 +64,7 @@ class DB extends AbstractDB {
   /**
    * The 'initialize' method is used to initialize the database,
    * and check if it is connected properly.
-   *
+   * 
    * @returns {promise<void>}
    */
   public static async initialize(): Promise<void> {
@@ -248,6 +248,8 @@ class DB extends AbstractDB {
   
   /**
    * The 'from' method is used to define the from table name.
+   * 
+   * @static
    * @param {string} table table name
    * @returns {this} this
    */
@@ -257,6 +259,8 @@ class DB extends AbstractDB {
 
   /**
    * The 'table' method is used to define the table name.
+   * 
+   * @static
    * @param   {string} table table name
    * @returns {DB} DB
    */
@@ -267,12 +271,23 @@ class DB extends AbstractDB {
   /**
    * The 'alias' method is used to set the table name.
    *
+   * @static
    * @param   {string} sql raw sql from make a new alias for this table
    * @param   {string} alias alias name
    * @returns {DB} DB
    */
   public static alias(sql: string, alias: string): DB {
     return new this().alias(sql, alias);
+  }
+
+  /**
+   * 
+   * @static
+   * @override
+   * @returns {this} this
+   */
+  public static dd(): DB {
+    return new this().dd();
   }
 
   /**
@@ -308,6 +323,7 @@ class DB extends AbstractDB {
 
   /**
    * The 'jsonObject' method is used to specify select data to JSON objects.
+   * 
    * @static
    * @param {string} object table name
    * @param {string} alias
@@ -319,6 +335,7 @@ class DB extends AbstractDB {
 
   /**
    * The 'JSONObject' method is used to specify select data to JSON objects.
+   * 
    * @param {string} object table name
    * @param {string} alias
    * @returns {string} string
@@ -329,6 +346,7 @@ class DB extends AbstractDB {
 
   /**
    * The 'JSONObject' method is used to specify select data to JSON objects.
+   * 
    * @static
    * @param {string} object table name
    * @param {string} alias
@@ -349,6 +367,7 @@ class DB extends AbstractDB {
 
   /**
    * The 'constants' method is used to return constants with key or none in 'DB' or 'Model'.
+   * 
    * @static
    * @param {string} key
    * @returns {string | object} string || object
@@ -394,6 +413,7 @@ class DB extends AbstractDB {
 
   /**
    * select by cases
+   * 
    * @static
    * @param {arrayObject} cases array object {when , then }
    * @param {string?} final else condition
@@ -465,6 +485,8 @@ class DB extends AbstractDB {
 
   /**
    * The 'escape' methid is used to escaping SQL injections.
+   * 
+   * @static
    * @returns {string} string
    */
   public static escape(value: string): string {
@@ -481,6 +503,8 @@ class DB extends AbstractDB {
 
   /**
    * The 'escapeXSS' methid is used to escaping XSS characters.
+   * 
+   * @static
    * @returns {string} string
    */
   public static escapeXSS(value: string): string {
@@ -668,7 +692,7 @@ class DB extends AbstractDB {
   }
 
   /**
-   * Execute a database transaction.
+   * The 'transaction' is a method used to Execute a database transaction.
    *
    * This method will:
    * - Acquire a connection from the pool
@@ -699,7 +723,7 @@ class DB extends AbstractDB {
   }
 
    /**
-   * Execute a database transaction.
+   * The 'transaction' is a method used to Execute a database transaction.
    *
    * This method will:
    * - Acquire a connection from the pool
@@ -708,6 +732,7 @@ class DB extends AbstractDB {
    * - Commit if successful
    * - Rollback if any error occurs
    *
+   * @static
    * @template T
    * @param {(conn: TConnectionTransaction) => Promise<T>} handler - Async function that receives the transaction connection.
    * All queries inside this handler MUST use the provided `conn` instance.
@@ -734,7 +759,8 @@ class DB extends AbstractDB {
 
   /**
    * The 'getActiveConnections' method is used to return active connections
-   *
+   * 
+   * @static
    * @returns {Promise<number>} this
    */
   public static async getActiveConnections () : Promise<number> {
@@ -756,6 +782,7 @@ class DB extends AbstractDB {
   /**
    * The 'getMaxConnections' method is used to return max connections
    *
+   * @static
    * @returns {Promise<number>} this
    */
   public static async getMaxConnections () : Promise<number> {
@@ -918,6 +945,7 @@ class DB extends AbstractDB {
    * This'clone' method is used to clone the current database into a new database
    * on the same server or another server.
    *
+   * @static
    * @property {string} database - Target database name.
    * @property {string[]} excludes - Tables to exclude from the clone.
    * @property {object} to - Target server connection.
@@ -1229,6 +1257,8 @@ class DB extends AbstractDB {
 
   /**
    * This 'dump' method is used to Dumps a database into a SQL file
+   * 
+   * @static
    * @type {Object}  opt
    * @property {string?} opt.database
    * @property {string} opt.filePath
@@ -1249,6 +1279,93 @@ class DB extends AbstractDB {
     };
 
     return new this().dump({ filePath, database, only , value });
+  }
+
+  /**
+   * This 'session' method is used to manage database session variables.
+   *
+   * Provides methods to get and set session variables for the current
+   * database connection.
+   *
+   * Supported drivers:
+   * - MySQL
+   * - MariaDB
+   * - PostgreSQL
+   * - SQLite
+   *
+   * MongoDB is not supported.
+   *
+   * @example
+   * ```ts
+   * await DB.session().set('db', 'primary');
+   *
+   * const value = await db.session().get('db');
+   * console.log(value) // primary
+   * 
+   * ```
+   */
+  public session () {
+
+    if(this.driver() === 'mongodb') {
+      throw new Error('Session is not supported for MongoDB. Use a different driver or disable sessions features.');
+    }
+    
+    const self = this;
+   
+    const qb   = this._queryBuilder();
+
+    return {
+      async get (name : string) {
+
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+          throw new Error(`Invalid session variable name: ${name}`);
+        }
+
+        const raw = await self.query(qb.getSession(self.escape(name)));
+
+        if (!Array.isArray(raw) || !raw[0]) {
+          return null;
+        }
+
+        return raw[0][name] ?? null;
+      },
+      async set (name: string , value : string) {
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+          throw new Error(`Invalid session variable name: ${name}`);
+        }
+        await self.query(qb.setSession(self.escape(name), self.escape(value)));
+        return;
+      }
+    }
+  }
+
+  /**
+   * This 'session' method is used to manage database session variables.
+   *
+   * Provides methods to get and set session variables for the current
+   * database connection.
+   *
+   * Supported drivers:
+   * - MySQL
+   * - MariaDB
+   * - PostgreSQL
+   * - SQLite
+   *
+   * MongoDB is not supported.
+   *
+   * @static
+   * 
+   * @example
+   * ```ts
+   * await DB.session().set('db', 'primary');
+   *
+   * const value = await db.session().get('db');
+   * console.log(value) // primary
+   * 
+   * ```
+   */
+  public static session () {
+    return new this().session();
   }
 
   private _initialDB() {

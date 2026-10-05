@@ -889,6 +889,33 @@ export class SqliteQueryBuilder extends QueryBuilder {
     return this.format(`EXPLAIN QUERY PLAN ${sql}`);
   }
 
+  protected tableSession () {
+    return '_sessions';
+  }
+
+  public nameSession (name : string) {
+    return `${name}`;
+  }
+
+  public getSession  (name : string) {
+    return this.format(`
+      SELECT value AS ${this.nameSession(name)} 
+      FROM ${this.tableSession()}
+      WHERE key = '${this.nameSession(name)}'
+    `)
+  }
+
+  public setSession  (name : string , value : string) {
+    return this.format(`
+      CREATE TABLE IF NOT EXISTS ${this.tableSession()} (
+          key TEXT PRIMARY KEY,
+          value TEXT
+      ); 
+      INSERT OR REPLACE INTO ${this.tableSession()} (key, value)
+        VALUES ('${this.nameSession(name)}', '${value}')
+    `)
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

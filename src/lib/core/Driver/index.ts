@@ -417,6 +417,10 @@ export abstract class QueryBuilder {
 
   public abstract explain (sql : string) : string;
 
+  public abstract nameSession (name : string) : string;
+  public abstract getSession  (name : string) : string;
+  public abstract setSession  (name : string , value: string) : string;
+
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
   protected abstract bindOrderBy(values: string[]): string | null;
