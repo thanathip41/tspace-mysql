@@ -5839,30 +5839,29 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
             const node = this.$state.get('NODE');
 
-            if(node) {
-              if(node.type === 'primary') {
-                this.useNode('primary');
-                return poolCluster.primary.query(sql);
+            if(node?.type === 'primary') {
+              this.useNode('primary');
+              return poolCluster.primary.query(sql);
+            }
+
+            if (node?.type === 'replica') {
+              
+              const length = poolCluster.replicas.length;
+              const nodeIndex = node.node 
+              ? node.node - 1 
+              : Math.floor(Math.random() * length);
+              
+              const pool = poolCluster
+              .replicas[nodeIndex]
+
+              if(pool == null) {
+                throw new Error(`Replica node '${nodeIndex + 1}' not found`);
               }
 
-              if (node.type === 'replica') {
-                
-                const length = poolCluster.replicas.length;
-                const nodeIndex = node.node 
-                ? node.node - 1 
-                : Math.floor(Math.random() * length);
-                
-                const pool = poolCluster
-                .replicas[nodeIndex]
+              this.useNode('replica', { node: nodeIndex + 1 });
 
-                if(pool == null) {
-                  throw new Error(`Replica node '${nodeIndex + 1}' not found`);
-                }
-
-                this.useNode('replica', { node: nodeIndex + 1 });
-
-                return pool.query(sql);
-              }
+              return pool.query(sql);
+            
             }
 
             const first = sql
@@ -5914,6 +5913,14 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
             return poolCluster.primary.queryBuilder;
           },
           transaction : async () => {
+
+            // The .bind the cluster context to the query method, 
+            // Overriding only the local pool reference.
+            if(poolCluster.primary == null) {
+              const pool = poolCluster as unknown as TPoolConnected;
+              return  await pool.connection();
+            }
+
             const node = this.$state.get('NODE');
 
             if(node?.type === 'primary') {
@@ -5923,6 +5930,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
             if (node?.type === 'replica') {
               
               const length = poolCluster.replicas.length;
+
               const nodeIndex = node.node 
               ? node.node - 1 
               : Math.floor(Math.random() * length);
@@ -5936,6 +5944,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
               return await pool.connection();
             }
+
             return await poolCluster.primary.connection();
             
           },
@@ -5970,10 +5979,35 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
               return pool.stream(sql);
             }
 
-            const length = poolCluster.replicas.length ?? 0;
-            const nodeIndex = Math.floor(Math.random() * length);
+            const first = sql
+            .trim()
+            .split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+          
+            const isRowLock = Object.values(
+              this.$constants("ROW_LEVEL_LOCK")
+            ).some(lock => sql.toUpperCase().includes(lock));
 
-            return await poolCluster.replicas[nodeIndex].stream(sql);
+            // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
+            // so they are not considered read-only queries and should be handled as write/locking operations.
+            const isReaded = [
+              this.$constants("SELECT"),
+              this.$constants("SHOW"),
+              this.$constants("DESCRIBE")
+            ].includes(first) && !isRowLock;
+
+            if (isReaded) {
+              
+              const length = poolCluster.replicas.length ?? 0;
+              const nodeIndex = Math.floor(Math.random() * length);
+
+              this.useNode('replica', { node: nodeIndex + 1 });
+
+              return poolCluster.replicas[nodeIndex].stream(sql);
+            }
+
+            this.useNode('primary');
+
+            return poolCluster.primary.stream(sql);
           },
         };
       }
