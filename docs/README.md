@@ -196,7 +196,7 @@ To connect your application to a Cluster database, use the following configurati
 
 ```js
 // ----------------------------------------------------
-// example MariaDB Galera Cluster
+// @Example MariaDB Galera Cluster
 
 DB_DRIVER = mariadb
 DB_HOST = host-load-balncer ❌
@@ -208,19 +208,156 @@ DB_DATABASE = database
 
 ```js
 // ----------------------------------------------------
+// Configure multiple database nodes using comma-separated connection values.
+
 // MariaDB Galera Cluster
-// host1 -> Master node
-// host2, host3 -> slave nodes
-DB_CLUSTER = true
+// host1 → Primary node
+// host2 → Replica node 1
+// host3 → Replica node 2
 DB_DRIVER = mariadb
-DB_HOST = host1,host2,host3 ✅ // host1 still master by default
-// if you want to specific master or slave
-// master can be more than 1
-// DB_HOST = master@host1,slave@host2,slave@host3 
+// Host 1 remains the primary; hosts 2 and 3 are replicas.
+DB_HOST = host1,host2,host3 
 DB_PORT = 3306,3307,3308
 DB_USERNAME = root1,root2,root3
 DB_PASSWORD = password1,password2,password3
 DB_DATABASE = database
+```
+Example Flow
+
+```text
+              ┌─────────────────┐
+              │   Application   │
+              └────────┬────────┘
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+    WRITE → READ                  READ
+          │                         │
+          ▼                         ▼
+  ┌─────────────────┐       ┌─────────────────┐
+  │     host1       │       │ Random Replica  │
+  │     PRIMARY     │       │                 │
+  └─────────────────┘       └────────┬────────┘
+                                     │
+                              ┌──────┴──────┐
+                              ▼             ▼
+                      ┌────────────┐ ┌────────────┐
+                      │   host2    │ │   host3    │
+                      │  REPLICA 1 │ │  REPLICA 2 │
+                      └────────────┘ └────────────┘
+```
+Node Selection
+
+When no node is explicitly selected, the database automatically routes
+queries based on the action being performed.
+
+Write / Action Queries
+
+Queries that modify data are automatically sent to the primary node.
+```js
+await new DB('users')
+  .create({
+    name: 'John'
+  })
+  .save() // host1
+
+await new DB('users') 
+  .update({
+    name: 'John Doe'
+  })
+  .save() // host1
+
+await new DB('users')
+  .delete() // host1
+
+```
+Read / Select Queries
+
+Queries that only read data are automatically sent to a random replica node.
+```js
+await new DB('users')
+.findMany(); // host2, host3
+```
+Use the primary node explicitly:
+
+```js
+await new DB('users')
+.useNode('primary') // host1
+.findMany();
+
+```
+Use a random replica node:
+
+```js
+await new DB('users')
+.useNode('replica') // host2,host3
+.findMany();
+```
+Use a specific replica node:
+
+```js
+await new DB('users')
+  .useNode('replica', { node: 1 }) // host2
+  .findMany()
+
+await new DB('users')
+  .useNode('replica', { node: 2 }) // host3
+  .findMany()
+```
+Transactions are executed on the **primary node by default**, but you can use a replica node if needed.
+
+Use `.bind(trx)` to ensure queries are executed within the same transaction.
+```js
+await new DB()
+.useNode('primary') // Primary by default; replicas can also be selected.
+.transaction(async (trx) => {
+    await new User()
+    .create({
+      name: `tspace`,
+      email: "tspace@example.com",
+    })
+    .bind(trx) // Don't forget to bind the transaction
+    .save();
+  });
+```
+⚠️ Why .bind(trx) is required
+
+The transaction is associated with a specific database connection.
+Calling .bind(trx) ensures that the query uses the same connection and transaction context.
+
+Without .bind(trx), the query may use another connection and will not be part of the transaction.
+```js
+await new DB()
+.useNode('primary')
+.transaction(async (trx) => {
+  
+    const user = await new User()
+    .create({
+      name: `tspace`,
+      email: "tspace@example.com",
+    })
+    .bind(trx)
+    .save();
+  });
+
+  // ⚠️ Read operations use a random replica by default.
+  const findUser = await new User().where('id',user.id).findOne()
+  // May not be found because the query can be routed to 
+  // host2 or host3 before the replication has completed.
+
+  // How to Fix Read-After-Write
+  // If you need to read data immediately after a transaction, 
+  // there are two ways to ensure the read sees the latest data.
+  const fixed1 = await new User()
+   .bind(trx) // Uses the same transaction connection.
+   .where('id',user.id)
+   .findOne()
+
+  const fixed2 = await new User()
+   .useNode('primary') // Uses the same primary node selected for the transaction.
+   .where('id',user.id)
+   .findOne()
+
 ```
 
 <div class="page-nav-cards">

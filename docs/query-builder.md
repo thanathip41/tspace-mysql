@@ -149,6 +149,39 @@ while (true) {
   console.log(user);
 }
 ```
+## Session Statements
+
+```js
+  await new DB()
+  .session()
+  .set('db1','session-1');
+
+  const get = await new DB()
+  .session()
+  .get('db1');
+
+  console.log(get) // session-1
+
+  // When using a cluster, session variables belong to the selected node.
+  await new DB()
+  .useNode('replica', { node : 1 }) // write to node1
+  .session()
+  .set('node1','session-node-1');
+
+  const getNode1 = await new DB()
+  .useNode('replica', { node : 1 })
+  .session()
+  .get('node1');
+
+  const getNode2 = await new DB()
+  .useNode('replica', { node : 2 })
+  .session()
+  .get('node1');
+
+  console.log(getNode1) // session-node-1
+  console.log(getNode2) // null
+
+```
 
 ## Select Statements
 
