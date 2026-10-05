@@ -4423,25 +4423,28 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * ```
    */
   public async *stream(): AsyncGenerator<any> {
-    yield* await this.$pool.stream(this.toString());
-  }
 
-  /**
-   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   * The optional callback function can be used to modify the generated SQL query before execution.
-   *
-   * @param {Function?} cb callback function return query sql
-   * @returns {AsyncIterable<any>}
-   */
-  public async *toAsyncIterable(cb?: Function): AsyncIterable<any>  {
+    if(this.$state.get('VOID')) {
+      yield* []
+    }
 
-    if (this.$state.get("VOID")) return yield* [];
+    const sql = this.toString();
 
-    const results = await this.get(cb);
+    if (this.$state.get("DEBUG")) {
+      const startTime = +new Date();
+    
+      const results = await this.$pool.stream(sql);
 
-    return yield* results;
+      const endTime = +new Date();
+
+      this.$utils.consoleDebug(sql, false, this.$state.get("NODE"));
+
+      this.$utils.consoleExec(startTime, endTime);
+
+      yield* results;
+    }
+    
+    yield* await this.$pool.stream(sql);
   }
 
   /**

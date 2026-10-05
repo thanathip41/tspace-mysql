@@ -711,60 +711,6 @@ class Model<
   }
 
   /**
-   *
-   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   * The optional callback function can be used to modify the generated SQL query before execution.
-   * @static
-   * @type     {?object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {?string[]} options.relations
-   * @property {string[]} options.relationExists
-   * @property {?{condition,callback}} options.relationQuery
-   * @property {?boolean} options.debug
-   * @returns {promise<object>[]}
-   *
-   * @example
-   * import { User } from '../Models/User'
-   *
-   * const users = await User.findMany({
-   *       select : { id: true, name: true },
-   *       where : {
-   *           id: 1
-   *       }
-   *   })
-   *
-   */
-  static async *toAsyncIterable<
-    Self extends Model,
-    M  extends Model= Self,
-    S  extends T.SelectOptions<M>   | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
-    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
-  >(
-    this: new () => Self,
-    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
-  ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>> {
-    return yield* Repository<M>(this as any).toAsyncIterable(options);
-  }
-
-  /**
    * The 'count' method is used to retrieve the total number of records that match the specified query conditions.
    *
    * It returns an integer representing the count of records.
@@ -6578,21 +6524,6 @@ class Model<
   }
 
   /**
-   * 
-   * @override
-   * @param {Function?} cb callback function return query sql
-   * @returns {AsyncIterable<T.Result<this, K>>}
-   */
-  public async *toAsyncIterable<K>(cb?: Function): AsyncIterable<T.Result<this, K>> {
-    
-    if (this.$state.get("VOID")) return yield* [];
-
-    const results : any[]  = await this.get(cb);
-
-    return yield* results;
-  }
-
-  /**
    * @override
    * @param {string=} column [column=id]
    * @returns {promise<Array>}
@@ -6879,7 +6810,30 @@ class Model<
    * ```
    */
   public async *stream<K>(): AsyncGenerator<T.Result<this, K>> {
-    yield* await this.$pool.stream(this.toString());
+
+    if(this.$state.get('VOID')) {
+      yield* []
+    }
+
+    const sql = this.toString();
+
+    if (this.$state.get("DEBUG")) {
+      const startTime = +new Date();
+    
+      const results = await this.$pool.stream(sql);
+
+      const endTime = +new Date();
+
+      this.$utils.consoleDebug(sql, false, this.$state.get("NODE"));
+
+      this.$state.set("QUERIES", [...this.$state.get("QUERIES"), sql]);
+
+      this.$utils.consoleExec(startTime, endTime);
+
+      yield* results;
+    }
+    
+    yield* await this.$pool.stream(sql);
   }
 
   /**

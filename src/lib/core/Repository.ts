@@ -543,69 +543,6 @@ class RepositoryFactory<
   }
 
   /**
-   *
-   * The 'toAsyncIterable' method is used to execute a database query and return the result set as an asynchronous iterable.
-   *
-   * It retrieves multiple records from a database table based on the criteria specified in the query.
-   * The optional callback function can be used to modify the generated SQL query before execution.
-   * @type     {?Object}  options
-   * @property {?object} options.select
-   * @property {?object} options.except
-   * @property {?object[]} options.orderBy
-   * @property {?string[]} options.groupBy
-   * @property {?string} options.having
-   * @property {?number} options.limit
-   * @property {?number} options.offset
-   * @property {?object} options.where
-   * @property {?string[]} options.whereRaw
-   * @property {?object} options.whereQuery
-   * @property {?{condition,callback}} options.when
-   * @property {?{localKey , referenceKey}[]} options.join
-   * @property {?{localKey , referenceKey}[]} options.rightJoin
-   * @property {?{localKey , referenceKey}[]} options.leftJoin
-   * @property {string[]} options.relations
-   * @property {string[]} options.relationExists
-   * @property {?{condition,callback}} options.relationQuery
-   * @property {?boolean} options.debug
-   * @returns {promise<Object>[]}
-   *
-   * @example
-   * import { Repository } from 'tspace-mysql'
-   * import { User } from '../Models/User'
-   *
-   * const userRepository =  Repository(User)
-   *
-   *  const users = await userRepository.toAsyncIterable({
-   *       select : { id: true, name: true },
-   *       where : {
-   *           id: 1
-   *       }
-   *   })
-   * 
-   *   await for(const user of users()) {
-   *     console.log(user);
-   *   }
-   *
-   */
-  async *toAsyncIterable<
-    S  extends T.SelectOptions<M>   | undefined = undefined,
-    SR extends T.RelationOptions<M> | undefined = undefined,
-    E  extends T.ExceptOptions<M>   | undefined = undefined,
-    SRS extends Record<string, TRawStringQuery> | undefined = undefined,
-    G extends Record<string, T.RepositoryGenericTypeOptions> | undefined = {}
-  >(
-    options: T.RepositoryOptions<M, S, SR, E, SRS, G> = {}
-  ): AsyncIterable<T.ResultFiltered<M, S, SR, E, SRS, G>> {
-    const instance = this._handlerRequest(options);
-
-    if (instance == null) throw new Error("The instance is not initialized");
-
-    const results : any[] = await instance.get();
-
-    return yield* results;
-  }
-
-  /**
    * The 'count' method is used to retrieve the total number of records that match the specified query conditions.
    *
    * It returns an integer representing the count of records.
