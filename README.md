@@ -724,6 +724,10 @@ while (true) {
 
   console.log(get) // session-1
 
+  await new DB()
+  .session()
+  .delete('db1');
+
   // When using a cluster, session variables belong to the selected node.
   await new DB()
   .useNode('replica', { node : 1 }) // write to node1
