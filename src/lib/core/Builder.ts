@@ -30,7 +30,7 @@ import type {
 class Builder<TA extends TAction = null> extends AbstractBuilder {
   constructor() {
     super();
-    this._initialConnection();
+    this._initBuilder();
   }
 
   /**
@@ -5810,239 +5810,243 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     return this;
   }
 
-  private _initialConnection() {
-    this.$utils = utils;
+  private _initClusterPool() {
 
-    this.$pool = (() => {
-     
-      if (this.$cluster) {
-        let poolCluster = Pool.clusterConnect();
-       
-        if (poolCluster == null) {
-          throw new Error(
-            "Cluster connection has not been initialized. Please verify your confings"
-          );
+    let poolCluster = Pool.clusterConnect();
+    
+    if (poolCluster == null) {
+      throw new Error(
+        "Cluster connection has not been initialized. Please verify your confings"
+      );
+    }
+
+    return {
+      query: async (sql: string) => {
+        // The .bind the cluster context to the query method, 
+        // Overriding only the local pool reference.
+        if(poolCluster.primary == null) {
+          const pool = poolCluster as unknown as TPoolConnected;
+
+          // Reset the node state when the primary node is unavailable,
+          // since it may have been set by the client.
+          this.$state.set('NODE', null);
+          return pool!.query(sql);
         }
 
-        return {
-          query: async (sql: string) => {
-            // The .bind the cluster context to the query method, 
-            // Overriding only the local pool reference.
-            if(poolCluster.primary == null) {
-              const pool = poolCluster as unknown as TPoolConnected;
+        const node = this.$state.get('NODE');
 
-              // Reset the node state when the primary node is unavailable,
-              // since it may have been set by the client.
-              this.$state.set('NODE', null);
-              return pool!.query(sql);
-            }
+        if(node?.type === 'primary') {
+          this.useNode('primary');
+          return poolCluster.primary.query(sql);
+        }
 
-            const node = this.$state.get('NODE');
-
-            if(node?.type === 'primary') {
-              this.useNode('primary');
-              return poolCluster.primary.query(sql);
-            }
-
-            if (node?.type === 'replica') {
-              
-              const length = poolCluster.replicas.length;
-              const nodeIndex = node.node 
-              ? node.node - 1 
-              : Math.floor(Math.random() * length);
-              
-              const pool = poolCluster
-              .replicas[nodeIndex]
-
-              if(pool == null) {
-                throw new Error(`Replica node '${nodeIndex + 1}' not found`);
-              }
-
-              this.useNode('replica', { node: nodeIndex + 1 });
-
-              return pool.query(sql);
-            
-            }
-
-            const first = sql
-            .trim()
-            .split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+        if (node?.type === 'replica') {
           
-            const isRowLock = Object.values(
-              this.$constants("ROW_LEVEL_LOCK")
-            ).some(lock => sql.toUpperCase().includes(lock));
-
-            // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
-            // so they are not considered read-only queries and should be handled as write/locking operations.
-            const isReaded = [
-              this.$constants("SELECT"),
-              this.$constants("SHOW"),
-              this.$constants("DESCRIBE")
-            ].includes(first) && !isRowLock;
-
-            if (isReaded) {
-              
-              const length = poolCluster.replicas.length ?? 0;
-              const nodeIndex = Math.floor(Math.random() * length);
-
-              this.useNode('replica', { node: nodeIndex + 1 });
-
-              return poolCluster.replicas[nodeIndex].query(sql);
-            }
-
-            this.useNode('primary');
-
-            return poolCluster.primary.query(sql);
-          },
-          get: () => poolCluster,
-          set: (conn: TPoolCusterConnected) => {
-            if (conn.database != null) {
-              this.$database = conn.database();
-            }
-            poolCluster = conn;
-            return;
-          },
-          queryBuilder: () => {
-            // The .bind the cluster context to the query method, 
-            // Overriding only the local pool reference.
-            if(poolCluster.primary == null) {
-              const pool = poolCluster as unknown as TPoolConnected;
-              return pool.queryBuilder;
-            }
-
-            return poolCluster.primary.queryBuilder;
-          },
-          transaction : async () => {
-
-            // The .bind the cluster context to the query method, 
-            // Overriding only the local pool reference.
-            if(poolCluster.primary == null) {
-              const pool = poolCluster as unknown as TPoolConnected;
-              return  await pool.connection();
-            }
-
-            const node = this.$state.get('NODE');
-
-            if(node?.type === 'primary') {
-              return await poolCluster.primary.connection();
-            }
-
-            if (node?.type === 'replica') {
-              
-              const length = poolCluster.replicas.length;
-
-              const nodeIndex = node.node 
-              ? node.node - 1 
-              : Math.floor(Math.random() * length);
-
-              const pool = poolCluster
-              .replicas[nodeIndex]
-
-              if(pool == null) {
-                throw new Error(`Replica node '${nodeIndex + 1}' not found`);
-              }
-
-              return await pool.connection();
-            }
-
-            return await poolCluster.primary.connection();
-            
-          },
-          stream : async (sql: string) => {
-
-            // The .bind the cluster context to the query method, 
-            // Overriding only the local pool reference.
-            if(poolCluster.primary == null) {
-              const pool = poolCluster as unknown as TPoolConnected;
-              return pool.stream(sql);
-            }
-
-            const node = this.$state.get('NODE');
-
-            if(node?.type === 'primary') {
-              return poolCluster.primary.stream(sql);
-            }
-
-            if (node?.type === 'replica') {
-              const length = poolCluster.replicas.length;
-              const nodeIndex = node.node 
-              ? node.node - 1 
-              : Math.floor(Math.random() * length);
-
-              const pool = poolCluster
-              .replicas[nodeIndex]
-
-              if(pool == null) {
-                throw new Error(`Replica node '${nodeIndex + 1}' not found`);
-              }
-
-              return pool.stream(sql);
-            }
-
-            const first = sql
-            .trim()
-            .split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+          const length = poolCluster.replicas.length;
+          const nodeIndex = node.node 
+          ? node.node - 1 
+          : Math.floor(Math.random() * length);
           
-            const isRowLock = Object.values(
-              this.$constants("ROW_LEVEL_LOCK")
-            ).some(lock => sql.toUpperCase().includes(lock));
+          const pool = poolCluster
+          .replicas[nodeIndex]
 
-            // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
-            // so they are not considered read-only queries and should be handled as write/locking operations.
-            const isReaded = [
-              this.$constants("SELECT"),
-              this.$constants("SHOW"),
-              this.$constants("DESCRIBE")
-            ].includes(first) && !isRowLock;
+          if(pool == null) {
+            throw new Error(`Replica node '${nodeIndex + 1}' not found`);
+          }
 
-            if (isReaded) {
-              
-              const length = poolCluster.replicas.length ?? 0;
-              const nodeIndex = Math.floor(Math.random() * length);
+          this.useNode('replica', { node: nodeIndex + 1 });
 
-              this.useNode('replica', { node: nodeIndex + 1 });
+          return pool.query(sql);
+        
+        }
 
-              return poolCluster.replicas[nodeIndex].stream(sql);
-            }
+        const first = sql
+        .trim()
+        .split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+      
+        const isRowLock = Object.values(
+          this.$constants("ROW_LEVEL_LOCK")
+        ).some(lock => sql.toUpperCase().includes(lock));
 
-            this.useNode('primary');
+        // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
+        // so they are not considered read-only queries and should be handled as write/locking operations.
+        const isReaded = [
+          this.$constants("SELECT"),
+          this.$constants("SHOW"),
+          this.$constants("DESCRIBE")
+        ].includes(first) && !isRowLock;
 
-            return poolCluster.primary.stream(sql);
-          },
-        };
+        if (isReaded) {
+          
+          const length = poolCluster.replicas.length ?? 0;
+          const nodeIndex = Math.floor(Math.random() * length);
+
+          this.useNode('replica', { node: nodeIndex + 1 });
+
+          return poolCluster.replicas[nodeIndex].query(sql);
+        }
+
+        this.useNode('primary');
+
+        return poolCluster.primary.query(sql);
+      },
+      get: () => poolCluster,
+      set: (conn: TPoolCusterConnected) => {
+        if (conn.database != null) {
+          this.$database = conn.database();
+        }
+        poolCluster = conn;
+        return;
+      },
+      queryBuilder: () => {
+        // The .bind the cluster context to the query method, 
+        // Overriding only the local pool reference.
+        if(poolCluster.primary == null) {
+          const pool = poolCluster as unknown as TPoolConnected;
+          return pool.queryBuilder;
+        }
+
+        return poolCluster.primary.queryBuilder;
+      },
+      transaction : async () => {
+
+        // The .bind the cluster context to the query method, 
+        // Overriding only the local pool reference.
+        if(poolCluster.primary == null) {
+          const pool = poolCluster as unknown as TPoolConnected;
+          return  await pool.connection();
+        }
+
+        const node = this.$state.get('NODE');
+
+        if(node?.type === 'primary') {
+          return await poolCluster.primary.connection();
+        }
+
+        if (node?.type === 'replica') {
+          
+          const length = poolCluster.replicas.length;
+
+          const nodeIndex = node.node 
+          ? node.node - 1 
+          : Math.floor(Math.random() * length);
+
+          const pool = poolCluster
+          .replicas[nodeIndex]
+
+          if(pool == null) {
+            throw new Error(`Replica node '${nodeIndex + 1}' not found`);
+          }
+
+          return await pool.connection();
+        }
+
+        return await poolCluster.primary.connection();
+        
+      },
+      stream : async (sql: string) => {
+
+        // The .bind the cluster context to the query method, 
+        // Overriding only the local pool reference.
+        if(poolCluster.primary == null) {
+          const pool = poolCluster as unknown as TPoolConnected;
+          return pool.stream(sql);
+        }
+
+        const node = this.$state.get('NODE');
+
+        if(node?.type === 'primary') {
+          return poolCluster.primary.stream(sql);
+        }
+
+        if (node?.type === 'replica') {
+          const length = poolCluster.replicas.length;
+          const nodeIndex = node.node 
+          ? node.node - 1 
+          : Math.floor(Math.random() * length);
+
+          const pool = poolCluster
+          .replicas[nodeIndex]
+
+          if(pool == null) {
+            throw new Error(`Replica node '${nodeIndex + 1}' not found`);
+          }
+
+          return pool.stream(sql);
+        }
+
+        const first = sql
+        .trim()
+        .split(/\s+/)[0].toUpperCase() as "SELECT" | "SHOW" | "DESCRIBE"
+      
+        const isRowLock = Object.values(
+          this.$constants("ROW_LEVEL_LOCK")
+        ).some(lock => sql.toUpperCase().includes(lock));
+
+        // Row-level locked SELECTs (e.g. FOR UPDATE, FOR SHARE) acquire database locks,
+        // so they are not considered read-only queries and should be handled as write/locking operations.
+        const isReaded = [
+          this.$constants("SELECT"),
+          this.$constants("SHOW"),
+          this.$constants("DESCRIBE")
+        ].includes(first) && !isRowLock;
+
+        if (isReaded) {
+          
+          const length = poolCluster.replicas.length ?? 0;
+          const nodeIndex = Math.floor(Math.random() * length);
+
+          this.useNode('replica', { node: nodeIndex + 1 });
+
+          return poolCluster.replicas[nodeIndex].stream(sql);
+        }
+
+        this.useNode('primary');
+
+        return poolCluster.primary.stream(sql);
+      },
+    };
+  }
+
+  private _initSinglePool() {
+    let pool = Pool.connect();
+   
+    return {
+      transaction : async () => {
+        return await pool.connection()
+      },
+      query: async (sql: string) => {
+        return pool.query(sql);
+      },
+      get: () => pool,
+      set: (conn: TPoolConnected) => {
+        if (conn.database != null) {
+          this.$database = conn.database();
+        }
+        pool = conn;
+        return;
+      },
+      queryBuilder: () => pool.queryBuilder,
+      stream : async (sql: string) => {
+        return await pool.stream(sql);
+      },
+    };
+  }
+
+  private _initPool () {
+    return this.$cluster
+    ? this._initClusterPool()
+    : this._initSinglePool();
+  }
+
+  private _initConstants() {
+    return ((name?: keyof TConstant) => {
+      if (name == null) {
+        return CONSTANTS;
       }
 
-      let pool = Pool.connect();
-
-      return {
-        transaction : async () => {
-          return await pool.connection()
-        },
-        query: async (sql: string) => {
-          return pool.query(sql);
-        },
-        get: () => pool,
-        set: (conn: TPoolConnected) => {
-          if (conn.database != null) {
-            this.$database = conn.database();
-          }
-          pool = conn;
-          return;
-        },
-        queryBuilder: () => pool.queryBuilder,
-        stream : async (sql: string) => {
-          return await pool.stream(sql);
-        },
-      };
-    })();
-
-    this.$state = new StateManager("default");
-
-    this.$constants = ((name?: keyof TConstant) => {
-      if (name == null) return CONSTANTS;
-
       if (!Object.prototype.hasOwnProperty.call(CONSTANTS, name)) {
-        throw new Error(`Not found that constant : '${String(name)}'`);
+        throw new Error(`Constant not found: '${String(name)}'`);
       }
 
       return CONSTANTS[name];
@@ -6050,6 +6054,16 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       (): Readonly<TConstant>;
       <K extends keyof TConstant>(name: K): Readonly<TConstant>[K];
     };
+  }
+
+  private _initBuilder() {
+    this.$utils = utils;
+
+    this.$pool = this._initPool();
+
+    this.$state = new StateManager("default");
+
+    this.$constants = this._initConstants();
     
   }
 }
