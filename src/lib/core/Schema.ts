@@ -157,6 +157,7 @@ class Schema {
       foreign = false,
       changed = false,
       index = false,
+      unique = false
     }
   ): Promise<void> {
     const directories = Package.fs.readdirSync(pathFolders, {
@@ -168,7 +169,8 @@ class Schema {
       log, 
       foreign, 
       changed, 
-      index
+      index,
+      unique
     }
 
     const files: any[] = await Promise.all(
@@ -617,6 +619,7 @@ class Schema {
     foreign,
     changed,
     index,
+    unique,
   }: {
     models: (Model<any,any,any> | null)[];
     force   : boolean; // forece will sync table & missing column
@@ -624,6 +627,7 @@ class Schema {
     foreign : boolean;
     changed : boolean;
     index   : boolean;
+    unique  : boolean;
   }) {
     
     const query = this.$db["_queryBuilder"]() as QueryBuilder;
@@ -681,6 +685,14 @@ class Schema {
 
       if (index) {
         await this._syncIndex({
+          schemaModel,
+          model,
+          log,
+        });
+      }
+
+      if(unique) {
+          await this._syncUnique({
           schemaModel,
           model,
           log,
@@ -1010,6 +1022,155 @@ class Schema {
           .catch((err) => {
             console.log(
               `\x1b[31mERROR: Failed to craete index key '${index}' with name ${comebindKey} caused by '${err.message}'\x1b[0m`
+            );
+          });
+      }
+    }
+
+    for (const key in schemaModel) {
+      const compositeUnique = schemaModel[key]?.compositeUniqueKey;
+
+      if (compositeUnique == null) continue;
+
+      const table = model.getTableName();
+
+      const comebindKey = [key,...compositeUnique.columns]
+
+      const unique = compositeUnique.name == "" ? `uq_${table}(${comebindKey})` : compositeUnique .name;
+
+      const query = model["_queryBuilder"]() as QueryBuilder;
+
+      try {
+        const UNIQUE = await this.$db.debug(log)
+        .hasUnique({
+          table: table,
+          name: unique,
+        });
+
+        if (UNIQUE) continue;
+
+        await this.$db.debug(log).rawQuery(
+          query.addUnique({
+            table: table,
+            name: unique,
+            columns: comebindKey,
+          })
+        );
+      } catch (err: any) {
+        
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.createTable({
+              database: this.$db.database(),
+              table   : table,
+              schema  : schemaModel
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to create the table '${table}' caused by '${err.message}'\x1b[0m`
+            );
+          });
+
+        const compositeUnique = schemaModel[key]?.compositeUniqueKey;
+
+        if (compositeUnique == null) continue;
+
+        const comebindKey = [key,...compositeUnique.columns]
+
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.addUnique({
+              table: model.getTableName(),
+              name: unique,
+              columns: comebindKey,
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to craete unique key '${unique}' with name ${comebindKey} caused by '${err.message}'\x1b[0m`
+            );
+          });
+      }
+    }
+  }
+
+  private async _syncUnique({
+    schemaModel,
+    model,
+    log,
+  }: {
+    schemaModel: Record<string, any>;
+    model: Model;
+    log: boolean;
+  }) {
+
+    for (const key in schemaModel) {
+      const compositeUnique = schemaModel[key]?.compositeUniqueKey;
+
+      if (compositeUnique == null) continue;
+
+      const table = model.getTableName();
+
+      const comebindKey = [key,...compositeUnique.columns]
+
+      const unique = compositeUnique.name == "" ? `uq_${table}(${comebindKey})` : compositeUnique .name;
+
+      const query = model["_queryBuilder"]() as QueryBuilder;
+
+      try {
+        const UNIQUE = await this.$db.debug(log)
+        .hasUnique({
+          table: table,
+          name: unique,
+        });
+
+        if (UNIQUE) continue;
+
+        await this.$db.debug(log).rawQuery(
+          query.addUnique({
+            table: table,
+            name: unique,
+            columns: comebindKey,
+          })
+        );
+      } catch (err: any) {
+        
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.createTable({
+              database: this.$db.database(),
+              table   : table,
+              schema  : schemaModel
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to create the table '${table}' caused by '${err.message}'\x1b[0m`
+            );
+          });
+
+        const compositeUnique = schemaModel[key]?.compositeUniqueKey;
+
+        if (compositeUnique == null) continue;
+
+        const comebindKey = [key,...compositeUnique.columns]
+
+        await this.$db
+          .debug(log)
+          .rawQuery(
+            query.addUnique({
+              table: model.getTableName(),
+              name: unique,
+              columns: comebindKey,
+            })
+          )
+          .catch((err) => {
+            console.log(
+              `\x1b[31mERROR: Failed to craete unique key '${unique}' with name ${comebindKey} caused by '${err.message}'\x1b[0m`
             );
           });
       }

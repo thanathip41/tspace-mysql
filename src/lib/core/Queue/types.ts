@@ -24,6 +24,8 @@ export type QueueAddOptions = {
   priority    ?: number // default 0
   metadata    ?: Record<string, any> // default null
   maxAttempts ?: number // default 3
+
+  uniqueKey   ?: string
 }
 
 export type QueueProcessOptions = { 

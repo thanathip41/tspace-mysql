@@ -2982,8 +2982,12 @@ class Model<
 
       return result == null ? await getResults(sql) : result;
     } catch (error: unknown) {
+
+      if(this.$state.get("STOP_RETRY")) {
+        throw error;
+      }
       
-      const retryCount = Number(this.$state.get("RETRY"));
+      const retryCount = this.$state.get("RETRY");
 
       if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry, node);
 
@@ -3014,6 +3018,16 @@ class Model<
 
     this.$state.set("CTE", [...this.$state.get("CTE"), `${as} AS (${query})`]);
 
+    return this;
+  }
+
+  /**
+   * The 'stopRetry' method is used to stop retry in query statement
+   *
+   * @returns {this} this
+   */
+  public stopRetry (): this {
+    this.$state.set('STOP_RETRY', true)
     return this;
   }
 
@@ -7896,6 +7910,7 @@ class Model<
     foreign = false,
     changed = false,
     index   = false,
+    unique  = false,
   } = {}): Promise<void> {
     return await new Schema()["syncExecute"]({
       models: [this],
@@ -7903,6 +7918,7 @@ class Model<
       foreign,
       changed,
       index,
+      unique,
       log: this.$state.get("DEBUG"),
     });
   }

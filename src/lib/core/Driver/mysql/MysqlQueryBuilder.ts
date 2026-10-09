@@ -661,7 +661,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
           WHERE 
             TABLE_SCHEMA         = '${database.replace(/`/g, "")}'
             AND TABLE_NAME       = '${table.replace(/`/g, "")}'
-            AND CONSTRAINT_TYPE  = '${name}'
+            AND CONSTRAINT_TYPE  = 'UNIQUE'
+            AND CONSTRAINT_NAME  = '${name}'
         ) AS "IS_EXISTS"
       `,
     ];

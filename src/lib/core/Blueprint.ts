@@ -44,6 +44,7 @@ class Blueprint<T = any> {
   private _foreignKey: Record<string, any> | null = null;
   private _index: string | null = null;
   private _compositeIndex : { columns : string[] , name ?: string } | null = null;
+  private _compositeUnique : { columns : string[] , name ?: string } | null = null;
   private _column: string | null = null;
   private _isVirtual: boolean = false;
   private _isEnum : boolean = false;
@@ -751,6 +752,19 @@ class Blueprint<T = any> {
   }
 
   /**
+   * Assign attributes 'UNIQUE' in table
+   * @return {Blueprint<T>} Blueprint
+   */
+  public compositeUnique(columns : string[], name : string = ""): Blueprint<T> {
+    
+    this._compositeUnique = {
+      columns,
+      name
+    }
+    return this;
+  }
+
+  /**
    * Assign attributes 'NULL' in table
    * @return {Blueprint<T>} Blueprint
    */
@@ -952,6 +966,10 @@ class Blueprint<T = any> {
 
   public get compositeIndexKey() {
     return this._compositeIndex;
+  }
+
+  public get compositeUniqueKey() {
+    return this._compositeUnique
   }
 
   public get defaultValue () {

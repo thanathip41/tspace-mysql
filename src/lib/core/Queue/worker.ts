@@ -2,6 +2,7 @@ import type { T }       from "../UtilityTypes";
 import { Blueprint }    from "../Blueprint";
 import { DB }           from "../DB";;
 import { Model }        from "../Model";
+import { WorkerLock }   from "./worker-lock";
 import type { 
     BufferedJob, 
     Handler, 
@@ -54,6 +55,7 @@ const schema = {
     result       : Blueprint.text().null(),
     error        : Blueprint.text().null(),
     metadata     : Blueprint.text().null(),
+    unique_key   : Blueprint.text().null(),
 
     attempts     : Blueprint.int().default(0),
     max_attempts : Blueprint.int().default(3),
@@ -132,9 +134,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
         }
 
-        await this.sync({ force : true, index: true }).catch(() => null);
-
-        await this._initializeWorkerJobs();
+        await this._initializeWorkers();
 
         if(opts.inspect) {
             this.INSPECT_EXEC = true;
@@ -195,8 +195,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async flush() {
         const jobs = await new Worker().count('id');
         
-        await this.truncate({ force: true })
-
+        await new Worker().truncate({ force: true })
+        await new WorkerLock().truncate({ force: true })
+       
         if(this.INSPECT_EXEC) {
           console.log(`\x1b[34mQueue:\x1b[0m \x1b[31mFlush all jobs (${jobs} jobs)\x1b[0m`);
         }
@@ -302,6 +303,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 metadata: opts.metadata ? this._safeJsonStringify(opts.metadata) : null,
                 delay_ms: opts.delayMs ?? 0,
                 available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
+                unique_key : opts.uniqueKey ?? null,
                 created_at: new Date(),
                 updated_at : new Date()
             } as T.Result<Worker>;
@@ -391,7 +393,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             await Promise.all(
                 jobs.map(job => this._runJob(name, job, state))
             );
-           
+
             setImmediate(dispatch);
 
             return;
@@ -457,6 +459,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         if(job.__job.delay_ms) {
 
             setTimeout(async () => {
+                
                 await this._wakeWorker(name);
 
                 await this._executeJob({ 
@@ -467,9 +470,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 });
 
                 state.running--
+
                 this.ACTIVE_JOBS--
 
-            }, job.__job.delay_ms);
+            },job.__job.delay_ms);
 
             return;
         }
@@ -521,6 +525,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             })
             .void()
             .save()
+
+            await new WorkerLock()
+            .where('job_id',job.id)
+            .delete();
 
             const endTime = +new Date();
 
@@ -654,16 +662,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         if (this.STOPPING) return [];
 
-        const now = this.$utils.timestamp();
-    
         const findJobs = await new Worker()
         .select('id')
         .where('name', name)
         .whereQuery(query => {
             return query
             .where('status','pending')
-            .where('created_at', '<', now)
             .whereNull('locked_at')
+            .where('created_at', '<=', this.$utils.timestamp())
         })
         .latest('priority')
         .oldest('delay_ms')
@@ -731,20 +737,20 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         this.IS_FLUSHING = false; 
     
         try {
-            const jobsToInsert = currentBatch.map(b => b.jobData);
 
-            const insertedJobds = await new Worker()
-            .select('id','name')
-            .insertMany(jobsToInsert)
-            .save() as T.InsertManyResult<Worker>
+            const insertedJobs = await this._insertJobs(
+                currentBatch.map(b => b.jobData)
+            )
+
+            console.log(insertedJobs.map(v => console.log(v.id)))
 
             if (this.INSPECT_EXEC) {
                
-                const names = [...new Set(insertedJobds.map(job => job.name))];
+                const names = [...new Set(insertedJobs.map(job => job.name))];
 
                 for(const name of names) {
 
-                    const ids = insertedJobds.filter(v => v.name === name).map(v => v.id);
+                    const ids = insertedJobs.filter(v => v.name === name).map(v => v.id);
 
                     const preview = [
                         ...ids.slice(0, 3),
@@ -774,13 +780,13 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             }
     
             for (let i = 0; i < currentBatch.length; i++) {
-                currentBatch[i].resolve(undefined);
+                await currentBatch[i].resolve(undefined);
             }
 
             const uniqueNames = [...new Set(currentBatch.map(b => b.jobData.name))];
 
             for(const name of uniqueNames) {
-                this._wakeWorker(name);
+                await this._wakeWorker(name);
             }
 
         } catch (error) {
@@ -792,6 +798,82 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 this._flushBuffer();
             }
         }
+    }
+
+    private async _insertJobs (jobsToInsert : any[]) {
+
+        const hasSomeUniqueKey = jobsToInsert.some(v => v.unique_key);
+
+        if(!hasSomeUniqueKey) {
+            const inserteds = await new Worker()
+            .select('id', 'name')
+            .insertMany(jobsToInsert)
+            .stopRetry()
+            .save()
+
+            return inserteds as  {
+                id:number;
+                name:string
+            }[]
+        }
+
+        const insertedJobds : {
+            id:number;
+            name:string
+        }[] = [];
+
+        for (const job of jobsToInsert) {
+
+            try {
+
+                if (!job.unique_key) {
+                    
+                    const inserted = await new Worker()
+                    .select('id', 'name')
+                    .insert(job)
+                    .stopRetry()
+                    .save()
+
+                    if (inserted) {
+                        insertedJobds.push(inserted);
+                    }
+
+                    continue;
+
+                } 
+
+                const inserted = await DB.transaction(async (trx) => {
+                    
+                    const worker = await new Worker()
+                    .select('id','name')
+                    .insert(job)
+                    .stopRetry()
+                    .bind(trx)
+                    .save();
+
+                    await new WorkerLock()
+                    .insert({
+                        name       : job.name,
+                        unique_key : job.unique_key!,
+                        job_id     : worker.id,
+                    })
+                    .stopRetry()
+                    .bind(trx)
+                    .void()
+                    .save();
+                    return worker;
+                });
+
+                if (inserted) {
+                    insertedJobds.push(inserted);
+                }
+                
+            } catch (e) {
+                continue;
+            }
+        }
+
+        return insertedJobds;
     }
 
     private async _wakeWorker(name: string) {
@@ -821,7 +903,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private async _pollWorkerJobs () {
 
-        const jobs = await this._getPendingOrFailedJobs();
+        const jobs = await this._getRunnableOrActiveJobs();
 
         for(const job of jobs) {
             this._wakeWorker(job)
@@ -830,9 +912,22 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return;
     }
 
-    private async _initializeWorkerJobs () {
+    private async _initializeWorkers () {
 
-        const jobs = await this._getPendingOrFailedJobs();
+        await new Worker()
+        .sync({ force : true, index: true })
+        .catch(() => null);
+
+        await new WorkerLock()
+        .sync({ 
+            force   : true, 
+            index   : true, 
+            unique  : true,
+            foreign : true,
+        })
+        .catch(() => null);
+
+        const jobs = await this._getRunnableOrActiveJobs();
 
         await Promise.all(
             jobs.map(job => this._wakeWorker(job))
@@ -841,21 +936,27 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return;
     }
 
-    private async _getPendingOrFailedJobs () {
+    private async _getRunnableOrActiveJobs () {
 
         const jobsToProcess = await new Worker()
         .select('id')
-        .whereIn('status',['pending','failed'])
+        .whereIn('status',[
+            'pending',
+            'failed',
+            'active'
+        ])
         .where('available_at', '<=', this.$utils.timestamp())
         .findMany();
 
         await new Worker()
         .updateMany({
             status : 'pending',
-            attempts : 0
+            attempts : 0,
+            // unlock when actived but not excute
+            locked_at : null,
+            locked_by : null,
         })
         .whereIn('id',jobsToProcess.map(f => f.id))
-        .void()
         .save();
 
         const jobs = await new Worker()
