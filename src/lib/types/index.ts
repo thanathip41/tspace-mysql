@@ -629,6 +629,7 @@ export type TAction =
     | "createOrUpdate"
     | "update"
     | "updateMany"
+    | void
     | null;
 
 export type TSaveBuilderResult<
@@ -668,7 +669,9 @@ export type TSaveModelResult<
         ? T.UpdateResult<M>
     : A extends "updateMany"
         ? T.UpdateManyResult<M>
-    : 
+    : A extends void
+        ? void
+        : 
         | T.InsertResult<M>
         | T.InsertManyResult<M>
         | T.UpdateResult<M>

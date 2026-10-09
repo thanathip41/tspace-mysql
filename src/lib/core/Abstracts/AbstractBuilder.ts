@@ -49,7 +49,7 @@ abstract class AbstractBuilder {
         stream: (sql :string) => {},
     }
 
-    abstract void () : this
+    abstract void () : Builder<void>
     abstract debug () : this
     abstract dd () : this
     abstract select (...columns : string[]) : this

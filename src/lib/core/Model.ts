@@ -4343,6 +4343,15 @@ class Model<
   }
 
   /**
+   * @override
+   * @returns {this} this
+   */
+  public void(): Model<TS, TR, void>{
+    this.$state.set("VOID", true);
+    return this as Model<TS, TR, void>;
+  }
+
+  /**
    *
    * @returns {string} string
    */
