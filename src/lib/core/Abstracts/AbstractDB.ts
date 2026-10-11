@@ -10,7 +10,7 @@ abstract class AbstractDB extends Builder {
 
     abstract beginTransaction (): Promise<TConnectionTransaction>
     abstract transaction<T>(handler: (conn: TConnectionTransaction) => Promise<T>): Promise<T>
-    abstract generateUUID () : string
+    abstract generateUUID ({ v }: { v?: 4 | 7 }): string
     abstract raw (sql : string) : string
     abstract query(sql: string, parameters: Record<string, any>): Promise<any>
     abstract event(event: TPoolEvent, callback: (data: any) => any): Promise<void>

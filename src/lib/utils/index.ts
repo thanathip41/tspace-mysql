@@ -94,15 +94,37 @@ const columnRelation = (name :string) => {
 
 }
 
-const generateUUID = () => {
-    const date = +new Date()
+const generateUUID = (version: 4 | 7 = 7): string => {
+  const randomHex = (length: number): string => {
+    let result = '';
 
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        let r = Math.random() * 16
-        r = (date + r)% 16 | 0
-        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    })
-}
+    for (let i = 0; i < length; i++) {
+      result += Math.floor(Math.random() * 16).toString(16);
+    }
+
+    return result;
+  };
+
+  if (version === 4) {
+    return [
+      randomHex(8),
+      randomHex(4),
+      `4${randomHex(3)}`,
+      `${(8 + Math.floor(Math.random() * 4)).toString(16)}${randomHex(3)}`,
+      randomHex(12),
+    ].join('-');
+  }
+
+  const timestamp = Date.now().toString(16).padStart(12, '0');
+
+  return [
+    timestamp.slice(0, 8),
+    timestamp.slice(8, 12),
+    `7${randomHex(3)}`,
+    `${(8 + Math.floor(Math.random() * 4)).toString(16)}${randomHex(3)}`,
+    randomHex(12),
+  ].join('-');
+};
 
 const transfromBooleanToNumber = (data : any) => {
     if(typeOf(data) === 'boolean') return Number(data)

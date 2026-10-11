@@ -427,20 +427,26 @@ class DB extends AbstractDB {
   }
 
   /**
-   * The 'generateUUID' methid is used to generate a universal unique identifier.
+   * The 'generateUUID' methid is used to generate a universal unique identifier (UUID).
+   * 
+   * @param options - Options for UUID generation.
+   * @param options.v - UUID version to generate: 4 (random) or 7 (time-ordered). Defaults to 7.
    * @returns {string} string
    */
-  public generateUUID(): string {
-    return this.$utils.generateUUID();
+  public generateUUID({ v } : { v?: 4 | 7 } = {}): string {
+    return this.$utils.generateUUID(v);
   }
 
   /**
-   * The 'generateUUID' methid is used to generate a universal unique identifier.
+   * The 'generateUUID' methid is used to generate a universal unique identifier (UUID).
+   * 
+   * @param options - Options for UUID generation.
+   * @param options.v - UUID version to generate: 4 (random) or 7 (time-ordered). Defaults to 7.
    * @static
    * @returns {string} string
    */
-  public static generateUUID(): string {
-    return new this().generateUUID();
+  public static generateUUID({ v } : { v?: 4 | 7 } = {}): string {
+    return new this().generateUUID({ v });
   }
 
   /**
