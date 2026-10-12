@@ -4497,6 +4497,8 @@ for(let j = 1; j <= worker * 500; j++) {
         email: `John-${i}@gmail.com`,
         name: `John-${i}`
     }, {
+        // Prevent duplicate jobs when triggered by cron jobs.
+        // uniqueKey : `uq:${i}`, 
         delayMs : 1000 * Math.random() * 10,
         priority : i % 2 ? 9999 + Math.floor((Math.random() * 9999) + 1) : 0,
         maxAttempts : 3,
