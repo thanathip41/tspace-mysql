@@ -22,7 +22,8 @@ import type {
     TDefault,
     TRemoveDefault,
     TAnyKeys,
-    TCursorPagination
+    TCursorPagination,
+    TSelection
 } from "../types";
 
 import type { 
@@ -266,8 +267,13 @@ export declare namespace T {
         & K
         & TAnyKeys
     > 
-   
 
+    type ResultStrict<M extends Model<any,any,any>, K = {}> = 
+    TDeepExpand<
+        TResultResolved<M> 
+        & K
+    > 
+   
     type PaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TPagination<Result<M,K>>>
 
     type CursorPaginateResult<M extends Model<any,any,any>, K = {}> = TDeepExpand<TCursorPagination<Result<M,K>>>
@@ -404,6 +410,16 @@ export declare namespace T {
             Default     ?: boolean;
         } = { InputQuery: true }
     > = Columns<M, Options>;
+
+    type SelectColumns<
+        M extends Model,
+        S extends T.SelectOptions<M>
+    > = TDeepExpand<
+        TSelection<
+            T.ResultStrict<M>,
+            S
+        >
+    >;
 
     type ColumnValue<
         M extends Model<any, any, any>,

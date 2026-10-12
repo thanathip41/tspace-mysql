@@ -506,7 +506,6 @@ type IsStrict<T> =
     false
   ) : false;
 
-
 type RemoveUndefined<T> = T extends undefined ? never : T;
 
 type NonObjectKeys<T> = {
@@ -539,6 +538,7 @@ export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Da
                 } & 
                 (
                     (IsStrict<S1> extends true ? true : IsStrict<S2> extends true ? true : false) extends true
+                    
                     ? {}
                     : {
                         [K in Exclude<
@@ -552,6 +552,24 @@ export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Da
             : never : never : never
         ) 
         : IncomingResult;
+
+
+export type TSelection<IncomingResult, S1> =
+    IncomingResult extends Date | Function
+        ? IncomingResult
+        : IncomingResult extends (infer U)[]
+            ? TSelection<U, S1>[]
+            : IncomingResult extends object
+                ? Normalize<S1> extends infer F1
+                    ? {
+                        [K in keyof F1 & keyof IncomingResult]-?:
+                            TSelection<
+                                RemoveUndefined<IncomingResult[K]>,
+                                K extends keyof F1 ? F1[K] : unknown
+                            >
+                    } 
+                    : never
+                : IncomingResult;
 
 export type TStateWhereCondition = {
   column    ?: string;                
