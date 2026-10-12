@@ -1,6 +1,5 @@
 import { DB, Model, Schema } from '../../lib'
 import { execSync }  from 'child_process'
-import { format } from 'sql-formatter'
 import path from 'path'
 
 export default (cmd : Record<string,any>) => {
@@ -115,11 +114,7 @@ export default (cmd : Record<string,any>) => {
       
         let sql : string[] = [
           `${createTableQueries.map(c => {
-            return format(c,{
-              language: 'spark',
-              tabWidth: 2,
-              linesBetweenQueries: 1,
-            }) + ";"
+            return `${c};`
           }).join('\n\n')}\n`,
           `${foreignKeyQueries.map(f => `${f};`).join('\n')}`,
         ]
