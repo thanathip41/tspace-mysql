@@ -77,9 +77,13 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private IS_FLUSHING       = false;
     private ACTIVE_JOBS       = 0;
 
-    private MAX_IDLE_RETRIES  = 3;
     private BATCH_SIZE        = 1000;
     private MAX_WAIT_MS       = 50;
+
+    private MAX_IDLE_RETRIES  = 3;
+    private INTV_IDLE_RETRIES = 1000;
+
+    private MAX_CONCURRENCY   = 1;
 
     private POLL = {
         timeout : null,
@@ -87,7 +91,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     } as {
         timeout : NodeJS.Timeout | null,
         interval : number
-    }
+    };
 
     private BUFFER = {
         jobs : [],
@@ -319,8 +323,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         name    : string, 
         handler : Handler, 
         opts    : QueueProcessOptions = { 
-            interval : 3_000, 
-            concurrency : 1 
+            interval : this.INTV_IDLE_RETRIES, 
+            concurrency : this.MAX_CONCURRENCY 
         } 
     ) {
 

@@ -29,8 +29,8 @@ export type QueueAddOptions = {
 }
 
 export type QueueProcessOptions = { 
-    interval    ?: number; 
-    concurrency ?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30;
+    interval    ?: number; // default 1000
+    concurrency ?: number; // default 1
 }
 
 export type BufferedJob = {
