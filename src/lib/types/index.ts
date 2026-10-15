@@ -435,22 +435,30 @@ export type TLifecycle =
 | "beforeRemove"
 | "afterRemove";
 
-export type TDeepOmit<T, Filter> = T extends infer ObjectType
-    ? {
-        [K in keyof ObjectType as K extends keyof Filter
-            ? Filter[K] extends true 
-                ? never
-                : K  
-            : NonNullable<ObjectType[K]> extends object 
-                ? (NonNullable<ObjectType[K]> extends Date ? K : never) 
-                : K 
-        ]: K extends keyof Filter
-            ? Filter[K] extends object
-                ? TDeepOmit<NonNullable<ObjectType[K]>, Filter[K]>
-                : ObjectType[K]
-            : ObjectType[K]
-    }
-    : never;
+export type TDeepOmit<T, Filter> =
+    T extends Date | Function
+        ? T
+        : T extends (infer U)[]
+            ? TDeepOmit<U, Filter>[]
+            : T extends object
+                ? {
+                    [K in keyof T as
+                        K extends keyof Filter
+                            ? Filter[K] extends true
+                                ? never
+                                : K
+                            : K
+                    ]: K extends keyof Filter
+                        ? Filter[K] extends object
+                            ? TDeepOmit<
+                                NonNullable<T[K]>,
+                                Filter[K]
+                            >
+                            : T[K]
+                        : T[K]
+                }
+                : T;
+
 
 
 export type TDeepExpand<T> = T extends TDefault<infer D>
@@ -518,40 +526,45 @@ type NonObjectKeys<T> = {
 
 type GetExceptKeys<T> = T extends { _except: infer E } ? keyof E : never;
 
-export type TSelectionMerger<IncomingResult, S1, S2> = IncomingResult extends Date | Function 
-    ? IncomingResult 
-    : IncomingResult extends (infer U)[] 
-        ? TSelectionMerger<U, S1, S2>[] 
-        : IncomingResult extends object 
-        ? (
-            Normalize<S1> extends infer F1 ?
-            Normalize<S2> extends infer F2 ?
-            (F1 & F2) extends infer Merged ?
-                
-                { 
-                    [K in keyof Omit<Merged, '_except'> & keyof IncomingResult]-?: 
-                    TSelectionMerger<
-                        RemoveUndefined<IncomingResult[K]>,
-                        K extends keyof F1 ? F1[K] : unknown, 
-                        K extends keyof F2 ? F2[K] : unknown
-                    > 
-                } & 
-                (
-                    (IsStrict<S1> extends true ? true : IsStrict<S2> extends true ? true : false) extends true
-                    
-                    ? {}
-                    : {
-                        [K in Exclude<
-                            NonObjectKeys<IncomingResult>,
-                           GetExceptKeys<F1> | GetExceptKeys<F2>
-                        > as string extends K ? never : K
-                        ]: IncomingResult[K]
-                    }
-                )
-
-            : never : never : never
-        ) 
-        : IncomingResult;
+export type TSelectionMerger<IncomingResult, S1, S2> =
+    IncomingResult extends Date | Function
+        ? IncomingResult
+        : IncomingResult extends (infer U)[]
+            ? TSelectionMerger<U, S1, S2>[]
+            : IncomingResult extends object
+                ? Normalize<S1> extends infer F1
+                    ? Normalize<S2> extends infer F2
+                        ? (F1 & F2) extends infer Merged
+                            ? {
+                                [K in keyof Omit<Merged, '_except'> & keyof IncomingResult as
+                                    Merged[K] extends false ? never : K
+                                ]-?:
+                                    TSelectionMerger<
+                                        RemoveUndefined<IncomingResult[K]>,
+                                        K extends keyof F1 ? F1[K] : unknown,
+                                        K extends keyof F2 ? F2[K] : unknown
+                                    >
+                            } & (
+                                (
+                                    IsStrict<S1> extends true
+                                        ? true
+                                        : IsStrict<S2> extends true
+                                            ? true
+                                            : false
+                                ) extends true
+                                    ? {}
+                                    : {
+                                        [K in Exclude<
+                                            NonObjectKeys<IncomingResult>,
+                                            GetExceptKeys<F1> | GetExceptKeys<F2>
+                                        > as string extends K ? never : K
+                                        ]: IncomingResult[K]
+                                    }
+                            )
+                            : never
+                        : never
+                    : never
+                : IncomingResult;
 
 
 export type TSelection<IncomingResult, S1> =
@@ -562,12 +575,16 @@ export type TSelection<IncomingResult, S1> =
             : IncomingResult extends object
                 ? Normalize<S1> extends infer F1
                     ? {
-                        [K in keyof F1 & keyof IncomingResult]-?:
-                            TSelection<
-                                RemoveUndefined<IncomingResult[K]>,
-                                K extends keyof F1 ? F1[K] : unknown
-                            >
-                    } 
+                        [K in keyof F1 & keyof IncomingResult as
+                            F1[K] extends false ? never : K
+                        ]-?:
+                            F1[K] extends true
+                                ? IncomingResult[K]
+                                : TSelection<
+                                    RemoveUndefined<IncomingResult[K]>,
+                                    F1[K]
+                                >
+                    }
                     : never
                 : IncomingResult;
 

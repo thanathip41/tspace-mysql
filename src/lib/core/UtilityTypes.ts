@@ -208,7 +208,7 @@ export declare namespace T {
         S  = undefined,  // selected by columns
         SR = undefined,  // selected by relations
         E  = undefined,  // excepted by omit columns
-        SRS = undefined,  // selected by raw select
+        SRS = undefined, // selected by raw select
         G = {}
     > = (
         [S, SR] extends [undefined, undefined]
@@ -413,7 +413,11 @@ export declare namespace T {
 
     type SelectColumns<
         M extends Model,
-        S extends T.SelectOptions<M>
+        S extends T.SelectOptions<M> & {
+            [K in keyof S]: K extends keyof T.SelectOptions<M>
+                ? S[K]
+                : never
+        }
     > = TDeepExpand<
         TSelection<
             T.ResultStrict<M>,
@@ -524,7 +528,7 @@ export declare namespace T {
         E = undefined, 
         SRS = undefined,
         G = undefined
-        > = TRepositoryRequest<
+    > = TRepositoryRequest<
             TSchemaModel<M>, 
             TRelationModel<M>, 
             M,
