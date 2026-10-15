@@ -8856,14 +8856,14 @@ class Model<
 
     const startTime = +new Date();
 
-    const findCache = await this.$cache.get(cache.key)
+    const findCache = await Cache.get(cache.key)
 
     if (findCache == null) return;
 
     if (this.$state.get("DEBUG")) {
       this.$utils.consoleCache(
         {
-          driver: this.$cache.provider(),
+          driver: Cache.provider(),
           key: cache.key,
           expires: cache.expires,
           type: this.$utils.typeOf(findCache),
@@ -8886,11 +8886,11 @@ class Model<
 
     if (cache == null) return;
 
-    const exists = await this.$cache.exists(cache.key);
+    const exists = await Cache.exists(cache.key);
 
     if (exists) return;
 
-    await this.$cache.set(cache.key, data, cache.expires);
+    await Cache.set(cache.key, data, cache.expires);
   }
 
   private async _execute({ sql, type, message, options }: TExecute) {
@@ -10146,8 +10146,7 @@ class Model<
   }
 
   private _initialModel(): this {
-    this.$cache = Cache;
-
+    
     this.$state = new StateManager("model");
 
     this.metaTag("MAIN");
@@ -10164,7 +10163,7 @@ class Model<
 
     if (globalSettings.timestamp) this.useTimestamp();
 
-    if (globalSettings.logger != null) {
+    if (globalSettings.logger) {
       this.useLogger({
         selected: globalSettings.logger?.selected,
         inserted: globalSettings.logger?.inserted,

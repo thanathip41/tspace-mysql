@@ -6,7 +6,6 @@ import type { T }           from '../UtilityTypes';
 import type { 
     TPattern, 
     TValidateSchema , 
-    TCache, 
     TRelationOptions,
     TRelationQueryOptions,
     TModelOrObject
@@ -14,7 +13,6 @@ import type {
 import { JoinModel } from '../JoinModel';
 abstract class AbstractModel extends Builder<any> {
 
-    protected $cache             !: TCache 
     protected $relation          !: RelationManager
     protected $schema            !: Record<string , Blueprint>
     protected $validateSchema    !: TValidateSchema
