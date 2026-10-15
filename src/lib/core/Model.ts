@@ -1178,7 +1178,7 @@ class Model<
    * selecting a cache driver, managing cache entries, and optionally generating
    * model-scoped cache keys.
    *
-   * When the `namespace` option is enabled, cache keys are automatically prefixed
+   * When the `namespace` is default true, cache keys are automatically prefixed
    * with the current database and table name in the following format:
    *
    * `database:table:key`
@@ -1193,64 +1193,107 @@ class Model<
    * 
    * @example
    * // Store a value using a model-scoped cache key.
-   * await User.cache.set("users", users, 60_000, {
-   *   namespace: true
-   * });
+   * await User.cache.set("users", users, 60_000);
    *
    * @example
    * // Retrieve a model-scoped cache value.
-   * const users = await User.cache.get("users", {
-   *   namespace: true
-   * });
+   * const users = await User.cache.get("users");
    *
    * @example
    * // Check whether a cache entry exists.
-   * const exists = await User.cache.exists("users", {
-   *   namespace: true
-   * });
+   * const exists = await User.cache.exists("users");
    *
    * @example
    * // Delete a cache entry.
-   * await User.cache.delete("users", {
-   *   namespace: true
-   * });
+   * await User.cache.delete("users");
    *
    * @example
    * // Clear all cache entries.
    * await User.cache.clear();
    */
   static get cache(): TCacheModel {
-    const getCacheKey = (key: string) => {
+
+    const keyWithNamespace = (key: string) => {
       const db = new this().database();
       const table = new this().getTableName();
       return `${db}:${table}:${key}`;
     }
+
     return {
-      provider : () => Cache.provider(),
-      driver : (driver: "db" | "memory" | "redis") => Cache.driver(driver),
+      /** Returns the configured cache provider. */
+      provider: () => Cache.provider(),
+
+      /**
+       * Sets the cache driver.
+       *
+       * @param driver - The cache driver to use: `db`, `memory`, or `redis`.
+       */
+      driver: (driver: 'db' | 'memory' | 'redis') => Cache.driver(driver),
+
+      /** Retrieves all cached entries. */
       all: async () => {
-        return await Cache.all()
+        return await Cache.all();
       },
-      clear : async () => {
-        return await Cache.clear()
+
+      /** Removes all cached entries. */
+      clear: async () => {
+        return await Cache.clear();
       },
-      get: async (key: string, options?: { namespace?: boolean }) => {
-        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+
+      /**
+       * Retrieves a cached value by key.
+       *
+       * @param key - The cache key.
+       * @param options - Cache options.
+       * @param options.namespace - Whether to prefix the key with the model's database and table. Defaults to `true`.
+       * @returns The cached value, or the result returned by the cache provider when the key is missing.
+       */
+      get: async (key: string, { namespace = true } = {}) => {
+        const cacheKey = namespace ? keyWithNamespace(key) : key;
         return await Cache.get(cacheKey);
       },
-      exists: async (key: string, options?: { namespace?: boolean }) => {
-        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+
+      /**
+       * Checks whether a cache key exists.
+       *
+       * @param key - The cache key.
+       * @param options - Cache options.
+       * @param options.namespace - Whether to prefix the key with the model's database and table. Defaults to `true`.
+       * @returns Whether the cache key exists.
+       */
+      exists: async (key: string, { namespace = true } = {}) => {
+        const cacheKey = namespace ? keyWithNamespace(key) : key;
         return await Cache.exists(cacheKey);
       },
-      set: async (key: string, value: any, ms: number,options?: { namespace?: boolean }) => {
-        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+
+      /**
+       * Stores a value in the cache.
+       *
+       * @param key - The cache key.
+       * @param value - The value to cache.
+       * @param ms - The cache expiration time in milliseconds.
+       * @param options - Cache options.
+       * @param options.namespace - Whether to prefix the key with the model's database and table. Defaults to `true`.
+       * @returns The result returned by the cache provider.
+       */
+      set: async (key: string, value: any, ms: number, { namespace = true } = {}) => {
+        const cacheKey = namespace ? keyWithNamespace(key) : key;
         return await Cache.set(cacheKey, value, ms);
       },
-      delete: async (key: string, options?: { namespace?: boolean }) => {
-        const cacheKey = options?.namespace ? getCacheKey(key) : key;
+
+      /**
+       * Deletes a cached value by key.
+       *
+       * @param key - The cache key.
+       * @param options - Cache options.
+       * @param options.namespace - Whether to prefix the key with the model's database and table. Defaults to `true`.
+       * @returns The result returned by the cache provider.
+       */
+      delete: async (key: string, { namespace = true } = {}) => {
+        const cacheKey = namespace ? keyWithNamespace(key) : key;
         return await Cache.delete(cacheKey);
       },
-    }
+    };
   }
 
   /**
@@ -2272,22 +2315,26 @@ class Model<
    * @param {Object}  object
    * @property {string} key key of cache
    * @property {number} expires ms
-   * @property {boolean} namespace whether to use namespace for cache key, default is false, namespace is `${database}:${table}:${key}`
+   * @property {boolean} namespace whether to use namespace for cache key, default is true, namespace is `${database}:${table}:${key}`
    * @returns {this} this
    */
-  public cache({ key, expires,namespace }: { 
-    key: string; 
+  public cache({
+    key,
+    expires,
+    namespace = true,
+  }: {
+    key: string;
     expires: number;
     namespace?: boolean;
   }): this {
 
-    const getCacheKey = (key: string) => {
+    const keyWithNamespace = (key: string) => {
       const db = this.database();
       const table = this.getTableName();
       return `${db}:${table}:${key}`;
     }
 
-    const cacheKey = namespace ? getCacheKey(key) : key;
+    const cacheKey = namespace ? keyWithNamespace(key) : key;
     
     this.$state.set("CACHE", {
       key : cacheKey,

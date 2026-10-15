@@ -1,14 +1,14 @@
 import { MemoryCache } from "./MemoryCache";
-import { DBCache } from "./DBCache";
-import { RedisCache } from "./RedisCache";
-import { Config } from "../../config";
+import { DBCache }     from "./DBCache";
+import { RedisCache }  from "./RedisCache";
+import { Config }      from "../../config";
 
 type TCacheDrive = 
   | MemoryCache 
   | DBCache 
   | RedisCache
 class Cache {
-  private _driver: TCacheDrive = new MemoryCache();
+  private _driver !: TCacheDrive 
 
   constructor() {
     this._chooseDriver(Config.CACHE as "db" | "memory" | "redis");
@@ -129,6 +129,7 @@ class Cache {
   }
 
   private _chooseDriver(driver: "db" | "memory" | "redis") {
+    
     if (driver === "db") {
       this._driver = new DBCache();
       return;

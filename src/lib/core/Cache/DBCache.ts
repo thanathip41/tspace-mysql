@@ -1,15 +1,14 @@
-import { Model }      from '../Model'
+import { Model }      from '../Model';
 import { DB }         from '../DB';
 import { Blueprint }  from '../Blueprint';
 import { utils }      from '../../utils';
-
 class DBCache {
 
-    private _cacheTable   = 'tspace_cache'
-    private _v0x          = 'v0x'
-    private _maxAddress   = 10
-    private _maxLength    = 100
-    private _db           = () => new DB(this._cacheTable)
+    private _cacheTable   = () => new Model()['$state'].get('TABLE_CACHE') as string;
+    private _v0x          = 'v0x';
+    private _maxAddress   = 10;
+    private _maxLength    = 100;
+    private _db           = () => new DB(this._cacheTable());
 
     provider () {
         return 'db'
@@ -82,18 +81,20 @@ class DBCache {
                 return null
             }
 
-            const value = this._safetyJsonParse(cached[this._addressNumber(0)])
+            const value = this._safetyJsonParse(cached[this._addressNumber(0)]);
 
-            if(!Array.isArray(value)) return value
+            if(!Array.isArray(value)) {
+                return value;
+            }
 
-            const values : any[] = []
+            const values : any[] = [];
 
             for(let i = 0 ; i < this._maxAddress; i++) {
-                const find = cached[this._addressNumber(i)]
+                const find = cached[this._addressNumber(i)];
 
-                if(find == null || find === '') break
+                if(find == null || find === '') break;
 
-                const parsed = this._safetyJsonParse(find)
+                const parsed = this._safetyJsonParse(find);
 
                 if(Array.isArray(parsed)) {
                     values.push(...parsed)
@@ -103,7 +104,7 @@ class DBCache {
                 values.push(parsed)
             }
 
-            return values.length === 1 ? values[0] : values;
+            return values
 
         } catch (err : any) {
 
@@ -179,7 +180,7 @@ class DBCache {
 
     private async _checkTableCacheExists () {
 
-        const table = this._cacheTable
+        const table = this._cacheTable()
 
         const hasTable = await new DB().hasTable(table);
         
