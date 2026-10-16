@@ -7,6 +7,7 @@ import type {
     JobName, 
     JobStatus, 
     QueueAddOptions, 
+    QueueInit, 
     QueueProcessOptions 
 } from "./types";
 
@@ -97,16 +98,7 @@ class Queue {
      * @property {number} [opts.poll.timeout] - Polling interval in milliseconds.
      * @returns {Promise<void>}
      */
-    static async start(opts: { 
-        inspect          ?: boolean; 
-        flush            ?: boolean; 
-        hostname         ?: string;
-        maxIdleRetries   ?: number;
-        poll           ?: {
-            enabled  ?: boolean;
-            interval ?: number;
-        };
-    } = {}): Promise<void> {
+    static async start(opts: QueueInit = {}): Promise<void> {
 
       this.WORKER = await new Worker().initialize(opts);
 
@@ -255,7 +247,7 @@ class Queue {
     static async process(
         name    : JobName, 
         handler : Handler, 
-        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
+        opts    : QueueProcessOptions = {}
     ): Promise<void> {
 
         if (this.WORKER == null) {
@@ -284,7 +276,7 @@ class Queue {
     static async on(
         name    : JobName, 
         handler : Handler, 
-        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
+        opts    : QueueProcessOptions = {}
     ): Promise<void> {
         return await this.process(name, handler, opts);
     }
@@ -404,7 +396,7 @@ class Queue {
         event   : E,
         name    : EventJobName<E>, 
         handler : Handler, 
-        opts    : QueueProcessOptions = { interval : 1_000, concurrency : 1 }
+        opts    : QueueProcessOptions = {}
     ): Promise<void> {
 
         if (this.WORKER == null) {

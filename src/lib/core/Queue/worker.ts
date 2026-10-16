@@ -7,7 +7,9 @@ import type {
     BufferedJob, 
     Handler, 
     JobInternal, 
+    JobStatus, 
     QueueAddOptions, 
+    QueueInit, 
     QueueProcessOptions, 
     State 
 } from "./types";
@@ -21,6 +23,10 @@ const QUEUE_STATUS = {
     wokeUp      : 'Woke up',
     failed      : 'Failed',
     waiting     : 'Waiting',
+    cleanup     : 'Cleanup',
+    currently   : {
+        processing : 'Currently processing'
+    },
     retry       : {
         attempts  : 'Attempts',
         failed    : 'Retry Failed',
@@ -86,19 +92,29 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private MAX_CONCURRENCY   = 1;
 
     private POLL = {
-        timeout : null,
-        interval : 1000 * 60
+        intervalId : null,
+        interval   : 1000 * 60
     } as {
-        timeout : NodeJS.Timeout | null,
-        interval : number
+        intervalId : ReturnType<typeof setInterval> | null,
+        interval   : number
+    };
+
+    private CLEANUP = {
+        intervalId : null,
+        interval   : 1000 * 60 * 60 * 24,
+        statuses   : ['completed']
+    } as {
+        intervalId : ReturnType<typeof setInterval> | null,
+        interval   : number
+        statuses   : JobStatus[]
     };
 
     private BUFFER = {
-        jobs : [],
+        jobs    : [],
         timeout : null
     } as { 
-        jobs: BufferedJob[]; 
-        timeout: NodeJS.Timeout | null 
+        jobs    : BufferedJob[]; 
+        timeout : NodeJS.Timeout | null 
     };
 
     private WORKER_STATE = new Map<string, {
@@ -121,16 +137,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         this.useTable(this.$state.get("TABLE_JOB"));
     }
 
-    public async initialize (opts: { 
-        inspect          ?: boolean;
-        flush            ?: boolean;
-        hostname         ?: string;
-        maxIdleRetries   ?: number;
-        poll           ?: {
-            enabled  ?: boolean;
-            interval ?: number;
-        };
-    } = {}) {
+    public async initialize (opts: QueueInit = {}) {
 
         const driver = DB.driver();
 
@@ -160,9 +167,19 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         if (opts.poll?.enabled) {
             this.POLL.interval = opts.poll?.interval ?? this.POLL.interval;
 
-            this.POLL.timeout = setInterval(() => {
+            this.POLL.intervalId = setInterval(() => {
                 this._pollWorkerJobs();
             }, this.POLL.interval);
+        }
+
+        if (opts.cleanup?.enabled) {
+            this.CLEANUP.interval = opts.cleanup?.interval ?? this.CLEANUP.interval;
+
+            this.CLEANUP.statuses  = opts.cleanup.statuses ?? ['completed']  as JobStatus[];
+
+            this.CLEANUP.intervalId = setInterval(() => {
+                this._cleanupWorkerJobs();
+            }, this.CLEANUP.interval);
         }
 
         return this;
@@ -174,7 +191,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if(this.INSPECT_EXEC) {
                 console.log([
                     `\x1b[34mQueue:\x1b[0m`,
-                    `\x1b[38;2;77;215;240mCurrently processing\x1b[0m`,
+                    `\x1b[38;2;77;215;240m${QUEUE_STATUS.currently.processing}\x1b[0m`,
                     `${this.ACTIVE_JOBS} job(s)`
                 ].join(' '));
             }
@@ -184,9 +201,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         await this._sleep(2000);
 
-        if (this.POLL.timeout) {
-            clearInterval(this.POLL.interval);
-            this.POLL.timeout = null;
+        if (this.POLL.intervalId) {
+            clearInterval(this.POLL.intervalId);
+            this.POLL.intervalId = null;
+        }
+
+         if (this.CLEANUP.intervalId) {
+            clearInterval(this.CLEANUP.intervalId);
+            this.CLEANUP.intervalId = null;
         }
 
         this.STOPPING = true;
@@ -256,11 +278,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             if (!map.has(name)) {
                 map.set(name, {
-                name,
-                completed: 0,
-                active: 0,
-                pending: 0,
-                failed: 0,
+                    name,
+                    completed: 0,
+                    active: 0,
+                    pending: 0,
+                    failed: 0,
                 });
             }
 
@@ -325,7 +347,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         name    : string, 
         handler : Handler, 
         opts    : QueueProcessOptions = { 
-            interval : this.INTV_IDLE_RETRIES, 
+            interval    : this.INTV_IDLE_RETRIES, 
             concurrency : this.MAX_CONCURRENCY 
         } 
     ) {
@@ -338,7 +360,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             opts         : {
                 concurrency : opts.concurrency!,
                 interval    : opts.interval!,
-                onSucess    : opts.onSucess,
+                onSuccess   : opts.onSuccess,
                 onError     : opts.onError,
             }
         })
@@ -432,8 +454,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         name: string,
         handler: Handler,
         opts: QueueProcessOptions = {
-            interval: 1_000,
-            concurrency: 1
+            interval    : this.INTV_IDLE_RETRIES, 
+            concurrency : this.MAX_CONCURRENCY 
         }
     ): Promise<void> {
 
@@ -474,6 +496,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return;
     }
+
     private async _executeJob ({ name, job, state, startTime } : {
         name: string; 
         job: JobInternal; 
@@ -526,8 +549,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 ].join(' '));
             }
 
-            if(state.opts.onSucess) {
-                await state.opts.onSucess(job);
+            if(state.opts.onSuccess) {
+                await state.opts.onSuccess(job);
             }
 
         } catch (err:any) {
@@ -597,8 +620,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                         ].join(' '));
                     }
 
-                    if(state.opts.onSucess) {
-                        await state.opts.onSucess(job);
+                    if(state.opts.onSuccess) {
+                        await state.opts.onSuccess(job);
                     }
 
                     break;
@@ -658,6 +681,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
          
         }
     }
+
     private async _findJobs(name: string, limit: number) {
 
         if (this.STOPPING) return [];
@@ -941,6 +965,29 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         for(const job of jobs) {
             this._wakeWorker(job)
+        }
+
+        return;
+    }
+
+    private async _cleanupWorkerJobs () {
+
+        const status = this.CLEANUP.statuses;
+
+        const count = await new Worker()
+        .whereIn('status',status)
+        .count()
+
+        await new Worker()
+        .whereIn('status',status)
+        .deleteMany()
+        .catch(() => null)
+
+        if (this.INSPECT_EXEC) {
+            console.log([
+                '\x1b[34mQueue:\x1b[0m',
+                `\x1b[38;2;77;215;240m${QUEUE_STATUS.cleanup}\x1b[0m ${count} job(s)`,
+            ].join(' '));
         }
 
         return;

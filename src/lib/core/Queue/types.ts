@@ -19,6 +19,22 @@ export type State = {
     opts        : QueueProcessOptions
 }
 
+export type QueueInit = { 
+    inspect          ?: boolean; 
+    flush            ?: boolean; 
+    hostname         ?: string;
+    maxIdleRetries   ?: number;
+    poll             ?: {
+        enabled  ?: boolean;
+        interval ?: number;
+    };
+    cleanup          ?: {
+        enabled  ?: boolean;
+        interval ?: number;
+        statuses ?: JobStatus[];
+    };
+}
+
 export type QueueAddOptions = {
   delayMs     ?: number  // default 0 
   priority    ?: number // default 0
@@ -32,8 +48,8 @@ export type QueueProcessOptions = {
     interval    ?: number; // default 1000
     concurrency ?: number; // default 1
 
-    onSucess    ?: (job: Job) => Promise<void> | void;
-    onError     ?: (error : any, job: Job) => Promise<void> | void;
+    onSuccess   ?: (job: Job) => Promise<void> | void;
+    onError     ?: (error : unknown, job: Job) => Promise<void> | void;
 }
 
 export type BufferedJob = {
