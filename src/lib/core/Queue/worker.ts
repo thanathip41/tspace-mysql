@@ -106,7 +106,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         idle        : number;
         sleeping    : boolean;
         running     : number;
-        opts        : Required<QueueProcessOptions>
+        opts        : QueueProcessOptions
     }>();
 
     private EVENT_SUBSCRIBERS = new Map<
@@ -287,9 +287,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
       
         return jobs;
     }
+
     public async getNames() {
         return await new Worker().select('name').toArray('name');
     }
+
     public async add(
         name: string, 
         payload: any, 
@@ -335,7 +337,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             running      : 0,   
             opts         : {
                 concurrency : opts.concurrency!,
-                interval    : opts.interval!
+                interval    : opts.interval!,
+                onSucess    : opts.onSucess,
+                onError     : opts.onError,
             }
         })
 
@@ -355,14 +359,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             if (!state) return;
 
-            if (state.running >= state.opts.concurrency) {
+            if (state.running >= state.opts.concurrency!) {
                 const delayMs = opts.interval ?? 1000;
                 state.running--;
                 setTimeout(dispatch, delayMs);
                 return;
             }
 
-            const capacity = state.opts.concurrency - state.running;
+            const capacity = state.opts.concurrency! - state.running;
 
             const jobs = await this._findJobs(name, capacity);
            
@@ -522,6 +526,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 ].join(' '));
             }
 
+            if(state.opts.onSucess) {
+                await state.opts.onSucess(job);
+            }
+
         } catch (err:any) {
 
             if(this.INSPECT_EXEC) {
@@ -546,6 +554,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             })
             .void()
             .save()
+
+            if(state.opts.onError) {
+                await state.opts.onError(err,job);
+            }
 
             const maxAttempts = job.__job.max_attempts;
 
@@ -583,6 +595,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                             `\x1b[38;5;208m${job.id}\x1b[0m`,
                             `(${endTime - startTime}ms ${attempts}/${maxAttempts})`,
                         ].join(' '));
+                    }
+
+                    if(state.opts.onSucess) {
+                        await state.opts.onSucess(job);
                     }
 
                     break;
@@ -627,6 +643,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                                 `\x1b[38;5;208m${job.id}\x1b[0m`,
                                 '(\x1b[33mmax attempts reached\x1b[0m)',
                             ].join(' '));
+                        }
+
+                        if(state.opts.onError) {
+                            await state.opts.onError(err,job);
                         }
 
                         break;

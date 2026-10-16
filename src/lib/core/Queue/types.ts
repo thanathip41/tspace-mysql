@@ -16,7 +16,7 @@ export type State = {
     idle        : number;
     sleeping    : boolean;
     running     : number;
-    opts        : Required<QueueProcessOptions>
+    opts        : QueueProcessOptions
 }
 
 export type QueueAddOptions = {
@@ -31,6 +31,9 @@ export type QueueAddOptions = {
 export type QueueProcessOptions = { 
     interval    ?: number; // default 1000
     concurrency ?: number; // default 1
+
+    onSucess    ?: (job: Job) => Promise<void> | void;
+    onError     ?: (error : any, job: Job) => Promise<void> | void;
 }
 
 export type BufferedJob = {
