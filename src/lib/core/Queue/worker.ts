@@ -44,17 +44,17 @@ const STATUS = {
 const schema = {
     id    : Blueprint.int().primary().autoIncrement(),
     uuid  : Blueprint.varchar(36).null(),
-    name  : Blueprint.varchar(255).notNull()
+    name  : Blueprint.varchar(255)
+    .notNull()
     .index()
     .compositeIndex([
         "status", "available_at", "priority", "id"
     ]),
    
     status : Blueprint
-    .enum(...Object.values(STATUS))
+    .enum(STATUS)
     .notNull()
-    .default(STATUS.pending)
-    .index(),
+    .default(STATUS.pending),
 
     priority     : Blueprint.int().default(0),
     payload      : Blueprint.text().null(),
@@ -84,12 +84,13 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private ACTIVE_JOBS       = 0;
 
     private BATCH_SIZE        = 1000;
-    private MAX_WAIT_MS       = 50;
+    private BATCH_WAIT_MS     = 100;
 
-    private MAX_IDLE_RETRIES  = 3;
-    private INTV_IDLE_RETRIES = 1000;
+    private MAX_IDLE_RETRY    = 3;
+    private INTV_IDLE_RETRY   = 1000;
 
-    private MAX_CONCURRENCY   = 1;
+    private CONCURRENCY       = 1;
+    private MAX_CONCURRENCY   = 100;
 
     private POLL = {
         intervalId : null,
@@ -161,7 +162,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         }
 
         if(opts.maxIdleRetries) {
-            this.MAX_IDLE_RETRIES = opts.maxIdleRetries;
+            this.MAX_IDLE_RETRY = opts.maxIdleRetries;
         }
 
         if (opts.poll?.enabled) {
@@ -196,10 +197,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 ].join(' '));
             }
                 
-            await this._sleep(200);
+            await this._waitMs(200);
         }
 
-        await this._sleep(2000);
+        await this._waitMs(2000);
 
         if (this.POLL.intervalId) {
             clearInterval(this.POLL.intervalId);
@@ -221,8 +222,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async flush() {
         const jobs = await new Worker().count('id');
         
-        await new Worker().truncate({ force: true })
-        await new WorkerLock().truncate({ force: true })
+        await new Worker().truncate({ force: true });
+        await new WorkerLock().truncate({ force: true });
        
         if(this.INSPECT_EXEC) {
           console.log(`\x1b[34mQueue:\x1b[0m \x1b[31mFlush all jobs (${jobs} jobs)\x1b[0m`);
@@ -338,7 +339,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if (this.BUFFER.jobs.length >= this.BATCH_SIZE) {
                 this._flushBuffer();
             } else if (!this.BUFFER.timeout) {
-                this.BUFFER.timeout = setTimeout(() => this._flushBuffer(), this.MAX_WAIT_MS);
+                this.BUFFER.timeout = setTimeout(() => this._flushBuffer(), this.BATCH_WAIT_MS);
             }
         });
     }
@@ -346,11 +347,17 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async process(
         name    : string, 
         handler : Handler, 
-        opts    : QueueProcessOptions = { 
-            interval    : this.INTV_IDLE_RETRIES, 
-            concurrency : this.MAX_CONCURRENCY 
-        } 
+        opts    : QueueProcessOptions 
     ) {
+
+        if(opts.interval  == null) {
+            opts.interval  = this.INTV_IDLE_RETRY;
+        };
+
+        opts.concurrency = Math.min(
+            opts.concurrency ?? this.CONCURRENCY,
+            this.MAX_CONCURRENCY
+        ) as QueueProcessOptions['concurrency'];
 
         this.WORKER_STATE.set(name , {
             handler      : handler,
@@ -381,21 +388,24 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             if (!state) return;
 
-            if (state.running >= state.opts.concurrency!) {
-                const delayMs = opts.interval ?? 1000;
+            if (state.running >= opts.concurrency!) {
                 state.running--;
-                setTimeout(dispatch, delayMs);
+                setTimeout(dispatch, opts.interval);
                 return;
             }
 
-            const capacity = state.opts.concurrency! - state.running;
+            const capacity = opts.concurrency! - state.running;
+
+            if(capacity <= 0) {
+                await this._waitMs(2000);
+            }
 
             const jobs = await this._findJobs(name, capacity);
-           
+
             if (!jobs || jobs.length === 0) {
                 state.idle++
-
-                if (state.idle >= this.MAX_IDLE_RETRIES) {
+                
+                if (state.idle >= this.MAX_IDLE_RETRY) {
                     state.sleeping = true
 
                     if(this.INSPECT_EXEC) {
@@ -405,13 +415,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                             `\x1b[90m${QUEUE_STATUS.idle} (no jobs available)\x1b[0m`,
                         ].join(' '));
                     }
-
                     return;
                 }
 
-                const delayMs = opts.interval;
-                
-                setTimeout(dispatch, delayMs);
+                setTimeout(dispatch, opts.interval!);
 
                 return;
             }
@@ -433,7 +440,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async publish(
         event: string,
         payload: any,
-        opts: QueueAddOptions = {}
+        opts: QueueAddOptions
     ): Promise<void> {
 
         const subscribers = this.EVENT_SUBSCRIBERS.get(event);
@@ -453,11 +460,17 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         event: string,
         name: string,
         handler: Handler,
-        opts: QueueProcessOptions = {
-            interval    : this.INTV_IDLE_RETRIES, 
-            concurrency : this.MAX_CONCURRENCY 
-        }
+        opts: QueueProcessOptions 
     ): Promise<void> {
+
+        if(opts.interval  == null) {
+            opts.interval  = this.INTV_IDLE_RETRY
+        }
+
+        opts.concurrency = Math.min(
+            opts.concurrency ?? this.CONCURRENCY,
+            this.MAX_CONCURRENCY
+        ) as QueueProcessOptions['concurrency'];
 
         const jobName = `${event}.${name}`;
 
@@ -487,8 +500,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         await this._executeJob({ 
             name, 
             job, 
-            state, 
-            startTime: +new Date()
+            state
         });
 
         state.running--
@@ -497,13 +509,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return;
     }
 
-    private async _executeJob ({ name, job, state, startTime } : {
-        name: string; 
-        job: JobInternal; 
-        state: State;
-        startTime: number;
+    private async _executeJob ({ name, job, state } : {
+        name  : string; 
+        job   : JobInternal; 
+        state : State;
     }) {
-        
+
+        const startTime = new Date().getTime();
+
         if (this.INSPECT_EXEC) {
             console.log([
                 '\x1b[34mQueue:\x1b[0m',
@@ -525,17 +538,19 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             await new Worker()
             .where('id', job.id)
             .update({
-                status: 'completed',
-                result: this._safeJsonStringify(result),
-                completed_at: this.$utils.timestamp(),
-                attempts : 0
+                status       : 'completed',
+                result       : this._safeJsonStringify(result),
+                completed_at : this.$utils.timestamp(),
+                attempts     : 0
             })
             .void()
             .save()
 
-            await new WorkerLock()
-            .where('job_id',job.id)
-            .delete();
+            if(job.__job.unique_key) {
+                await new WorkerLock()
+                .where('job_id',job.id)
+                .delete();
+            }
 
             const endTime = +new Date();
 
@@ -685,7 +700,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private async _findJobs(name: string, limit: number) {
 
         if (this.STOPPING) return [];
-
+        
         const rdyJobs = await new Worker()
         .select('id')
         .where('name', name)
@@ -937,6 +952,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private async _wakeWorker(name: string) {
 
         const state = this.WORKER_STATE.get(name);
+
         if (!state || !state.sleeping || !state.handler) return;
 
         const isSleeping = state.sleeping;
@@ -1092,7 +1108,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         }
     }
 
-    private async _sleep (ms: number){
+    private async _waitMs (ms: number){
         return  await new Promise(r => setTimeout(r,ms));
     }
 }
