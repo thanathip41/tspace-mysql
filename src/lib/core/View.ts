@@ -1,5 +1,6 @@
 import { DB }           from "./DB";
 import { AbstractView } from "./Abstracts/AbstractView";
+import { Model } from "./Model";
 
 /**
  *
@@ -90,48 +91,41 @@ class View<TS extends Record<string, any> = any,TR = unknown> extends AbstractVi
      * @returns  {void}
      */
     protected createView({ name, expression, synchronize }: { 
-        name?: string; 
-        expression: string;  
-        synchronize?: boolean;
+        name        ?: string; 
+        expression   : Model | DB | string;  
+        synchronize ?: boolean;
      }): void {
         const baseViewName = this._classToTableName();
         const patternViewName = this._valuePattern(baseViewName);
         const viewName = name ?? patternViewName;
-        let sql = expression;
+        const qb = this._queryBuilder();
 
+        let sql = qb.createView({
+            name : viewName,
+            expression : `${expression}`
+        })
+       
         const fn = async () => {
-            try {
-
-                if(synchronize) {
-                    const dropViewSQL = `${this.$constants('DROP_VIEW')} ${viewName} `;
-                    await DB
-                    .query(dropViewSQL)
-                    .catch(err => {
-                        sql = dropViewSQL
-                        throw err
-                    })
-                }
-
-                const createViewSQL = `${this.$constants('CREATE_VIEW')} ${viewName} ${this.$constants('AS')} ${expression}`;
+           
+            if(synchronize) {
+                const dropViewSQL = qb.dropView(viewName);
 
                 await DB
-                .query(createViewSQL)
-                .catch(err => {
-                    sql = createViewSQL
-                    throw err
-                })
-
-            } catch (err:any) {
-                const message = err.message
-                const exists = String(message).includes(`Table '${viewName}' already exists`)
-
-                if(exists) return;
-
-                console.log(`\n\x1b[31mFAIL QUERY:\x1b[0m \x1b[33m${sql.trim()};\x1b[0m`)
-                
-                throw err
+                .dd(this.$state.get('DEBUG'))
+                .query(dropViewSQL)
             }
-           
+
+            const rawView = await DB
+            .dd(this.$state.get('DEBUG'))
+            .query(qb.hasView({ name : viewName , database : this.$database }));
+
+            const viewExists = Boolean(rawView[0]?.IS_EXISTS ?? false);
+
+            if(viewExists) return;
+
+            await DB
+            .dd(this.$state.get('DEBUG'))
+            .query(sql)
         }
 
         this.table(viewName);

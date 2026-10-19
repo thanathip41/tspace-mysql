@@ -1,8 +1,9 @@
+import { DB }    from '../DB';
 import { Model } from '../Model'
 abstract class AbstractView<TS extends Record<string, any> = any,TR = unknown> extends Model<TS,TR> {
     protected abstract createView ({ name, expression, synchronize }: { 
         name?: string; 
-        expression: string;  
+        expression: Model | DB | string;  
         synchronize?: boolean
     }): void
 }

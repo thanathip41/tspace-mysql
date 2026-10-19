@@ -286,8 +286,8 @@ class DB extends AbstractDB {
    * @override
    * @returns {this} this
    */
-  public static dd(): DB {
-    return new this().dd();
+  public static dd(debug: boolean = true): DB {
+    return new this().dd(debug);
   }
 
   /**

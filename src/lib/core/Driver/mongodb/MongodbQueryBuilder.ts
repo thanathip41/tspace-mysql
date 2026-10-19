@@ -682,6 +682,29 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return ''
   }
 
+  public createView ({
+    expression,
+    name,
+  }: {
+    expression: string;
+    name: string;
+  }) {
+    throw new Error("Method not implemented.")
+    return ''
+  }
+
+  public hasView ({
+    database,
+    name,
+  }: {
+    database: string;
+    name    : string;
+  }) {
+
+    throw new Error("Method not implemented.")
+    return ''
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

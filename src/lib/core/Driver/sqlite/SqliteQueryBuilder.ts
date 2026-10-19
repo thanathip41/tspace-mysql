@@ -923,6 +923,35 @@ export class SqliteQueryBuilder extends QueryBuilder {
     `);
   }
 
+  public createView ({
+    expression,
+    name,
+  }: {
+    expression: string;
+    name: string;
+  }) {
+    return this.format(`CREATE VIEW ${name} AS ${expression}`);
+  }
+
+  public hasView ({
+    database,
+    name,
+  }: {
+    database: string;
+    name    : string;
+  }) {
+
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1
+        FROM ${database}.sqlite_master
+        WHERE type = 'view'
+          AND name = '${name}'
+      ) AS "IS_EXISTS"
+    `
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

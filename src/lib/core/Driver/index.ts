@@ -401,7 +401,6 @@ export abstract class QueryBuilder {
 
   public abstract getDatabase(database: string): string;
   public abstract dropDatabase(database: string): string;
-  public abstract dropView(view: string): string;
   public abstract dropTable(table: string): string;
   public abstract truncate(table: string): string;
   public abstract sleep(second: number): string;
@@ -422,6 +421,24 @@ export abstract class QueryBuilder {
   public abstract setSession  (name : string , value: string) : string;
   public abstract deleteSession  (name : string) : string;
 
+  public abstract createView ({
+    expression,
+    name,
+  }: {
+    expression: string;
+    name: string;
+  }) : string;
+
+  public abstract hasView ({
+    database,
+    name,
+  }: {
+    database: string;
+    name: string;
+  }) : string;
+
+  public abstract dropView(name: string): string;
+  
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
   protected abstract bindOrderBy(values: string[]): string | null;

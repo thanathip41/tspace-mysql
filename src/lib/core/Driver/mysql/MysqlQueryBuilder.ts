@@ -884,6 +884,36 @@ export class MysqlQueryBuilder extends QueryBuilder {
     return this.format(`SET ${this.nameSession(name)} = NULL`);
   }
 
+  public createView ({
+    expression,
+    name,
+  }: {
+    expression: string;
+    name: string;
+  }) {
+    return this.format(`CREATE VIEW ${name} AS ${expression}`);
+  }
+
+  public hasView ({
+    database,
+    name,
+  }: {
+    database: string;
+    name    : string;
+  }) {
+
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1
+        FROM INFORMATION_SCHEMA.VIEWS
+        WHERE TABLE_SCHEMA = '${database}'
+          AND TABLE_NAME   = '${name}'
+      ) AS "IS_EXISTS"
+    `
+    
+    return this.format(sql);
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

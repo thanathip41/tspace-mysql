@@ -1158,16 +1158,46 @@ export class PostgresQueryBuilder extends QueryBuilder {
     return this.format(`_sessions.${name}`);
   }
 
-  public getSession  (name : string) {
+  public getSession (name : string) {
     return this.format(`SELECT CURRENT_SETTING('${this.nameSession(name)}') AS ${name}`);
   }
 
-  public setSession  (name : string , value : string) {
+  public setSession (name : string , value : string) {
     return this.format(`SET ${this.nameSession(name)} = '${value}'`);
   }
 
-  public deleteSession  (name : string) {
+  public deleteSession (name : string) {
     return this.format(`RESET ${this.nameSession(name)}`);
+  }
+
+  public createView ({
+    expression,
+    name,
+  }: {
+    expression: string;
+    name: string;
+  }) {
+    return this.format(`CREATE VIEW ${name} AS ${expression}`);
+  }
+
+  public hasView ({
+    database,
+    name,
+  }: {
+    database: string;
+    name    : string;
+  }) {
+
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1
+        FROM INFORMATION_SCHEMA.VIEWS
+        WHERE TABLE_CATALOG = '${database.replace(/\`/g, "")}'
+          AND TABLE_NAME   = '${name.replace(/\`/g, "")}'
+      ) AS "IS_EXISTS"
+    `
+    
+    return this.format(sql);
   }
 
   protected bindJoin(values: string[]) {
