@@ -2022,7 +2022,7 @@ class Model<
    *   The lifecycle event to register. Determines which hook
    *   collection the function(s) will be stored in.
    *
-   * @param {Function | Function[]} funcs
+   * @param {Function | Function[]} callback
    *   A function or array of functions to be executed when the
    *   lifecycle event is triggered. All functions must be valid
    *   JavaScript functions, otherwise an assertion error is thrown.
@@ -2052,7 +2052,10 @@ class Model<
    *   .useLifecycle("beforeInsert", fnA)
    *   .useLifecycle("afterInsert", fnB);
    */
-  protected useLifecycle(type: TLifecycle, funcs: Function | Function[]): this {
+  protected useLifecycle(
+    type: TLifecycle, 
+    callback: ((data: any) => any | Promise<any>) | ((data: any) => any | Promise<any>)[]
+  ): this {
     const MAP: Record<
       TLifecycle,
       | "LIFECYCLE_BEFORE_INSERTS"
@@ -2070,7 +2073,7 @@ class Model<
       afterRemove: "LIFECYCLE_AFTER_REMOVES",
     };
 
-    const lists = Array.isArray(funcs) ? funcs : [funcs];
+    const lists = Array.isArray(callback) ? callback : [callback];
 
     for (const func of lists) {
       if (typeof func !== "function") {
