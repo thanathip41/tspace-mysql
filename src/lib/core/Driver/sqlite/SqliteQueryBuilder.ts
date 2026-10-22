@@ -650,26 +650,19 @@ export class SqliteQueryBuilder extends QueryBuilder {
     table: string;
     name: string;
   }) {
+
     const sql = [`
       SELECT EXISTS(
         SELECT 1
         FROM sqlite_master AS m
+        JOIN pragma_index_list(m.name) AS il
         WHERE m.type = 'table'
           AND m.name = '${table.replace(/["`]/g, "")}'
-          AND (
-            ('${name}' = 'PRIMARY KEY' AND m.sql LIKE '%PRIMARY KEY%')
-            OR
-            ('${name}' = 'UNIQUE' AND EXISTS (
-              SELECT 1 FROM pragma_index_list(m.name) il WHERE il."unique" = 1
-            ))
-            OR
-            ('${name}' = 'FOREIGN KEY' AND EXISTS (
-              SELECT 1 FROM pragma_foreign_key_list(m.name)
-            ))
-          )
+          AND il.name = '${name.replace(/["`]/g, "")}'
+          AND il."unique" = 1
       ) AS "IS_EXISTS"
     `];
-
+   
     return this.format(sql);
   }
 
@@ -678,21 +671,19 @@ export class SqliteQueryBuilder extends QueryBuilder {
     name,
     columns
   }: {
-    table   : string;
-    name  : string;
-    columns : string[];
+    table: string;
+    name: string;
+    columns: string[];
   }) {
-
     const cols = columns
-    .map(col => `\`${col}\``)
-    .join(", ");
+      .map(col => `\`${col}\``)
+      .join(", ");
 
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
-      this.$constants("ADD_CONSTRAINT"),
+      "CREATE UNIQUE INDEX",
       `\`${name}\``,
-      this.$constants("UNIQUE"),
+      "ON",
+      `\`${table}\``,
       `(${cols})`
     ];
 
@@ -703,15 +694,11 @@ export class SqliteQueryBuilder extends QueryBuilder {
     table,
     name,
   }: {
-    table   : string;
-    name   : string;
+    table: string;
+    name: string;
   }) {
-    
     const sql = [
-      this.$constants("ALTER_TABLE"),
-      `\`${table}\``,
-      this.$constants("DROP"),
-      this.$constants("INDEX"),
+      "DROP INDEX",
       `\`${name}\``
     ];
 
@@ -944,7 +931,7 @@ export class SqliteQueryBuilder extends QueryBuilder {
     const sql = `
       SELECT EXISTS (
         SELECT 1
-        FROM ${database}.sqlite_master
+        FROM sqlite_master
         WHERE type = 'view'
           AND name = '${name}'
       ) AS "IS_EXISTS"
