@@ -909,7 +909,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         SELECT 1
         FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
         WHERE 
-          TABLE_SCHEMA        = '${database.replace(/['"`]/g, "")}'
+          TABLE_CATALOG       = '${database.replace(/['"`]/g, "")}'
           AND TABLE_NAME      = '${table.replace(/['"`]/g, "")}'
           AND CONSTRAINT_NAME = '${name.replace(/['"`]/g, "")}'
           AND CONSTRAINT_TYPE = '${this.$constants("UNIQUE")}'
@@ -978,7 +978,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
         SELECT 1
         FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
         WHERE 
-          TABLE_SCHEMA        = '${database.replace(/['"`]/g, "")}'
+          TABLE_CATALOG       = '${database.replace(/['"`]/g, "")}'
           AND TABLE_NAME      = '${table.replace(/['"`]/g, "")}'
           AND CONSTRAINT_TYPE = '${this.$constants('PRIMARY_KEY')}'
       ) AS "IS_EXISTS"
