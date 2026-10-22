@@ -68,12 +68,12 @@ const schema = {
     delay_ms     : Blueprint.int().default(0),
 
     locked_by    : Blueprint.text().null(),
-    locked_at    : Blueprint.datetime().null(),
+    locked_at    : Blueprint.timestamp().null(),
 
-    available_at : Blueprint.datetime().notNull(),
-    completed_at : Blueprint.datetime().null(),
-    created_at   : Blueprint.datetime().null(),
-    updated_at   : Blueprint.datetime().null()
+    available_at : Blueprint.timestamp().notNull(),
+    completed_at : Blueprint.timestamp().null(),
+    created_at   : Blueprint.timestamp().null(),
+    updated_at   : Blueprint.timestamp().null()
 };
 export class Worker extends Model<T.Schema<typeof schema>> {
 

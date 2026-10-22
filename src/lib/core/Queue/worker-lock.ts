@@ -13,8 +13,8 @@ const schema = {
     .notNull()
     .compositeUnique(["name"]),
 
-    created_at : Blueprint.datetime().null(),
-    updated_at : Blueprint.datetime().null()
+    created_at : Blueprint.timestamp().null(),
+    updated_at : Blueprint.timestamp().null()
 };
 
 class WorkerLock extends Model<T.Schema<typeof schema>> {
