@@ -86,11 +86,13 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private BATCH_SIZE        = 1000;
     private BATCH_WAIT_MS     = 100;
 
-    private MAX_IDLE_RETRY    = 3;
-    private INTV_IDLE_RETRY   = 1000;
-
     private CONCURRENCY       = 1;
     private MAX_CONCURRENCY   = 100;
+
+    private IDLE = {
+        maxRetry   : 5,
+        interval   : 1000
+    }
 
     private POLL = {
         intervalId : null,
@@ -162,7 +164,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         }
 
         if(opts.maxIdleRetries) {
-            this.MAX_IDLE_RETRY = opts.maxIdleRetries;
+            this.IDLE.maxRetry = opts.maxIdleRetries;
         }
 
         if (opts.poll?.enabled) {
@@ -350,8 +352,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         opts    : QueueProcessOptions 
     ) {
 
-        if(opts.interval  == null) {
-            opts.interval  = this.INTV_IDLE_RETRY;
+        if(opts.interval == null) {
+            opts.interval  = this.IDLE.interval;
         };
 
         opts.concurrency = Math.min(
@@ -359,18 +361,20 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             this.MAX_CONCURRENCY
         ) as QueueProcessOptions['concurrency'];
 
-        this.WORKER_STATE.set(name , {
-            handler      : handler,
-            idle         : 0,
-            sleeping     : false,
-            running      : 0,   
-            opts         : {
-                concurrency : opts.concurrency!,
-                interval    : opts.interval!,
-                onSuccess   : opts.onSuccess,
-                onError     : opts.onError,
-            }
-        })
+        if(!this.WORKER_STATE.has(name)) {
+            this.WORKER_STATE.set(name , {
+                handler      : handler,
+                idle         : 0,
+                sleeping     : false,
+                running      : 0,   
+                opts         : {
+                    concurrency : opts.concurrency!,
+                    interval    : opts.interval!,
+                    onSuccess   : opts.onSuccess,
+                    onError     : opts.onError,
+                }
+            })
+        }
 
         if(this.INSPECT_EXEC) {
             console.log([
@@ -405,7 +409,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if (!jobs || jobs.length === 0) {
                 state.idle++
                 
-                if (state.idle >= this.MAX_IDLE_RETRY) {
+                if (state.idle > this.IDLE.maxRetry) {
                     state.sleeping = true
 
                     if(this.INSPECT_EXEC) {
@@ -434,7 +438,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             return;
         }
 
-        return dispatch();
+        return await dispatch();
     }
 
     public async publish(
@@ -463,8 +467,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         opts: QueueProcessOptions 
     ): Promise<void> {
 
-        if(opts.interval  == null) {
-            opts.interval  = this.INTV_IDLE_RETRY
+        if(opts.interval == null) {
+            opts.interval  = this.IDLE.interval;
         }
 
         opts.concurrency = Math.min(
@@ -584,10 +588,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             .update({
                 status : 'failed',
                 error : this._safeJsonStringify({
-                    message: err.message,
-                    name: err.name,
-                    stack: err.stack,
-                    code: err.code,
+                    message : err?.message ?? null,
+                    name    : err?.name ?? null,
+                    stack   : err?.stack ?? null,
+                    code    : err?.code ?? null,
                 })
             })
             .void()
@@ -616,10 +620,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     await new Worker()
                     .where('id', job.id)
                     .update({
-                        status: 'completed',
-                        attempts,
-                        result: this._safeJsonStringify(result),
-                        completed_at: this.$utils.timestamp(),
+                        status       : 'completed',
+                        attempts     : attempts,
+                        result       : this._safeJsonStringify(result),
+                        completed_at : this.$utils.timestamp(),
                     })
                     .void()
                     .save();
@@ -662,11 +666,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                             status: 'failed',
                             attempts,
                             error: this._safeJsonStringify({
-                                retry  : true,
-                                message: err?.message,
-                                name: err?.name,
-                                stack: err?.stack,
-                                code: err?.code,
+                                retry   : true,
+                                message : err?.message ?? null,
+                                name    : err?.name ?? null,
+                                stack   : err?.stack ?? null,
+                                code    : err?.code ?? null,
                             }),
                         })
                         .void()
@@ -701,7 +705,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         if (this.STOPPING) return [];
         
-        const rdyJobs = await new Worker()
+        const availableJobs = await new Worker()
         .select('id')
         .where('name', name)
         .whereQuery(query => {
@@ -716,7 +720,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .limit(limit)
         .findMany()
 
-        if(!rdyJobs.length) {
+        if(!availableJobs.length) {
             
             const incomingJobs = await new Worker()
             .select('id','name','delay_ms')
@@ -746,7 +750,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return await DB.transaction(async (trx) => {
 
             const jobs = await new Worker()
-            .whereIn('id',rdyJobs.map(v => v.id))
+            .whereIn('id',availableJobs.map(v => v.id))
             .latest('priority')
             .oldest('delay_ms')
             .oldest('id')
@@ -762,8 +766,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             await new Worker()
             .whereIn('id',jobs.map(v => v.id))
             .updateMany({
-                status : 'active',
-                locked_at: this.$utils.timestamp(),
+                status    : 'active',
+                locked_at : this.$utils.timestamp(),
                 locked_by : this.HOSTNAME
             })
             .void()
@@ -990,19 +994,20 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         const status = this.CLEANUP.statuses;
 
-        const count = await new Worker()
+        const jobs = await new Worker()
+        .select('id')
         .whereIn('status',status)
-        .count()
+        .findMany()
 
         await new Worker()
-        .whereIn('status',status)
+        .whereIn('id',jobs.map(job => job.id))
         .deleteMany()
         .catch(() => null)
 
         if (this.INSPECT_EXEC) {
             console.log([
                 '\x1b[34mQueue:\x1b[0m',
-                `\x1b[38;2;77;215;240m${QUEUE_STATUS.cleanup}\x1b[0m ${count} job(s)`,
+                `\x1b[38;2;77;215;240m${QUEUE_STATUS.cleanup}\x1b[0m ${jobs.length} job(s)`,
             ].join(' '));
         }
 
