@@ -100,6 +100,7 @@ export class PostgresDriver extends BaseDriver {
     });
 
     return {
+      driver  : () => 'postgres',
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: PostgresQueryBuilder,
@@ -229,6 +230,7 @@ export class PostgresDriver extends BaseDriver {
     }
 
     return {
+      driver  : () => 'postgres',
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: PostgresQueryBuilder,

@@ -36,6 +36,7 @@ export class SqliteDriver extends BaseDriver {
     this.poolTrx = new sqlite(configs.path);
 
     return {
+      driver  : () => 'sqlite',
       database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: SqliteQueryBuilder,
@@ -208,6 +209,7 @@ export class SqliteDriver extends BaseDriver {
     }
 
     return {
+      driver  : () => 'sqlite',
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: SqliteQueryBuilder,

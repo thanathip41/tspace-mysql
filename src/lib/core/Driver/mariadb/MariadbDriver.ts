@@ -94,6 +94,7 @@ export class MariadbDriver extends BaseDriver {
     })
 
     return {
+      driver  : () => 'mariadb',
       database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MariadbQueryBuilder,
@@ -225,6 +226,7 @@ export class MariadbDriver extends BaseDriver {
     }
     
     return {
+      driver  : () => 'mariadb',
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MariadbQueryBuilder,
