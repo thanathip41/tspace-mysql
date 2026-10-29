@@ -313,8 +313,9 @@ export class PoolConnection {
     }
     return data;
   }
+  
   private _driver() {
-    return String(this.OPTIONS.get("driver") ?? "mysql2") as TDriver;
+    return String(this.OPTIONS.get("driver") ?? "mysql") as TDriver;
   }
 }
 
