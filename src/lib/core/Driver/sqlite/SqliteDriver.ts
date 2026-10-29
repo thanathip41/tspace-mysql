@@ -208,6 +208,7 @@ export class SqliteDriver extends BaseDriver {
     }
 
     return {
+      database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: SqliteQueryBuilder,
       query,

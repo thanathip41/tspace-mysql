@@ -239,6 +239,7 @@ export class MysqlDriver extends BaseDriver {
     }
 
     return {
+      database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MysqlQueryBuilder,
       query,
@@ -280,18 +281,6 @@ export class MysqlDriver extends BaseDriver {
         return resolve(stream)
       });
     })
-
-    //   this._detectEventQuery({ start, sql });
-
-    //   const stream = conn
-    //   .query(sql)
-    //   .stream({
-    //     objectMode: true,
-    //     highWaterMark: 100
-    //   });
-
-    //   return resolve(stream)
-    // });
   } 
 
   protected meta(results: any, sql: string): void {
