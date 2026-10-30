@@ -603,7 +603,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.CTEs('sleep',(query) => {
       return query
-      .selectRaw(`${this._queryBuilder().sleep(second)} ${this.$constants("AS")} delay`)
+      .selectRaw(`${this.getQueryBuilder().sleep(second)} ${this.$constants("AS")} delay`)
       .from(null)
     })
 
@@ -2845,7 +2845,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {string} return sql query
    */
   public toString(): string {
-    const sql = this._queryBuilder().any();
+    const sql = this.getQueryBuilder().any();
     return this._resultHandler(sql);
   }
 
@@ -2922,7 +2922,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
 
-    const qb = this._queryBuilder();
+    const qb = this.getQueryBuilder();
 
     const sql = qb.getSchema({
       database: this.$database,
@@ -2965,7 +2965,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       throw new Error('Unknown table name')
     }
 
-    const sql = this._queryBuilder().getSchema({
+    const sql = this.getQueryBuilder().getSchema({
       database: this.$database,
       table,
     });
@@ -2996,7 +2996,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }[]> {
   
     const fks = await this.rawQuery(
-      this._queryBuilder().getFKs({
+      this.getQueryBuilder().getFKs({
         database: this.$database,
         table: table ?? String(this.$state.get("TABLE_NAME")),
       })
@@ -3020,7 +3020,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }): Promise<boolean> {
     
     const result = await this.rawQuery(
-      this._queryBuilder().hasFK({
+      this.getQueryBuilder().hasFK({
         database: this.$database,
         table: table ?? String(this.$state.get("TABLE_NAME")),
         constraint
@@ -3054,7 +3054,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }[]> {
 
     const childFks = await this.rawQuery(
-      this._queryBuilder().getChildFKs({
+      this.getQueryBuilder().getChildFKs({
         database: this.$database,
         table: table ?? String(this.$state.get("TABLE_NAME")),
       })
@@ -3105,7 +3105,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
     
     await this.rawQuery(
-      this._queryBuilder()
+      this.getQueryBuilder()
       .addFK({
         table: table ?? this.getTableName(),
         tableRef,
@@ -3140,7 +3140,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
     
     await this.rawQuery(
-      this._queryBuilder()
+      this.getQueryBuilder()
       .dropFK({
         table: table ?? this.getTableName(),
         constraint
@@ -3174,7 +3174,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }[]> {
 
     const indexes = await this.rawQuery(
-      this._queryBuilder().getIndexes({
+      this.getQueryBuilder().getIndexes({
         database: this.$database,
         table: table ?? this.getTableName()
       })
@@ -3199,7 +3199,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }): Promise<boolean> {
   
     const result = await this.rawQuery(
-      this._queryBuilder().hasIndex({
+      this.getQueryBuilder().hasIndex({
         database: this.$database,
         table: table ?? this.getTableName(),
         name
@@ -3240,7 +3240,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().addIndex({
+      this.getQueryBuilder().addIndex({
         table: table ?? this.getTableName(),
         name,
         columns
@@ -3279,7 +3279,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().dropIndex({
+      this.getQueryBuilder().dropIndex({
         table: table ?? this.getTableName(),
         name,
       })
@@ -3308,7 +3308,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }): Promise<boolean> {
     
     const result = await this.rawQuery(
-      this._queryBuilder().hasUnique({
+      this.getQueryBuilder().hasUnique({
         database: this.$database,
         table: table ?? this.getTableName(),
         name
@@ -3349,7 +3349,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().addUnique({
+      this.getQueryBuilder().addUnique({
         table: table ?? this.getTableName(),
         name,
         columns
@@ -3388,7 +3388,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().dropUnique({
+      this.getQueryBuilder().dropUnique({
         table: table ?? this.getTableName(),
         name,
       })
@@ -3416,7 +3416,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   } = {}): Promise<boolean> {
     
     const result = await this.rawQuery(
-      this._queryBuilder().hasPrimaryKey({
+      this.getQueryBuilder().hasPrimaryKey({
         database: this.$database,
         table: table ?? this.getTableName()
       })
@@ -3454,7 +3454,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().addPrimaryKey({
+      this.getQueryBuilder().addPrimaryKey({
         table: table ?? String(this.getTableName()),
         columns
       })
@@ -3489,7 +3489,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     }
 
     await this.rawQuery(
-      this._queryBuilder().dropPrimaryKey({
+      this.getQueryBuilder().dropPrimaryKey({
         table: table ?? String(this.getTableName())
       })
     );
@@ -4002,7 +4002,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.limit(1);
 
-    let sql: string = this._queryBuilder().select();
+    let sql: string = this.getQueryBuilder().select();
 
     if (cb) {
       const callbackSql = cb(sql);
@@ -4051,7 +4051,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.limit(1);
 
-    let sql: string = this._queryBuilder().select();
+    let sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4101,7 +4101,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       this.select(...(await this.exceptColumns()));
     }
       
-    let sql: string = this._queryBuilder().select();
+    let sql: string = this.getQueryBuilder().select();
 
     if (cb) {
       const callbackSql = cb(sql);
@@ -4148,7 +4148,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       
     const LARGE_SCAN_ROWS = 10_000;
 
-    const qb = this._queryBuilder();
+    const qb = this.getQueryBuilder();
 
     const plan = await this.rawQuery(qb.explain(sql)).catch(() => []);
 
@@ -4456,7 +4456,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   public async toArray(column: string = "id"): Promise<any[]> {
     this.selectRaw(`${this.bindColumn(column)}`);
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4515,7 +4515,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       )} \`aggregate\``
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4546,7 +4546,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       )} \`aggregate\``
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4578,7 +4578,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       )} \`aggregate\``
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4609,7 +4609,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       )} \`aggregate\``
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4640,7 +4640,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       )} \`aggregate\``
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -4666,7 +4666,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.$state.set("DELETE",true);
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const result = await this._actionStatement(this.getQueryBuilder().remove());
    
     return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
@@ -4684,7 +4684,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.$state.set("DELETE",true);
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const result = await this._actionStatement(this.getQueryBuilder().remove());
 
     return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
@@ -4701,7 +4701,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   public async forceDelete(): Promise<boolean> {
     this.$state.set("DELETE",true);
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const result = await this._actionStatement(this.getQueryBuilder().remove());
 
     return Boolean(this._resultHandler(result?.$meta?.affected ?? false));
   }
@@ -4937,7 +4937,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    */
   public async getTables(): Promise<string[]> {
     const results: any[] = await this._queryStatement(
-      this._queryBuilder().getTables(this.database())
+      this.getQueryBuilder().getTables(this.database())
     );
 
     return results
@@ -4956,7 +4956,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   public async hasTable(table: string): Promise<boolean> {
 
     const result = await this._queryStatement(
-      this._queryBuilder().hasTable({ database : this.database() , table})
+      this.getQueryBuilder().hasTable({ database : this.database() , table})
     );
 
     return Boolean(result[0]?.IS_EXISTS ?? false);
@@ -4973,7 +4973,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     table: string = String(this.$state.get("TABLE_NAME")),
     options: { raw?: boolean } = {}
   ): Promise<any[]> {
-    const sql = this._queryBuilder().getColumns({
+    const sql = this.getQueryBuilder().getColumns({
       table,
       database: this.$database,
     });
@@ -5137,7 +5137,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       return false;
     }
 
-    const sql: string = this._queryBuilder().truncate(this.getTableName());
+    const sql: string = this.getQueryBuilder().truncate(this.getTableName());
 
     if (!force) {
       console.log([
@@ -5207,10 +5207,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     const sql: string = [
       db
-        ? this._queryBuilder().dropDatabase(table)
+        ? this.getQueryBuilder().dropDatabase(table)
         : view
-        ? this._queryBuilder().dropView(table)
-        : this._queryBuilder().dropTable(table),
+        ? this.getQueryBuilder().dropView(table)
+        : this.getQueryBuilder().dropTable(table),
     ].join(" ");
 
     if (!force) {
@@ -5350,10 +5350,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     return newInstance;
   }
 
-  protected _queryBuilder() {
+  public getQueryBuilder() {
     return this._buildQueryStatement() as QueryBuilder;
   }
-
+  
   protected _buildQueryStatement() {
     const buildQuery = this.$pool.queryBuilder();
 
@@ -5435,7 +5435,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     switch (check) {
       case false: {
         const result = await this._actionStatement(
-          this._queryBuilder().insert()
+          this.getQueryBuilder().insert()
         );
 
         if (this.$state.get("VOID") || !result) {
@@ -5460,7 +5460,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   private async _insert() {
-    const result = await this._actionStatement(this._queryBuilder().insert());
+    const result = await this._actionStatement(this.getQueryBuilder().insert());
 
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
@@ -5478,7 +5478,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   private async _insertMultiple() {
-    const result = await this._actionStatement(this._queryBuilder().insert());
+    const result = await this._actionStatement(this.getQueryBuilder().insert());
 
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
@@ -5513,7 +5513,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     switch (check) {
       case false: {
         const result = await this._actionStatement(
-          this._queryBuilder().insert()
+          this.getQueryBuilder().insert()
         );
 
         if (this.$state.get("VOID") || !result)
@@ -5574,7 +5574,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     switch (check) {
       case false: {
         const result = await this._actionStatement(
-          this._queryBuilder().insert()
+          this.getQueryBuilder().insert()
         );
 
         if (this.$state.get("VOID") || !result)
@@ -5595,7 +5595,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       }
       case true: {
         const result = await this._actionStatement(
-          this._queryBuilder().update()
+          this.getQueryBuilder().update()
         );
 
         if (this.$state.get("VOID") || !result)
@@ -5630,14 +5630,14 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     if (!this.$state.get("WHERE").length && !ignoreWhere)
       throw new Error("can't update without where condition");
 
-    const result = await this._actionStatement(this._queryBuilder().update());
+    const result = await this._actionStatement(this.getQueryBuilder().update());
    
     if (this.$state.get("VOID") || !result)
       return this._resultHandler(undefined);
 
     await this.$utils.wait(this.$state.get("AFTER_SAVE"));
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const data = await this._queryStatement(sql);
 

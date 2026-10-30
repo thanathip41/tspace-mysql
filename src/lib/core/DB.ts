@@ -772,7 +772,7 @@ class DB extends AbstractDB {
    */
   public async getActiveConnections () : Promise<number> {
     const current = await new DB()
-    .query(this._queryBuilder().getActiveConnections());
+    .query(this.getQueryBuilder().getActiveConnections());
 
     return Number(current[0]?.Connections || 0)
   }
@@ -794,7 +794,7 @@ class DB extends AbstractDB {
    */
   public async getMaxConnections () : Promise<number> {
     const current = await new DB()
-    .query(this._queryBuilder().getMaxConnections());
+    .query(this.getQueryBuilder().getMaxConnections());
 
     return Number(current[0]?.MaxConnections || 0)
   }
@@ -830,7 +830,7 @@ class DB extends AbstractDB {
     to 
   }: TClone): Promise<void> {
 
-    const qb = this._queryBuilder();
+    const qb = this.getQueryBuilder();
 
     const db = await new DB()
     .debug(this.$state.get("DEBUG"))
@@ -1014,7 +1014,7 @@ class DB extends AbstractDB {
 
     const tables = raws.filter(r => !excludes?.includes(r));
 
-    const qb = this._queryBuilder();
+    const qb = this.getQueryBuilder();
       
     const headers: string = [
       `--`,
@@ -1096,7 +1096,7 @@ class DB extends AbstractDB {
       
 
       for (let i = 0; i < tables.length; i++) {
-        const qb = this._queryBuilder();
+        const qb = this.getQueryBuilder();
         const table = tables[i];
         const tableStartTime = Date.now();
 
@@ -1331,7 +1331,7 @@ class DB extends AbstractDB {
     }
     
     const self = this;
-    const qb   = this._queryBuilder();
+    const qb   = this.getQueryBuilder();
 
     return {
       async get (name : string) {

@@ -98,7 +98,7 @@ class View<TS extends Record<string, any> = any,TR = unknown> extends AbstractVi
         const baseViewName = this._classToTableName();
         const patternViewName = this._valuePattern(baseViewName);
         const viewName = name ?? patternViewName;
-        const qb = this._queryBuilder();
+        const qb = this.getQueryBuilder();
 
         let sql = qb.createView({
             name : viewName,

@@ -157,19 +157,19 @@ class SqlLike  {
             
             let results : any[] = []
             if(this.$action === 'INSERT') {
-                const inserting = await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                const inserting = await this.$db.rawQuery(this.$db['getQueryBuilder']().any())
                 results = await this.$db.where('id', inserting.insertId).get()
             }
 
             if(this.$action === 'INSERT_MUTIPLE') {
-                const inserting = await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                const inserting = await this.$db.rawQuery(this.$db['getQueryBuilder']().any())
                 results = await this.$db
                 .whereIn('id',  Array.from({ length: this.$values.length }, (_, i) => inserting.insertId + i))
                 .get()
             }
 
             if(this.$action === 'UPDATE') {
-                await this.$db.rawQuery(this.$db['_queryBuilder']().any())
+                await this.$db.rawQuery(this.$db['getQueryBuilder']().any())
                 results = await this.$db.get()
             }
 
@@ -188,7 +188,7 @@ class SqlLike  {
 
         return Promise
         .resolve(this.$returning == null 
-            ? this.$db.rawQuery(this.$db['_queryBuilder']().any())
+            ? this.$db.rawQuery(this.$db['getQueryBuilder']().any())
             : returning()
         )
         .then(onFulfilled, onRejected)

@@ -305,7 +305,7 @@ class RelationManager  {
             this.$model['whereExists'](sql)
         }
 
-        const sql = this.$model['_queryBuilder']().select()
+        const sql = this.$model['getQueryBuilder']().select()
 
         return sql
     }

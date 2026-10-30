@@ -1373,7 +1373,7 @@ class Model<
       .bind(trx)
 
       const sqlLockTable = model
-      ._queryBuilder()
+      .getQueryBuilder()
       .lockTable(mode);
 
       await model.rawQuery(sqlLockTable)
@@ -1381,7 +1381,7 @@ class Model<
       const results = await handler(model as any);
 
       const sqlUnlockTable = model
-      ._queryBuilder()
+      .getQueryBuilder()
       .unlockTable();
 
       if(sqlUnlockTable != null) {
@@ -6314,7 +6314,7 @@ class Model<
       ].join(" "),
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6348,7 +6348,7 @@ class Model<
       )} \`aggregate\``,
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6383,7 +6383,7 @@ class Model<
       )} \`aggregate\``,
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6418,7 +6418,7 @@ class Model<
       )} \`aggregate\``,
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6451,7 +6451,7 @@ class Model<
       )} \`aggregate\``,
     );
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6502,7 +6502,7 @@ class Model<
 
     await this._runBefore("remove");
 
-    const r = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this.getQueryBuilder().remove());
 
     const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
@@ -6552,7 +6552,7 @@ class Model<
 
     await this._runBefore("remove");
 
-    const r = await this._actionStatement(this._queryBuilder().remove());
+    const r = await this._actionStatement(this.getQueryBuilder().remove());
 
     const result = Boolean(this._resultHandler(r?.$meta?.affected || false));
 
@@ -6594,7 +6594,7 @@ class Model<
 
     this.$state.set("DELETE", true);
 
-    const result = await this._actionStatement(this._queryBuilder().remove());
+    const result = await this._actionStatement(this.getQueryBuilder().remove());
 
     const r = Boolean(this._resultHandler(result?.$meta?.affected || false));
 
@@ -6628,7 +6628,7 @@ class Model<
       return queries[queries.length - 1] ?? this.toString();
     }
 
-    const sql = this._queryBuilder().any();
+    const sql = this.getQueryBuilder().any();
 
     return this._resultHandler(sql);
   }
@@ -6661,7 +6661,7 @@ class Model<
   ): Promise<any[]> {
     if (column == null) column = "id" as K;
 
-    const sql: string = this._queryBuilder().select();
+    const sql: string = this.getQueryBuilder().select();
 
     const result: any[] = await this._queryStatement(sql);
 
@@ -6711,7 +6711,7 @@ class Model<
 
     this._ensureRelationOwnerKeysSelected();
 
-    let sql = this._queryBuilder().select();
+    let sql = this.getQueryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
       sql = String(this.$relation.loadExists());
@@ -6766,7 +6766,7 @@ class Model<
 
     this._ensureRelationOwnerKeysSelected();
 
-    let sql = this._queryBuilder().select();
+    let sql = this.getQueryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
       sql = String(this.$relation.loadExists());
@@ -6804,7 +6804,7 @@ class Model<
 
     this._ensureRelationOwnerKeysSelected();
 
-    let sql = this._queryBuilder().select();
+    let sql = this.getQueryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
       sql = String(this.$relation.loadExists());
@@ -6997,7 +6997,7 @@ class Model<
 
     this._ensureRelationOwnerKeysSelected();
 
-    let sql = this._queryBuilder().select();
+    let sql = this.getQueryBuilder().select();
 
     if (this.$state.get("RELATIONS_EXISTS"))
       sql = String(this.$relation.loadExists());
@@ -8642,7 +8642,7 @@ class Model<
    * generate sql statements
    * @override
    */
-  protected _queryBuilder() {
+  public getQueryBuilder() {
 
     this._handleSelect();
 
@@ -9362,7 +9362,7 @@ class Model<
 
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
-    const result = await this._actionStatement(this._queryBuilder().insert());
+    const result = await this._actionStatement(this.getQueryBuilder().insert());
 
     if (!result) return this._resultHandler(null);
 
@@ -9398,7 +9398,7 @@ class Model<
 
     await this._validateSchema(this.$state.get("DATA"), "insert");
 
-    const result = await this._actionStatement(this._queryBuilder().insert());
+    const result = await this._actionStatement(this.getQueryBuilder().insert());
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
@@ -9444,7 +9444,7 @@ class Model<
       await this._validateSchema(v, "insert");
     }
 
-    const result = await this._actionStatement(this._queryBuilder().insert());
+    const result = await this._actionStatement(this.getQueryBuilder().insert());
 
     if (this.$state.get("VOID")) return this._resultHandler(undefined);
 
@@ -9498,7 +9498,7 @@ class Model<
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
         const result = await this._actionStatement(
-          this._queryBuilder().insert(),
+          this.getQueryBuilder().insert(),
         );
 
         if (this.$state.get("VOID") || !result)
@@ -9543,7 +9543,7 @@ class Model<
         await this._validateSchema(this.$state.get("DATA"), "update");
 
         const result = await this._actionStatement(
-          this._queryBuilder().update(),
+          this.getQueryBuilder().update(),
         );
 
         if (this.$state.get("VOID") || !result)
@@ -9600,7 +9600,7 @@ class Model<
         await this._validateSchema(this.$state.get("DATA"), "insert");
 
         const result = await this._actionStatement(
-          this._queryBuilder().insert(),
+          this.getQueryBuilder().insert(),
         );
 
         if (this.$state.get("VOID") || !result)
@@ -9677,7 +9677,7 @@ class Model<
 
     await this._validateSchema(this.$state.get("DATA"), "update");
 
-    const result = await this._actionStatement(this._queryBuilder().update());
+    const result = await this._actionStatement(this.getQueryBuilder().update());
 
     if (this.$state.get("VOID") || !result || result == null) {
       return this._resultHandler(undefined);
