@@ -16,7 +16,6 @@ import type {
   TPagination,
   TConnectionOptions,
   TPoolConnected,
-  TConnectionTransaction,
   TPoolCusterConnected,
   TDriver,
   TConstant,
@@ -3650,7 +3649,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @param {object} connection pool database
    * @returns {this} this
    */
-  public bind(connection: TPoolConnected | TConnection | TConnectionTransaction): this {
+  public bind(connection: TPoolConnected | TConnection | TConnection): this {
 
     this.$state.set('BIND', true);
 

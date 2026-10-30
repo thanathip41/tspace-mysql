@@ -161,40 +161,6 @@ export type TPoolCallback = {
     release: () => void;
 };
 
-export type TConnectionTransaction = {
-    driver : () => string;
-
-    database : () => string;
-
-    query: (sql: string) => Promise<any[]>;
-    /**
-     * The 'startTransaction' method is used when need to started the transaction
-     * @returns {Promise<void>}
-     */
-    startTransaction: () => Promise<void>;
-    /**
-     * The 'commit' method is used to when need to commit the transactions is successfully
-     * @returns {Promise<void>}
-     */
-    commit: () => Promise<void>;
-    /**
-     * The 'rollback ' method is used to when the transaction is failed
-     * @returns {Promise<void>}
-     */
-    rollback: () => Promise<void>;
-    /**
-     * The 'end ' method is used to end the transction
-     * @returns {Promise<void>}
-     */
-    end: () => Promise<void>;
-
-    /**
-     * The 'release' method is used to release connection
-     * @returns {Promise<void>}
-     */
-    release: () => Promise<void>;
-};
-
 export type TConnection = {
     driver : () => string;
     database : () => string;
@@ -229,7 +195,7 @@ export type TModelOrObject = {
 export type TCreateNewConnection = {
     on: (event: TPoolEvent, data: (r: any) => any) => void;
     query: (sql: string) => Promise<any>;
-    connection: () => Promise<TConnectionTransaction>;
+    connection: () => Promise<TConnection>;
 };
 
 export type TOptions = {
@@ -395,20 +361,6 @@ export type TLiteralEnumKeys<T> = TLiteralStringKeys<TRemoveIndexSignature<T>>;
 
 export type TDriver = 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mongodb'; // mssql in coming
 
-export type TPoolCusterOptions = {
-    writer: {
-        host: string;
-        user: string;
-        password: string;
-        database: string;
-    };
-    readers: {
-        host: string;
-        user: string;
-        password: string;
-        database: string;
-    }[];
-};
 type TClusterPool = {
     pool: {
         type: string;
@@ -423,6 +375,7 @@ type TClusterPool = {
     connection: () => Promise<TConnection>;
     stream: (sql: string) => Promise<Stream.Readable>;
 };
+
 export type TPoolCusterConnected = {
     database?: () => string
     query?: Function | null;

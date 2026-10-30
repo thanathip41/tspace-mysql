@@ -3,7 +3,6 @@ import type { T } from "../../core";
 
 import type {
   TConnection,
-  TConnectionTransaction,
   TFreezeStringQuery,
   TInsertInput,
   TNestedBoolean,
@@ -488,7 +487,7 @@ export type TRepositoryCreate<
 > = {
   data : TInsertInput<K,C>
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
   noReturn?: NR;
 };
 
@@ -500,7 +499,7 @@ export type TRepositoryCreateMultiple<
 > = {
   data: TInsertInput<K,C>[];
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
   noReturn?: NR;
 };
 
@@ -513,7 +512,7 @@ export type TRepositoryCreateOrThings<
   data: TInsertInput<K,C>[];
   where: T.WhereOptions<M>;
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
   noReturn?: NR;
 };
 
@@ -526,7 +525,7 @@ export type TRepositoryUpdate<
   data: TUpdateInput<K,C>[];
   where: T.WhereOptions<M>;
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
   noReturn?: NR;
 };
 
@@ -559,14 +558,14 @@ export type TRepositoryUpdateMultiple<
     >;
   }[];
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
   noReturn?: NR;
 };
 
 export type TRepositoryDelete<M extends Model<any, any> = Model<any, any>> = {
   where: T.WhereOptions<M>;
   debug?: boolean;
-  transaction?: TConnection | TConnectionTransaction;
+  transaction?: TConnection | TConnection;
 };
 
 export type TRepositoryPrimitiveExtendType<T> = T extends NumberConstructor

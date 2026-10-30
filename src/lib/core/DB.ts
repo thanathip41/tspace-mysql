@@ -12,12 +12,10 @@ import type {
   TDump,
   TPoolConnected,
   TConnectionOptions,
-  TConnectionTransaction,
+  TConnection,
   TRawStringQuery,
   TFreezeStringQuery,
-  TDriver,
   TPoolEvent,
-  TConnection,
 } from "../types";
 
 /**
@@ -676,7 +674,7 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  public async beginTransaction(pool ?: TPoolConnected): Promise<TConnectionTransaction> {
+  public async beginTransaction(pool ?: TPoolConnected): Promise<TConnection> {
     if(pool) {
       return await pool.connection();
     }
@@ -700,7 +698,7 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  public static async beginTransaction(pool ?: TPoolConnected): Promise<TConnectionTransaction> {
+  public static async beginTransaction(pool ?: TPoolConnected): Promise<TConnection> {
     return await new this().beginTransaction(pool);
   }
 
@@ -715,14 +713,14 @@ class DB extends AbstractDB {
    * - Rollback if any error occurs
    *
    * @template T
-   * @param {(conn: TConnectionTransaction) => Promise<T>} handler - Async function that receives the transaction connection.
+   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
    * All queries inside this handler MUST use the provided `conn` instance.
    *
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
   public async transaction<T>(
-    handler: (conn: TConnectionTransaction) => Promise<T>, 
+    handler: (conn: TConnection) => Promise<T>, 
     { pool } : { pool ?: TPoolConnected } = {}
   ): Promise<T> {
 
@@ -751,14 +749,14 @@ class DB extends AbstractDB {
    *
    * @static
    * @template T
-   * @param {(conn: TConnectionTransaction) => Promise<T>} handler - Async function that receives the transaction connection.
+   * @param {(conn: TConnection) => Promise<T>} handler - Async function that receives the transaction connection.
    * All queries inside this handler MUST use the provided `conn` instance.
    *
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
   public static async transaction<T>(
-    handler: (conn: TConnectionTransaction) => Promise<T>,
+    handler: (conn: TConnection) => Promise<T>,
     { pool } : { pool ?: TPoolConnected } = {}
   ): Promise<T> {
     return await new this().transaction(handler,{ pool });
