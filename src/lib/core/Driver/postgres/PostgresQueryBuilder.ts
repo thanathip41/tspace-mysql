@@ -1064,7 +1064,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public truncate(table: string): string {
     const sql: string = [
       `${this.$constants("TRUNCATE_TABLE")}`,
-      `\`${table.replace(/`/g, "")}\``
+      `\`${table.replace(/`/g, "")}\``,
+      `RESTART IDENTITY`
     ].join(" ")
     
     return this.format(sql);
