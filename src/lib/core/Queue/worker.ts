@@ -9,10 +9,12 @@ import type {
     JobInternal, 
     JobStatus, 
     QueueAddOptions, 
+    QueueConnection, 
     QueueInit, 
     QueueProcessOptions, 
     State 
 } from "./types";
+import { TPoolConnected } from "../../types";
 
 const QUEUE_STATUS = {
     dispatch    : 'Dispatch',
@@ -77,6 +79,7 @@ const schema = {
 };
 export class Worker extends Model<T.Schema<typeof schema>> {
 
+    private DRIVER            = DB.driver()
     private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
     private INSPECT_EXEC      = false;
     private STOPPING          = false;
@@ -112,6 +115,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         statuses   : JobStatus[]
     };
 
+    private CONNECTION : TPoolConnected | null = null;
+
     private BUFFER = {
         jobs    : [],
         timeout : null
@@ -140,11 +145,24 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         this.useTable(this.$state.get("TABLE_JOB"));
     }
 
+    protected WorkerRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
+        return new Worker()
+        .when(!onTrx && this.CONNECTION != null, (q) => q.bind(this.CONNECTION!))
+    }
+
+    protected WorkerLockRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
+        return new WorkerLock()
+        .when(!onTrx && this.CONNECTION != null, (q) => q.bind(this.CONNECTION!))
+    }
+
     public async initialize (opts: QueueInit = {}) {
+        
+        if (opts.connection) {
+            this.CONNECTION = DB.getConnection(opts.connection);
+            this.DRIVER = opts.connection.driver ?? 'mysql';
+        }
 
-        const driver = DB.driver();
-
-        if(driver === 'mongodb') {
+        if(this.DRIVER === 'mongodb') {
             throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
         }
 
@@ -222,10 +240,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     }
 
     public async flush() {
-        const jobs = await new Worker().count('id');
+        const jobs = await this.WorkerRepository()
+        .count('id');
         
-        await new Worker().truncate({ force: true });
-        await new WorkerLock().truncate({ force: true });
+        await this.WorkerRepository()
+        .truncate({ force: true });
+
+        await this.WorkerLockRepository()
+        .truncate({ force: true });
        
         if(this.INSPECT_EXEC) {
           console.log(`\x1b[34mQueue:\x1b[0m \x1b[31mFlush all jobs (${jobs} jobs)\x1b[0m`);
@@ -237,15 +259,15 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async getJobOverallStats(name?: string) {
 
         const where = (q: Worker) => {
-            if(name)  q.where('name','LIKE',`%${DB.escape(name!)}%`)
+            if(name)  q.where('name','LIKE',`%${DB.escape(name!)}%`);
             return q;
         }
 
-        const completed = await where(new Worker()).where('status', 'completed').count();
-        const active    = await where(new Worker()).where('status', 'active').count();
-        const pending   = await where(new Worker()).where('status', 'pending').count();
-        const failed    = await where(new Worker()).where('status', 'failed').count();
-        const total     = await where(new Worker()).count();
+        const completed = await where(this.WorkerRepository()).where('status', 'completed').count();
+        const active    = await where(this.WorkerRepository()).where('status', 'active').count();
+        const pending   = await where(this.WorkerRepository()).where('status', 'pending').count();
+        const failed    = await where(this.WorkerRepository()).where('status', 'failed').count();
+        const total     = await where(this.WorkerRepository()).count();
 
         return {
             total,
@@ -258,7 +280,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     
     public async getJobStats(name?: string) {
 
-        const rows = await new Worker()
+        const rows = await this.WorkerRepository()
         .select('name', 'status')
         .selectRaw('COUNT(1) AS total')
         .when(name, (q) => q.where('name', 'LIKE' , `%${DB.escape(name!)}%`))
@@ -306,7 +328,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     
     public async getJobs(name?: string) {
 
-        const jobs = await new Worker()
+        const jobs = await this.WorkerRepository()
         .when(name != null, (q) => q.where('name','LIKE',`%${DB.escape(name!)}%`))
         .findMany();
       
@@ -314,7 +336,9 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     }
 
     public async getNames() {
-        return await new Worker().select('name').toArray('name');
+        return await this.WorkerRepository()
+        .select('name')
+        .toArray('name');
     }
 
     public async add(
@@ -539,7 +563,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 payload : job.payload
             });
 
-            await new Worker()
+            await this.WorkerRepository()
             .where('id', job.id)
             .update({
                 status       : 'completed',
@@ -551,7 +575,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             .save()
 
             if(job.__job.unique_key) {
-                await new WorkerLock()
+                await this.WorkerLockRepository()
                 .where('job_id',job.id)
                 .delete();
             }
@@ -583,7 +607,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 ].join(' '));
             }
 
-            await new Worker()
+            await this.WorkerRepository()
             .where('id',job.id)
             .update({
                 status : 'failed',
@@ -617,7 +641,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
                     const endTime = +new Date();
 
-                    await new Worker()
+                    await this.WorkerRepository()
                     .where('id', job.id)
                     .update({
                         status       : 'completed',
@@ -660,7 +684,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
                     if (attempts >= maxAttempts) {
 
-                        await new Worker()
+                        await this.WorkerRepository()
                         .where('id', job.id)
                         .update({
                             status: 'failed',
@@ -705,7 +729,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         if (this.STOPPING) return [];
         
-        const availableJobs = await new Worker()
+        const availableJobs = await this.WorkerRepository()
         .select('id')
         .where('name', name)
         .whereQuery(query => {
@@ -722,7 +746,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         if(!availableJobs.length) {
             
-            const incomingJobs = await new Worker()
+            const incomingJobs = await this.WorkerRepository()
             .select('id','name','delay_ms')
             .where('name', name)
             .whereQuery(query => {
@@ -749,7 +773,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         return await DB.transaction(async (trx) => {
 
-            const jobs = await new Worker()
+            const jobs = await this.WorkerRepository({ onTrx : true })
             .whereIn('id',availableJobs.map(v => v.id))
             .latest('priority')
             .oldest('delay_ms')
@@ -763,7 +787,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 return [];
             }
 
-            await new Worker()
+            await this.WorkerRepository({ onTrx : true })
             .whereIn('id',jobs.map(v => v.id))
             .updateMany({
                 status    : 'active',
@@ -782,7 +806,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 payload : this._safeJsonParse(job.payload),
                 __job   : job
             }))
-        })
+        }, { pool : this.CONNECTION! })
     }
 
     private async _flushBuffer() {
@@ -869,7 +893,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         const hasSomeUniqueKey = jobsToInsert.some(v => v.unique_key);
 
         if(!hasSomeUniqueKey) {
-            const inserteds = await new Worker()
+            const inserteds = await this.WorkerRepository()
             .select('id', 'name')
             .insertMany(jobsToInsert)
             .stopRetry()
@@ -905,7 +929,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             if (!job.unique_key) {
                 
-                const inserted = await new Worker()
+                const inserted = await this.WorkerRepository()
                 .select('id', 'name')
                 .insert(job)
                 .stopRetry()
@@ -920,14 +944,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             try {
                 const inserted = await DB.transaction(async (trx) => {
                     
-                    const worker = await new Worker()
+                    const worker = await this.WorkerRepository({ onTrx : true })
                     .select('id','name')
                     .insert(job)
                     .stopRetry()
                     .bind(trx)
                     .save();
 
-                    await new WorkerLock()
+                    await this.WorkerLockRepository({ onTrx : true })
                     .insert({
                         name       : job.name,
                         unique_key : job.unique_key!,
@@ -939,7 +963,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     .save();
 
                     return worker;
-                });
+                }, { pool : this.CONNECTION! });
 
                 if (inserted) {
                     insertedJobds.push(inserted);
@@ -994,12 +1018,12 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         const status = this.CLEANUP.statuses;
 
-        const jobs = await new Worker()
+        const jobs = await this.WorkerRepository()
         .select('id')
         .whereIn('status',status)
         .findMany()
 
-        await new Worker()
+        await this.WorkerRepository()
         .whereIn('id',jobs.map(job => job.id))
         .deleteMany()
         .catch(() => null)
@@ -1016,11 +1040,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private async _initializeWorkers () {
 
-        await new Worker()
+        await this.WorkerRepository()
         .sync({ force : true, index: true })
         .catch(() => null);
 
-        await new WorkerLock()
+        await this.WorkerLockRepository()
         .sync({ 
             force   : true, 
             index   : true, 
@@ -1040,7 +1064,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private async _getRunnableOrActiveJobs () {
 
-        const jobsToProcess = await new Worker()
+        const jobsToProcess = await this.WorkerRepository()
         .select('id')
         .whereIn('status',[
             'pending',
@@ -1050,7 +1074,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .where('available_at', '<=', this.$utils.timestamp())
         .findMany();
 
-        await new Worker()
+        await this.WorkerRepository()
         .updateMany({
             status : 'pending',
             attempts : 0,
@@ -1060,7 +1084,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .whereIn('id',jobsToProcess.map(f => f.id))
         .save();
 
-        const jobs = await new Worker()
+        const jobs = await this.WorkerRepository()
         .select('name')
         .where('status','pending')
         .where('available_at', '<=', this.$utils.timestamp())

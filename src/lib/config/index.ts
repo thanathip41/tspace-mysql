@@ -39,7 +39,7 @@ const rawEnv = {
   // general
   HOST             : ENV.DB_HOST ?? "localhost",
   PORT             : ENV.DB_PORT ?? 3306,
-  USERNAME         : ENV.DB_USERNAME ?? ENV.DB_USER,
+  USERNAME         : ENV.DB_USERNAME ?? ENV.DB_USER ?? "",
   PASSWORD         : ENV.DB_PASSWORD ?? "",
   DATABASE         : ENV.DB_DATABASE,
   CONNECTION_LIMIT : ENV.DB_CONNECTION_LIMIT ?? 10,
@@ -104,7 +104,7 @@ export const loadOptionsEnv = (customEnv?: string) => {
     driver: ENV.DB_DRIVER ?? "mysql",
     host: ENV.DB_HOST,
     port: ENV.DB_PORT || 3306,
-    username: ENV.DB_USERNAME,
+    username: ENV.DB_USERNAME || "",
     password: ENV.DB_PASSWORD || "",
     database: ENV.DB_DATABASE,
   } as const;

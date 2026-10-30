@@ -7960,7 +7960,7 @@ class Model<
     foreign = false,
     changed = false,
     index   = false,
-    unique  = false,
+    unique  = false
   } = {}): Promise<void> {
     return await new Schema()["syncExecute"]({
       models: [this],

@@ -162,6 +162,10 @@ export type TPoolCallback = {
 };
 
 export type TConnectionTransaction = {
+    driver : () => string;
+
+    database : () => string;
+
     query: (sql: string) => Promise<any[]>;
     /**
      * The 'startTransaction' method is used when need to started the transaction
@@ -192,6 +196,8 @@ export type TConnectionTransaction = {
 };
 
 export type TConnection = {
+    driver : () => string;
+    database : () => string;
     on: (event: TPoolEvent, data: any) => void;
     query: (sql: string) => Promise<any[]>;
     queryBuilder: typeof QueryBuilder;
@@ -203,6 +209,7 @@ export type TConnection = {
 };
 
 export type TPoolConnected = {
+    driver : () => string;
     database : () => string;
     on: (event: TPoolEvent, data: (r: any) => any) => void;
     queryBuilder: typeof QueryBuilder;

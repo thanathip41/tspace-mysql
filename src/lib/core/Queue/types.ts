@@ -4,6 +4,7 @@ import type {
     Job, 
     QueueContract 
 }  from ".";
+import { TDriver } from "../../types";
 
 export type JobInternal = Job & {
     __job : T.Result<Worker>;
@@ -17,6 +18,15 @@ export type State = {
     sleeping    : boolean;
     running     : number;
     opts        : QueueProcessOptions
+}
+
+export type QueueConnection = {
+    driver   ?: TDriver; 
+    host     : string;
+    port     : number;
+    database : string;
+    username : string;
+    password : string;
 }
 
 export type QueueInit = { 
@@ -33,6 +43,14 @@ export type QueueInit = {
         interval ?: number;
         statuses ?: JobStatus[];
     };
+    connection       ?: {
+        driver   : TDriver; 
+        host     : string;
+        port     : number;
+        database : string;
+        username : string;
+        password : string;
+    }
 }
 
 export type QueueAddOptions = {

@@ -25,6 +25,7 @@ import type {
   TCursorPagination,
   TExplain,
   TExplainIssue,
+  TConnection,
 } from "../types";
 
 class Builder<TA extends TAction = null> extends AbstractBuilder {
@@ -3649,12 +3650,16 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @param {object} connection pool database
    * @returns {this} this
    */
-  public bind(connection: TPoolConnected | TConnectionTransaction): this {
+  public bind(connection: TPoolConnected | TConnection | TConnectionTransaction): this {
 
     this.$state.set('BIND', true);
 
     this.$pool.set(connection);
 
+    this.$database = connection.database();
+
+    this.$driver = connection.driver() as TDriver;
+   
     return this;
   }
 

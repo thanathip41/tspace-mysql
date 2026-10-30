@@ -667,6 +667,8 @@ class DB extends AbstractDB {
    *
    * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
    * ensuring data integrity.
+   * 
+   * @param   {TPoolConnected} pool
    * @returns {ConnectionTransaction} object - Connection for the transaction
    * @type     {object} connection
    * @property {function} connection.query - execute query sql then release connection to pool
@@ -674,7 +676,10 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  public async beginTransaction(): Promise<TConnectionTransaction> {
+  public async beginTransaction(pool ?: TPoolConnected): Promise<TConnectionTransaction> {
+    if(pool) {
+      return await pool.connection();
+    }
     return await this.$pool.transaction();
   }
 
@@ -686,6 +691,8 @@ class DB extends AbstractDB {
    * Transactions are typically used when you want to ensure that a series of database operations either all succeed or all fail together,
    * ensuring data integrity.
    * @static
+   * 
+   * @param   {TPoolConnected} pool
    * @returns {ConnectionTransaction} object - Connection for the transaction
    * @type     {object} connection
    * @property {function} connection.query - execute query sql then release connection to pool
@@ -693,8 +700,8 @@ class DB extends AbstractDB {
    * @property {function} connection.commit - commit transaction of query
    * @property {function} connection.rollback - rollback transaction of query
    */
-  public static async beginTransaction(): Promise<TConnectionTransaction> {
-    return await new this().beginTransaction();
+  public static async beginTransaction(pool ?: TPoolConnected): Promise<TConnectionTransaction> {
+    return await new this().beginTransaction(pool);
   }
 
   /**
@@ -714,8 +721,12 @@ class DB extends AbstractDB {
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  public async transaction<T>(handler: (conn: TConnectionTransaction) => Promise<T>): Promise<T> {
-    const trx = await this.beginTransaction();
+  public async transaction<T>(
+    handler: (conn: TConnectionTransaction) => Promise<T>, 
+    { pool } : { pool ?: TPoolConnected } = {}
+  ): Promise<T> {
+
+    const trx = await this.beginTransaction(pool);
     
     try {
       await trx.startTransaction();
@@ -746,8 +757,11 @@ class DB extends AbstractDB {
    * @returns {Promise<T>} The result returned from the handler.
    *
    */
-  public static async transaction<T>(handler: (conn: TConnectionTransaction) => Promise<T>): Promise<T> {
-    return await new this().transaction(handler);
+  public static async transaction<T>(
+    handler: (conn: TConnectionTransaction) => Promise<T>,
+    { pool } : { pool ?: TPoolConnected } = {}
+  ): Promise<T> {
+    return await new this().transaction(handler,{ pool });
   }
 
 

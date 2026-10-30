@@ -1,5 +1,4 @@
 import { z }            from "zod";
-import { Builder }      from "./Builder";
 import { Model }        from "./Model";
 import { Package }      from "./Package";;
 import { Blueprint }    from "./Blueprint";
@@ -7,9 +6,8 @@ import { QueryBuilder } from "./Driver";
 import { AlterTable }   from "./Contracts/AlterTable";
 import { DB }           from "./DB";
 import type { T }       from "./UtilityTypes";
-class Schema {
-  private $db: Builder = new Builder();
 
+class Schema {
   public table = async (
     table: string,
     schemas: Record<string, Blueprint>
@@ -35,12 +33,12 @@ class Schema {
       }
 
       const sql: string = [
-        `${this.$db["$constants"]("CREATE_TABLE_NOT_EXISTS")}`,
+        `${new DB()["$constants"]("CREATE_TABLE_NOT_EXISTS")}`,
         `${table} (${columns?.join(",")})`,
-        `${this.$db["$constants"]("ENGINE")}`,
+        `${new DB()["$constants"]("ENGINE")}`,
       ].join(" ");
 
-      await this.$db.rawQuery(sql);
+      await new DB().rawQuery(sql);
 
       console.log(`Migrats : '${table}' created successfully`);
 
@@ -62,7 +60,7 @@ class Schema {
     table: string,
     schema: Record<string, any> | string[]
   ) => {
-    const query = this.$db["_queryBuilder"]() as QueryBuilder;
+    const query = new DB()["_queryBuilder"]() as QueryBuilder;
     return query.createTable({ database, table, schema });
   };
 
@@ -619,9 +617,9 @@ class Schema {
     foreign,
     changed,
     index,
-    unique,
+    unique
   }: {
-    models: (Model<any,any,any> | null)[];
+    models  : (Model<any,any,any> | null)[];
     force   : boolean; // forece will sync table & missing column
     log     : boolean;
     foreign : boolean;
@@ -630,21 +628,18 @@ class Schema {
     unique  : boolean;
   }) {
     
-    const query = this.$db["_queryBuilder"]() as QueryBuilder;
+    const pool = models[0]?.['$pool'].get();
 
-    const rawTables = await this.$db
+    const tables = await new DB()
     .debug(log)
-    .rawQuery(query.getTables(this.$db.database()));
-
-    const tables = rawTables.map(
-      (c: { [s: string]: unknown } | ArrayLike<unknown>) => Object.values(c)[0]
-    );
+    .when(pool, (q) => q.bind(pool))
+    .getTables()
 
     for (const model of models) {
       
       if (model == null) continue;
 
-      let rawSchemaModel = model.getSchemaModel();
+      const rawSchemaModel = model.getSchemaModel();
 
       if (!rawSchemaModel) continue;
 
@@ -730,7 +725,7 @@ class Schema {
     log: boolean;
   }) {
 
-    if(DB.driver() === 'sqlite') {
+    if(model.driver() === 'sqlite') {
       console.log(
         `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE ADD FOREIGN KEY.\x1b[0m`
       );
@@ -818,10 +813,11 @@ class Schema {
         foreignKey: foreign.references,
       }).replace(/`/g, "");
 
-      const query = model["_queryBuilder"]() as QueryBuilder;
+      
+      const qb = model.bind(model['$pool'].get())["_queryBuilder"]() as QueryBuilder;
 
       try {
-        const FK = await this.$db.debug(log)
+        const FK = await new DB().debug(log)
         .hasFK({
           table: model.getTableName(),
           constraint: constraintName,
@@ -829,8 +825,11 @@ class Schema {
 
         if (FK) continue;
 
-        await this.$db.debug(log).rawQuery(
-          query.addFK({
+        await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
+        .rawQuery(
+          qb.addFK({
             table: model.getTableName(),
             tableRef: table,
             key,
@@ -852,10 +851,15 @@ class Schema {
 
         if (!schemaModelOn) continue;
 
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            this.createTable(this.$db.database(), `\`${table}\``, schemaModelOn)
+             qb.createTable({ 
+              database : model.database(), 
+              table    : model.getTableName(), 
+              schema   : schemaModelOn
+            })
           )
           .catch((err) => {
             console.log(
@@ -863,10 +867,10 @@ class Schema {
             );
           });
 
-        await this.$db
+        await new DB()
           .debug(log)
           .rawQuery(
-            query.addFK({
+            qb.addFK({
               table: model.getTableName(),
               tableRef: table,
               key,
@@ -897,19 +901,21 @@ class Schema {
     log: boolean;
   }) {
   
+    const qb = model.bind(model['$pool'].get())["_queryBuilder"]() as QueryBuilder;
+    const table = model.getTableName();
+    const database = model.database();
+
     for (const key in schemaModel) {
       const name = schemaModel[key]?.indexKey;
 
       if (name == null) continue;
 
-      const table = model.getTableName();
-
       const index = name == "" ? `idx_${table}(${key})` : name;
 
-      const query = model["_queryBuilder"]() as QueryBuilder;
-
       try {
-        const INDEX = await this.$db.debug(log)
+        const INDEX = await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
         .hasIndex({
           table: table,
           name: index,
@@ -917,8 +923,11 @@ class Schema {
 
         if (INDEX) continue;
 
-        await this.$db.debug(log).rawQuery(
-          query.addIndex({
+        await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
+        .rawQuery(
+          qb.addIndex({
             table: table,
             name: index,
             columns: [key],
@@ -926,11 +935,12 @@ class Schema {
         );
       } catch (err: any) {
         
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.createTable({
-              database: this.$db.database(),
+            qb.createTable({
+              database: database,
               table   : table,
               schema  : schemaModel
             })
@@ -941,12 +951,13 @@ class Schema {
             );
           });
 
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.addIndex({
-              table: model.getTableName(),
-              name: index,
+            qb.addIndex({
+              table  : table,
+              name   : index,
               columns: [key],
             })
           )
@@ -963,16 +974,14 @@ class Schema {
 
       if (compositeIndex == null) continue;
 
-      const table = model.getTableName();
-
       const comebindKey = [key,...compositeIndex.columns]
 
       const index = compositeIndex.name == "" ? `idx_${table}(${comebindKey})` : compositeIndex.name;
 
-      const query = model["_queryBuilder"]() as QueryBuilder;
-
       try {
-        const INDEX = await this.$db.debug(log)
+        const INDEX = await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
         .hasIndex({
           table: table,
           name: index,
@@ -980,22 +989,26 @@ class Schema {
 
         if (INDEX) continue;
 
-        await this.$db.debug(log).rawQuery(
-          query.addIndex({
-            table: table,
-            name: index,
-            columns: comebindKey,
+        await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
+        .rawQuery(
+          qb.addIndex({
+            table   : table,
+            name    : index,
+            columns : comebindKey,
           })
         );
       } catch (err: any) {
         
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.createTable({
-              database: this.$db.database(),
-              table   : table,
-              schema  : schemaModel
+            qb.createTable({
+              database : database,
+              table    : table,
+              schema   : schemaModel
             })
           )
           .catch((err) => {
@@ -1010,12 +1023,13 @@ class Schema {
 
         const comebindKey = [key,...compositeIndex.columns]
 
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.addIndex({
-              table: model.getTableName(),
-              name: index,
+            qb.addIndex({
+              table  : table,
+              name   : index,
               columns: comebindKey,
             })
           )
@@ -1032,16 +1046,14 @@ class Schema {
 
       if (compositeUnique == null) continue;
 
-      const table = model.getTableName();
-
       const comebindKey = [key,...compositeUnique.columns]
 
       const unique = compositeUnique.name == "" ? `uq_${table}(${comebindKey})` : compositeUnique .name;
 
-      const query = model["_queryBuilder"]() as QueryBuilder;
-
       try {
-        const UNIQUE = await this.$db.debug(log)
+        const UNIQUE = await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
         .hasUnique({
           table: table,
           name: unique,
@@ -1049,22 +1061,26 @@ class Schema {
 
         if (UNIQUE) continue;
 
-        await this.$db.debug(log).rawQuery(
-          query.addUnique({
-            table: table,
-            name: unique,
+        await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
+        .rawQuery(
+          qb.addUnique({
+            table  : table,
+            name   : unique,
             columns: comebindKey,
           })
         );
       } catch (err: any) {
         
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.createTable({
-              database: this.$db.database(),
-              table   : table,
-              schema  : schemaModel
+            qb.createTable({
+              database : database,
+              table    : table,
+              schema   : schemaModel
             })
           )
           .catch((err) => {
@@ -1079,10 +1095,11 @@ class Schema {
 
         const comebindKey = [key,...compositeUnique.columns]
 
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.addUnique({
+            qb.addUnique({
               table: model.getTableName(),
               name: unique,
               columns: comebindKey,
@@ -1107,21 +1124,25 @@ class Schema {
     log: boolean;
   }) {
 
+    const qb = model.bind(model['$pool'].get())["_queryBuilder"]() as QueryBuilder;
+
+    const table = model.getTableName();
+
+    const database = model.database();
+
     for (const key in schemaModel) {
       const compositeUnique = schemaModel[key]?.compositeUniqueKey;
 
       if (compositeUnique == null) continue;
 
-      const table = model.getTableName();
-
       const comebindKey = [key,...compositeUnique.columns]
 
       const unique = compositeUnique.name == "" ? `uq_${table}(${comebindKey})` : compositeUnique .name;
 
-      const query = model["_queryBuilder"]() as QueryBuilder;
-
       try {
-        const UNIQUE = await this.$db.debug(log)
+        const UNIQUE = await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
         .hasUnique({
           table: table,
           name: unique,
@@ -1129,8 +1150,11 @@ class Schema {
 
         if (UNIQUE) continue;
 
-        await this.$db.debug(log).rawQuery(
-          query.addUnique({
+        await new DB()
+        .debug(log)
+        .bind(model['$pool'].get())
+        .rawQuery(
+          qb.addUnique({
             table: table,
             name: unique,
             columns: comebindKey,
@@ -1138,11 +1162,12 @@ class Schema {
         );
       } catch (err: any) {
         
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.createTable({
-              database: this.$db.database(),
+            qb.createTable({
+              database: database,
               table   : table,
               schema  : schemaModel
             })
@@ -1159,13 +1184,14 @@ class Schema {
 
         const comebindKey = [key,...compositeUnique.columns]
 
-        await this.$db
+        await new DB()
           .debug(log)
+          .bind(model['$pool'].get())
           .rawQuery(
-            query.addUnique({
-              table: model.getTableName(),
-              name: unique,
-              columns: comebindKey,
+            qb.addUnique({
+              table   : table,
+              name    : unique,
+              columns : comebindKey,
             })
           )
           .catch((err) => {
@@ -1187,16 +1213,18 @@ class Schema {
     log: boolean;
   }) {
 
-    if(DB.driver() === 'sqlite') {
+    if(model.driver() === 'sqlite') {
       console.log(
         `\n\x1b[33mWARNING: SQLite does not support ALTER TABLE CHANGE COLUMN\x1b[0m`
       );
       return;
     }
 
-    const schemaTable = await model.getSchema();
+    const schemaTable = await model
+    .bind(model['$pool'].get())
+    .getSchema();
 
-    const query = model["_queryBuilder"]() as QueryBuilder;
+    const table = model.getTableName();
 
     const isChangeType = ({
       typeTable,
@@ -1320,11 +1348,14 @@ class Schema {
 
       if (type == null || attributes == null) continue;
 
-      await this.$db
+      const qb = model.bind(model['$pool'].get())["_queryBuilder"]() as QueryBuilder;
+
+      await new DB()
       .debug(log)
+      .bind(model['$pool'].get())
       .rawQuery(
-        query.changeColumn({
-          table: model.getTableName(),
+        qb.changeColumn({
+          table,
           type,
           column,
           attributes,
@@ -1348,9 +1379,11 @@ class Schema {
     log: boolean;
   }) {
 
-    const schemaTable = await model.getSchema();
+    const schemaTable = await model.bind(model['$pool'].get()).getSchema();
 
-    const query = model["_queryBuilder"]() as QueryBuilder;
+    const qb = model.bind(model['$pool'].get())["_queryBuilder"]() as QueryBuilder;
+
+    const table = model.getTableName();
 
     const schemaTableKeys = schemaTable.map(
       (k: { Field: string }) => k.Field
@@ -1379,11 +1412,12 @@ class Schema {
           continue;
         }
 
-        await this.$db
+        await new DB()
         .debug(log)
+        .bind(model['$pool'].get())
         .rawQuery(
-          query.addColumn({
-            table: model.getTableName(),
+          qb.addColumn({
+            table,
             type,
             column,
             attributes,
@@ -1419,13 +1453,21 @@ class Schema {
     );
 
     if (!talbeIsExists) {
-      const sql = this.createTable(
-        this.$db.database(),
-        `\`${model.getTableName()}\``,
-        schemaModel
-      );
+     
+      const qb = model
+      .bind(model['$pool'].get())
+      ['_queryBuilder']()
 
-      await model.debug(log).rawQuery(sql);
+      await model
+      .debug(log)
+      .bind(model['$pool'].get())
+      .rawQuery(
+        qb.createTable({ 
+          database : model.database(), 
+          table    : model.getTableName(), 
+          schema   : schemaModel
+        })
+      );
 
       if (onCreatedTable) {
         await onCreatedTable();
