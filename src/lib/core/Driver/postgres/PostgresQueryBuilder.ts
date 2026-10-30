@@ -455,7 +455,7 @@ export class PostgresQueryBuilder extends QueryBuilder {
     if (Array.isArray(schema)) {
       const sql = [
         `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-        `\`${table.replace(/`/g, "")}\``,
+        `\`${table}\``,
         `(${schema.join(", ")})`,
       ];
 
@@ -498,7 +498,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
     const sql = [
       `${this.$constants("CREATE_TABLE_NOT_EXISTS")}`,
-      `${table} (${columns.join(", ")})`,
+      `\`${table}\``,
+      `(${columns.join(", ")})`,
     ];
 
     return this.format(sql);
