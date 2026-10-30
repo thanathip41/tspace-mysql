@@ -29,6 +29,22 @@ export type QueueConnection = {
     password : string;
 }
 
+type AssertDriver<T extends TDriver> = T;
+
+type ConnectionConfig =
+    | {
+        driver: AssertDriver<'sqlite'>;
+        database: string;
+    }
+    | {
+        driver: Exclude<TDriver, AssertDriver<'sqlite'>>;
+        host: string;
+        port: number;
+        database: string;
+        username: string;
+        password: string;
+    };
+
 export type QueueInit = { 
     inspect          ?: boolean; 
     flush            ?: boolean; 
@@ -43,14 +59,7 @@ export type QueueInit = {
         interval ?: number;
         statuses ?: JobStatus[];
     };
-    connection       ?: {
-        driver   : TDriver; 
-        host     : string;
-        port     : number;
-        database : string;
-        username : string;
-        password : string;
-    }
+    connection       ?: ConnectionConfig
 }
 
 export type QueueAddOptions = {

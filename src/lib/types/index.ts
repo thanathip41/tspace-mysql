@@ -390,8 +390,11 @@ export type TRemoveIndexSignature<T> = {
 export type TLiteralStringKeys<T> = {
     [K in keyof T]: T[K] extends string ? (string extends T[K] ? never : K) : never;
 }[keyof T];
+
 export type TLiteralEnumKeys<T> = TLiteralStringKeys<TRemoveIndexSignature<T>>;
-export type TDriver = 'pg' | 'postgres' | 'mysql' | 'mysql2' | 'mariadb' | 'mssql' | 'sqlite' | 'mongodb';
+
+export type TDriver = 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mongodb'; // mssql in coming
+
 export type TPoolCusterOptions = {
     writer: {
         host: string;

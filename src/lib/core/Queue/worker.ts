@@ -158,6 +158,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     public async initialize (opts: QueueInit = {}) {
         
         if (opts.connection) {
+            //@ts-ignore
             this.CONNECTION = DB.getConnection(opts.connection);
             this.DRIVER = opts.connection.driver ?? 'mysql';
         }

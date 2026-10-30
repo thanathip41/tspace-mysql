@@ -7,6 +7,71 @@ import { DB }           from "./DB";
 import type { T }       from "./UtilityTypes";
 
 class Schema {
+
+  public table = async (
+    table: string,
+    schemas: Record<string, Blueprint>
+  ): Promise<void> => {
+    try {
+      let columns: Array<any> = [];
+
+      for (const key in schemas) {
+        const data = schemas[key];
+
+        const { type, attributes } = this.detectSchema(data);
+
+        if (type == null || attributes == null) continue;
+
+        columns = [
+          ...columns,
+          `\`${key}\` ${type} ${
+            attributes != null && attributes.length
+              ? `${attributes.join(" ")}`
+              : ""
+          }`,
+        ];
+      }
+
+      const sql: string = [
+        `${new DB()["$constants"]("CREATE_TABLE_NOT_EXISTS")}`,
+        `${table} (${columns?.join(",")})`,
+        `${new DB()["$constants"]("ENGINE")}`,
+      ].join(" ");
+
+      await new DB().rawQuery(sql);
+
+      console.log(`Migrats : '${table}' created successfully`);
+
+      return;
+    } catch (err: any) {
+      console.log(err.message?.replace(/ER_TABLE_EXISTS_ERROR:/g, ""));
+    }
+  };
+
+  public static table = async (
+    table: string,
+    schemas: Record<string, Blueprint>
+  ): Promise<void> => {
+    return new this().table(table,schemas)
+  };
+
+  public createTable = (
+    database: string,
+    table: string,
+    schema: Record<string, any> | string[]
+  ) => {
+    const query = new DB().getQueryBuilder();
+    return query.createTable({ database, table, schema });
+  };
+
+  public static createTable = (
+    database: string,
+    table: string,
+    schema: Record<string, any> | string[]
+  ) => {
+    return new this().createTable(database, table, schema);
+  };
+
   public detectSchema(schema: Record<string, any>) {
     try {
       return {

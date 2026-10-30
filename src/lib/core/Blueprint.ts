@@ -812,7 +812,7 @@ class Blueprint<T = any> {
   ): Blueprint<T.Default<T>> {
 
     if (typeof value === 'boolean') {
-      const defaultValue : boolean | number = DB.driver() === 'pg' 
+      const defaultValue : boolean | number = DB.driver() === 'postgres' 
         ? value 
         : value ? 1 : 0;
 

@@ -47,13 +47,11 @@ export class PoolConnection {
     const options = configs ?? Object.fromEntries(this.OPTIONS);
 
     switch (this._driver()) {
-      case "mysql":
-      case "mysql2": {
+      case "mysql": {
         this.POOL = new MysqlDriver(options).connect();
         break;
       }
 
-      case "pg":
       case "postgres": {
         this.POOL = new PostgresDriver(options).connect();
         break;
@@ -85,12 +83,10 @@ export class PoolConnection {
     const options = Object.fromEntries(this.OPTIONS);
 
     switch (this._driver()) {
-      case "mysql":
-      case "mysql2": {
+      case "mysql": {
         return await new MysqlDriver(options).disconnect(this.POOL);
       }
 
-      case "pg":
       case "postgres": {
         return await new PostgresDriver(options).disconnect(this.POOL);
       }
