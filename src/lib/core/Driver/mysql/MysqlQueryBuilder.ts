@@ -573,6 +573,7 @@ export class MysqlQueryBuilder extends QueryBuilder {
     table: string;
     name: string;
   }) {
+    
     const sql = [
       `
         SELECT EXISTS(
@@ -580,17 +581,19 @@ export class MysqlQueryBuilder extends QueryBuilder {
             1
           FROM 
             INFORMATION_SCHEMA.STATISTICS s
-          LEFT JOIN 
-            INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
-              ON s.TABLE_SCHEMA = k.TABLE_SCHEMA
-              AND s.TABLE_NAME = k.TABLE_NAME
-              AND s.COLUMN_NAME = k.COLUMN_NAME
-              AND k.REFERENCED_TABLE_NAME IS NOT NULL
           WHERE 
-            k.REFERENCED_TABLE_NAME IS NULL
-            AND s.TABLE_SCHEMA = '${database.replace(/`/g, "")}'
-            AND s.TABLE_NAME   = '${table.replace(/`/g, "")}'
-            AND s.INDEX_NAME   = '${name}'
+            s.TABLE_SCHEMA   = '${database.replace(/`/g, "")}'
+            AND s.TABLE_NAME = '${table.replace(/`/g, "")}'
+            AND s.INDEX_NAME = '${name}'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+              WHERE
+                k.TABLE_SCHEMA = s.TABLE_SCHEMA
+                AND k.TABLE_NAME = s.TABLE_NAME
+                AND k.COLUMN_NAME = s.COLUMN_NAME
+                AND k.REFERENCED_TABLE_NAME IS NOT NULL
+            )
         ) AS "IS_EXISTS"
       `,
     ];

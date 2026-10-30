@@ -585,14 +585,12 @@ export class SqliteQueryBuilder extends QueryBuilder {
     table: string;
     name: string;
   }) {
+    
     const sql = [`
       SELECT EXISTS(
         SELECT 1
-        FROM sqlite_master AS m
-        JOIN pragma_index_list(m.name) AS il
-        WHERE m.type = 'table'
-          AND m.name = '${table.replace(/["`]/g, "")}'
-          AND il.name = '${name.replace(/["`]/g, "")}'
+        FROM pragma_index_list('${table.replace(/["\`]/g, "")}') AS il
+        WHERE il.name = '${name.replace(/["\`]/g, "")}'
           AND il.origin != 'pk'
       ) AS "IS_EXISTS"
     `];
