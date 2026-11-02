@@ -420,7 +420,9 @@ class Schema {
    * .post('/', ({ body }) => {
    *     return { body }
    * }, {
-   *     body: Schema.createValidator(User, {
+   *     body: Schema
+   *     .validator(User)
+   *     .update({
    *         omit: ["id", "created_at", "updated_at", "deleted_at"],
    *         optional: ["uuid"]
    *     })
