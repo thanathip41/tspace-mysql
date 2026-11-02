@@ -3594,7 +3594,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
       username: user,
       password,
       ...others
-    } = options;
+    } = options as any;
 
     const pool = new PoolConnection({
       driver,
