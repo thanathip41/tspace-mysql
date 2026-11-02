@@ -5,6 +5,7 @@ import { BaseDriver }         from "..";
 import { SqliteQueryBuilder } from "./SqliteQueryBuilder";
 import type { 
   TConnection, 
+  TDriver, 
   TPoolEvent 
 } from "../../../types";
 
@@ -36,7 +37,7 @@ export class SqliteDriver extends BaseDriver {
     this.poolTrx = new sqlite(configs.path);
 
     return {
-      driver  : () => 'sqlite',
+      driver  : () => 'sqlite' as TDriver,
       database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: SqliteQueryBuilder,
@@ -209,7 +210,7 @@ export class SqliteDriver extends BaseDriver {
     }
 
     return {
-      driver  : () => 'sqlite',
+      driver  : () => 'sqlite' as TDriver,
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: SqliteQueryBuilder,

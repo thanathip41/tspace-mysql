@@ -3,6 +3,7 @@ import { BaseDriver }           from "..";
 import { PostgresQueryBuilder } from "./PostgresQueryBuilder";
 import type { 
   TConnection, 
+  TDriver, 
   TPoolEvent 
 } from "../../../types";
 
@@ -100,7 +101,7 @@ export class PostgresDriver extends BaseDriver {
     });
 
     return {
-      driver  : () => 'postgres',
+      driver  : () => 'postgres' as TDriver,
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: PostgresQueryBuilder,
@@ -230,7 +231,7 @@ export class PostgresDriver extends BaseDriver {
     }
 
     return {
-      driver  : () => 'postgres',
+      driver  : () => 'postgres' as TDriver,
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: PostgresQueryBuilder,

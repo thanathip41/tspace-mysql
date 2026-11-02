@@ -3,6 +3,7 @@ import { BaseDriver }           from "..";
 import { MariadbQueryBuilder }  from "./MariadbQueryBuilder";
 import type { 
   TConnection, 
+  TDriver, 
   TPoolEvent 
 } from "../../../types";
 
@@ -94,7 +95,7 @@ export class MariadbDriver extends BaseDriver {
     })
 
     return {
-      driver  : () => 'mariadb',
+      driver  : () => 'mariadb' as TDriver,
       database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MariadbQueryBuilder,
@@ -226,7 +227,7 @@ export class MariadbDriver extends BaseDriver {
     }
     
     return {
-      driver  : () => 'mariadb',
+      driver  : () => 'mariadb' as TDriver,
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MariadbQueryBuilder,

@@ -3,6 +3,7 @@ import { BaseDriver }          from "..";
 import { MongodbQueryBuilder } from "./MongodbQueryBuilder";
 import type { 
     TConnection, 
+    TDriver, 
     TPoolEvent 
 } from "../../../types";
 
@@ -93,7 +94,7 @@ export class MongodblDriver extends BaseDriver {
         });
 
         return {
-            driver  : () => 'mongodb',
+            driver  : () => 'mongodb' as TDriver,
             database: () => options.database,
             on: (event: TPoolEvent, data: any) => this.on(event, data),
             queryBuilder: MongodbQueryBuilder,
@@ -251,7 +252,7 @@ export class MongodblDriver extends BaseDriver {
         };
 
         return {
-            driver  : () => 'mongodb',
+            driver  : () => 'mongodb' as TDriver,
             database : () => this.options.database,
             on: (event: TPoolEvent, data: any) => this.on(event, data),
             queryBuilder: MongodbQueryBuilder,

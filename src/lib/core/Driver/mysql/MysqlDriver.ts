@@ -5,6 +5,7 @@ import { MysqlQueryBuilder } from "./MysqlQueryBuilder";
 
 import type { 
   TConnection, 
+  TDriver, 
   TPoolEvent 
 } from "../../../types";
 
@@ -103,7 +104,7 @@ export class MysqlDriver extends BaseDriver {
     });
 
     return {
-      driver  : () => 'mysql',
+      driver  : () => 'mysql' as TDriver,
       database : () => options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MysqlQueryBuilder,
@@ -240,7 +241,7 @@ export class MysqlDriver extends BaseDriver {
     }
 
     return {
-      driver  : () => 'mysql',
+      driver  : () => 'mysql' as TDriver,
       database : () => this.options.database,
       on: (event: TPoolEvent, data: any) => this.on(event, data),
       queryBuilder: MysqlQueryBuilder,

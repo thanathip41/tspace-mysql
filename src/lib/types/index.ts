@@ -155,7 +155,7 @@ export type TPoolCallback = {
 };
 
 export type TConnection = {
-    driver : () => string;
+    driver : () =>  TDriver;
     database : () => string;
     on: (event: TPoolEvent, data: any) => void;
     query: (sql: string) => Promise<any[]>;
@@ -168,7 +168,7 @@ export type TConnection = {
 };
 
 export type TPoolConnected = {
-    driver : () => string;
+    driver : () => TDriver;
     database : () => string;
     on: (event: TPoolEvent, data: (r: any) => any) => void;
     queryBuilder: typeof QueryBuilder;
