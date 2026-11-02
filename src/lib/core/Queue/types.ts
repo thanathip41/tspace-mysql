@@ -1,10 +1,15 @@
 import { Worker }  from "./worker";
 import type { T }  from "..";
+
 import type { 
     Job, 
     QueueContract 
 }  from ".";
-import { TDriver } from "../../types";
+
+import { 
+    TConnectionOptions, 
+    TDriver 
+} from "../../types";
 
 export type JobInternal = Job & {
     __job : T.Result<Worker>;
@@ -29,22 +34,6 @@ export type QueueConnection = {
     password : string;
 }
 
-type AssertDriver<T extends TDriver> = T;
-
-type ConnectionConfig =
-    | {
-        driver: AssertDriver<'sqlite'>;
-        database: string;
-    }
-    | {
-        driver: Exclude<TDriver, AssertDriver<'sqlite'>>;
-        host: string;
-        port: number;
-        database: string;
-        username: string;
-        password: string;
-    };
-
 export type QueueInit = { 
     inspect          ?: boolean; 
     flush            ?: boolean; 
@@ -59,7 +48,7 @@ export type QueueInit = {
         interval ?: number;
         statuses ?: JobStatus[];
     };
-    connection       ?: ConnectionConfig
+    connection       ?: TConnectionOptions
 }
 
 export type QueueAddOptions = {

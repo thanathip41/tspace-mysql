@@ -108,26 +108,14 @@ export type TClone =
         excludes ?: string[];
         only ?: never;
         value?: boolean;
-        to?: {
-            driver?: TDriver;
-            host: string;
-            port: number;
-            username: string;
-            password: string;
-        };
+        to?: TConnectionOptions;
     }
     | {
         database: string;
         only ?: string[];
         excludes ?: never;
         value?: boolean;
-        to?: {
-            driver?: TDriver;
-            host: string;
-            port: number;
-            username: string;
-            password: string;
-        };
+        to?: TConnectionOptions;
     }
 
 export type TDump = (
@@ -147,14 +135,19 @@ export type TDump = (
    }
 )
 
-export type TConnectionOptions = {
-    driver?: TDriver;
-    host: string;
-    port: number;
-    database?: string;
-    username: string;
-    password: string;
-};
+export type TConnectionOptions = 
+    | {
+        driver: AssertDriver<'sqlite'>;
+        database: string;
+    }
+    | {
+        driver: Exclude<TDriver, AssertDriver<'sqlite'>>;
+        host: string;
+        port: number;
+        database: string;
+        username: string;
+        password: string;
+    };
 
 export type TPoolCallback = {
     query: (sql: string, callback: (err: any, result: any) => void) => void;
@@ -701,3 +694,5 @@ export type TExplain<K = any> = {
     recommendations: string[];
   };
 };
+
+type AssertDriver<T extends TDriver> = T;

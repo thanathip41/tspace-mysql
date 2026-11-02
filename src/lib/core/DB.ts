@@ -626,7 +626,7 @@ class DB extends AbstractDB {
       username: user,
       password,
       ...others
-    } = options;
+    } = options as any;
 
     const pool = new PoolConnection({
       driver,
@@ -851,7 +851,7 @@ class DB extends AbstractDB {
     .query(qb.createDatabase(database));
 
     const connTarget = new DB().getConnection({
-      ...(to ?? this.$credentials),
+      ...(to ?? this.$credentials) as any,
       database,
     });
 
