@@ -6658,15 +6658,15 @@ class Model<
    */
   public async toArray<K extends T.ColumnKeys<this> | "id">(
     column?: K,
-  ): Promise<any[]> {
+  ): Promise<T.ColumnTypeOf<this,K>[]> {
     if (column == null) column = "id" as K;
 
     const sql: string = this.getQueryBuilder().select();
 
-    const result: any[] = await this._queryStatement(sql);
+    const result = await this._queryStatement(sql);
 
-    const toArray: any[] = result.map(
-      (data: Record<string, any>) => data[column],
+    const toArray = result.map(
+      (data) => data[column],
     );
 
     return this._resultHandler(toArray);

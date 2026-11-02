@@ -429,8 +429,17 @@ export declare namespace T {
         M extends Model<any, any, any>,
         K extends T.ColumnKeys<M>,
         C extends T.ColumnOptions<M> = T.ColumnOptions<M, { 
-            InputQuery : true, 
-            Default: false 
+            InputQuery : true;
+            Default    : false; 
+        }>
+    > = K extends keyof C ? C[K] : any;
+
+    type ColumnTypeOf<
+        M extends Model<any, any, any>,
+        K extends T.ColumnKeys<M>,
+        C extends T.ColumnOptions<M> = T.ColumnOptions<M, { 
+            InputQuery : false; 
+            Default    : false;
         }>
     > = K extends keyof C ? C[K] : any;
 

@@ -1102,7 +1102,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             ].join(' '));
         };
 
-        return jobs as string[];
+        return jobs;
     }
 
     private _safeJsonParse(payload:any){
