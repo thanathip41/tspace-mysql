@@ -425,6 +425,7 @@ export declare namespace T {
         >
     >;
 
+    // Used in methods such as `where` to allow InputQuery types internally.
     type ColumnValue<
         M extends Model<any, any, any>,
         K extends T.ColumnKeys<M>,
@@ -461,8 +462,6 @@ export declare namespace T {
             : never
         );
 
-    // ColumnEnumMap does not work with T.Schema,
-    // but it works with decorators and T.SchemaStrict.
     type ColumnEnumMap<M extends Model<any,any,any>> =
         keyof TColumnsDecorator<M> extends never
             ? {
@@ -470,18 +469,16 @@ export declare namespace T {
                     TIsEnum<NonNullable<TSchemaModel<M>[K]>> extends true
                         ? K
                         : never
-                ]: TSchemaModel<M>[K];
+                ]: TRemoveDefault<TSchemaModel<M>[K]>;
             }
             : {
                 [K in keyof TColumnsDecorator<M> as
                     TIsEnum<NonNullable<TColumnsDecorator<M>[K]>> extends true
                         ? K
                         : never
-                ]: TColumnsDecorator<M>[K];
+                ]: TRemoveDefault<TColumnsDecorator<M>[K]>;
             };
 
-    // ColumnEnumKeys does not work with T.Schema,
-    // but it works with decorators and T.SchemaStrict.
     type ColumnEnumKeys<M extends Model<any,any,any>> =
         keyof TColumnsDecorator<M> extends never
             ? {

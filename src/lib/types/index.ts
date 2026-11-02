@@ -378,7 +378,7 @@ export type TPoolCusterConnected = {
 };
 
 export type TIsEnum<T> = T extends { __isDefault: true } 
-    ? false 
+    ? TIsEnum< TRemoveDefault<T>>
     : string extends T ? false : number extends T ? false : boolean extends T ? false : [
     T
 ] extends [string | number] ? true : false;
