@@ -23,7 +23,7 @@ npm install tspace-mysql --save
 
 ### Runtime Dependencies
 - `dotenv` - Environment variable management
-- `mysql2` - MySQL driver
+- `mysql` - MySQL driver
 - `pluralize` - String pluralization
 - `reflect-metadata` - Decorator metadata
 - `sql-formatter` - SQL formatting
@@ -78,7 +78,7 @@ DB_DATE_STRINGS=false
 
 | Database | Driver Package | Status |
 |----------|---------------|--------|
-| MySQL | mysql2 | ✅ Full Support |
+| MySQL | mysql | ✅ Full Support |
 | MariaDB | mariadb | ✅ Full Support |
 | PostgreSQL | pg | ✅ Full Support |
 | SQLite | better-sqlite3 | ✅ Full Support |

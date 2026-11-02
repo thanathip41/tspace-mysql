@@ -105,7 +105,7 @@ DB_DATABASE = database
 ```
 💡 Notes
 
-Uses mysql2 as the default driver
+Uses mysql as the default driver
 
 Fully supports MySQL-compatible databases such as MariaDB
 
