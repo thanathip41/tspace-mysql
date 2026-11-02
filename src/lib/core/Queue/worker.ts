@@ -1,8 +1,9 @@
-import type { T }       from "../UtilityTypes";
-import { Blueprint }    from "../Blueprint";
-import { DB }           from "../DB";;
-import { Model }        from "../Model";
-import { WorkerLock }   from "./worker-lock";
+import type { T }         from "../UtilityTypes";
+import { Blueprint }      from "../Blueprint";
+import { DB }             from "../DB";;
+import { Model }          from "../Model";
+import { WorkerLock }     from "./worker-lock";
+import { TPoolConnected } from "../../types";
 import type { 
     BufferedJob, 
     Handler, 
@@ -13,7 +14,7 @@ import type {
     QueueProcessOptions, 
     State 
 } from "./types";
-import { TPoolConnected } from "../../types";
+
 
 const QUEUE_STATUS = {
     dispatch    : 'Dispatch',
@@ -78,7 +79,7 @@ const schema = {
 };
 export class Worker extends Model<T.Schema<typeof schema>> {
 
-    private DRIVER            = DB.driver()
+    private DRIVER            = DB.driver();
     private HOSTNAME          = String(process.env?.hostname ?? 'unknown');
     private INSPECT_EXEC      = false;
     private STOPPING          = false;
@@ -90,6 +91,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private CONCURRENCY       = 1;
     private MAX_CONCURRENCY   = 100;
+
+    private CONNECTED_POOL    = null as TPoolConnected | null;
 
     private IDLE = {
         maxRetry   : 5,
@@ -113,8 +116,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         interval   : number
         statuses   : JobStatus[]
     };
-
-    private CONNECTION : TPoolConnected | null = null;
 
     private BUFFER = {
         jobs    : [],
@@ -146,19 +147,24 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     protected WorkerRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
         return new Worker()
-        .when(!onTrx && this.CONNECTION != null, (q) => q.bind(this.CONNECTION!))
+        .when(!onTrx && this.CONNECTED_POOL != null, (q) => q.bind(this.CONNECTED_POOL!))
     }
 
     protected WorkerLockRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
         return new WorkerLock()
-        .when(!onTrx && this.CONNECTION != null, (q) => q.bind(this.CONNECTION!))
+        .when(!onTrx && this.CONNECTED_POOL != null, (q) => q.bind(this.CONNECTED_POOL!))
     }
 
     public async initialize (opts: QueueInit = {}) {
         
-        if (opts.connection) {
-            this.CONNECTION = DB.getConnection(opts.connection);
-            this.DRIVER = opts.connection.driver ?? 'mysql';
+        if (opts.connection && Object.keys(opts.connection).length) {
+            if (typeof opts.connection.driver === 'function') {
+                this.CONNECTED_POOL = opts.connection;
+                this.DRIVER = opts.connection.driver();
+            } else {
+                this.CONNECTED_POOL = DB.getConnection(opts.connection);
+                this.DRIVER = opts.connection.driver ?? 'mysql';
+            }
         }
 
         if(this.DRIVER === 'mongodb') {
@@ -734,7 +740,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .whereQuery(query => {
             return query
             .where('status','pending')
-            .whereNull('locked_at')
             .where('available_at', '<=', this.$utils.timestamp())
         })
         .latest('priority')
@@ -751,7 +756,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             .whereQuery(query => {
                 return query
                 .where('status','pending')
-                .whereNull('locked_at')
                 .where('delay_ms', '>', 0)
                 .where('created_at', '<=', this.$utils.timestamp())
             })
@@ -805,7 +809,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 payload : this._safeJsonParse(job.payload),
                 __job   : job
             }))
-        }, { pool : this.CONNECTION! })
+        }, { pool : this.CONNECTED_POOL! })
     }
 
     private async _flushBuffer() {
@@ -962,7 +966,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     .save();
 
                     return worker;
-                }, { pool : this.CONNECTION! });
+                }, { pool : this.CONNECTED_POOL! });
 
                 if (inserted) {
                     insertedJobds.push(inserted);
@@ -1048,7 +1052,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             force   : true, 
             index   : true, 
             unique  : true,
-            foreign : true,
+            foreign : this.DRIVER === 'sqlite' ? false : true,
         })
         .catch(() => null);
 

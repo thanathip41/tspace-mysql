@@ -8,7 +8,8 @@ import type {
 
 import { 
     TConnectionOptions, 
-    TDriver 
+    TDriver, 
+    TPoolConnected
 } from "../../types";
 
 export type JobInternal = Job & {
@@ -48,7 +49,7 @@ export type QueueInit = {
         interval ?: number;
         statuses ?: JobStatus[];
     };
-    connection       ?: TConnectionOptions
+    connection       ?: TConnectionOptions | TPoolConnected
 }
 
 export type QueueAddOptions = {
