@@ -435,6 +435,14 @@ export declare namespace T {
         }>
     > = K extends keyof C ? C[K] : any;
 
+    type SchemaTypeOf<
+        M extends Model<any, any, any>,
+        C extends T.ColumnOptions<M> = T.ColumnOptions<M, { 
+            InputQuery : false; 
+            Default    : false;
+        }>
+    > = C;
+
     type ColumnTypeOf<
         M extends Model<any, any, any>,
         K extends T.ColumnKeys<M>,
