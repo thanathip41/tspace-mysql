@@ -600,6 +600,7 @@ class RepositoryFactory<
 
     if (instance == null) throw new Error("The instance is not initialized");
 
+    //@ts-ignore
     return await instance.toArray(column);
   }
 
