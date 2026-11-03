@@ -181,6 +181,20 @@ export abstract class QueryBuilder {
     this.$state = state;
   }
 
+  protected abstract bindJoin(values: string[]): string | null;
+  protected abstract bindWhere(values: string[]): string | null;
+  protected abstract bindOrderBy(values: string[]): string | null;
+  protected abstract bindGroupBy(values: string[]): string | null;
+  protected abstract bindSelect(values: string[]): string;
+  protected abstract bindFrom(args: {
+    from: string[];
+    alias: string | null;
+    rawAlias: string | null;
+  }): string;
+  protected abstract bindLimit(limit: string | number | null): string;
+  protected abstract bindOffset(offset: string | number | null): string;
+  protected abstract bindHaving(having: string): string;
+
   public abstract select(): string;
   public abstract insert(): string;
   public abstract update(): string;
@@ -440,20 +454,5 @@ export abstract class QueryBuilder {
   public abstract dropView(name: string): string;
 
   public abstract random() : string;
-  
-  protected abstract bindJoin(values: string[]): string | null;
-  protected abstract bindWhere(values: string[]): string | null;
-  protected abstract bindOrderBy(values: string[]): string | null;
-  protected abstract bindGroupBy(values: string[]): string | null;
-  protected abstract bindSelect(
-    values: string[]
-  ): string;
-  protected abstract bindFrom(args: {
-    from: string[];
-    alias: string | null;
-    rawAlias: string | null;
-  }): string;
-  protected abstract bindLimit(limit: string | number | null): string;
-  protected abstract bindOffset(offset: string | number | null): string;
-  protected abstract bindHaving(having: string): string;
+
 }

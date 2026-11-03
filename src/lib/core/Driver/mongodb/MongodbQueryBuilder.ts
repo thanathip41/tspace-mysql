@@ -10,6 +10,238 @@ export class MongodbQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {
     super(state);
   }
+
+  protected bindJoin(values: string[]) {
+    return "";
+  }
+
+  protected bindWhere(values: any[]) {
+    return "";
+  }
+
+  protected bindOrderBy(values: string[]) {
+    
+    return ``;
+  }
+
+  protected bindGroupBy(values: string[]) {
+    return ``;
+  }
+
+  protected bindSelect(
+    values: string[]
+  ) {
+
+    
+    return ``;
+  }
+
+  protected bindFrom({
+    from,
+    alias,
+    rawAlias,
+  }: {
+    from: string[];
+    alias: string | null;
+    rawAlias: string | null;
+  }) {
+  
+    return ``;
+  }
+
+  protected bindLimit(limit: string | number | null) {
+  
+    return ``;
+  }
+
+  protected bindOffset(offset: string | number | null) {
+    return ``;
+  }
+
+  protected bindHaving(having: string | null) {
+    return ``;
+  }
+
+  protected bindRowLevelLock(mode: "FOR_UPDATE" | "FOR_SHARE" | null) {
+    
+    return '';
+  }
+
+  private _objectId () {
+  
+      const timestamp = Math.floor(Date.now() / 1000)
+      .toString(16)
+      .padStart(8, '0');
+  
+      const random = Array.from({ length: 10 }, () =>
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+  
+      const counter = Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, '0');
+  
+      return timestamp + random + counter;
+  };
+
+  private _parseWheres = (wheres: TStateWhereCondition[] = []) => {
+
+    const normalizeColumn = (column: string = '') => {
+      const clean = column.replace(/`/g, '');
+      return clean.split('.').pop() || '';
+    };
+      
+    const parseValue = (value: any): any => {
+      if (Array.isArray(value)) return value.map(parseValue);
+
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        const unquoted = trimmed.replace(/^'+|'+$/g, '');
+
+        if (!isNaN(Number(unquoted))) return Number(unquoted);
+        if (unquoted.toLowerCase() === 'true') return true;
+        if (unquoted.toLowerCase() === 'false') return false;
+
+        return unquoted;
+      }
+
+      return value;
+    };
+
+    const likeToRegex = (value: any): string => {
+      const v = parseValue(value);
+      return '^' + v.replace(/%/g, '.*').replace(/_/g, '.') + '$';
+    };
+
+    const buildCondition = (w: TStateWhereCondition): any => {
+      const field = normalizeColumn(w.column ?? '');
+      const op = (w.operator || '=').toUpperCase();
+      const val = w.value;
+
+      const baseCondition = (() => {
+        switch (op) {
+          case '=':
+            return { [field]: parseValue(val) };
+
+          case '!=':
+          case '<>':
+            return { [field]: { $ne: parseValue(val) } };
+
+          case '>':
+            return { [field]: { $gt: parseValue(val) } };
+
+          case '>=':
+            return { [field]: { $gte: parseValue(val) } };
+
+          case '<':
+            return { [field]: { $lt: parseValue(val) } };
+
+          case '<=':
+            return { [field]: { $lte: parseValue(val) } };
+
+          case 'IN':
+            return { [field]: { $in: (val || []).map(parseValue) } };
+
+          case 'NOT IN':
+            return { [field]: { $nin: (val || []).map(parseValue) } };
+
+          case 'IS NULL':
+            return { [field]: null };
+
+          case 'IS NOT NULL':
+            return { [field]: { $ne: null } };
+
+          case 'BETWEEN':
+            if (!Array.isArray(val)) return {};
+            return {
+              [field]: {
+                $gte: parseValue(val[0]),
+                $lte: parseValue(val[1])
+              }
+            };
+
+          case 'LIKE':
+            return {
+              [field]: {
+                $regex: likeToRegex(val),
+                $options: 'i'
+              }
+            };
+
+          case 'NOT LIKE':
+            return {
+              [field]: {
+                $not: {
+                  $regex: likeToRegex(val),
+                  $options: 'i'
+                }
+              }
+            };
+
+          case 'EXISTS':
+            return { [field]: { $exists: Boolean(val) } };
+
+          default:
+            throw new Error(`Unsupported operator: ${op}`);
+        }
+      })();
+
+      if (w.nested && Array.isArray(w.nested)) {
+        const nestedGroup = buildGroup(w.nested);
+
+        const conditionType = (w.condition || this.$constants('AND')).toUpperCase();
+
+        if (conditionType === this.$constants('OR')) {
+          return {
+            $or: [baseCondition, nestedGroup]
+          };
+        }
+
+        return {
+          $and: [baseCondition, nestedGroup]
+        };
+      }
+
+      return baseCondition;
+    };
+
+    const buildGroup = (lists: TStateWhereCondition[] = []): any => {
+      if (!lists.length) return {};
+
+      const groups: any[] = [];
+
+      for (const w of lists) {
+        const cond = buildCondition(w);
+
+        if (!cond) continue;
+
+        const type = (w.condition || this.$constants('AND')).toUpperCase();
+
+        if (groups.length === 0) {
+          groups.push(cond);
+          continue;
+        }
+
+        if (type === this.$constants('OR')) {
+          const last = groups.pop();
+
+          groups.push({
+            $or: [last, cond]
+          });
+        } else {
+          const last = groups.pop();
+          groups.push({
+            $and: [last, cond]
+          });
+        }
+      }
+
+      return groups[0] || {};
+    };
+
+    return buildGroup(wheres);
+  };
+  
   public select = () => {
 
     let PIPELINE : any[] = []
@@ -709,236 +941,4 @@ export class MongodbQueryBuilder extends QueryBuilder {
     throw new Error("Method not implemented.")
     return ''
   }
-
-  protected bindJoin(values: string[]) {
-    return "";
-  }
-
-  protected bindWhere(values: any[]) {
-    return "";
-  }
-
-  protected bindOrderBy(values: string[]) {
-    
-    return ``;
-  }
-
-  protected bindGroupBy(values: string[]) {
-    return ``;
-  }
-
-  protected bindSelect(
-    values: string[]
-  ) {
-
-    
-    return ``;
-  }
-
-  protected bindFrom({
-    from,
-    alias,
-    rawAlias,
-  }: {
-    from: string[];
-    alias: string | null;
-    rawAlias: string | null;
-  }) {
-  
-    return ``;
-  }
-
-  protected bindLimit(limit: string | number | null) {
-  
-    return ``;
-  }
-
-  protected bindOffset(offset: string | number | null) {
-    return ``;
-  }
-
-  protected bindHaving(having: string | null) {
-    return ``;
-  }
-
-  protected bindRowLevelLock(mode: "FOR_UPDATE" | "FOR_SHARE" | null) {
-    
-    return '';
-  }
-
-  private _objectId () {
-  
-      const timestamp = Math.floor(Date.now() / 1000)
-      .toString(16)
-      .padStart(8, '0');
-  
-      const random = Array.from({ length: 10 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-  
-      const counter = Math.floor(Math.random() * 0xffffff)
-      .toString(16)
-      .padStart(6, '0');
-  
-      return timestamp + random + counter;
-  };
-
-  private _parseWheres = (wheres: TStateWhereCondition[] = []) => {
-
-    const normalizeColumn = (column: string = '') => {
-      const clean = column.replace(/`/g, '');
-      return clean.split('.').pop() || '';
-    };
-      
-    const parseValue = (value: any): any => {
-      if (Array.isArray(value)) return value.map(parseValue);
-
-      if (typeof value === 'string') {
-        const trimmed = value.trim();
-        const unquoted = trimmed.replace(/^'+|'+$/g, '');
-
-        if (!isNaN(Number(unquoted))) return Number(unquoted);
-        if (unquoted.toLowerCase() === 'true') return true;
-        if (unquoted.toLowerCase() === 'false') return false;
-
-        return unquoted;
-      }
-
-      return value;
-    };
-
-    const likeToRegex = (value: any): string => {
-      const v = parseValue(value);
-      return '^' + v.replace(/%/g, '.*').replace(/_/g, '.') + '$';
-    };
-
-    const buildCondition = (w: TStateWhereCondition): any => {
-      const field = normalizeColumn(w.column ?? '');
-      const op = (w.operator || '=').toUpperCase();
-      const val = w.value;
-
-      const baseCondition = (() => {
-        switch (op) {
-          case '=':
-            return { [field]: parseValue(val) };
-
-          case '!=':
-          case '<>':
-            return { [field]: { $ne: parseValue(val) } };
-
-          case '>':
-            return { [field]: { $gt: parseValue(val) } };
-
-          case '>=':
-            return { [field]: { $gte: parseValue(val) } };
-
-          case '<':
-            return { [field]: { $lt: parseValue(val) } };
-
-          case '<=':
-            return { [field]: { $lte: parseValue(val) } };
-
-          case 'IN':
-            return { [field]: { $in: (val || []).map(parseValue) } };
-
-          case 'NOT IN':
-            return { [field]: { $nin: (val || []).map(parseValue) } };
-
-          case 'IS NULL':
-            return { [field]: null };
-
-          case 'IS NOT NULL':
-            return { [field]: { $ne: null } };
-
-          case 'BETWEEN':
-            if (!Array.isArray(val)) return {};
-            return {
-              [field]: {
-                $gte: parseValue(val[0]),
-                $lte: parseValue(val[1])
-              }
-            };
-
-          case 'LIKE':
-            return {
-              [field]: {
-                $regex: likeToRegex(val),
-                $options: 'i'
-              }
-            };
-
-          case 'NOT LIKE':
-            return {
-              [field]: {
-                $not: {
-                  $regex: likeToRegex(val),
-                  $options: 'i'
-                }
-              }
-            };
-
-          case 'EXISTS':
-            return { [field]: { $exists: Boolean(val) } };
-
-          default:
-            throw new Error(`Unsupported operator: ${op}`);
-        }
-      })();
-
-      if (w.nested && Array.isArray(w.nested)) {
-        const nestedGroup = buildGroup(w.nested);
-
-        const conditionType = (w.condition || this.$constants('AND')).toUpperCase();
-
-        if (conditionType === this.$constants('OR')) {
-          return {
-            $or: [baseCondition, nestedGroup]
-          };
-        }
-
-        return {
-          $and: [baseCondition, nestedGroup]
-        };
-      }
-
-      return baseCondition;
-    };
-
-    const buildGroup = (lists: TStateWhereCondition[] = []): any => {
-      if (!lists.length) return {};
-
-      const groups: any[] = [];
-
-      for (const w of lists) {
-        const cond = buildCondition(w);
-
-        if (!cond) continue;
-
-        const type = (w.condition || this.$constants('AND')).toUpperCase();
-
-        if (groups.length === 0) {
-          groups.push(cond);
-          continue;
-        }
-
-        if (type === this.$constants('OR')) {
-          const last = groups.pop();
-
-          groups.push({
-            $or: [last, cond]
-          });
-        } else {
-          const last = groups.pop();
-          groups.push({
-            $and: [last, cond]
-          });
-        }
-      }
-
-      return groups[0] || {};
-    };
-
-    return buildGroup(wheres);
-  };
-  
 }

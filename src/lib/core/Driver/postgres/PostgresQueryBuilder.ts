@@ -12,6 +12,305 @@ export class PostgresQueryBuilder extends QueryBuilder {
   constructor(state: StateManager) {
     super(state);
   }
+
+  protected bindJoin(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return values.join(" ");
+  }
+
+  protected bindWhere(values: any[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    const serializeWhere = (wheres: TStateWhereCondition[]): string => {
+
+      const resolveValue = ({ operator , value }: { operator : string | null , value : any}) => {
+
+        let valueStr = '';
+
+        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
+          valueStr = `(${value.map((v) => v).join(',')})`;
+        } else if (
+          operator?.toUpperCase() === this.$constants('IS_NULL') ||
+          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
+        ) {
+          valueStr = '';
+        } else {
+          valueStr = `${value}`;
+        }
+
+        return valueStr
+      }
+
+      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
+   
+        const { column = '', operator = '' , condition , value , nested } = cond
+
+        if (nested && nested.length) {
+          const nestedSQL = nested
+          .map((c) => conditionToSQL(c))
+          .join(' ');
+
+          const valueStr = resolveValue({ operator, value });
+
+          if(!isFirst) {
+            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${valueStr} ${nestedSQL})`;
+          }
+
+          return `(${column} ${operator} ${valueStr} ${nestedSQL})`;
+        }
+
+        const valueStr = resolveValue({ operator, value });
+
+        if(!isFirst) {
+          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
+        } 
+
+        return `${column} ${operator} ${valueStr}`.trim();
+      };
+
+      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
+    };
+
+    return `${this.$constants("WHERE")} ${serializeWhere(values)}`
+  }
+
+  protected bindOrderBy(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return `${this.$constants("ORDER_BY")} ${values
+      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
+      .join(", ")}`;
+  }
+
+  protected bindGroupBy(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return `${this.$constants("GROUP_BY")} ${values
+      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
+      .join(", ")}`;
+  }
+
+  protected bindSelect(values: string[]) {
+    
+    if (!values.length) {
+      return `${this.$constants("SELECT")} *`;
+    }
+
+    const findIndexStar = values.indexOf("*");
+
+    if (findIndexStar > -1) {
+      const removed = values.splice(findIndexStar, 1);
+      values.unshift(removed[0]);
+    }
+
+    const findIndexDistinct = values.findIndex(
+      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
+    );
+
+    if (findIndexDistinct > -1) {
+      const [distinct] = values.splice(findIndexDistinct, 1);
+      values.unshift(distinct);
+    }
+
+    return `${this.$constants("SELECT")} ${values.join(", ")}`;
+  }
+
+  protected bindFrom({
+    from,
+    alias,
+    rawAlias,
+  }: {
+    from: string[];
+    alias: string | null;
+    rawAlias: string | null;
+  }) {
+    if (!from.length || from.every((f) => f == null || f === "")) {
+      return "";
+    }
+
+    if (alias != null && alias !== "") {
+      if (rawAlias != null && rawAlias !== "") {
+        const raw = String(rawAlias)
+          .replace(/^\(\s*|\s*\)$/g, "")
+          .trim();
+        const normalizedRawAlias =
+          raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
+        raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
+
+        return `${this.$constants(
+          "FROM"
+        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
+      }
+
+      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
+        "AS"
+      )} \`${alias}\``;
+    }
+
+    return `${this.$constants("FROM")} ${from.join(", ")}`;
+  }
+
+  protected bindLimit(limit: string | number | null) {
+    if (limit === "" || limit == null) return "";
+
+    return `${this.$constants("LIMIT")} ${limit}`;
+  }
+
+  protected bindOffset(offset: string | number | null) {
+    if (offset === "" || offset == null) return "";
+
+    return `${this.$constants("OFFSET")} ${offset}`;
+  }
+
+  protected bindHaving(having: string | null) {
+    if(having == null || having === '') return "";
+    
+    return `${this.$constants("HAVING")} ${having}`;
+  }
+
+  protected bindRowLevelLock(rowLevelLock : {
+    mode       : "FOR_UPDATE" | "FOR_SHARE" | null,
+    skipLocked : boolean | null,
+    nowait     : boolean | null
+  }) {
+    
+    if(rowLevelLock.mode == null) return '';
+
+    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
+    ? this.$constants("ROW_LEVEL_LOCK").update
+    : this.$constants("ROW_LEVEL_LOCK").share
+
+    if(rowLevelLock.skipLocked) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
+    }
+
+    if(rowLevelLock.nowait) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
+    }
+
+    return modeLock;
+  }
+
+  private _formatedTypeAndAttributes({
+    table,
+    type,
+    attributes,
+    key,
+    changed
+  }: {
+    changed?: boolean;
+    table?: string;
+    type: string;
+    attributes: string[];
+    key: string;
+  }) {
+    let formatedType = type;
+    let formatedAttributes = attributes;
+    let raws : string | null = null;
+
+    if (type.startsWith("INT") && attributes.some((v) => v === "PRIMARY KEY")) {
+      formatedType = "SERIAL";
+      if(changed) {
+        formatedType = `INT USING "${key}"::INTEGER`;
+      }
+      formatedAttributes = attributes.filter((attr) => {
+        return !attr.startsWith("AUTO_INCREMENT");
+      });
+    }
+
+    if (type.startsWith("TINYINT")) {
+      formatedType = "SMALLINT";
+    }
+
+    if (type.startsWith("LONGTEXT") || type.startsWith("MEDIUMTEXT")) {
+      formatedType = "TEXT";
+    }
+
+    if (type.startsWith("ENUM")) {
+      const enums = type.replace("ENUM", "");
+
+      const totalLength = enums
+        .slice(1, -1)
+        .split(",")
+        .map((s) => s.replace(/'/g, ""))
+        .reduce((sum, item) => sum + item.length, 0);
+
+      formatedType = `VARCHAR(${totalLength}) CHECK (${key} IN ${enums})`;
+    }
+
+    if (changed && type.startsWith("ENUM")) {
+      const enums = type.replace("ENUM", "");
+
+      const totalLength = enums
+        .slice(1, -1)
+        .split(",")
+        .map((s) => s.replace(/'/g, ""))
+        .reduce((sum, item) => sum + item.length, 0);
+
+        const enumType = `${[singular(String(table?? '')),key].join('_')}`;
+
+        raws =  `
+          DO $$
+            DECLARE tname text;
+            BEGIN
+
+              SELECT t.TYPNAME
+              INTO tname
+              FROM PG_ATTRIBUTE a
+              JOIN PG_CLASS c ON c.OID = a.ATTRELID
+              JOIN PG_TYPE t ON t.OID = a.ATTTYPID
+              WHERE c.RELNAME = '${table}'
+                AND a.ATTNAME = '${key}'
+                AND a.ATTNUM > 0
+                AND t.TYPTYPE = 'e'
+              LIMIT 1;
+
+              IF tname IS NOT NULL THEN
+
+                ALTER TABLE ${table} 
+                ALTER COLUMN ${key} DROP DEFAULT;
+
+                ALTER TABLE ${table} 
+                ALTER COLUMN ${key} TYPE varchar(${totalLength});
+
+                EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(tname);
+
+              END IF;
+
+              DROP TYPE IF EXISTS ${enumType};
+              
+              CREATE TYPE ${enumType} AS ENUM ${enums};
+
+              ALTER TABLE ${table}
+              ALTER COLUMN ${key} DROP DEFAULT;
+
+              ALTER TABLE ${table}
+              ALTER COLUMN ${key} TYPE ${enumType}
+              USING ${key}::${enumType};
+
+            END
+          $$
+        `
+    }
+
+    if (type.startsWith("BOOLEAN")) {
+      formatedAttributes = attributes.map((attr) => {
+        if (attr.startsWith("DEFAULT")) {
+          return attr.replace(/\b0\b/, "false").replace(/\b1\b/, "true");
+        }
+
+        return attr;
+      });
+    }
+
+    return {
+      formatedType,
+      formatedAttributes,
+      raws
+    };
+  }
+  
   public select = (selectColumns ?: string[]) => {
     const combindSQL = [
       this.bindSelect(selectColumns ?? this.$state.get("SELECT")),
@@ -1204,303 +1503,5 @@ export class PostgresQueryBuilder extends QueryBuilder {
 
   public random() {
     return this.format(`RANDOM()`)
-  }
-
-  protected bindJoin(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return values.join(" ");
-  }
-
-  protected bindWhere(values: any[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    const serializeWhere = (wheres: TStateWhereCondition[]): string => {
-
-      const resolveValue = ({ operator , value }: { operator : string | null , value : any}) => {
-
-        let valueStr = '';
-
-        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
-          valueStr = `(${value.map((v) => v).join(',')})`;
-        } else if (
-          operator?.toUpperCase() === this.$constants('IS_NULL') ||
-          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
-        ) {
-          valueStr = '';
-        } else {
-          valueStr = `${value}`;
-        }
-
-        return valueStr
-      }
-
-      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
-   
-        const { column = '', operator = '' , condition , value , nested } = cond
-
-        if (nested && nested.length) {
-          const nestedSQL = nested
-          .map((c) => conditionToSQL(c))
-          .join(' ');
-
-          const valueStr = resolveValue({ operator, value });
-
-          if(!isFirst) {
-            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${valueStr} ${nestedSQL})`;
-          }
-
-          return `(${column} ${operator} ${valueStr} ${nestedSQL})`;
-        }
-
-        const valueStr = resolveValue({ operator, value });
-
-        if(!isFirst) {
-          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
-        } 
-
-        return `${column} ${operator} ${valueStr}`.trim();
-      };
-
-      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
-    };
-
-    return `${this.$constants("WHERE")} ${serializeWhere(values)}`
-  }
-
-  protected bindOrderBy(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return `${this.$constants("ORDER_BY")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(", ")}`;
-  }
-
-  protected bindGroupBy(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return `${this.$constants("GROUP_BY")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(", ")}`;
-  }
-
-  protected bindSelect(values: string[]) {
-    
-    if (!values.length) {
-      return `${this.$constants("SELECT")} *`;
-    }
-
-    const findIndexStar = values.indexOf("*");
-
-    if (findIndexStar > -1) {
-      const removed = values.splice(findIndexStar, 1);
-      values.unshift(removed[0]);
-    }
-
-    const findIndexDistinct = values.findIndex(
-      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
-    );
-
-    if (findIndexDistinct > -1) {
-      const [distinct] = values.splice(findIndexDistinct, 1);
-      values.unshift(distinct);
-    }
-
-    return `${this.$constants("SELECT")} ${values.join(", ")}`;
-  }
-
-  protected bindFrom({
-    from,
-    alias,
-    rawAlias,
-  }: {
-    from: string[];
-    alias: string | null;
-    rawAlias: string | null;
-  }) {
-    if (!from.length || from.every((f) => f == null || f === "")) {
-      return "";
-    }
-
-    if (alias != null && alias !== "") {
-      if (rawAlias != null && rawAlias !== "") {
-        const raw = String(rawAlias)
-          .replace(/^\(\s*|\s*\)$/g, "")
-          .trim();
-        const normalizedRawAlias =
-          raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
-        raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
-
-        return `${this.$constants(
-          "FROM"
-        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
-      }
-
-      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
-        "AS"
-      )} \`${alias}\``;
-    }
-
-    return `${this.$constants("FROM")} ${from.join(", ")}`;
-  }
-
-  protected bindLimit(limit: string | number | null) {
-    if (limit === "" || limit == null) return "";
-
-    return `${this.$constants("LIMIT")} ${limit}`;
-  }
-
-  protected bindOffset(offset: string | number | null) {
-    if (offset === "" || offset == null) return "";
-
-    return `${this.$constants("OFFSET")} ${offset}`;
-  }
-
-  protected bindHaving(having: string | null) {
-    if(having == null || having === '') return "";
-    
-    return `${this.$constants("HAVING")} ${having}`;
-  }
-
-  protected bindRowLevelLock(rowLevelLock : {
-    mode       : "FOR_UPDATE" | "FOR_SHARE" | null,
-    skipLocked : boolean | null,
-    nowait     : boolean | null
-  }) {
-    
-    if(rowLevelLock.mode == null) return '';
-
-    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
-    ? this.$constants("ROW_LEVEL_LOCK").update
-    : this.$constants("ROW_LEVEL_LOCK").share
-
-    if(rowLevelLock.skipLocked) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
-    }
-
-    if(rowLevelLock.nowait) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
-    }
-
-    return modeLock;
-  }
-
-  private _formatedTypeAndAttributes({
-    table,
-    type,
-    attributes,
-    key,
-    changed
-  }: {
-    changed?: boolean;
-    table?: string;
-    type: string;
-    attributes: string[];
-    key: string;
-  }) {
-    let formatedType = type;
-    let formatedAttributes = attributes;
-    let raws : string | null = null;
-
-    if (type.startsWith("INT") && attributes.some((v) => v === "PRIMARY KEY")) {
-      formatedType = "SERIAL";
-      if(changed) {
-        formatedType = `INT USING "${key}"::INTEGER`;
-      }
-      formatedAttributes = attributes.filter((attr) => {
-        return !attr.startsWith("AUTO_INCREMENT");
-      });
-    }
-
-    if (type.startsWith("TINYINT")) {
-      formatedType = "SMALLINT";
-    }
-
-    if (type.startsWith("LONGTEXT") || type.startsWith("MEDIUMTEXT")) {
-      formatedType = "TEXT";
-    }
-
-    if (type.startsWith("ENUM")) {
-      const enums = type.replace("ENUM", "");
-
-      const totalLength = enums
-        .slice(1, -1)
-        .split(",")
-        .map((s) => s.replace(/'/g, ""))
-        .reduce((sum, item) => sum + item.length, 0);
-
-      formatedType = `VARCHAR(${totalLength}) CHECK (${key} IN ${enums})`;
-    }
-
-    if (changed && type.startsWith("ENUM")) {
-      const enums = type.replace("ENUM", "");
-
-      const totalLength = enums
-        .slice(1, -1)
-        .split(",")
-        .map((s) => s.replace(/'/g, ""))
-        .reduce((sum, item) => sum + item.length, 0);
-
-        const enumType = `${[singular(String(table?? '')),key].join('_')}`;
-
-        raws =  `
-          DO $$
-            DECLARE tname text;
-            BEGIN
-
-              SELECT t.TYPNAME
-              INTO tname
-              FROM PG_ATTRIBUTE a
-              JOIN PG_CLASS c ON c.OID = a.ATTRELID
-              JOIN PG_TYPE t ON t.OID = a.ATTTYPID
-              WHERE c.RELNAME = '${table}'
-                AND a.ATTNAME = '${key}'
-                AND a.ATTNUM > 0
-                AND t.TYPTYPE = 'e'
-              LIMIT 1;
-
-              IF tname IS NOT NULL THEN
-
-                ALTER TABLE ${table} 
-                ALTER COLUMN ${key} DROP DEFAULT;
-
-                ALTER TABLE ${table} 
-                ALTER COLUMN ${key} TYPE varchar(${totalLength});
-
-                EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(tname);
-
-              END IF;
-
-              DROP TYPE IF EXISTS ${enumType};
-              
-              CREATE TYPE ${enumType} AS ENUM ${enums};
-
-              ALTER TABLE ${table}
-              ALTER COLUMN ${key} DROP DEFAULT;
-
-              ALTER TABLE ${table}
-              ALTER COLUMN ${key} TYPE ${enumType}
-              USING ${key}::${enumType};
-
-            END
-          $$
-        `
-    }
-
-    if (type.startsWith("BOOLEAN")) {
-      formatedAttributes = attributes.map((attr) => {
-        if (attr.startsWith("DEFAULT")) {
-          return attr.replace(/\b0\b/, "false").replace(/\b1\b/, "true");
-        }
-
-        return attr;
-      });
-    }
-
-    return {
-      formatedType,
-      formatedAttributes,
-      raws
-    };
   }
 }

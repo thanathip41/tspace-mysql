@@ -10,6 +10,187 @@ export class MysqlQueryBuilder extends QueryBuilder {
     super(state);
   }
 
+  
+  protected bindJoin(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return values.join(" ");
+  }
+
+  protected bindWhere(values: any[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    const serializeWhere = (wheres: TStateWhereCondition[]): string => {
+
+      const resolveValue = ({ operator , value }: { operator : string | null , value : any}) => {
+
+        let valueStr = '';
+
+        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
+          valueStr = `(${value.map((v) => v).join(',')})`;
+        } else if (
+          operator?.toUpperCase() === this.$constants('IS_NULL') ||
+          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
+        ) {
+          valueStr = '';
+        } else {
+          valueStr = `${value}`;
+        }
+
+        return valueStr
+      }
+
+      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
+   
+        const { column = '', operator = '' , condition , value , nested } = cond
+
+        if (nested && nested.length) {
+          const nestedSQL = nested
+          .map((c) => conditionToSQL(c))
+          .join(' ');
+
+          const valueStr = resolveValue({ operator, value });
+
+          if(!isFirst) {
+            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${valueStr} ${nestedSQL})`;
+          }
+
+          return `(${column} ${operator} ${valueStr} ${nestedSQL})`;
+        }
+
+        const valueStr = resolveValue({ operator, value });
+
+        if(!isFirst) {
+          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
+        } 
+
+        return `${column} ${operator} ${valueStr}`.trim();
+      };
+
+      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
+    };
+
+    return `${this.$constants("WHERE")} ${serializeWhere(values)}`
+  }
+
+  protected bindOrderBy(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return `${this.$constants("ORDER_BY")} ${values
+      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
+      .join(", ")}`;
+  }
+
+  protected bindGroupBy(values: string[]) {
+    if (!Array.isArray(values) || !values.length) return null;
+
+    return `${this.$constants("GROUP_BY")} ${values
+      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
+      .join(", ")}`;
+  }
+
+  protected bindSelect(values: string[]) {
+    
+    if (!values.length) {
+      return `${this.$constants("SELECT")} *`;
+    }
+
+    const findIndexStar = values.indexOf("*");
+
+    if (findIndexStar > -1) {
+      const removed = values.splice(findIndexStar, 1);
+      values.unshift(removed[0]);
+    }
+
+    const findIndexDistinct = values.findIndex(
+      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
+    );
+
+    if (findIndexDistinct > -1) {
+      const [distinct] = values.splice(findIndexDistinct, 1);
+      values.unshift(distinct);
+    }
+
+    return `${this.$constants("SELECT")} ${values.join(", ")}`;
+  }
+
+  protected bindFrom({
+    from,
+    alias,
+    rawAlias,
+  }: {
+    from: string[];
+    alias: string | null;
+    rawAlias: string | null;
+  }) {
+    
+    if (!from.length || from.every((f) => f == null || f === "")) {
+      return "";
+    }
+
+    if (alias != null && alias !== "") {
+      if (rawAlias != null && rawAlias !== "") {
+        const raw = String(rawAlias)
+          .replace(/^\(\s*|\s*\)$/g, "")
+          .trim();
+        const normalizedRawAlias =
+          raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
+        raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
+
+        return `${this.$constants(
+          "FROM"
+        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
+      }
+
+      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
+        "AS"
+      )} \`${alias}\``;
+    }
+
+    return `${this.$constants("FROM")} ${from.join(", ")}`;
+  }
+
+  protected bindLimit(limit: string | number | null) {
+    if (limit === "" || limit == null) return "";
+
+    return `${this.$constants("LIMIT")} ${limit}`;
+  }
+
+  protected bindOffset(offset: string | number | null) {
+    if (offset === "" || offset == null) return "";
+
+    return `${this.$constants("OFFSET")} ${offset}`;
+  }
+
+  protected bindHaving(having: string | null) {
+    if(having == null || having === '') return "";
+    
+    return `${this.$constants("HAVING")} ${having}`;
+  }
+
+  protected bindRowLevelLock(rowLevelLock : {
+    mode       : "FOR_UPDATE" | "FOR_SHARE" | null,
+    skipLocked : boolean | null,
+    nowait     : boolean | null
+  }) {
+    
+    if(rowLevelLock.mode == null) return '';
+
+    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
+    ? this.$constants("ROW_LEVEL_LOCK").update
+    : this.$constants("ROW_LEVEL_LOCK").share
+
+    if(rowLevelLock.skipLocked) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
+    }
+
+    if(rowLevelLock.nowait) {
+      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
+    }
+
+    return modeLock;
+  }
+
   public select = () => {
     const combindSQL = [
       this.bindSelect(this.$state.get("SELECT")),
@@ -919,185 +1100,5 @@ export class MysqlQueryBuilder extends QueryBuilder {
 
   public random() {
     return this.format(`RAND()`)
-  }
-
-  protected bindJoin(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return values.join(" ");
-  }
-
-  protected bindWhere(values: any[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    const serializeWhere = (wheres: TStateWhereCondition[]): string => {
-
-      const resolveValue = ({ operator , value }: { operator : string | null , value : any}) => {
-
-        let valueStr = '';
-
-        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
-          valueStr = `(${value.map((v) => v).join(',')})`;
-        } else if (
-          operator?.toUpperCase() === this.$constants('IS_NULL') ||
-          operator?.toUpperCase() === this.$constants('IS_NOT_NULL')
-        ) {
-          valueStr = '';
-        } else {
-          valueStr = `${value}`;
-        }
-
-        return valueStr
-      }
-
-      const conditionToSQL = (cond: TStateWhereCondition, isFirst: boolean = false): string => {
-   
-        const { column = '', operator = '' , condition , value , nested } = cond
-
-        if (nested && nested.length) {
-          const nestedSQL = nested
-          .map((c) => conditionToSQL(c))
-          .join(' ');
-
-          const valueStr = resolveValue({ operator, value });
-
-          if(!isFirst) {
-            return `${condition ?? this.$constants('AND')} (${column} ${operator} ${valueStr} ${nestedSQL})`;
-          }
-
-          return `(${column} ${operator} ${valueStr} ${nestedSQL})`;
-        }
-
-        const valueStr = resolveValue({ operator, value });
-
-        if(!isFirst) {
-          return `${condition ?? this.$constants('AND')} ${column} ${operator} ${valueStr}`.trim();
-        } 
-
-        return `${column} ${operator} ${valueStr}`.trim();
-      };
-
-      return wheres.map((cond, i) => conditionToSQL(cond, !i)).join(' ');
-    };
-
-    return `${this.$constants("WHERE")} ${serializeWhere(values)}`
-  }
-
-  protected bindOrderBy(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return `${this.$constants("ORDER_BY")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(", ")}`;
-  }
-
-  protected bindGroupBy(values: string[]) {
-    if (!Array.isArray(values) || !values.length) return null;
-
-    return `${this.$constants("GROUP_BY")} ${values
-      .map((v) => v.replace(/^\s/, "").replace(/\s+/g, " "))
-      .join(", ")}`;
-  }
-
-  protected bindSelect(values: string[]) {
-    
-    if (!values.length) {
-      return `${this.$constants("SELECT")} *`;
-    }
-
-    const findIndexStar = values.indexOf("*");
-
-    if (findIndexStar > -1) {
-      const removed = values.splice(findIndexStar, 1);
-      values.unshift(removed[0]);
-    }
-
-    const findIndexDistinct = values.findIndex(
-      v => new RegExp(`^${this.$constants("DISTINCT")}\\s*\\(`, 'i').test(v)
-    );
-
-    if (findIndexDistinct > -1) {
-      const [distinct] = values.splice(findIndexDistinct, 1);
-      values.unshift(distinct);
-    }
-
-    return `${this.$constants("SELECT")} ${values.join(", ")}`;
-  }
-
-  protected bindFrom({
-    from,
-    alias,
-    rawAlias,
-  }: {
-    from: string[];
-    alias: string | null;
-    rawAlias: string | null;
-  }) {
-    
-    if (!from.length || from.every((f) => f == null || f === "")) {
-      return "";
-    }
-
-    if (alias != null && alias !== "") {
-      if (rawAlias != null && rawAlias !== "") {
-        const raw = String(rawAlias)
-          .replace(/^\(\s*|\s*\)$/g, "")
-          .trim();
-        const normalizedRawAlias =
-          raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
-        raw.startsWith("(") && raw.endsWith(")") ? raw.slice(1, -1) : raw;
-
-        return `${this.$constants(
-          "FROM"
-        )} (${normalizedRawAlias}) ${this.$constants("AS")} \`${alias}\``;
-      }
-
-      return `${this.$constants("FROM")} ${from.join(", ")} ${this.$constants(
-        "AS"
-      )} \`${alias}\``;
-    }
-
-    return `${this.$constants("FROM")} ${from.join(", ")}`;
-  }
-
-  protected bindLimit(limit: string | number | null) {
-    if (limit === "" || limit == null) return "";
-
-    return `${this.$constants("LIMIT")} ${limit}`;
-  }
-
-  protected bindOffset(offset: string | number | null) {
-    if (offset === "" || offset == null) return "";
-
-    return `${this.$constants("OFFSET")} ${offset}`;
-  }
-
-  protected bindHaving(having: string | null) {
-    if(having == null || having === '') return "";
-    
-    return `${this.$constants("HAVING")} ${having}`;
-  }
-
-  protected bindRowLevelLock(rowLevelLock : {
-    mode       : "FOR_UPDATE" | "FOR_SHARE" | null,
-    skipLocked : boolean | null,
-    nowait     : boolean | null
-  }) {
-    
-    if(rowLevelLock.mode == null) return '';
-
-    let modeLock = rowLevelLock.mode === "FOR_UPDATE"
-    ? this.$constants("ROW_LEVEL_LOCK").update
-    : this.$constants("ROW_LEVEL_LOCK").share
-
-    if(rowLevelLock.skipLocked) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").skipLocked}`
-    }
-
-    if(rowLevelLock.nowait) {
-      modeLock += ` ${this.$constants("ROW_LEVEL_LOCK").nowait}`
-    }
-
-    return modeLock;
   }
 }
