@@ -2391,7 +2391,6 @@ class Model<
         : `${this.$constants("DISTINCT")} ${select[0]}`;
     }
 
-    console.log(select)
     this.$state.set("SELECT", select);
 
     return this;
