@@ -522,7 +522,7 @@ export type TRepositoryUpdate<
   K extends T.ColumnKeys<M> = T.ColumnKeys<M>,
   C extends T.InputOptions<M> = T.InputOptions<M>,
 > = {
-  data: TUpdateInput<K,C>[];
+  data: TUpdateInput<K,C>;
   where: T.WhereOptions<M>;
   debug?: boolean;
   transaction?: TConnection | TConnection;
