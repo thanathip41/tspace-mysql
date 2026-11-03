@@ -14,29 +14,53 @@ retries, priorities, and job inspection.
 - Idle / Wake Workers automatically go idle when no jobs are available, and wake up instantly when new jobs arrive.
 
 ```js
-import { Queue, Job } from 'tspace-mysql';
+import { Queue, Job , DB } from 'tspace-mysql';
 
+// Start the Queue worker
+await Queue.start({
+  inspect: true, // @default false - Enable queue workflow inspection
+  flush: true, // @default false - Remove all existing jobs before starting
+
+  hostname: 'pod1', // @default env.hostname - Worker hostname
+
+  maxIdleRetries: 8, // @default 5 - Maximum retries when no jobs are available
+
+  poll: {
+    enabled: true, // @default false - Enable periodic job polling
+    interval: 10_000, // @default 60_000 - Polling interval in milliseconds
+  },
+
+  cleanup: {
+    enabled: true, // @default false - Enable automatic job cleanup
+    interval: 10_000, // @default 60_000 - Cleanup interval in milliseconds
+    statuses: ['completed', 'failed'], // @default ['completed'] - Job statuses to delete
+  },
+
+  // By default, Queue uses the same database connection as your application.
+  // You can optionally provide a separate connection for Queue.
+
+  // Using a separate connection configuration:
+  connection: {
+    driver: 'sqlite',
+    database: 'app.db',
+  },
+
+  // Or reuse an existing database connection:
+  // connection: DB.getConnection({
+  //   driver: 'sqlite',
+  //   database: 'app.db',
+  // }),
+});
+
+const worker = 20;
+
+// register process send email 20
 const fakeSendEmail = async (job: Job) => {
   if(Math.random() < 0.5) throw new Error(`Failed job ${job.id}`)
   await new Promise<void>((ok) => setTimeout(ok, 2000));
   return `Send email Completed job ${job.id}`;
 }
 
-// start the Queue
-await Queue.start({ 
-  inspect  : true,    // @default false, enable queue workflow inspection
-  flush    : false,   // @default false, true -> remove all jobs
-  hostname : 'pod1',  // @default null, worker hostname
-  maxIdleRetries : 8, // @default 5, maximum retries when no jobs are available
-  poll : {            
-    enabled : true,   // @default false, enable periodic job checking
-    interval : 10_000  // @default 60_000, polling interval
-  };
-});  
-
-const worker = 20;
-
-// register process send email 20
 for(let i = 1; i <= worker; i++) {
 
   Queue.process(`send-email-(${i})`, async(job) => {
