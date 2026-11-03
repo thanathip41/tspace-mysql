@@ -2391,6 +2391,7 @@ class Model<
         : `${this.$constants("DISTINCT")} ${select[0]}`;
     }
 
+    console.log(select)
     this.$state.set("SELECT", select);
 
     return this;
@@ -2966,11 +2967,15 @@ class Model<
       return result == null ? await getResults(sql) : result;
     } catch (error: any) {
 
-      if (this.$state.get("DEBUG")) {
-        this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
+      if(this.$state.get("STOP_RETRY")) {
+        throw error;
       }
 
       if (this.$state.get("JOIN")?.length) throw error;
+
+      if (this.$state.get("DEBUG")) {
+        this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
+      }
 
       const retryCount = Number(this.$state.get("RETRY"));
 
