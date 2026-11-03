@@ -921,6 +921,10 @@ export class MariadbQueryBuilder extends QueryBuilder {
     return this.format(sql);
   }
 
+  public random() {
+    return this.format(`RAND()`)
+  }
+
   protected bindJoin(values: string[]) {
     if (!Array.isArray(values) || !values.length) return null;
 

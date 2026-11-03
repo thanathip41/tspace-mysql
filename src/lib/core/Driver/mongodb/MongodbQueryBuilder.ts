@@ -705,6 +705,11 @@ export class MongodbQueryBuilder extends QueryBuilder {
     return ''
   }
 
+  public random() {
+    throw new Error("Method not implemented.")
+    return ''
+  }
+
   protected bindJoin(values: string[]) {
     return "";
   }

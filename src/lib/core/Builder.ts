@@ -2139,9 +2139,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {this}
    */
   public random(): this {
+
     this.$state.set("ORDER_BY", [
       ...this.$state.get("ORDER_BY"),
-      `${this.$constants("RAND")}`,
+      `${this.getQueryBuilder().random()}`,
     ]);
 
     return this;

@@ -438,6 +438,8 @@ export abstract class QueryBuilder {
   }) : string;
 
   public abstract dropView(name: string): string;
+
+  public abstract random() : string;
   
   protected abstract bindJoin(values: string[]): string | null;
   protected abstract bindWhere(values: string[]): string | null;
