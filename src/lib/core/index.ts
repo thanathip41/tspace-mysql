@@ -7,7 +7,9 @@ import sql        from "./SqlLike";
 import Meta       from "./Meta";
 import View       from './View';
 import Queue      from "./Queue";
+import Audit      from "./Contracts/Audit";
 
+export { Audit }
 export { View }
 export { Meta };
 export { sql };

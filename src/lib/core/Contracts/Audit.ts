@@ -7,12 +7,13 @@ const schema = {
     uuid            : Blueprint.varchar(50).null(),
     model           : Blueprint.varchar(100).notNull(),
     query           : Blueprint.longText().notNull(),
-    event           : Blueprint.varchar(20).notNull(),
+    event           : Blueprint.enum('SELECTED','INSERTD','UPDATED','DELETED').default('SELECTED'),
     user_id         : Blueprint.int().notNull(),
     metadata        : Blueprint.json().null(),
     auditable_ids   : Blueprint.longText().null(),
     old_values      : Blueprint.json().null(),
     new_values      : Blueprint.json().null(),
+    changes         : Blueprint.json().null(),
     created_at      : Blueprint.timestamp().null(),
     updated_at      : Blueprint.timestamp().null(),
 };
@@ -96,7 +97,31 @@ class Audit extends Model<TS> {
             }
 
             if (updateRegex.test(sql)) {
-        
+
+                const getChanges = <T extends object>(
+                    oldData: T[],
+                    newData: T[],
+                    key: keyof T
+                ): Partial<T>[] => {
+                    const oldMap = new Map(oldData.map(item => [item[key], item]));
+
+                    return newData.flatMap(item => {
+                        const oldItem = oldMap.get(item[key]);
+
+                        if (!oldItem) return [];
+
+                        const changes = Object.fromEntries(
+                        Object.keys(item)
+                            .filter(k => !Object.is(oldItem[k as keyof T], item[k as keyof T]))
+                            .map(k => [k, item[k as keyof T]])
+                        );
+
+                        return Object.keys(changes).length
+                        ? [{ [key]: item[key], ...changes } as Partial<T>]
+                        : [];
+                    });
+                };
+
                 const values = await new Model()
                 .copyModel(instance, {
                     where: true,
@@ -134,6 +159,7 @@ class Audit extends Model<TS> {
                     new_values: changed.length
                     ? JSON.stringify(changed)
                     : null,
+                    changes : getChanges(values,changed,new Audit()['$state'].get('PRIMARY_KEY'))
                 })
                 .void()
                 .bind(instance['$pool'].get())
