@@ -1104,4 +1104,8 @@ export class MariadbQueryBuilder extends QueryBuilder {
   public random() {
     return this.format(`RAND()`)
   }
+
+  public whereJson(column: string, path: any) {
+    return this.format(`JSON_UNQUOTE(JSON_EXTRACT(${column}, '$.${path}'))`)
+  }
 }

@@ -1178,4 +1178,9 @@ export class SqliteQueryBuilder extends QueryBuilder {
   public random() {
     return this.format(`RANDOM()`)
   }
+
+  public whereJson(column: string, path: any) {
+    return this.format(`json_extract(${column}, '$.${path}')`)
+  }
+
 }

@@ -455,4 +455,6 @@ export abstract class QueryBuilder {
 
   public abstract random() : string;
 
+  public abstract whereJson(column: string, path: any) : string;
+
 }

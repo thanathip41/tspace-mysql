@@ -1504,4 +1504,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public random() {
     return this.format(`RANDOM()`)
   }
+
+  public whereJson(column: string, path: any) {
+    return this.format(`${column}->>'${path}'`)
+  }
 }

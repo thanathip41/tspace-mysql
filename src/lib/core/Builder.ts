@@ -983,11 +983,18 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     column: string,
     { key, value, operator }: { key: string; value: string; operator?: string }
   ): this {
+
+    const qb = this.getQueryBuilder();
+
+    const json = qb.whereJson(
+      this.bindColumn(String(column)),
+      key
+    )
     
     this.$state.set("WHERE", [
       ...this.$state.get("WHERE"),
       {
-        column : `${this.bindColumn(String(column))}->>'$.${key}'`,             
+        column : json,
         operator : `${operator == null ? "=" : operator.toLocaleUpperCase()}`,         
         value : `${this.$utils.formatQueryValue(value)}`
       }

@@ -941,4 +941,9 @@ export class MongodbQueryBuilder extends QueryBuilder {
     throw new Error("Method not implemented.")
     return ''
   }
+
+  public whereJson(column: string, path: any) {
+    throw new Error("Method not implemented.")
+    return ''
+  }
 }
