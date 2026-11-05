@@ -946,4 +946,9 @@ export class MongodbQueryBuilder extends QueryBuilder {
     throw new Error("Method not implemented.")
     return ''
   }
+
+  public version() {
+    throw new Error("Method not implemented.")
+    return ''
+  }
 }

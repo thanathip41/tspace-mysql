@@ -3749,10 +3749,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   }
 
   public async version(): Promise<string> {
-    const result = await this._queryStatement(
-      `${this.$constants("SELECT")} VERSION() as version`
-    );
-    return result[0].version;
+    const qb = this.getQueryBuilder();
+    const result = await this.rawQuery(qb.version());
+    return result[0]?.version ?? 'unknown';
   }
 
   /**

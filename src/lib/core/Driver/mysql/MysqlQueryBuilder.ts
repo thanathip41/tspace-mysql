@@ -1105,4 +1105,8 @@ export class MysqlQueryBuilder extends QueryBuilder {
   public whereJson(column: string, path: any) {
     return this.format(`JSON_UNQUOTE(JSON_EXTRACT(${column}, '$.${path}'))`)
   }
+
+  public version() {
+    return this.format(`SELECT VERSION() as version`)
+  }
 }

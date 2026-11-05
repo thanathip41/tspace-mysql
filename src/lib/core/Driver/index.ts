@@ -457,4 +457,6 @@ export abstract class QueryBuilder {
 
   public abstract whereJson(column: string, path: any) : string;
 
+  public abstract version() : string;
+
 }

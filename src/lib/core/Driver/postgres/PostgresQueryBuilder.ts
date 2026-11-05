@@ -1508,4 +1508,8 @@ export class PostgresQueryBuilder extends QueryBuilder {
   public whereJson(column: string, path: any) {
     return this.format(`${column}->>'${path}'`)
   }
+
+  public version() {
+    return this.format(`SELECT SPLIT_PART(CURRENT_SETTING('server_version'), ' ', 1) AS version`)
+  }
 }

@@ -1108,4 +1108,8 @@ export class MariadbQueryBuilder extends QueryBuilder {
   public whereJson(column: string, path: any) {
     return this.format(`JSON_UNQUOTE(JSON_EXTRACT(${column}, '$.${path}'))`)
   }
+
+  public version() {
+    return this.format(`SELECT SUBSTRING_INDEX(VERSION(), '-', 1) AS version`)
+  }
 }

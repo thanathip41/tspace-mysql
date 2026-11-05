@@ -1183,4 +1183,8 @@ export class SqliteQueryBuilder extends QueryBuilder {
     return this.format(`json_extract(${column}, '$.${path}')`)
   }
 
+  public version() {
+    return this.format(`SELECT sqlite_version() AS version`)
+  }
+
 }
