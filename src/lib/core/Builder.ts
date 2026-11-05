@@ -3725,7 +3725,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
     this.$state.set(
       "UPDATE",
       [
-        `${column} = ${column} + ${value}`
+        `${column} = ${column} + ${this.$utils.escape(value)}`
       ]
     );
 
@@ -3742,7 +3742,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
   public async decrement(column: string = "id", value: number = 1): Promise<any> {
     this.$state.set(
       "UPDATE", [
-        `${column} = ${column} - ${value}`,
+        `${column} = ${column} - ${this.$utils.escape(value)}`,
       ]
     );
     return await this._update(true);
