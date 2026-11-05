@@ -18,6 +18,7 @@ import type {
   TRelationsDecorator 
 } from "../decorator";
 
+
 export type TRepositorySelect<
   T = unknown,
   R = unknown,
@@ -40,37 +41,35 @@ export type TRepositorySelect<
               : M[K] extends Model
                 ? "*" | TRepositorySelect<any, unknown, M[K]>
                 : boolean
-            : K extends keyof TColumnsDecorator<M>
-              ? boolean
-              : boolean;
+            : boolean;
       }>
   : Partial<{
-      [K in TSchemaKeys<T> | TRelationKeys<R>]: K extends TRelationKeys<R>
-        ? K extends TRawStringQuery | `${string}.${string}`
+      [K in TSchemaKeys<T> | (unknown extends R ? never : TRelationKeys<R>)]: unknown extends R
+        ? K extends TSchemaKeys<T>
           ? boolean
-          : K extends `$${string & K}`
-            ? R extends Record<string, any>
-              ? boolean
-              : never
-            : R extends Record<string, any>
-              ? R[`$${string & K}`] extends (infer U)[]
-                ? U extends Model
-                  ?
-                      | "*"
-                      | TRepositorySelect<T.SchemaModel<U>, T.RelationModel<U>>
-                  : never
-                : R[`$${K & string}`] extends Model
-                  ?
-                      | "*"
-                      | TRepositorySelect<
-                          T.SchemaModel<R[`$${K & string}`]>,
-                          T.RelationModel<R[`$${K & string}`]>
-                        >
-                  : never
-              : never
-        : K extends keyof T
-          ? boolean
-          : never;
+          : never
+        : K extends TRelationKeys<R>
+          ? K extends TRawStringQuery | `${string}.${string}`
+            ? boolean
+            : K extends `$${string & K}`
+              ? R extends Record<string, any>
+                ? boolean
+                : never
+              : R extends Record<string, any>
+                ? R[`$${string & K}`] extends (infer U)[]
+                  ? U extends Model
+                    ? "*" | TRepositorySelect<T.SchemaModel<U>, T.RelationModel<U>>
+                    : never
+                  : R[`$${K & string}`] extends Model
+                    ? "*" | TRepositorySelect<
+                        T.SchemaModel<R[`$${K & string}`]>,
+                        T.RelationModel<R[`$${K & string}`]>
+                      >
+                    : never
+                : never
+          : K extends keyof T
+            ? boolean
+            : never;
     }>;
 
 export type TRepositoryExcept<

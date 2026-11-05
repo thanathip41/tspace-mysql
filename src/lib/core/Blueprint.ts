@@ -15,10 +15,12 @@ type ResolveType<T> =
   T extends StringConstructor ? string :
   T extends BooleanConstructor ? boolean :
   T extends DateConstructor ? Date :
-  T extends readonly (infer U)[] ? ResolveType<U>[] :
+  T extends readonly (infer U)[]
+      ? [U] extends [never] ? any[] : ResolveType<U>[]
+  :
   T extends Record<string, any>
-    ? { [K in keyof T]: ResolveType<T[K]> }
-    : never
+      ? { [K in keyof T]: ResolveType<T[K]> }
+  : never;
 
 /**
  * Class 'Blueprint' is used to make the schema for table
