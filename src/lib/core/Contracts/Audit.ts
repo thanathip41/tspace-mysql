@@ -10,7 +10,7 @@ const schema = {
     event           : Blueprint.enum('SELECTED','INSERTD','UPDATED','DELETED').default('SELECTED'),
     user_id         : Blueprint.int().notNull(),
     metadata        : Blueprint.json().null(),
-    auditable_ids   : Blueprint.longText().null(),
+    auditable_ids   : Blueprint.json().null(),
     old_values      : Blueprint.json().null(),
     new_values      : Blueprint.json().null(),
     changes         : Blueprint.json().null(),
@@ -19,8 +19,9 @@ const schema = {
 };
 
 type TS = T.Schema<typeof schema>
+type TR = T.Relation<{}>
 
-class Audit extends Model<TS> {
+class Audit extends Model<TS,TR> {
     protected boot(): void {
         this.useUUID();
         this.useSchema(schema);
