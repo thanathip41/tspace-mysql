@@ -3663,10 +3663,20 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
 
     this.$pool.set(connection);
 
-    this.$database = connection.database();
+    if(Object.hasOwn(connection,'primary')) {
 
-    this.$driver = connection.driver() as TDriver;
-   
+      const cluster = connection as unknown as TPoolCusterConnected;
+
+      this.$database =cluster.primary?.database();
+
+      this.$driver = cluster.primary?.driver()
+
+      return this;
+    }
+
+    this.$database = connection.database();
+    this.$driver = connection.driver()
+    
     return this;
   }
 
@@ -5837,6 +5847,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         }
 
         const node = this.$state.get('NODE');
+        
 
         if(node?.type === 'primary') {
           this.useNode('primary');
@@ -5877,9 +5888,9 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
           this.$constants("SELECT"),
           this.$constants("SHOW"),
           this.$constants("DESCRIBE")
-        ].includes(first) && !isRowLock;
+        ].includes(first);
 
-        if (isReaded) {
+        if (isReaded && !isRowLock) {
           
           const length = poolCluster.replicas.length ?? 0;
           const nodeIndex = Math.floor(Math.random() * length);
@@ -5890,7 +5901,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         }
 
         this.useNode('primary');
-
+        
         return poolCluster.primary.query(sql);
       },
       get: () => poolCluster,
@@ -5917,6 +5928,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         // Overriding only the local pool reference.
         if(poolCluster.primary == null) {
           const pool = poolCluster as unknown as TPoolConnected;
+
+          // Reset the node state when the primary node is unavailable,
+          // since it may have been set by the client.
+          this.$state.set('NODE', null);
           return  await pool.connection();
         }
 
@@ -6019,6 +6034,7 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         return await pool.connection()
       },
       query: async (sql: string) => {
+        console.log('hi! single pool!')
         return pool.query(sql);
       },
       get: () => pool,

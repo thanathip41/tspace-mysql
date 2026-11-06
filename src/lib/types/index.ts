@@ -363,6 +363,8 @@ type TClusterPool = {
         username: string;
     };
     on: (event: TPoolEvent, data: (r: any) => any) => void;
+    database: () => string;
+    driver : () => TDriver;
     queryBuilder: typeof QueryBuilder;
     query: (sql: string) => Promise<any[]>;
     connection: () => Promise<TConnection>;
