@@ -6034,7 +6034,6 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
         return await pool.connection()
       },
       query: async (sql: string) => {
-        console.log('hi! single pool!')
         return pool.query(sql);
       },
       get: () => pool,
