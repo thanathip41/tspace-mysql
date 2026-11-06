@@ -123,10 +123,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    */
   public rowLock(
     mode: "FOR_UPDATE" | "FOR_SHARE",
-     opts: {
-      skipLocked?: boolean
-      nowait?: boolean
-     } = {}
+    opts:
+    | { skipLocked: true; nowait?: false }
+    | { skipLocked?: false; nowait: true }
+    | { skipLocked?: false; nowait?: false } = {}
   ): this {
 
     if (!["FOR_UPDATE", "FOR_SHARE"].includes(mode)) {
@@ -166,10 +166,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {this} Returns the query builder instance for chaining.
    */
   public forUpdate(
-     opts: {
-      skipLocked?: boolean
-      nowait?: boolean
-     } = {}
+    opts:
+    | { skipLocked: true; nowait?: false }
+    | { skipLocked?: false; nowait: true }
+    | { skipLocked?: false; nowait?: false } = {}
   ): this {
 
     if (opts.skipLocked && opts.nowait) {
@@ -205,10 +205,10 @@ class Builder<TA extends TAction = null> extends AbstractBuilder {
    * @returns {this} Returns the query builder instance for chaining.
    */
   public forShare(
-     opts: {
-      skipLocked?: boolean
-      nowait?: boolean
-     } = {}
+    opts: 
+    | { skipLocked: true; nowait?: false }
+    | { skipLocked?: false; nowait: true }
+    | { skipLocked?: false; nowait?: false } = {}
   ): this {
 
     if (opts.skipLocked && opts.nowait) {
