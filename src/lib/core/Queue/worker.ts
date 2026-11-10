@@ -15,7 +15,6 @@ import type {
     State 
 } from "./types";
 
-
 const QUEUE_STATUS = {
     dispatch    : 'Dispatch',
     receive     : 'Receive',
@@ -37,10 +36,11 @@ const QUEUE_STATUS = {
 } as const;
 
 const STATUS = {
-    'pending' : 'pending',
-    'active' : 'active',
-    'completed': 'completed',
-    'failed': 'failed'
+    'pending'   : 'pending',
+    'active'    : 'active',
+    'sent'      : 'sent',
+    'completed' : 'completed',
+    'failed'    : 'failed'
 } as const
 
 const schema = {
@@ -73,6 +73,8 @@ const schema = {
     locked_at    : Blueprint.timestamp().null(),
 
     available_at : Blueprint.timestamp().notNull(),
+
+    sent_at      : Blueprint.timestamp().null(),
     completed_at : Blueprint.timestamp().null(),
     created_at   : Blueprint.timestamp().null(),
     updated_at   : Blueprint.timestamp().null()
@@ -561,6 +563,15 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         try {
 
+            await this.WorkerRepository()
+            .where('id', job.id)
+            .update({
+                status  : 'sent',
+                sent_at : this.$utils.timestamp()
+            })
+            .void()
+            .save()
+
             const result = await state.handler({
                 id      : job.id,
                 name    : job.name,
@@ -733,47 +744,45 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private async _findJobs(name: string, limit: number) {
 
         if (this.STOPPING) return [];
-        
+
         const availableJobs = await this.WorkerRepository()
         .select('id')
         .where('name', name)
-        .whereQuery(query => {
-            return query
-            .where('status','pending')
-            .where('available_at', '<=', this.$utils.timestamp())
-        })
+        .where('status','pending')
+        .where('available_at', '<=', this.$utils.timestamp())
         .latest('priority')
         .oldest('delay_ms')
         .oldest('id')
         .limit(limit)
-        .findMany()
+        .findMany();
 
         if(!availableJobs.length) {
             
             const incomingJobs = await this.WorkerRepository()
             .select('id','name','delay_ms')
             .where('name', name)
-            .whereQuery(query => {
-                return query
-                .where('status','pending')
-                .where('delay_ms', '>', 0)
-                .where('created_at', '<=', this.$utils.timestamp())
-            })
-            .findMany()
+            .where('status','pending')
+            .where('delay_ms', '>', 0)
+            .where('created_at', '<=', this.$utils.timestamp())
+            .findMany();
 
-            incomingJobs
-            .filter((job, index, arr) =>
-                arr.findIndex(v => v.delay_ms === job.delay_ms) === index
-            )
-            .forEach(job => {
+            const jobsByDelay = new Map<number, typeof incomingJobs[number]>();
+
+            for (const job of incomingJobs) {
+                if (!jobsByDelay.has(job.delay_ms)) {
+                    jobsByDelay.set(job.delay_ms, job);
+                }
+            }
+
+            for (const job of jobsByDelay.values()) {
                 setTimeout(() => {
                     this._wakeWorker(job.name);
                 }, job.delay_ms);
-            });
+            }
 
             return [];
         }
-
+        
         return await DB.transaction(async (trx) => {
 
             const jobs = await this.WorkerRepository({ onTrx : true })
@@ -797,15 +806,16 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 locked_at : this.$utils.timestamp(),
                 locked_by : this.HOSTNAME
             })
-            .void()
+            .forUpdate()
             .bind(trx)
             .limit(limit)
+            .void()
             .save()
 
             return (jobs ?? []).map((job) => ({
                 id      : job.id,
                 name    : job.name,
-                status  : job.status,
+                status  : 'active' as JobStatus,
                 payload : this._safeJsonParse(job.payload),
                 __job   : job
             }))
@@ -1065,44 +1075,49 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return;
     }
 
-    private async _getRunnableOrActiveJobs () {
+    private _getLockExpiredAt() {
+        return this.$utils.timestamp(new Date(+new Date() - (5 * 60 * 1000)));
+    }
 
-        const jobsToProcess = await this.WorkerRepository()
-        .select('id')
-        .whereIn('status',[
-            'pending',
-            'failed',
-            'active'
-        ])
-        .where('available_at', '<=', this.$utils.timestamp())
-        .findMany();
+    private async _getRunnableOrActiveJobs() {
+        
+        const names =  await DB.transaction(async (trx) => {
+            const now = this.$utils.timestamp();
 
-        await this.WorkerRepository()
-        .updateMany({
-            status : 'pending',
-            attempts : 0,
-            locked_at : null,
-            locked_by : null,
-        })
-        .whereIn('id',jobsToProcess.map(f => f.id))
-        .save();
+            const expiredJobs = await this.WorkerRepository()
+                .select('id')
+                .where('status', 'active')
+                .where('locked_at', '<=', this._getLockExpiredAt())
+                .forUpdate({ skipLocked: true })
+                .bind(trx)
+                .findMany();
 
-        const jobs = await this.WorkerRepository()
-        .select('name')
-        .where('status','pending')
-        .where('available_at', '<=', this.$utils.timestamp())
-        .groupBy('name')
-        .toArray('name');
+            if (expiredJobs.length) {
+                await this.WorkerRepository()
+                .updateMany({
+                    status: 'pending',
+                    locked_at: null,
+                    locked_by: null,
+                })
+                .whereIn('id', expiredJobs.map(v => v.id))
+                .forUpdate()
+                .bind(trx)
+                .void()
+                .save();
+            }
 
-        if (this.INSPECT_EXEC) {
-            console.log([
-                '\x1b[34mQueue:\x1b[0m',
-                '\x1b[32mPoll checked\x1b[0m',
-                `(${jobs.length} jobs)`,
-            ].join(' '));
-        };
+            const jobs = await this.WorkerRepository()
+            .select('id', 'name')
+            .where('status', 'pending')
+            .where('available_at', '<=', now)
+            .forUpdate({ skipLocked: true })
+            .bind(trx)
+            .get();
 
-        return jobs;
+            return [...new Set(jobs.map(v => v.name))];
+        }, { pool : this.CONNECTED_POOL! });
+
+        return names;
     }
 
     private _safeJsonParse(payload:any){
