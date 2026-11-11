@@ -160,7 +160,7 @@ class Audit extends Model<TS,TR> {
                     new_values: changed.length
                     ? JSON.stringify(changed)
                     : null,
-                    changes : getChanges(values,changed,new Audit()['$state'].get('PRIMARY_KEY'))
+                    changes : getChanges(values,changed,instance['$state'].get('PRIMARY_KEY'))
                 })
                 .void()
                 .bind(instance['$pool'].get())
