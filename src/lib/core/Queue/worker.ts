@@ -73,9 +73,9 @@ const schema = {
     locked_at    : Blueprint.timestamp().null(),
 
     available_at : Blueprint.timestamp().notNull(),
-
     sent_at      : Blueprint.timestamp().null(),
     completed_at : Blueprint.timestamp().null(),
+    
     created_at   : Blueprint.timestamp().null(),
     updated_at   : Blueprint.timestamp().null()
 };
@@ -95,6 +95,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private MAX_CONCURRENCY   = 100;
 
     private CONNECTED_POOL    = null as TPoolConnected | null;
+
+    private JOB_TIMERS        = new Map<string, Map<number, NodeJS.Timeout>>();
 
     private IDLE = {
         maxRetry   : 5,
@@ -356,7 +358,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return new Promise<void>((resolve, reject) => {
         
             const jobData = {
-                name,
+                name : name.slice(0, 255),
                 payload: payload == null ? null : this._safeJsonStringify(payload),
                 priority: opts.priority ?? 0,
                 attempts: 0,
@@ -743,84 +745,107 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private async _findJobs(name: string, limit: number) {
 
-        if (this.STOPPING) return [];
+        if (this.STOPPING || limit <= 0) return [];
 
-        const availableJobs = await this.WorkerRepository()
-        .select('id')
-        .where('name', name)
-        .where('status','pending')
-        .where('available_at', '<=', this.$utils.timestamp())
-        .latest('priority')
-        .oldest('delay_ms')
-        .oldest('id')
-        .limit(limit)
-        .findMany();
+        const now = this.$utils.timestamp();
 
-        if(!availableJobs.length) {
-            
-            const incomingJobs = await this.WorkerRepository()
-            .select('id','name','delay_ms')
-            .where('name', name)
-            .where('status','pending')
-            .where('delay_ms', '>', 0)
-            .where('created_at', '<=', this.$utils.timestamp())
-            .findMany();
+        const claimed = await DB.transaction(async (trx) => {
 
-            const jobsByDelay = new Map<number, typeof incomingJobs[number]>();
+            const jobs = await this.WorkerRepository({ onTrx: true })
+                .where('name', name)
+                .where('status', 'pending')
+                .where('available_at', '<=', now)
+                .latest('priority')
+                .oldest('delay_ms')
+                .oldest('id')
+                .limit(limit)
+                .forUpdate({ skipLocked: true })
+                .bind(trx)
+                .findMany();
 
-            for (const job of incomingJobs) {
-                if (!jobsByDelay.has(job.delay_ms)) {
-                    jobsByDelay.set(job.delay_ms, job);
-                }
+            if (!jobs.length || this.STOPPING) {
+                return [];
             }
 
-            for (const job of jobsByDelay.values()) {
-                setTimeout(() => {
+            await this.WorkerRepository({ onTrx: true })
+                .whereIn('id', jobs.map(v => v.id))
+                .where('status', 'pending')
+                .updateMany({
+                    status    : 'active',
+                    locked_at : now,
+                    locked_by : this.HOSTNAME
+                })
+                .bind(trx)
+                .void()
+                .save();
+
+            return jobs;
+
+        }, { pool: this.CONNECTED_POOL! });
+
+        if (!claimed.length) {
+
+            if (this.STOPPING) return [];
+
+            const incomingJobs = await this.WorkerRepository()
+                .select('name', 'available_at')
+                .where('name', name)
+                .where('status', 'pending')
+                .where('available_at', '>', now)
+                .findMany();
+
+            if (!incomingJobs.length || this.STOPPING) {
+                return [];
+            }
+
+            let timers = this.JOB_TIMERS.get(name);
+
+            if (!timers) {
+                timers = new Map<number, NodeJS.Timeout>();
+                this.JOB_TIMERS.set(name, timers);
+            }
+
+            for (const job of incomingJobs) {
+
+                const availableAt = +new Date(job.available_at);
+
+                if (timers.has(availableAt)) continue;
+
+                const delay = Math.max(0, availableAt - +new Date());
+
+                const timer = setTimeout(() => {
+
+                    if (timers!.get(availableAt) === timer) {
+                        timers!.delete(availableAt);
+                    }
+
+                    if (!timers!.size) {
+                        this.JOB_TIMERS.delete(name);
+                    }
+
+                    if (this.STOPPING) return;
+
                     this._wakeWorker(job.name);
-                }, job.delay_ms);
+
+                }, Math.min(delay, 2_147_483_647));
+
+                timer.unref();
+
+                timers.set(availableAt, timer);
             }
 
             return [];
         }
-        
-        return await DB.transaction(async (trx) => {
 
-            const jobs = await this.WorkerRepository({ onTrx : true })
-            .whereIn('id',availableJobs.map(v => v.id))
-            .latest('priority')
-            .oldest('delay_ms')
-            .oldest('id')
-            .limit(limit)
-            .forUpdate({ skipLocked : true })
-            .bind(trx)
-            .findMany()
-
-            if (!jobs.length) {
-                return [];
-            }
-
-            await this.WorkerRepository({ onTrx : true })
-            .whereIn('id',jobs.map(v => v.id))
-            .updateMany({
-                status    : 'active',
-                locked_at : this.$utils.timestamp(),
-                locked_by : this.HOSTNAME
-            })
-            .forUpdate()
-            .bind(trx)
-            .limit(limit)
-            .void()
-            .save()
-
-            return (jobs ?? []).map((job) => ({
-                id      : job.id,
-                name    : job.name,
-                status  : 'active' as JobStatus,
-                payload : this._safeJsonParse(job.payload),
-                __job   : job
-            }))
-        }, { pool : this.CONNECTED_POOL! })
+        return claimed.map(job => ({
+            id      : job.id,
+            name    : job.name,
+            status  : 'active' as JobStatus,
+            payload : this._safeJsonParse(job.payload),
+            __job   : job
+        }));
     }
+    
 
     private async _flushBuffer() {
 
