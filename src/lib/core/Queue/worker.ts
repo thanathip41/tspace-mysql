@@ -94,6 +94,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     private CONCURRENCY       = 1;
     private MAX_CONCURRENCY   = 100;
 
+    private LOCK_RECOVERY_MS   = 5 * 60 * 1000;
+
     private CONNECTED_POOL    = null as TPoolConnected | null;
 
     private JOB_TIMERS        = new Map<string, Map<number, NodeJS.Timeout>>();
@@ -179,6 +181,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         if(this.DRIVER === 'mongodb') {
             throw new Error('Queue is not supported for MongoDB. Use a different driver or disable queue features.');
+        }
+
+        if(opts.lockRecoveryMs) {
+            this.LOCK_RECOVERY_MS = opts.lockRecoveryMs
         }
 
         await this._initializeWorkers();
@@ -573,7 +579,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         state : State;
     }) {
 
-        const startTime = new Date().getTime();
+        const startTime = +new Date();
 
         if (this.INSPECT_EXEC) {
             console.log([
@@ -828,7 +834,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             for (const job of incomingJobs) {
 
-                const availableAt = +new Date(job.available_at);
+                const availableAt = +new Date(this.$utils.timestamp(job.available_at));
 
                 if (timers.has(availableAt)) continue;
 
@@ -1124,7 +1130,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     }
 
     private _getLockExpiredAt() {
-        return this.$utils.timestamp(new Date(+new Date() - (5 * 60 * 1000)));
+        return this.$utils.timestamp(new Date(+new Date() - (this.LOCK_RECOVERY_MS)));
     }
 
     private async _getRunnableOrActiveJobs() {
@@ -1142,24 +1148,24 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
             if (expiredJobs.length) {
                 await this.WorkerRepository()
-                .updateMany({
-                    status: 'pending',
-                    locked_at: null,
-                    locked_by: null,
-                })
-                .whereIn('id', expiredJobs.map(v => v.id))
-                .bind(trx)
-                .void()
-                .save();
+                    .updateMany({
+                        status: 'pending',
+                        locked_at: null,
+                        locked_by: null,
+                    })
+                    .whereIn('id', expiredJobs.map(v => v.id))
+                    .bind(trx)
+                    .void()
+                    .save();
             }
 
             const jobs = await this.WorkerRepository()
-            .select('id', 'name')
-            .where('status', 'pending')
-            .where('available_at', '<=', now)
-            .forUpdate({ skipLocked: true })
-            .bind(trx)
-            .get();
+                .select('id', 'name')
+                .where('status', 'pending')
+                .where('available_at', '<=', now)
+                .forUpdate({ skipLocked: true })
+                .bind(trx)
+                .get();
 
             return [...new Set(jobs.map(v => v.name))];
         }, { pool : this.CONNECTED_POOL! });

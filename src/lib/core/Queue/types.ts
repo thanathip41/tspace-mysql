@@ -40,6 +40,7 @@ export type QueueInit = {
     flush            ?: boolean; 
     hostname         ?: string;
     maxIdleRetries   ?: number;
+    lockRecoveryMs   ?: number;
     poll             ?: {
         enabled  ?: boolean;
         interval ?: number;
