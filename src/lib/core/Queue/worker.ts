@@ -150,13 +150,19 @@ export class Worker extends Model<T.Schema<typeof schema>> {
     }
 
     protected WorkerRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
+        const pool = this.CONNECTED_POOL;
         return new Worker()
-        .when(!onTrx && this.CONNECTED_POOL != null, (q) => q.bind(this.CONNECTED_POOL!))
+        .when(!onTrx && pool != null, 
+            (q) => q.bind(pool!)
+        )
     }
 
     protected WorkerLockRepository ({ onTrx = false }: { onTrx?: boolean } = {}) {
+        const pool = this.CONNECTED_POOL;
         return new WorkerLock()
-        .when(!onTrx && this.CONNECTED_POOL != null, (q) => q.bind(this.CONNECTED_POOL!))
+        .when(!onTrx && pool != null, 
+            (q) => q.bind(pool!)
+        )
     }
 
     public async initialize (opts: QueueInit = {}) {
@@ -253,10 +259,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         .count('id');
         
         await this.WorkerRepository()
-        .truncate({ force: true });
+        .truncate({ force: true , dropFK : true });
 
         await this.WorkerLockRepository()
-        .truncate({ force: true });
+        .truncate({ force: true , dropFK : true });
        
         if(this.INSPECT_EXEC) {
           console.log(`\x1b[34mQueue:\x1b[0m \x1b[31mFlush all jobs (${jobs} jobs)\x1b[0m`);
@@ -276,6 +282,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         const active    = await where(this.WorkerRepository()).where('status', 'active').count();
         const pending   = await where(this.WorkerRepository()).where('status', 'pending').count();
         const failed    = await where(this.WorkerRepository()).where('status', 'failed').count();
+        const sent      = await where(this.WorkerRepository()).where('status', 'sent').count();
         const total     = await where(this.WorkerRepository()).count();
 
         return {
@@ -284,6 +291,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             active,
             pending,
             failed,
+            sent
         }
     }
     
@@ -299,10 +307,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
         const map = new Map<string, {
             name: string;
-            completed: number;
-            active: number;
-            pending: number;
-            failed: number;
+            completed : number;
+            active    : number;
+            pending   : number;
+            failed    : number;
+            sent      : number;
         }>();
 
         for (const row of rows) {
@@ -313,10 +322,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if (!map.has(name)) {
                 map.set(name, {
                     name,
-                    completed: 0,
-                    active: 0,
-                    pending: 0,
-                    failed: 0,
+                    completed : 0,
+                    active    : 0,
+                    pending   : 0,
+                    failed    : 0,
+                    sent      : 0,
                 });
             }
 
@@ -329,6 +339,8 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             else if (status === 'pending') stats.pending = total;
             
             else if (status === 'failed') stats.failed = total;
+
+            else if (status === 'sent') stats.sent = total;
 
         }
 
@@ -358,16 +370,21 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return new Promise<void>((resolve, reject) => {
         
             const jobData = {
-                name : name.slice(0, 255),
-                payload: payload == null ? null : this._safeJsonStringify(payload),
-                priority: opts.priority ?? 0,
-                attempts: 0,
-                max_attempts: opts.maxAttempts ?? 3,
-                metadata: opts.metadata ? this._safeJsonStringify(opts.metadata) : null,
-                delay_ms: opts.delayMs ?? 0,
-                available_at: opts.delayMs ? new Date(Date.now() + opts.delayMs) : new Date(),
-                unique_key : opts.uniqueKey?.slice(0, 255) ?? null
-            } as T.Result<Worker>;
+                name         : name.slice(0, 255),
+                status       : 'pending',
+                payload      : payload == null ? null : this._safeJsonStringify(payload),
+                attempts     : 0,
+                max_attempts : opts.maxAttempts ?? 3,
+                priority     : opts.priority ?? 0,
+                delay_ms     : opts.delayMs ?? 0,
+                unique_key   : opts.uniqueKey?.slice(0, 255) ?? null,
+                metadata     : opts.metadata 
+                    ? this._safeJsonStringify(opts.metadata) 
+                    : null,
+                available_at : opts.delayMs 
+                    ? this.$utils.timestamp(new Date(Date.now() + opts.delayMs)) 
+                    : this.$utils.timestamp(new Date()),
+            } as T.InputOptions<Worker>;
 
             this.BUFFER.jobs.push({ jobData, resolve, reject });
 
@@ -463,7 +480,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             state.idle = 0;
             
             await Promise.all(
-                jobs.map(job => this._runJob(name, job, state))
+                jobs.map(job => this._runJob({ name, job, state }))
             );
 
             setImmediate(dispatch);
@@ -529,7 +546,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         );
     }
 
-    private async _runJob (name: string, job: JobInternal, state: State) {
+    private async _runJob ({ name, job, state } : {
+        name  : string; 
+        job   : JobInternal; 
+        state : State;
+    }) {
 
         state.running++
         this.ACTIVE_JOBS++
@@ -752,32 +773,32 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         const claimed = await DB.transaction(async (trx) => {
 
             const jobs = await this.WorkerRepository({ onTrx: true })
-                .where('name', name)
-                .where('status', 'pending')
-                .where('available_at', '<=', now)
-                .latest('priority')
-                .oldest('delay_ms')
-                .oldest('id')
-                .limit(limit)
-                .forUpdate({ skipLocked: true })
-                .bind(trx)
-                .findMany();
+            .where('name', name)
+            .where('status', 'pending')
+            .where('available_at', '<=', now)
+            .latest('priority')
+            .oldest('delay_ms')
+            .oldest('id')
+            .limit(limit)
+            .forUpdate({ skipLocked: true })
+            .bind(trx)
+            .findMany();
 
             if (!jobs.length || this.STOPPING) {
                 return [];
             }
 
             await this.WorkerRepository({ onTrx: true })
-                .whereIn('id', jobs.map(v => v.id))
-                .where('status', 'pending')
-                .updateMany({
-                    status    : 'active',
-                    locked_at : now,
-                    locked_by : this.HOSTNAME
-                })
-                .bind(trx)
-                .void()
-                .save();
+            .whereIn('id', jobs.map(v => v.id))
+            .where('status', 'pending')
+            .updateMany({
+                status    : 'active',
+                locked_at : now,
+                locked_by : this.HOSTNAME
+            })
+            .bind(trx)
+            .void()
+            .save();
 
             return jobs;
 
@@ -788,11 +809,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             if (this.STOPPING) return [];
 
             const incomingJobs = await this.WorkerRepository()
-                .select('name', 'available_at')
-                .where('name', name)
-                .where('status', 'pending')
-                .where('available_at', '>', now)
-                .findMany();
+            .select('name', 'available_at')
+            .where('name', name)
+            .where('status', 'pending')
+            .where('available_at', '>', now)
+            .findMany();
 
             if (!incomingJobs.length || this.STOPPING) {
                 return [];
@@ -920,13 +941,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             currentBatch.forEach(b => b.reject(error));
 
         } finally {
+           
             if (this.BUFFER.jobs.length) {
                 this._flushBuffer();
             }
         }
     }
 
-    private async _insertJobs (jobsToInsert : T.Result<Worker>[]) {
+    private async _insertJobs (jobsToInsert : T.InputOptions<Worker>[]) {
 
         const hasSomeUniqueKey = jobsToInsert.some(v => v.unique_key);
 
@@ -944,11 +966,11 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         }
 
         const insertedJobds : {
-            id:number;
-            name:string
+            id   : number;
+            name : string;
         }[] = [];
 
-        const uniqueJobsToInsert = jobsToInsert
+        const uniqueJobs = jobsToInsert
         .reduce<typeof jobsToInsert>((acc, job) => {
             if (
                 job.unique_key == null ||
@@ -963,7 +985,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
             return acc;
         },[]);
        
-        for (const job of uniqueJobsToInsert) {
+        for (const job of uniqueJobs) {
 
             if (!job.unique_key) {
                 
@@ -973,9 +995,10 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                 .stopRetry()
                 .save()
 
-                if (inserted) {
+                if(inserted) {
                     insertedJobds.push(inserted);
                 }
+
                 continue;
             } 
 
@@ -1125,7 +1148,6 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                     locked_by: null,
                 })
                 .whereIn('id', expiredJobs.map(v => v.id))
-                .forUpdate()
                 .bind(trx)
                 .void()
                 .save();

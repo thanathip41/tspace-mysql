@@ -73,7 +73,7 @@ export type QueueProcessOptions = {
 }
 
 export type BufferedJob = {
-  jobData : T.Result<Worker>;
+  jobData : T.InputOptions<Worker>;
   resolve : (value: any) => void;
   reject  : (reason?: any) => void;
 }
