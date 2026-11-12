@@ -2967,6 +2967,9 @@ class Model<
     } catch (error: any) {
 
       if(this.$state.get("STOP_RETRY")) {
+        if (this.$state.get("DEBUG")) {
+          this.$utils.consoleDebug(sql, false, this.$state.get("NODE"));
+        }
         throw error;
       }
 
@@ -3037,12 +3040,17 @@ class Model<
     } catch (error: unknown) {
 
       if(this.$state.get("STOP_RETRY")) {
+        if (this.$state.get("DEBUG")) {
+          this.$utils.consoleDebug(sql, false, this.$state.get("NODE"));
+        }
         throw error;
       }
       
       const retryCount = this.$state.get("RETRY");
 
-      if (this.$state.get("DEBUG")) this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
+      if (this.$state.get("DEBUG")) {
+        this.$utils.consoleDebug(sql, retry, this.$state.get("NODE"));
+      }
 
       if (this.$state.get("JOIN")?.length) throw error;
 
