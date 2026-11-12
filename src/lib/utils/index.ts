@@ -1,6 +1,10 @@
-import { Blueprint, T } from ".."
-import { CONSTANTS } from "../constants"
-import { TStateWhereCondition } from "../types"
+import { Blueprint, T }   from ".."
+import { CONSTANTS }      from "../constants"
+import { Config }         from "../config";
+import type { 
+    TStateWhereCondition 
+} from "../types"
+
 
 const typeOf = (data:any) => Object.prototype.toString.apply(data).slice(8, -1).toLocaleLowerCase() 
 
@@ -9,39 +13,34 @@ const isDate = (data:any) => {
     return false
 }
 
-const timestamp = (dateString ?: string | Date) => {
-    const d         = dateString == null ? new Date() : new Date(dateString)
-    const year      = d.getFullYear()
-    const month     = `0${(d.getMonth() + 1)}`.slice(-2)   
-    const date      = `0${(d.getDate())}`.slice(-2)
-    const hours     = `0${(d.getHours())}`.slice(-2)
-    const minutes   = `0${(d.getMinutes())}`.slice(-2)
-    const seconds   = `0${(d.getSeconds())}`.slice(-2)
+const timestamp = (dateString?: string | Date): T.DateTime => {
 
-    const ymd = `${[
-        year,
-        month,
-        date
-    ].join('-')}`
+    const d = dateString == null ? new Date() : new Date(dateString);
 
-    const his = `${[
-        hours,
-        minutes,
-        seconds
-    ].join(':')}`
-        
-    return `${ymd} ${his}` as T.DateTime
-}
+    const isLocal = Config.TIMEZONE === 'local';
 
-const date = (value ?: Date) => {
-    const d     = value == null ? new Date() : new Date(value)
-    const year  = d.getFullYear() ;
-    const month = `0${(d.getMonth() + 1)}`.slice(-2)   
-    const date  = `0${(d.getDate())}`.slice(-2)
-    const now   = `${year}-${month}-${date}`
-        
-    return now
-}
+    const year    = isLocal ? d.getFullYear() : d.getUTCFullYear();
+    const month   = `0${(isLocal ? d.getMonth() : d.getUTCMonth()) + 1}`.slice(-2);
+    const date    = `0${isLocal ? d.getDate() : d.getUTCDate()}`.slice(-2);
+    const hours   = `0${isLocal ? d.getHours() : d.getUTCHours()}`.slice(-2);
+    const minutes = `0${isLocal ? d.getMinutes() : d.getUTCMinutes()}`.slice(-2);
+    const seconds = `0${isLocal ? d.getSeconds() : d.getUTCSeconds()}`.slice(-2);
+
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}` as T.DateTime;
+};
+
+const date = (value?: Date): string => {
+
+    const d = value == null ? new Date() : new Date(value);
+
+    const isLocal = Config.TIMEZONE === 'local';
+
+    const year  = isLocal ? d.getFullYear() : d.getUTCFullYear();
+    const month = `0${(isLocal ? d.getMonth() : d.getUTCMonth()) + 1}`.slice(-2);
+    const date  = `0${isLocal ? d.getDate() : d.getUTCDate()}`.slice(-2);
+
+    return `${year}-${month}-${date}`;
+};
 
 const escape = (v : any, opts : { hard : boolean } = { hard : false }) => {
     

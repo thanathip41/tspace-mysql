@@ -1,5 +1,5 @@
 import { Package } from "../core/Package";
-import dotenv from "dotenv";
+import dotenv      from "dotenv";
 
 const resolveEnvPath = (customEnv?: string): string => {
   const NODE_ENV = customEnv ?? process.env?.NODE_ENV;
@@ -42,7 +42,7 @@ const rawEnv = {
   USERNAME         : ENV.DB_USERNAME ?? ENV.DB_USER ?? "",
   PASSWORD         : ENV.DB_PASSWORD ?? "",
   DATABASE         : ENV.DB_DATABASE,
-  CONNECTION_LIMIT : ENV.DB_CONNECTION_LIMIT ?? 10,
+  CONNECTION_LIMIT : ENV.DB_CONNECTION_LIMIT ?? 20,
 
   // for mysql only
   DATE_STRINGS: ENV.DB_DATE_STRINGS ?? false,
@@ -53,6 +53,7 @@ const rawEnv = {
   CACHE: ENV.DB_CACHE as "memory" | "db" | "redis",
   CONNECTION_ERROR: ENV.DB_CONNECTION_ERROR ?? false,
   CONNECTION_SUCCESS: ENV.DB_CONNECTION_SUCCESS ?? false,
+  TIMEZONE  : (ENV.DB_TIMEZONE ?? "local") as "utc" | "local"
 } as const;
 
 const parseEnv = <T extends object>(env: T): T => {
