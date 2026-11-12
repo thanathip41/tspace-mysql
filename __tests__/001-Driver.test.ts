@@ -10,7 +10,7 @@ chai.use(chaiJsonSchema)
 describe('Testing Driver', function () {
   /* ##################################################### */
 
-  it(`Driver: Using driver in ['mysql','postgres' ,'mariadb','mssql','sqlite'] ?`, 
+  it(`Driver: Using driver in ['mysql','postgres' ,'mariadb','sqlite'] ?`, 
   async function () {
 
     const driver = new DB().driver()

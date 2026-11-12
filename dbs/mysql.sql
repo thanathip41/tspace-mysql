@@ -1,7 +1,3 @@
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
 DROP VIEW IF EXISTS user_post_counts;
 DROP TABLE IF EXISTS post_user;
 DROP TABLE IF EXISTS posts;
@@ -102,6 +98,3 @@ INSERT INTO  `post_user` (id, uuid, user_id, post_id, created_at, updated_at, de
 (3, '0fd0c69a-e6fa-45ce-89b6-d60253e21e7e', 3, 3, '2025-08-03 00:56:36', '2025-08-03 00:56:36', NULL),
 (4, '0644fe0c-e93b-4e1e-9023-df14abff079b', 4, 4, '2025-08-03 00:56:36', '2025-08-03 00:56:36', NULL),
 (5, 'fecb47a2-1515-44c5-b448-1dc29f248374', 5, 5, '2025-08-03 00:56:36', '2025-08-03 00:56:36', NULL);
-
-COMMIT;
-
