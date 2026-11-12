@@ -734,6 +734,8 @@ class DB extends AbstractDB {
     } catch (err) {
       await trx.rollback();
       throw err;
+    } finally {
+      await trx.end();
     }
   }
 
