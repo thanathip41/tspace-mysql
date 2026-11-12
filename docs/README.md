@@ -85,6 +85,8 @@ DB_DATABASE = database
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = false
+ *  DB_TIMEZONE         = local  // local , utc
+ *  DB_CACHE            = memory // memory , db , redis
  */
 ```
 

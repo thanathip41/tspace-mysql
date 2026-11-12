@@ -224,6 +224,8 @@ DB_DATABASE = database
  *  DB_QUEUE_LIMIT      = 0
  *  DB_TIMEOUT          = 60000
  *  DB_DATE_STRINGS     = false
+ *  DB_TIMEZONE         = local  // local , utc
+ *  DB_CACHE            = memory // memory , db , redis
  */
 ```
 
@@ -4483,16 +4485,18 @@ await Queue.start({
 
   hostname: 'pod1', // @default env.hostname - Worker hostname
 
-  maxIdleRetries: 8, // @default 5 - Maximum retries when no jobs are available
+  maxIdleRetries: 5, // @default 5 - Maximum retries when no jobs are available
+
+  lockRecoveryMs: 300_000, // @default 300_000 (5 minutes) - Time before recovering jobs with expired locks
 
   poll: {
     enabled: true, // @default false - Enable periodic job polling
-    interval: 10_000, // @default 60_000 - Polling interval in milliseconds
+    interval: 60_000, // @default 60_000 - Polling interval in milliseconds
   },
 
   cleanup: {
     enabled: true, // @default false - Enable automatic job cleanup
-    interval: 10_000, // @default 60_000 - Cleanup interval in milliseconds
+    interval: 60_000, // @default 60_000 - Cleanup interval in milliseconds
     statuses: ['completed', 'failed'], // @default ['completed'] - Job statuses to delete
   },
 
