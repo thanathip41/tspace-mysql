@@ -1,6 +1,7 @@
 import { AbstractDB }   from "./Abstracts/AbstractDB";
 import { StateManager } from "./StateManager";
 import { Package }      from "../core/Package";
+import type { T }       from "./UtilityTypes";
 
 import Pool, { 
   PoolConnection 
@@ -17,6 +18,7 @@ import type {
   TFreezeStringQuery,
   TPoolEvent,
 } from "../types";
+
 
 /**
  * The 'DB' class is a component of the database system
@@ -1398,6 +1400,27 @@ class DB extends AbstractDB {
    */
   public static session () {
     return new this().session();
+  }
+
+  /**
+   * This 'timestamp' method is used to convert a date into a timestamp.
+   *
+   * @type {string | Date} dateString
+   * @returns {T.DateTime}
+   */
+  public timestamp (dateString?: string | Date): T.DateTime {
+    return this.$utils.timestamp(dateString);
+  }
+
+  /**
+   * This 'timestamp' method is used to convert a date into a timestamp.
+   *
+   * @static
+   * @type {string | Date} dateString
+   * @returns {T.DateTime}
+   */
+  public static timestamp (dateString?: string | Date) : T.DateTime {
+    return new this().timestamp(dateString);
   }
 
   private _initialDB() {
