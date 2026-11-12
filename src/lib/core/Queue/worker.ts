@@ -1072,7 +1072,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
 
     private async _pollWorkerJobs () {
 
-        const jobs = await this._getRunnableOrActiveJobs();
+        const jobs = await this._getRecoverableJobs();
 
         for(const job of jobs) {
             this._wakeWorker(job)
@@ -1120,7 +1120,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         })
         .catch(() => null);
 
-        const jobs = await this._getRunnableOrActiveJobs();
+        const jobs = await this._getRecoverableJobs();
 
         await Promise.all(
             jobs.map(job => this._wakeWorker(job))
@@ -1133,14 +1133,14 @@ export class Worker extends Model<T.Schema<typeof schema>> {
         return this.$utils.timestamp(new Date(+new Date() - (this.LOCK_RECOVERY_MS)));
     }
 
-    private async _getRunnableOrActiveJobs() {
+    private async _getRecoverableJobs() {
         
         const names =  await DB.transaction(async (trx) => {
             const now = this.$utils.timestamp();
 
             const expiredJobs = await this.WorkerRepository()
                 .select('id')
-                .where('status', 'active')
+                .whereIn('status', ['active','sent'])
                 .where('locked_at', '<=', this._getLockExpiredAt())
                 .forUpdate({ skipLocked: true })
                 .bind(trx)
@@ -1154,6 +1154,7 @@ export class Worker extends Model<T.Schema<typeof schema>> {
                         locked_by: null,
                     })
                     .whereIn('id', expiredJobs.map(v => v.id))
+                    .whereIn('status', ['active','sent'])
                     .bind(trx)
                     .void()
                     .save();
