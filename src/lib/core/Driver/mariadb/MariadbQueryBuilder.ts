@@ -25,7 +25,11 @@ export class MariadbQueryBuilder extends QueryBuilder {
 
         let valueStr = '';
 
-        if (operator?.toUpperCase() === this.$constants('IN') && Array.isArray(value)) {
+        if ((
+            operator?.toUpperCase() === this.$constants('IN') ||
+            operator?.toUpperCase() === this.$constants('NOT_IN')
+          ) && Array.isArray(value)
+        ) {
           valueStr = `(${value.map((v) => v).join(',')})`;
         } else if (
           operator?.toUpperCase() === this.$constants('IS_NULL') ||
